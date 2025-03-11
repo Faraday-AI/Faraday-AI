@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import logging
 from typing import Optional
 import tempfile
 import os
+from pathlib import Path
 
 from app.core.config import get_settings
 from app.services.openai_service import get_openai_service
@@ -20,11 +22,11 @@ from app.models.api import (
 )
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
-app = FastAPI(title=get_settings().APP_NAME)
+app = FastAPI(title="Faraday AI")
 
 # Add CORS middleware
 app.add_middleware(
@@ -35,21 +37,35 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/")
-async def root():
-    """Root endpoint."""
-    return {"message": "Microsoft Graph API Integration"}
+# Get the absolute path to the static directory
+static_dir = Path(__file__).parent / "static"
+images_dir = static_dir / "images"
 
-@app.post("/test")
-async def test():
+# Ensure directories exist
+static_dir.mkdir(exist_ok=True)
+images_dir.mkdir(exist_ok=True)
+
+# Mount the static directory
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+@app.get("/")
+async def read_root():
+    index_path = static_dir / "index.html"
+    if not index_path.exists():
+        return {"message": "Coming Soon - Faraday AI"}
+    return FileResponse(str(index_path))
+
+@app.get("/health")
+async def health_check():
     """Health check endpoint."""
-    return {"status": "success", "message": "Service is running"}
+    return {"status": "healthy", "message": "Service is running"}
 
 @app.get("/login")
 async def login(msgraph_service = Depends(get_msgraph_service)):
     """Initiate Microsoft Graph authentication."""
     try:
         auth_url = msgraph_service.get_auth_url()
+        logger.debug(f"Generated auth URL: {auth_url}")
         return RedirectResponse(url=auth_url)
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
@@ -61,10 +77,14 @@ async def callback(
     msgraph_service = Depends(get_msgraph_service)
 ) -> TokenResponse:
     """Handle Microsoft Graph authentication callback."""
-    result = await msgraph_service.get_token(code)
-    if result["status"] == "error":
-        raise HTTPException(status_code=400, detail=result["error"])
-    return TokenResponse(**result)
+    try:
+        result = await msgraph_service.get_token(code)
+        if result["status"] == "error":
+            raise HTTPException(status_code=400, detail=result["error"])
+        return TokenResponse(**result)
+    except Exception as e:
+        logger.error(f"Callback error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/me")
 async def get_user_info(
