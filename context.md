@@ -1,9 +1,9 @@
 # Current Development Context
 
 ## Project Overview
-- FastAPI backend service deployed on Render (https://microsoft-graph-2.onrender.com)
+- FastAPI backend service deployed on Render (https://faraday-ai.com)
 - Service intended to support a Custom GPT for K-12 PE, Health, and Driver's Ed teachers in Elizabeth Public Schools (EPS)
-- Repository: https://github.com/Farady-AI/Microsoft-Graph.git
+- Repository: https://github.com/Faraday-AI/Faraday-AI.git
 
 ## Recent Changes
 1. Added new endpoints:
@@ -21,7 +21,7 @@
 ## Current Issue
 Despite successful code push and Render deployment, the new endpoints are not accessible:
 ```powershell
-Invoke-WebRequest -Method POST -Uri "https://microsoft-graph-2.onrender.com/test"
+Invoke-WebRequest -Method POST -Uri "https://faraday-ai.com/test"
 # Returns 404 Not Found
 ```
 
@@ -49,7 +49,7 @@ Invoke-WebRequest -Method POST -Uri "https://microsoft-graph-2.onrender.com/test
 - GitHub authentication is confirmed working
 
 ## Render Configuration
-- Service Name: microsoft-graph-2
+- Service Name: faraday-ai
 - Deploy Command: `pip install -r requirements.txt`
 - Start Command: `gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 main:app`
 
@@ -62,7 +62,7 @@ Invoke-WebRequest -Method POST -Uri "https://microsoft-graph-2.onrender.com/test
 ## Testing Commands
 ```powershell
 # Test basic endpoint
-Invoke-WebRequest -Method POST -Uri "https://microsoft-graph-2.onrender.com/test"
+Invoke-WebRequest -Method POST -Uri "https://faraday-ai.com/test"
 
 # Test document generation
 $body = @{
@@ -72,7 +72,7 @@ $body = @{
     output_format = "docx"
 } | ConvertTo-Json
 
-Invoke-WebRequest -Method POST -Uri "https://microsoft-graph-2.onrender.com/generate-document" -Body $body -ContentType "application/json"
+Invoke-WebRequest -Method POST -Uri "https://faraday-ai.com/generate-document" -Body $body -ContentType "application/json"
 ```
 
 ## Steps to Run Locally
