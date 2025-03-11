@@ -1,0 +1,13 @@
+services:
+  - name: fastapi-service
+    type: web
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: MSCLIENTID
+        value: "your-client-id"
+      - key: MSCLIENTSECRET
+        value: "your-client-secret"
+      - key: MSTENANTID
+        value: "your-tenant-id"

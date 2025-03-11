@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: faraday-ai-beta
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 app.main:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.6
+      - key: APP_ENVIRONMENT
+        value: beta
+      - key: BETA_VERSION
+        value: 1.0.0
+      - key: DEPLOYMENT_STAGE
+        value: beta
+      - key: DEBUG
+        value: true
+      - key: MSCLIENTID
+        sync: false
+      - key: MSCLIENTSECRET
+        sync: false
+      - key: MSTENANTID
+        sync: false
+      - key: REDIRECT_URI
+        value: https://faraday-ai.com/auth/callback
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GPT_MODEL
+        value: gpt-4-turbo-preview
+      - key: MAX_TOKENS
+        value: 2000
+      - key: TEMPERATURE
+        value: 0.7
+      - key: ENABLE_TWILIO
+        value: true
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_FROM_NUMBER
+        sync: false
+      - key: TWILIO_VOICE_URL
+        value: https://faraday-ai.com/voice
+      - key: TWILIO_WEBHOOK_URL
+        value: https://faraday-ai.com/api/v1/twilio/webhook
+      - key: TWILIO_STATUS_CALLBACK
+        value: https://faraday-ai.com/api/v1/twilio/status
+      - key: ENABLE_GOOGLE_CLOUD
+        value: false
+      - key: SCOPE
+        value: User.Read Mail.Read Files.ReadWrite.All
