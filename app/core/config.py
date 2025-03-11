@@ -2,6 +2,7 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import Optional, List
 from enum import Enum
+from pydantic import Field
 
 class DistrictRole(str, Enum):
     TEACHER = "teacher"
@@ -24,11 +25,11 @@ class Settings(BaseSettings):
     REQUIRE_DISTRICT_EMAIL: bool = True
     
     # Microsoft Graph Settings
-    CLIENT_ID: str
-    CLIENT_SECRET: str
-    TENANT_ID: str
+    CLIENT_ID: str = Field(env='MSCLIENTID')
+    CLIENT_SECRET: str = Field(env='MSCLIENTSECRET')
+    TENANT_ID: str = Field(env='MSTENANTID')
     REDIRECT_URI: str
-    SCOPE: str
+    SCOPE: str = "User.Read Mail.Read Files.ReadWrite.All"
 
     # OpenAI Settings
     OPENAI_API_KEY: str
