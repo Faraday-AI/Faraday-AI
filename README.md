@@ -17,6 +17,20 @@ This API suite enables a specialized Custom GPT to assist educators by:
 ✅ **Email Integration:** Facilitates direct sharing of educational materials through Microsoft Graph API  
 ✅ **FERPA Compliance:** Ensures secure handling of educational data  
 ✅ **REST API:** Built with FastAPI and deployed on Render
+✅ **Twilio Integration:** Supports voice and messaging capabilities
+✅ **Google Cloud Translation:** Enables multilingual support
+
+## 🌐 Deployment & Access
+- **Main URL:** https://faraday-ai.com
+- **API Documentation:** https://faraday-ai.com/docs
+- **Development URL:** https://faraday-ai.onrender.com
+
+## 🔒 Security & Compliance
+- End-to-end encryption with SSL/TLS
+- Microsoft 365 OAuth2 authentication
+- Cloudflare DDoS protection
+- FERPA-compliant data handling
+- Secure credential management via Render environment variables
 
 ## 🎓 Key Capabilities
 
@@ -35,131 +49,79 @@ This API suite enables a specialized Custom GPT to assist educators by:
 - Differentiation strategy recommendations
 - Higher-order thinking questions based on Bloom's Taxonomy
 
-## Platform Vision
-Faraday AI is expanding to become a comprehensive AI-powered education platform that integrates:
-- Personalized learning
-- School security
-- Administrative automation
-- AI-driven decision-making tools
-
-### Beta Release - Physical Education Teacher Assistant
-Our initial beta release focuses on providing essential AI assistance to Physical Education teachers:
-
-#### Core Features
-- PE curriculum framework and lesson planning
-- Activity suggestions and assessment tracking
-- Student performance metrics
-- Health and safety guidelines integration
-- Mobile-friendly interface for gym/field use
-- Offline mode capabilities
-- Quick-access features for PE environment
-
-#### Teacher Tools
-- Class roster management
-- Activity logging and performance tracking
-- Assessment tools
-- Equipment inventory management
-- Lesson plan generation
-- Health monitoring tools
-- Injury prevention guidelines
-
-#### Documentation & Support
-- Comprehensive PE teacher user guide
-- Quick start documentation
-- Best practices for PE implementation
-- Troubleshooting resources
-
-### Implementation Phases
-
-#### Phase 1 - Core Platform (Current)
-- Basic learning infrastructure
-- Essential security features
-- Core administrative tools
-- Fundamental parent dashboard
-
-#### Phase 2 - Enhanced Learning & Security
-- AI-powered tutoring system
-- Peer-like AI avatars
-- Advanced security features
-- Enhanced parent dashboard
-
-#### Phase 3 - Administrative Automation
-- HR process automation
-- Financial management AI
-- District-wide analytics
-- Resource optimization
-
-#### Phase 4 - Advanced AI Features
-- Career mobility AI
-- Cross-school AI communication
-- Predictive analytics
-- District-wide decision support
-
-## 📂 Project Structure
-📦 project-root/
-├── 📄 main.py # FastAPI application
-├── 📄 requirements.txt # Dependencies for pip install
-├── 📄 gunicorn.conf.py # Gunicorn configuration
-├── 📄 render.yaml # Render deployment configuration
-├── 📄 .env # Environment variables (DO NOT COMMIT)
-├── 📄 README.md # Documentation
-└── 📂 Other files...
-
-## System Requirements
-- **Server:** 8+ cores, 16GB RAM minimum
-- **Storage:** SSD with 500GB+ free space
-- **Network:** 1Gbps dedicated connection
-- **Client Support:** 
-  - Modern web browsers (Chrome 90+, Firefox 88+, Safari 14+, Edge 90+)
-  - Mobile devices (iOS 14+, Android 10+)
-
-## Data Privacy & Compliance
-- FERPA compliant
-- End-to-end encryption
-- Regular security audits
-- Role-based access control
-- Data minimization practices
-
-## 🔰 Grants & Funding
-Faraday AI qualifies for several educational technology and research grants, particularly:
-- **SBIR (Small Business Innovation Research)**: Our innovative AI-powered educational platform aligns perfectly with SBIR's mission to support groundbreaking technological innovation.
-- **STTR (Small Business Technology Transfer)**: Our collaboration with Elizabeth Public Schools positions us well for this research-focused grant.
-
-Key qualifying factors:
-- Working prototype with PE Teacher Assistant
-- Direct school district partnership
-- Clear implementation and scaling strategy
-- Focus on measurable educational outcomes
-- Strong technical foundation with AI integration
-
-For detailed grant strategies and opportunities, see [GRANTS.md](GRANTS.md).
+## 📦 Dependencies
+Key dependencies and their versions:
+```txt
+fastapi==0.104.1
+openai==1.3.7
+numpy==1.24.3
+pandas==2.0.3
+twilio==9.5.0
+python-jose[cryptography]==3.4.0
+google-cloud-translate==3.15.0
+```
+For a complete list, see `requirements.txt`.
 
 ## 🔧 Installation & Setup
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Farady-AI/Faraday-AI.git
+git clone https://github.com/Faraday-AI/Faraday-AI.git
 cd Faraday-AI
 ```
 
 ### 2. Install Dependencies
 ```bash
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
 ### 3. Configure Environment Variables
-- Copy `.env.example` to `.env`
-- Update with your credentials
+Create a `.env` file with the following:
+```env
+# Microsoft Graph API Settings
+MSCLIENTID=your_client_id
+MSCLIENTSECRET=your_client_secret
+MSTENANTID=your_tenant_id
+REDIRECT_URI=https://faraday-ai.com/auth/callback
 
-### 4. Development
-1. Start the development server:
-```bash
-uvicorn main:app --reload
+# OpenAI Settings
+OPENAI_API_KEY=your_openai_key
+
+# Optional Integrations
+ENABLE_TWILIO=true
+ENABLE_GOOGLE_CLOUD=true
+
+# Twilio Settings (if enabled)
+TWILIO_ACCOUNT_SID=your_account_sid
+TWILIO_AUTH_TOKEN=your_auth_token
+TWILIO_FROM_NUMBER=your_twilio_number
+TWILIO_VOICE_URL=https://faraday-ai.com/voice
+TWILIO_WEBHOOK_URL=https://faraday-ai.com/api/v1/twilio/webhook
+TWILIO_STATUS_CALLBACK=https://faraday-ai.com/api/v1/twilio/status
 ```
 
-2. Access the API documentation:
+### 4. Development
+Start the development server:
+```bash
+uvicorn app.main:app --reload
+```
+
+Access the API documentation:
 - OpenAPI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
+
+## 🚀 Deployment
+The application is deployed on Render with the following configuration:
+- **Build Command:** `pip install -r requirements.txt`
+- **Start Command:** `gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 app.main:app`
+
+DNS Configuration:
+- Primary Domain: `faraday-ai.com`
+- Development URL: `faraday-ai.onrender.com`
+- SSL/TLS: Enabled with automatic certificate management
+- CDN & Security: Cloudflare integration with Full SSL mode
 
 ## Contributing
 Faraday AI is in active development. For contribution guidelines, please contact the development team.
