@@ -2,22 +2,26 @@ services:
   - type: web
     name: faraday-ai
     env: python
+    region: oregon
+    plan: starter
     buildCommand: |
       pip install -r requirements.txt
       mkdir -p app/static/images
-      cp app/static/images/coming-soon.png app/static/images/
-    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT app.main:app --workers 4 --timeout 120
-    staticPublishPath: ./app/static
+      cp -r app/static/images/* app/static/images/ || true
+    startCommand: cd app && gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 600
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PYTHONPATH
+        value: .
     routes:
-      - type: rewrite
-        source: /*
-        destination: /
       - type: rewrite
         source: /static/*
         destination: /static/*
+      - type: rewrite
+        source: /*
+        destination: /
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.9.6
       - key: APP_ENVIRONMENT
         value: production
       - key: BETA_VERSION

@@ -47,20 +47,52 @@ IMAGES_DIR = STATIC_DIR / "images"
 STATIC_DIR.mkdir(exist_ok=True)
 IMAGES_DIR.mkdir(exist_ok=True)
 
-# Mount static files
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
-@app.get("/")
+# Mount static files AFTER the root route
+@app.get("/", response_class=HTMLResponse)
 async def read_root():
     try:
+        # Log the current directory and image path for debugging
+        logger.info(f"Current directory: {os.getcwd()}")
+        logger.info(f"BASE_DIR: {BASE_DIR}")
+        logger.info(f"STATIC_DIR: {STATIC_DIR}")
+        logger.info(f"IMAGES_DIR: {IMAGES_DIR}")
+        
         # Check if the image exists
         image_path = IMAGES_DIR / "coming-soon.png"
+        logger.info(f"Looking for image at: {image_path}")
+        logger.info(f"Image exists: {image_path.exists()}")
+        
         if not image_path.exists():
             logger.error(f"Image not found at {image_path}")
-            return HTMLResponse("<h1>Coming Soon - Faraday AI</h1>")
+            return """
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <title>Faraday AI - Coming Soon</title>
+                        <style>
+                            body { 
+                                margin: 0; 
+                                display: flex; 
+                                justify-content: center; 
+                                align-items: center; 
+                                min-height: 100vh; 
+                                background: #1a1a1a; 
+                                color: white;
+                                font-family: Arial;
+                            }
+                            .container { text-align: center; }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <h1>Coming Soon - Faraday AI</h1>
+                        </div>
+                    </body>
+                </html>
+            """
             
         # Return the HTML with the image
-        return HTMLResponse(f"""
+        return f"""
             <!DOCTYPE html>
             <html>
                 <head>
@@ -85,10 +117,13 @@ async def read_root():
                     </div>
                 </body>
             </html>
-        """)
+        """
     except Exception as e:
         logger.error(f"Error serving index: {str(e)}")
-        return HTMLResponse("<h1>Coming Soon - Faraday AI</h1>")
+        return "<h1>Coming Soon - Faraday AI</h1>"
+
+# Mount static files AFTER the root route
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/health")
 async def health_check():
