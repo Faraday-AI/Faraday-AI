@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
+from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import logging
 from typing import Optional
@@ -37,23 +37,53 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Get the absolute path to the static directory
-static_dir = Path(__file__).parent / "static"
-images_dir = static_dir / "images"
+# Define base directory
+BASE_DIR = Path(__file__).resolve().parent
+STATIC_DIR = BASE_DIR / "static"
 
-# Ensure directories exist
-static_dir.mkdir(exist_ok=True)
-images_dir.mkdir(exist_ok=True)
+# Ensure static directory exists
+STATIC_DIR.mkdir(exist_ok=True)
+(STATIC_DIR / "images").mkdir(exist_ok=True)
 
-# Mount the static directory
-app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+# Mount static files
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def read_root():
-    index_path = static_dir / "index.html"
-    if not index_path.exists():
-        return {"message": "Coming Soon - Faraday AI"}
-    return FileResponse(str(index_path))
+    try:
+        index_path = STATIC_DIR / "index.html"
+        if index_path.exists():
+            with open(index_path) as f:
+                return HTMLResponse(content=f.read())
+        return HTMLResponse(content="""
+            <!DOCTYPE html>
+            <html>
+                <head>
+                    <title>Faraday AI - Coming Soon</title>
+                    <style>
+                        body { 
+                            margin: 0; 
+                            display: flex; 
+                            justify-content: center; 
+                            align-items: center; 
+                            min-height: 100vh; 
+                            background: #1a1a1a; 
+                            font-family: Arial;
+                        }
+                        .container { text-align: center; }
+                        img { max-width: 100%; height: auto; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <img src="/static/images/coming-soon.png" alt="Coming Soon">
+                    </div>
+                </body>
+            </html>
+        """)
+    except Exception as e:
+        logger.error(f"Error serving index: {str(e)}")
+        return HTMLResponse(content="<h1>Coming Soon - Faraday AI</h1>")
 
 @app.get("/health")
 async def health_check():

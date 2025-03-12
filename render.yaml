@@ -3,18 +3,18 @@ services:
     name: faraday-ai
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 app.main:app
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT app.main:app --workers 4 --timeout 120
     envVars:
       - key: PYTHON_VERSION
         value: 3.9.6
       - key: APP_ENVIRONMENT
-        value: beta
+        value: production
       - key: BETA_VERSION
         value: 1.0.0
       - key: DEPLOYMENT_STAGE
         value: beta
       - key: DEBUG
-        value: true
+        value: false
       - key: MSCLIENTID
         sync: false
       - key: MSCLIENTSECRET
@@ -50,3 +50,4 @@ services:
         value: false
       - key: SCOPE
         value: User.Read Mail.Read Files.ReadWrite.All
+    staticPublishPath: ./app/static
