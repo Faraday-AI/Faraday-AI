@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
-app = FastAPI(title="Faraday AI")
+app = FastAPI(title="Faraday AI", root_path="/")
 
 # Add CORS middleware
 app.add_middleware(
@@ -53,13 +53,12 @@ logger.info(f"IMAGES_DIR: {IMAGES_DIR}")
 logger.info(f"Current working directory: {os.getcwd()}")
 
 # Mount static files first
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
 
 # Root route
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def read_root():
     try:
-        # Log the current directory and image path for debugging
         logger.info(f"Handling root request")
         logger.info(f"Current directory: {os.getcwd()}")
         logger.info(f"BASE_DIR: {BASE_DIR}")
@@ -71,36 +70,77 @@ async def read_root():
         logger.info(f"Looking for image at: {image_path}")
         logger.info(f"Image exists: {image_path.exists()}")
         
-        return """
+        if not image_path.exists():
+            logger.warning("Image not found, returning text-only response")
+            return HTMLResponse(content="<h1>Coming Soon - Faraday AI</h1>")
+        
+        # Log image details
+        image_size = os.path.getsize(str(image_path))
+        logger.info(f"Image size: {image_size} bytes")
+        logger.info(f"Image permissions: {oct(os.stat(str(image_path)).st_mode)[-3:]}")
+        
+        html_content = f"""
             <!DOCTYPE html>
             <html>
                 <head>
                     <title>Faraday AI - Coming Soon</title>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1">
                     <style>
-                        body { 
+                        body {{ 
                             margin: 0; 
                             display: flex; 
                             justify-content: center; 
                             align-items: center; 
                             min-height: 100vh; 
                             background: #1a1a1a; 
-                            font-family: Arial;
+                            font-family: Arial, sans-serif;
                             color: white;
-                        }
-                        .container { text-align: center; }
-                        img { max-width: 100%; height: auto; }
+                        }}
+                        .container {{ 
+                            text-align: center;
+                            padding: 20px;
+                        }}
+                        img {{ 
+                            max-width: 100%; 
+                            height: auto; 
+                            display: block;
+                            margin: 0 auto;
+                        }}
+                        h1 {{
+                            margin-top: 20px;
+                            font-size: 2em;
+                        }}
                     </style>
                 </head>
                 <body>
                     <div class="container">
-                        <h1>Coming Soon - Faraday AI</h1>
+                        <img 
+                            src="/static/images/coming-soon.png" 
+                            alt="Coming Soon"
+                            onerror="this.onerror=null; this.src=''; this.alt='Image failed to load'; console.error('Image failed to load');"
+                        >
+                        <h1>Faraday AI - Coming Soon</h1>
                     </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {{
+                            const img = document.querySelector('img');
+                            img.addEventListener('load', function() {{
+                                console.log('Image loaded successfully');
+                            }});
+                            img.addEventListener('error', function() {{
+                                console.error('Image failed to load');
+                            }});
+                        }});
+                    </script>
                 </body>
             </html>
         """
+        logger.info("Returning HTML response with image")
+        return HTMLResponse(content=html_content)
     except Exception as e:
         logger.error(f"Error serving index: {str(e)}")
-        return "<h1>Coming Soon - Faraday AI</h1>"
+        return HTMLResponse(content="<h1>Coming Soon - Faraday AI</h1>")
 
 # Health check endpoint
 @app.get("/health")
@@ -290,8 +330,20 @@ async def send_translated_message(
 @app.get("/static/images/{image_name}")
 async def get_image(image_name: str):
     """Serve images directly."""
-    image_path = IMAGES_DIR / image_name
-    if not image_path.exists():
-        logger.error(f"Image not found: {image_path}")
-        raise HTTPException(status_code=404, detail="Image not found")
-    return FileResponse(str(image_path)) 
+    try:
+        image_path = IMAGES_DIR / image_name
+        logger.info(f"Attempting to serve image: {image_path}")
+        
+        if not image_path.exists():
+            logger.error(f"Image not found: {image_path}")
+            raise HTTPException(status_code=404, detail="Image not found")
+            
+        logger.info(f"Image exists, size: {os.path.getsize(str(image_path))} bytes")
+        return FileResponse(
+            str(image_path),
+            media_type="image/png",
+            filename=image_name
+        )
+    except Exception as e:
+        logger.error(f"Error serving image {image_name}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving image: {str(e)}") 
