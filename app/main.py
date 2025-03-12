@@ -47,7 +47,7 @@ IMAGES_DIR = STATIC_DIR / "images"
 STATIC_DIR.mkdir(exist_ok=True)
 IMAGES_DIR.mkdir(exist_ok=True)
 
-# Mount static files AFTER the root route
+# Root route
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
     try:
@@ -122,13 +122,13 @@ async def read_root():
         logger.error(f"Error serving index: {str(e)}")
         return "<h1>Coming Soon - Faraday AI</h1>"
 
-# Mount static files AFTER the root route
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-
+# Health check endpoint
 @app.get("/health")
 async def health_check():
-    """Health check endpoint."""
-    return {"status": "healthy", "message": "Service is running"}
+    return {"status": "healthy"}
+
+# Mount static files AFTER the root route
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 @app.get("/login")
 async def login(msgraph_service = Depends(get_msgraph_service)):
