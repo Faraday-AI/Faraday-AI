@@ -49,4 +49,19 @@ htmlcov/
 # Temporary files
 *.tmp
 temp/
-tmp/ 
+tmp/
+
+# Local development
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Credentials
+google-credentials.json
+*.pem
+*.key
+*.crt
+
+# Test files
+test_*.py 
