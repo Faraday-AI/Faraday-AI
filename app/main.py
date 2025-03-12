@@ -56,7 +56,7 @@ logger.info(f"Current working directory: {os.getcwd()}")
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Root route
-@app.get("/")
+@app.get("/", response_class=HTMLResponse)
 async def read_root():
     try:
         # Log the current directory and image path for debugging
@@ -71,13 +71,13 @@ async def read_root():
         logger.info(f"Looking for image at: {image_path}")
         logger.info(f"Image exists: {image_path.exists()}")
         
-        html_content = f"""
+        return """
             <!DOCTYPE html>
             <html>
                 <head>
                     <title>Faraday AI - Coming Soon</title>
                     <style>
-                        body {{ 
+                        body { 
                             margin: 0; 
                             display: flex; 
                             justify-content: center; 
@@ -86,22 +86,21 @@ async def read_root():
                             background: #1a1a1a; 
                             font-family: Arial;
                             color: white;
-                        }}
-                        .container {{ text-align: center; }}
-                        img {{ max-width: 100%; height: auto; }}
+                        }
+                        .container { text-align: center; }
+                        img { max-width: 100%; height: auto; }
                     </style>
                 </head>
                 <body>
                     <div class="container">
-                        {"<img src='/static/images/coming-soon.png' alt='Coming Soon'>" if image_path.exists() else "<h1>Coming Soon - Faraday AI</h1>"}
+                        <h1>Coming Soon - Faraday AI</h1>
                     </div>
                 </body>
             </html>
         """
-        return HTMLResponse(content=html_content)
     except Exception as e:
         logger.error(f"Error serving index: {str(e)}")
-        return HTMLResponse(content="<h1>Coming Soon - Faraday AI</h1>")
+        return "<h1>Coming Soon - Faraday AI</h1>"
 
 # Health check endpoint
 @app.get("/health")
@@ -112,7 +111,9 @@ async def health_check():
         "base_dir": str(BASE_DIR),
         "static_dir": str(STATIC_DIR),
         "images_dir": str(IMAGES_DIR),
-        "image_exists": (IMAGES_DIR / "coming-soon.png").exists()
+        "image_exists": (IMAGES_DIR / "coming-soon.png").exists(),
+        "files_in_static": os.listdir(str(STATIC_DIR)) if STATIC_DIR.exists() else [],
+        "files_in_images": os.listdir(str(IMAGES_DIR)) if IMAGES_DIR.exists() else []
     }
 
 @app.get("/login")
