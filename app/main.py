@@ -27,7 +27,13 @@ logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
-app = FastAPI(title="Faraday AI", root_path="/")
+app = FastAPI(
+    title="Faraday AI",
+    root_path="",  # Remove root_path to handle paths from the actual root
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -38,21 +44,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Define base directory
-BASE_DIR = Path(__file__).resolve().parent
+# Define base directory - use absolute paths
+BASE_DIR = Path(__file__).resolve().parent.absolute()
 STATIC_DIR = BASE_DIR / "static"
 IMAGES_DIR = STATIC_DIR / "images"
 
-# Ensure directories exist
+# Ensure directories exist and log their creation
 os.makedirs(str(STATIC_DIR), exist_ok=True)
 os.makedirs(str(IMAGES_DIR), exist_ok=True)
 
 logger.info(f"Starting server with BASE_DIR: {BASE_DIR}")
-logger.info(f"STATIC_DIR: {STATIC_DIR}")
-logger.info(f"IMAGES_DIR: {IMAGES_DIR}")
+logger.info(f"STATIC_DIR exists: {STATIC_DIR.exists()}")
+logger.info(f"IMAGES_DIR exists: {IMAGES_DIR.exists()}")
 logger.info(f"Current working directory: {os.getcwd()}")
 
-# Mount static files first
+# Mount static files with explicit check
+if not STATIC_DIR.exists():
+    logger.error(f"Static directory does not exist: {STATIC_DIR}")
+    os.makedirs(str(STATIC_DIR), exist_ok=True)
+    logger.info(f"Created static directory: {STATIC_DIR}")
+
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
 
 # Root route

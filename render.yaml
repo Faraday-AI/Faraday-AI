@@ -6,14 +6,18 @@ services:
     plan: starter
     buildCommand: |
       pip install -r requirements.txt
-      mkdir -p app/static/images
-      cp -f app/static/images/coming-soon.png app/static/images/ || true
-    startCommand: gunicorn app.main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT --workers 4 --timeout 600 --log-level debug
+      mkdir -p $PWD/app/static/images
+      cp -f app/static/images/coming-soon.png $PWD/app/static/images/ || true
+    startCommand: cd $PWD && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: PYTHONPATH
         value: .
+      - key: APP_ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: true
     routes:
       - type: rewrite
         source: /static/*
@@ -22,14 +26,10 @@ services:
         source: /*
         destination: /
     envVars:
-      - key: APP_ENVIRONMENT
-        value: production
       - key: BETA_VERSION
         value: 1.0.0
       - key: DEPLOYMENT_STAGE
         value: beta
-      - key: DEBUG
-        value: false
       - key: MSCLIENTID
         sync: false
       - key: MSCLIENTSECRET
