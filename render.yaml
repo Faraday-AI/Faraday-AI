@@ -6,14 +6,14 @@ services:
     plan: starter
     buildCommand: |
       pip install -r requirements.txt
-      mkdir -p app/static/images
-      cp -f app/static/images/coming-soon.png app/static/images/ || true
-    startCommand: cd app && gunicorn main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT --workers 4 --timeout 600 --log-level debug
+      mkdir -p /opt/render/project/app/static/images
+      cp -f app/static/images/coming-soon.png /opt/render/project/app/static/images/ || true
+    startCommand: cd /opt/render/project/app && gunicorn main:app -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT --workers 4 --timeout 600 --log-level debug
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: PYTHONPATH
-        value: .
+        value: /opt/render/project
     routes:
       - type: rewrite
         source: /static/*
