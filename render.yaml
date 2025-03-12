@@ -7,7 +7,7 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       mkdir -p app/static/images
-      cp -r app/static/images/* app/static/images/ || true
+      cp -f app/static/images/coming-soon.png app/static/images/ || true
     startCommand: cd app && gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 600
     envVars:
       - key: PYTHON_VERSION
