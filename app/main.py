@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 import logging
 from typing import Optional
 import tempfile
@@ -40,28 +41,32 @@ app.add_middleware(
 # Define base directory
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+IMAGES_DIR = STATIC_DIR / "images"
 
-# Ensure static directory exists
+# Ensure directories exist
 STATIC_DIR.mkdir(exist_ok=True)
-(STATIC_DIR / "images").mkdir(exist_ok=True)
+IMAGES_DIR.mkdir(exist_ok=True)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def read_root():
     try:
-        index_path = STATIC_DIR / "index.html"
-        if index_path.exists():
-            with open(index_path) as f:
-                return HTMLResponse(content=f.read())
-        return HTMLResponse(content="""
+        # Check if the image exists
+        image_path = IMAGES_DIR / "coming-soon.png"
+        if not image_path.exists():
+            logger.error(f"Image not found at {image_path}")
+            return HTMLResponse("<h1>Coming Soon - Faraday AI</h1>")
+            
+        # Return the HTML with the image
+        return HTMLResponse(f"""
             <!DOCTYPE html>
             <html>
                 <head>
                     <title>Faraday AI - Coming Soon</title>
                     <style>
-                        body { 
+                        body {{ 
                             margin: 0; 
                             display: flex; 
                             justify-content: center; 
@@ -69,9 +74,9 @@ async def read_root():
                             min-height: 100vh; 
                             background: #1a1a1a; 
                             font-family: Arial;
-                        }
-                        .container { text-align: center; }
-                        img { max-width: 100%; height: auto; }
+                        }}
+                        .container {{ text-align: center; }}
+                        img {{ max-width: 100%; height: auto; }}
                     </style>
                 </head>
                 <body>
@@ -83,7 +88,7 @@ async def read_root():
         """)
     except Exception as e:
         logger.error(f"Error serving index: {str(e)}")
-        return HTMLResponse(content="<h1>Coming Soon - Faraday AI</h1>")
+        return HTMLResponse("<h1>Coming Soon - Faraday AI</h1>")
 
 @app.get("/health")
 async def health_check():
@@ -259,4 +264,13 @@ async def send_translated_message(
             
     except Exception as e:
         logger.error(f"Error in send_translated_message: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e)) 
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/static/images/{image_name}")
+async def get_image(image_name: str):
+    """Serve images directly."""
+    image_path = IMAGES_DIR / image_name
+    if not image_path.exists():
+        logger.error(f"Image not found: {image_path}")
+        raise HTTPException(status_code=404, detail="Image not found")
+    return FileResponse(str(image_path)) 

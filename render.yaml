@@ -5,9 +5,13 @@ services:
     buildCommand: |
       pip install -r requirements.txt
       mkdir -p app/static/images
+      cp app/static/images/coming-soon.png app/static/images/
     startCommand: gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT app.main:app --workers 4 --timeout 120
     staticPublishPath: ./app/static
     routes:
+      - type: rewrite
+        source: /*
+        destination: /
       - type: rewrite
         source: /static/*
         destination: /static/*
