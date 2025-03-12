@@ -44,21 +44,23 @@ STATIC_DIR = BASE_DIR / "static"
 IMAGES_DIR = STATIC_DIR / "images"
 
 # Ensure directories exist
-STATIC_DIR.mkdir(exist_ok=True)
-IMAGES_DIR.mkdir(exist_ok=True)
+os.makedirs(str(STATIC_DIR), exist_ok=True)
+os.makedirs(str(IMAGES_DIR), exist_ok=True)
 
 logger.info(f"Starting server with BASE_DIR: {BASE_DIR}")
 logger.info(f"STATIC_DIR: {STATIC_DIR}")
 logger.info(f"IMAGES_DIR: {IMAGES_DIR}")
+logger.info(f"Current working directory: {os.getcwd()}")
 
 # Mount static files first
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 # Root route
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def read_root():
     try:
         # Log the current directory and image path for debugging
+        logger.info(f"Handling root request")
         logger.info(f"Current directory: {os.getcwd()}")
         logger.info(f"BASE_DIR: {BASE_DIR}")
         logger.info(f"STATIC_DIR: {STATIC_DIR}")
@@ -69,37 +71,7 @@ async def read_root():
         logger.info(f"Looking for image at: {image_path}")
         logger.info(f"Image exists: {image_path.exists()}")
         
-        if not image_path.exists():
-            logger.error(f"Image not found at {image_path}")
-            return """
-                <!DOCTYPE html>
-                <html>
-                    <head>
-                        <title>Faraday AI - Coming Soon</title>
-                        <style>
-                            body { 
-                                margin: 0; 
-                                display: flex; 
-                                justify-content: center; 
-                                align-items: center; 
-                                min-height: 100vh; 
-                                background: #1a1a1a; 
-                                color: white;
-                                font-family: Arial;
-                            }
-                            .container { text-align: center; }
-                        </style>
-                    </head>
-                    <body>
-                        <div class="container">
-                            <h1>Coming Soon - Faraday AI</h1>
-                        </div>
-                    </body>
-                </html>
-            """
-            
-        # Return the HTML with the image
-        return f"""
+        html_content = f"""
             <!DOCTYPE html>
             <html>
                 <head>
@@ -113,6 +85,7 @@ async def read_root():
                             min-height: 100vh; 
                             background: #1a1a1a; 
                             font-family: Arial;
+                            color: white;
                         }}
                         .container {{ text-align: center; }}
                         img {{ max-width: 100%; height: auto; }}
@@ -120,19 +93,27 @@ async def read_root():
                 </head>
                 <body>
                     <div class="container">
-                        <img src="/static/images/coming-soon.png" alt="Coming Soon">
+                        {"<img src='/static/images/coming-soon.png' alt='Coming Soon'>" if image_path.exists() else "<h1>Coming Soon - Faraday AI</h1>"}
                     </div>
                 </body>
             </html>
         """
+        return HTMLResponse(content=html_content)
     except Exception as e:
         logger.error(f"Error serving index: {str(e)}")
-        return "<h1>Coming Soon - Faraday AI</h1>"
+        return HTMLResponse(content="<h1>Coming Soon - Faraday AI</h1>")
 
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "path": str(BASE_DIR)}
+    return {
+        "status": "healthy",
+        "cwd": os.getcwd(),
+        "base_dir": str(BASE_DIR),
+        "static_dir": str(STATIC_DIR),
+        "images_dir": str(IMAGES_DIR),
+        "image_exists": (IMAGES_DIR / "coming-soon.png").exists()
+    }
 
 @app.get("/login")
 async def login(msgraph_service = Depends(get_msgraph_service)):
