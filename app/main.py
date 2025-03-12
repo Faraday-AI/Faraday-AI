@@ -47,6 +47,13 @@ IMAGES_DIR = STATIC_DIR / "images"
 STATIC_DIR.mkdir(exist_ok=True)
 IMAGES_DIR.mkdir(exist_ok=True)
 
+logger.info(f"Starting server with BASE_DIR: {BASE_DIR}")
+logger.info(f"STATIC_DIR: {STATIC_DIR}")
+logger.info(f"IMAGES_DIR: {IMAGES_DIR}")
+
+# Mount static files first
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+
 # Root route
 @app.get("/", response_class=HTMLResponse)
 async def read_root():
@@ -125,10 +132,7 @@ async def read_root():
 # Health check endpoint
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
-
-# Mount static files AFTER the root route
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+    return {"status": "healthy", "path": str(BASE_DIR)}
 
 @app.get("/login")
 async def login(msgraph_service = Depends(get_msgraph_service)):

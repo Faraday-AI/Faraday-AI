@@ -8,14 +8,12 @@ services:
       pip install -r requirements.txt
       mkdir -p app/static/images
       cp -f app/static/images/coming-soon.png app/static/images/ || true
-    startCommand: cd app && PYTHONPATH=/opt/render/project gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 600 --log-level debug
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker -b 0.0.0.0:$PORT app.main:app --workers 4 --timeout 600 --log-level debug
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: PYTHONPATH
-        value: /opt/render/project
-      - key: PORT
-        value: 10000
+        value: .
     routes:
       - type: rewrite
         source: /static/*
