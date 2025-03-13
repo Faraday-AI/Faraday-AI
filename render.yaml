@@ -9,7 +9,27 @@ services:
       mkdir -p $PWD/app/static/images
       cp -f app/static/images/coming-soon.png $PWD/app/static/images/ || true
       ls -la $PWD/app/static/images/
-    startCommand: cd $PWD && PYTHONPATH=$PWD uvicorn wsgi:app --host 0.0.0.0 --port $PORT --log-level debug
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: PYTHONPATH
+        value: .
+      - key: APP_ENVIRONMENT
+        value: production
+cat > render.yaml << 'EOL'
+services:
+  - type: web
+    name: faraday-ai
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: |
+      pip install -r requirements.txt
+      mkdir -p $PWD/app/static/images
+      cp -f app/static/images/coming-soon.png $PWD/app/static/images/ || true
+      ls -la $PWD/app/static/images/
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -21,14 +41,6 @@ services:
         value: true
       - key: LOG_LEVEL
         value: debug
-    routes:
-      - type: rewrite
-        source: /static/*
-        destination: /static/*
-      - type: rewrite
-        source: /*
-        destination: /
-    envVars:
       - key: BETA_VERSION
         value: 1.0.0
       - key: DEPLOYMENT_STAGE
@@ -51,20 +63,15 @@ services:
       - key: TEMPERATURE
         value: 0.7
       - key: ENABLE_TWILIO
-        value: true
-      - key: TWILIO_ACCOUNT_SID
-        sync: false
-      - key: TWILIO_AUTH_TOKEN
-        sync: false
-      - key: TWILIO_FROM_NUMBER
-        sync: false
-      - key: TWILIO_VOICE_URL
-        value: https://faraday-ai.com/voice
-      - key: TWILIO_WEBHOOK_URL
-        value: https://faraday-ai.com/api/v1/twilio/webhook
-      - key: TWILIO_STATUS_CALLBACK
-        value: https://faraday-ai.com/api/v1/twilio/status
+        value: false
       - key: ENABLE_GOOGLE_CLOUD
         value: false
       - key: SCOPE
-        value: User.Read Mail.Read Files.ReadWrite.All
+        value: "User.Read Mail.Read Files.ReadWrite.All"
+    routes:
+      - type: rewrite
+        source: /static/(.*)
+        destination: /static/$1
+      - type: rewrite
+        source: /(.*)
+        destination: /$1
