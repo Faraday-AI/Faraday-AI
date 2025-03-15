@@ -3,30 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faraday AI - Coming Soon</title>
+    <title>Faraday AI</title>
+    <link rel="icon" type="image/x-icon" href="/static/icons/favicon.svg">
     <style>
-        body {
+        body, html {
             margin: 0;
             padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #f0f2f5;
+        }
+        body {
+            font-family: Arial, sans-serif;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            background: #1a1a1a;
-            font-family: Arial, sans-serif;
         }
         .container {
-            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
         }
-        img {
-            max-width: 100%;
+        .logo {
+            max-width: 95vw;
+            max-height: 95vh;
+            width: auto;
             height: auto;
+            object-fit: contain;
+        }
+        h1, p {
+            display: none;  /* Hide the text since it's in the image */
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <img src="/static/images/coming-soon.png" alt="Coming Soon - Faraday AI">
+        <img src="/static/images/COMING SOON.png" alt="Faraday AI - Coming Soon" class="logo">
+        <h1>Faraday AI</h1>
+        <p>Coming Soon</p>
     </div>
 </body>
 </html> 
