@@ -6,6 +6,7 @@ import logging
 from typing import Optional
 import tempfile
 import os
+from pathlib import Path
 
 from app.core.config import get_settings
 from app.services.openai_service import get_openai_service
@@ -27,8 +28,16 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(title=get_settings().APP_NAME)
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# Get the absolute path to the static directory
+static_dir = Path(__file__).parent / "static"
+logger.info(f"Serving static files from: {static_dir}")
+
+# Mount static files with explicit check
+if not static_dir.exists():
+    logger.error(f"Static directory not found: {static_dir}")
+else:
+    logger.info(f"Static directory exists at: {static_dir}")
+    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Add CORS middleware
 app.add_middleware(
@@ -42,15 +51,19 @@ app.add_middleware(
 @app.get("/")
 async def root():
     """Serve the landing page."""
-    return FileResponse("app/static/index.html")
+    index_path = static_dir / "index.html"
+    if not index_path.exists():
+        logger.error(f"Index file not found at: {index_path}")
+        raise HTTPException(status_code=404, detail="Index file not found")
+    return FileResponse(str(index_path))
 
 @app.get("/favicon.ico")
 async def favicon():
     """Handle favicon requests."""
-    favicon_path = "app/static/icons/favicon.ico"
-    if os.path.exists(favicon_path):
-        return FileResponse(favicon_path)
-    return Response(status_code=204)  # No Content
+    favicon_path = static_dir / "icons" / "favicon.ico"
+    if not favicon_path.exists():
+        return Response(status_code=204)
+    return FileResponse(str(favicon_path))
 
 @app.get("/test")
 async def test():
