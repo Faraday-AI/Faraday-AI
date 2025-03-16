@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import logging
 from typing import Optional
 import tempfile
@@ -26,6 +27,9 @@ logger = logging.getLogger(__name__)
 # Initialize FastAPI app
 app = FastAPI(title=get_settings().APP_NAME)
 
+# Mount static files
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -37,8 +41,8 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
-    return {"message": "Microsoft Graph API Integration"}
+    """Serve the landing page."""
+    return FileResponse("app/static/index.html")
 
 @app.post("/test")
 async def test():
