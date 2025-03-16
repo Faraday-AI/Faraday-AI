@@ -44,7 +44,7 @@ async def root():
     """Serve the landing page."""
     return FileResponse("app/static/index.html")
 
-@app.post("/test")
+@app.get("/test")
 async def test():
     """Health check endpoint."""
     return {"status": "success", "message": "Service is running"}
