@@ -1,17 +1,52 @@
-from google.cloud import translate_v2 as translate
 import logging
 from functools import lru_cache
 import os
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
+class MockTranslationService:
+    """Mock translation service when Google Cloud is not available."""
+    async def translate_text(
+        self,
+        text: str,
+        target_language: str = "es",
+        source_language: str = "en"
+    ) -> Dict[str, Any]:
+        return {
+            "status": "success",
+            "translated_text": text,  # Return original text
+            "source_language": source_language,
+            "target_language": target_language,
+            "note": "Translation service is not configured"
+        }
+
+    async def detect_language(self, text: str) -> Dict[str, Any]:
+        return {
+            "status": "success",
+            "language": "en",
+            "confidence": 1.0,
+            "note": "Language detection is not configured"
+        }
+
 class TranslationService:
     def __init__(self):
         self.settings = get_settings()
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.settings.GOOGLE_CREDENTIALS_FILE
-        self.client = translate.Client()
+        if not self.settings.ENABLE_GOOGLE_CLOUD:
+            raise ValueError("Google Cloud services are not enabled")
+        
+        credentials_file = getattr(self.settings, 'GOOGLE_CREDENTIALS_FILE', None)
+        if not credentials_file:
+            raise ValueError("Google Cloud credentials not configured")
+        
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_file
+        
+        try:
+            from google.cloud import translate_v2 as translate
+            self.client = translate.Client()
+        except ImportError:
+            raise ValueError("Google Cloud Translation library not installed")
 
     async def translate_text(
         self,
@@ -78,4 +113,8 @@ class TranslationService:
 @lru_cache()
 def get_translation_service() -> TranslationService:
     """Get cached Translation service instance."""
-    return TranslationService() 
+    try:
+        return TranslationService()
+    except (ValueError, ImportError) as e:
+        logger.warning(f"Using mock translation service: {str(e)}")
+        return MockTranslationService() 

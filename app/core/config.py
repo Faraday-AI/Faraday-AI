@@ -48,8 +48,9 @@ class Settings(BaseSettings):
     TWILIO_VOICE_URL: str = "http://twimlets.com/message"
 
     # Google Cloud Settings
+    ENABLE_GOOGLE_CLOUD: bool = Field(default=False)  # Disabled by default
     GOOGLE_PROJECT_ID: str = Field(default="development")
-    GOOGLE_CREDENTIALS_FILE: str = "google-credentials.json"
+    GOOGLE_CREDENTIALS_FILE: Optional[str] = None
     DEFAULT_TARGET_LANGUAGE: str = "es"  # Spanish default for EPS
 
     # Document Settings
