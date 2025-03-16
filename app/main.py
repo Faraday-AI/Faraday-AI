@@ -1,13 +1,11 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, HTMLResponse
+from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
 import logging
 from typing import Optional
 import tempfile
 import os
-from pathlib import Path
 
 from app.core.config import get_settings
 from app.services.openai_service import get_openai_service
@@ -23,17 +21,14 @@ from app.models.api import (
 )
 
 # Configure logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
-app = FastAPI(
-    title="Faraday AI",
-    root_path="",  # Remove root_path to handle paths from the actual root
-    docs_url="/docs",
-    redoc_url="/redoc",
-    openapi_url="/openapi.json"
-)
+app = FastAPI(title=get_settings().APP_NAME)
+
+# Mount static files
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Add CORS middleware
 app.add_middleware(
@@ -44,128 +39,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Define base directory - use absolute paths
-BASE_DIR = Path(__file__).resolve().parent.absolute()
-STATIC_DIR = BASE_DIR / "static"
-IMAGES_DIR = STATIC_DIR / "images"
-
-# Ensure directories exist and log their creation
-os.makedirs(str(STATIC_DIR), exist_ok=True)
-os.makedirs(str(IMAGES_DIR), exist_ok=True)
-
-logger.info(f"Starting server with BASE_DIR: {BASE_DIR}")
-logger.info(f"STATIC_DIR exists: {STATIC_DIR.exists()}")
-logger.info(f"IMAGES_DIR exists: {IMAGES_DIR.exists()}")
-logger.info(f"Current working directory: {os.getcwd()}")
-
-# Mount static files with explicit check
-if not STATIC_DIR.exists():
-    logger.error(f"Static directory does not exist: {STATIC_DIR}")
-    os.makedirs(str(STATIC_DIR), exist_ok=True)
-    logger.info(f"Created static directory: {STATIC_DIR}")
-
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR), html=True), name="static")
-
-# Root route
 @app.get("/")
-async def read_root():
-    try:
-        logger.info(f"Handling root request")
-        logger.info(f"Current directory: {os.getcwd()}")
-        logger.info(f"BASE_DIR: {BASE_DIR}")
-        logger.info(f"STATIC_DIR: {STATIC_DIR}")
-        logger.info(f"IMAGES_DIR: {IMAGES_DIR}")
-        
-        # Check if the image exists
-        image_path = IMAGES_DIR / "coming-soon.png"
-        logger.info(f"Looking for image at: {image_path}")
-        logger.info(f"Image exists: {image_path.exists()}")
-        
-        if not image_path.exists():
-            logger.warning("Image not found, returning text-only response")
-            return HTMLResponse(content="<h1>Coming Soon - Faraday AI</h1>")
-        
-        # Log image details
-        image_size = os.path.getsize(str(image_path))
-        logger.info(f"Image size: {image_size} bytes")
-        logger.info(f"Image permissions: {oct(os.stat(str(image_path)).st_mode)[-3:]}")
-        
-        html_content = f"""
-            <!DOCTYPE html>
-            <html>
-                <head>
-                    <title>Faraday AI - Coming Soon</title>
-                    <meta charset="utf-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1">
-                    <style>
-                        body {{ 
-                            margin: 0; 
-                            display: flex; 
-                            justify-content: center; 
-                            align-items: center; 
-                            min-height: 100vh; 
-                            background: #1a1a1a; 
-                            font-family: Arial, sans-serif;
-                            color: white;
-                        }}
-                        .container {{ 
-                            text-align: center;
-                            padding: 20px;
-                        }}
-                        img {{ 
-                            max-width: 100%; 
-                            height: auto; 
-                            display: block;
-                            margin: 0 auto;
-                        }}
-                        h1 {{
-                            margin-top: 20px;
-                            font-size: 2em;
-                        }}
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <img 
-                            src="/static/images/coming-soon.png" 
-                            alt="Coming Soon"
-                            onerror="this.onerror=null; this.src=''; this.alt='Image failed to load'; console.error('Image failed to load');"
-                        >
-                        <h1>Faraday AI - Coming Soon</h1>
-                    </div>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {{
-                            const img = document.querySelector('img');
-                            img.addEventListener('load', function() {{
-                                console.log('Image loaded successfully');
-                            }});
-                            img.addEventListener('error', function() {{
-                                console.error('Image failed to load');
-                            }});
-                        }});
-                    </script>
-                </body>
-            </html>
-        """
-        logger.info("Returning HTML response with image")
-        return HTMLResponse(content=html_content)
-    except Exception as e:
-        logger.error(f"Error serving index: {str(e)}")
-        return HTMLResponse(content="<h1>Coming Soon - Faraday AI</h1>")
+async def root():
+    """Serve the landing page."""
+    return FileResponse("app/static/index.html")
 
-# Health check endpoint
-@app.get("/health")
-async def health_check():
-    return {
-        "status": "healthy",
-        "cwd": os.getcwd(),
-        "base_dir": str(BASE_DIR),
-        "static_dir": str(STATIC_DIR),
-        "images_dir": str(IMAGES_DIR),
-        "image_exists": (IMAGES_DIR / "coming-soon.png").exists(),
-        "files_in_static": os.listdir(str(STATIC_DIR)) if STATIC_DIR.exists() else [],
-        "files_in_images": os.listdir(str(IMAGES_DIR)) if IMAGES_DIR.exists() else []
-    }
+@app.get("/test")
+async def test():
+    """Health check endpoint."""
+    return {"status": "success", "message": "Service is running"}
 
 @app.get("/login")
 async def login(msgraph_service = Depends(get_msgraph_service)):
