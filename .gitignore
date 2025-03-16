@@ -20,23 +20,25 @@ wheels/
 .installed.cfg
 *.egg
 
+# Environment variables
+.env
+.env.*
+!.env.example
+
 # Virtual Environment
 venv/
-venv-new/
 ENV/
 env/
-env.bak/
-venv.bak/
-
-# Environment Variables
-.env
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# OS
 .DS_Store
+Thumbs.db
 
 # Logs
 *.log
