@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
+from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 import logging
 from typing import Optional
@@ -43,6 +43,14 @@ app.add_middleware(
 async def root():
     """Serve the landing page."""
     return FileResponse("app/static/index.html")
+
+@app.get("/favicon.ico")
+async def favicon():
+    """Handle favicon requests."""
+    favicon_path = "app/static/icons/favicon.ico"
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    return Response(status_code=204)  # No Content
 
 @app.get("/test")
 async def test():
