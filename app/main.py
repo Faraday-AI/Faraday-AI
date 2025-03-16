@@ -22,7 +22,7 @@ from app.models.api import (
 )
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 # Initialize FastAPI app
@@ -30,14 +30,22 @@ app = FastAPI(title=get_settings().APP_NAME)
 
 # Get the absolute path to the static directory
 static_dir = Path(__file__).parent / "static"
+images_dir = static_dir / "images"
 logger.info(f"Serving static files from: {static_dir}")
+logger.info(f"Images directory: {images_dir}")
 
-# Mount static files with explicit check
-if not static_dir.exists():
-    logger.error(f"Static directory not found: {static_dir}")
+# List all files in the static and images directories
+if static_dir.exists():
+    logger.info(f"Static directory contents: {[f.name for f in static_dir.iterdir()]}")
+    if images_dir.exists():
+        logger.info(f"Images directory contents: {[f.name for f in images_dir.iterdir()]}")
+    else:
+        logger.error(f"Images directory does not exist: {images_dir}")
 else:
-    logger.info(f"Static directory exists at: {static_dir}")
-    app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+    logger.error(f"Static directory does not exist: {static_dir}")
+
+# Mount static files
+app.mount("/static", StaticFiles(directory=str(static_dir), html=True), name="static")
 
 # Add CORS middleware
 app.add_middleware(
@@ -52,6 +60,7 @@ app.add_middleware(
 async def root():
     """Serve the landing page."""
     index_path = static_dir / "index.html"
+    logger.info(f"Serving index from: {index_path}")
     if not index_path.exists():
         logger.error(f"Index file not found at: {index_path}")
         raise HTTPException(status_code=404, detail="Index file not found")
@@ -64,6 +73,54 @@ async def favicon():
     if not favicon_path.exists():
         return Response(status_code=204)
     return FileResponse(str(favicon_path))
+
+@app.get("/debug/files")
+async def debug_files():
+    """Debug endpoint to list all files in the static directory."""
+    try:
+        static_files = []
+        if static_dir.exists():
+            static_files = [str(f.relative_to(static_dir)) for f in static_dir.rglob("*") if f.is_file()]
+        return {
+            "static_dir": str(static_dir),
+            "static_dir_exists": static_dir.exists(),
+            "files": static_files,
+            "cwd": os.getcwd()
+        }
+    except Exception as e:
+        logger.exception("Error in debug endpoint")
+        return {"error": str(e)}
+
+@app.get("/image/{image_name}")
+async def get_image(image_name: str):
+    """Direct image serving endpoint for debugging."""
+    try:
+        image_path = images_dir / image_name
+        logger.info(f"Attempting to serve image from: {image_path}")
+        
+        if not image_path.exists():
+            logger.error(f"Image not found: {image_path}")
+            available_images = [f.name for f in images_dir.iterdir()] if images_dir.exists() else []
+            return JSONResponse(
+                status_code=404,
+                content={
+                    "detail": "Image not found",
+                    "path": str(image_path),
+                    "available_images": available_images
+                }
+            )
+        
+        return FileResponse(
+            str(image_path),
+            media_type="image/png" if image_name.endswith('.png') else "image/svg+xml",
+            filename=image_name
+        )
+    except Exception as e:
+        logger.exception(f"Error serving image {image_name}")
+        return JSONResponse(
+            status_code=500,
+            content={"detail": f"Error serving image: {str(e)}"}
+        )
 
 @app.get("/test")
 async def test():
@@ -239,25 +296,4 @@ async def send_translated_message(
             
     except Exception as e:
         logger.error(f"Error in send_translated_message: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/static/images/{image_name}")
-async def get_image(image_name: str):
-    """Serve images directly."""
-    try:
-        image_path = IMAGES_DIR / image_name
-        logger.info(f"Attempting to serve image: {image_path}")
-        
-        if not image_path.exists():
-            logger.error(f"Image not found: {image_path}")
-            raise HTTPException(status_code=404, detail="Image not found")
-            
-        logger.info(f"Image exists, size: {os.path.getsize(str(image_path))} bytes")
-        return FileResponse(
-            str(image_path),
-            media_type="image/png",
-            filename=image_name
-        )
-    except Exception as e:
-        logger.error(f"Error serving image {image_name}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error serving image: {str(e)}") 
+        raise HTTPException(status_code=500, detail=str(e)) 
