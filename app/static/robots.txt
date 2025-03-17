@@ -1,0 +1,19 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+Allow: /static/images/
+Allow: /static/icons/
+
+# Disallow sensitive endpoints
+Disallow: /debug/
+Disallow: /login
+Disallow: /callback
+Disallow: /me
+Disallow: /generate-text
+Disallow: /generate-document
+Disallow: /send-sms
+Disallow: /translate
+Disallow: /send-translated-message
+
+# Sitemap (when you add one)
+# Sitemap: https://faraday-ai.onrender.com/sitemap.xml 
