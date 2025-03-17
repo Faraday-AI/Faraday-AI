@@ -2,6 +2,12 @@ from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, Response
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 import logging
 from typing import Optional
 import tempfile
@@ -25,8 +31,42 @@ from app.models.api import (
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # Initialize FastAPI app
 app = FastAPI(title=get_settings().APP_NAME)
+
+# Add rate limiting exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# Security Headers Middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'"
+        return response
+
+# Add security middlewares
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=["faraday-ai.onrender.com", "localhost", "127.0.0.1"]
+)
+
+# Add CORS middleware with more restrictive settings
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["https://faraday-ai.onrender.com", "http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS", "HEAD"],
+    allow_headers=["*"],
+)
 
 # Get the absolute path to the static directory
 static_dir = Path(__file__).parent / "static"
@@ -47,16 +87,7 @@ else:
 # Mount static files
 app.mount("/static", StaticFiles(directory=str(static_dir), html=True), name="static")
 
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-@app.get("/")
+@app.get("/", response_class=FileResponse)
 async def root():
     """Serve the landing page."""
     index_path = static_dir / "index.html"
@@ -66,16 +97,52 @@ async def root():
         raise HTTPException(status_code=404, detail="Index file not found")
     return FileResponse(str(index_path))
 
-@app.get("/favicon.ico")
-async def favicon():
-    """Handle favicon requests."""
-    favicon_path = static_dir / "icons" / "favicon.ico"
-    if not favicon_path.exists():
-        return Response(status_code=204)
-    return FileResponse(str(favicon_path))
+@app.get("/favicon.{ext}")
+async def favicon(ext: str):
+    """Handle favicon requests for different formats."""
+    if ext.lower() in ['ico', 'svg']:
+        favicon_path = static_dir / "icons" / f"favicon.{ext}"
+        if favicon_path.exists():
+            return FileResponse(
+                str(favicon_path),
+                media_type=f"image/{ext}",
+                headers={"Cache-Control": "public, max-age=31536000"}
+            )
+    return Response(status_code=204)
+
+@app.get("/apple-touch-icon{ext:path}")
+async def apple_touch_icon(ext: str = ".png"):
+    """Handle Apple touch icon requests."""
+    # First try SVG
+    icon_path = static_dir / "icons" / "favicon.svg"
+    if icon_path.exists():
+        return FileResponse(
+            str(icon_path),
+            media_type="image/svg+xml",
+            headers={"Cache-Control": "public, max-age=31536000"}
+        )
+    return Response(status_code=404)
+
+@app.get("/robots.txt")
+async def robots():
+    """Serve robots.txt file."""
+    robots_path = static_dir / "robots.txt"
+    if not robots_path.exists():
+        return Response(
+            content=(
+                "User-agent: *\n"
+                "Allow: /\n"
+                "Allow: /static/images/\n"
+                "Allow: /static/icons/\n"
+                "Disallow: /debug/\n"
+            ),
+            media_type="text/plain"
+        )
+    return FileResponse(str(robots_path))
 
 @app.get("/debug/files")
-async def debug_files():
+@limiter.limit("5/minute")
+async def debug_files(request: Request):
     """Debug endpoint to list all files in the static directory."""
     try:
         static_files = []
