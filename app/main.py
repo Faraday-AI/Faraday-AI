@@ -97,29 +97,23 @@ async def get_image(image_name: str):
     try:
         image_path = images_dir / image_name
         logger.info(f"Attempting to serve image from: {image_path}")
-        
         if not image_path.exists():
             logger.error(f"Image not found: {image_path}")
-            available_images = [f.name for f in images_dir.iterdir()] if images_dir.exists() else []
+            available_images = [f.name for f in images_dir.iterdir() if f.is_file()]
             return JSONResponse(
                 status_code=404,
                 content={
                     "detail": "Image not found",
-                    "path": str(image_path),
+                    "requested_path": str(image_path),
                     "available_images": available_images
                 }
             )
-        
-        return FileResponse(
-            str(image_path),
-            media_type="image/png" if image_name.endswith('.png') else "image/svg+xml",
-            filename=image_name
-        )
+        return FileResponse(str(image_path))
     except Exception as e:
-        logger.exception(f"Error serving image {image_name}")
+        logger.exception("Error serving image")
         return JSONResponse(
             status_code=500,
-            content={"detail": f"Error serving image: {str(e)}"}
+            content={"detail": str(e)}
         )
 
 @app.get("/test")
