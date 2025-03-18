@@ -1,4 +1,6 @@
 # Core Dependencies
+slowapi==0.1.8
+limits==3.9.0
 fastapi==0.109.2
 uvicorn==0.27.1
 gunicorn==21.2.0
@@ -6,8 +8,6 @@ starlette==0.36.3
 python-dotenv==1.0.1
 pydantic==2.6.1
 pydantic-settings==2.2.1
-slowapi==0.1.8
-limits==3.9.0
 loguru==0.7.2
 
 # HTTP and Authentication
