@@ -9,6 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
+from starlette.config import Config
 import logging
 from typing import Optional
 import tempfile
@@ -32,8 +33,9 @@ from app.models.api import (
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Initialize rate limiter with default config (no .env required)
+config = Config(environ=os.environ)
+limiter = Limiter(key_func=get_remote_address, config=config)
 
 # Initialize FastAPI app
 app = FastAPI(title=get_settings().APP_NAME)
