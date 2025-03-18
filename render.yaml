@@ -3,13 +3,12 @@ services:
     name: faraday-ai
     env: python
     region: oregon
-    plan: starter
+    plan: free
     buildCommand: |
       pip install -r requirements.txt
-      mkdir -p $PWD/app/static/images
-      cp -f app/static/images/coming-soon.png $PWD/app/static/images/ || true
-      ls -la $PWD/app/static/images/
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug
+      mkdir -p logs
+      mkdir -p static/images
+    startCommand: gunicorn --config gunicorn.conf.py test_server:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -17,61 +16,35 @@ services:
         value: .
       - key: APP_ENVIRONMENT
         value: production
-cat > render.yaml << 'EOL'
-services:
-  - type: web
-    name: faraday-ai
-    env: python
-    region: oregon
-    plan: starter
-    buildCommand: |
-      pip install -r requirements.txt
-      mkdir -p $PWD/app/static/images
-      cp -f app/static/images/coming-soon.png $PWD/app/static/images/ || true
-      ls -la $PWD/app/static/images/
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug
-    envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.0
-      - key: PYTHONPATH
-        value: .
-      - key: APP_ENVIRONMENT
-        value: production
-      - key: DEBUG
-        value: true
+      - key: PORT
+        value: 8000
       - key: LOG_LEVEL
-        value: debug
-      - key: BETA_VERSION
-        value: 1.0.0
-      - key: DEPLOYMENT_STAGE
-        value: beta
-      - key: MSCLIENTID
-        sync: false
-      - key: MSCLIENTSECRET
-        sync: false
-      - key: MSTENANTID
-        sync: false
-      - key: REDIRECT_URI
-        value: https://faraday-ai.com/auth/callback
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: GPT_MODEL
-        value: gpt-4-turbo-preview
-      - key: MAX_TOKENS
-        value: 2000
-      - key: TEMPERATURE
-        value: 0.7
-      - key: ENABLE_TWILIO
-        value: false
-      - key: ENABLE_GOOGLE_CLOUD
-        value: false
-      - key: SCOPE
-        value: "User.Read Mail.Read Files.ReadWrite.All"
-    routes:
-      - type: rewrite
-        source: /static/(.*)
-        destination: /static/$1
-      - type: rewrite
-        source: /(.*)
-        destination: /$1
+        value: info
+      - key: VERSION
+        value: 0.1.0
+      - key: WORKERS
+        value: 4
+      - key: ALLOWED_HOSTS
+        value: faraday-ai.onrender.com,localhost,127.0.0.1
+      - key: CORS_ORIGINS
+        value: https://faraday-ai.onrender.com
+    healthCheckPath: /health
+    autoDeploy: true
+    scaling:
+      minInstances: 1
+      maxInstances: 1
+      targetMemoryPercent: 80
+      targetCPUPercent: 80
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';"
