@@ -38,7 +38,7 @@ services:
         value: "100/minute"
       - key: RATELIMIT_STRATEGY
         value: fixed-window
-    healthCheckPath: /health
+    healthCheckPath: /test
     autoDeploy: true
     scaling:
       minInstances: 1
