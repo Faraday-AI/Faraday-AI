@@ -33,13 +33,13 @@ from app.models.api import (
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Initialize rate limiter with direct configuration
+# Initialize rate limiter with direct configuration and empty config
+config = Config(env_files=[])  # This prevents looking for .env files
 limiter = Limiter(
     key_func=get_remote_address,
     storage_uri="memory://",
     default_limits=["100/minute"],
-    strategy="fixed-window",
-    env_file=[]  # Explicitly tell slowapi not to look for any env files
+    strategy="fixed-window"
 )
 
 # Initialize FastAPI app
