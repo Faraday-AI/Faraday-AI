@@ -6,9 +6,11 @@ services:
     plan: free
     buildCommand: |
       pip install -r requirements.txt
-      mkdir -p logs
+      mkdir -p /tmp/faraday-ai/logs
+      chmod -R 777 /tmp/faraday-ai/logs
       mkdir -p static/images
-    startCommand: gunicorn --config gunicorn.conf.py test_server:app
+      chmod -R 755 static
+    startCommand: gunicorn --config gunicorn.conf.py main:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -20,6 +22,8 @@ services:
         value: 8000
       - key: LOG_LEVEL
         value: info
+      - key: LOG_DIR
+        value: /tmp/faraday-ai/logs
       - key: VERSION
         value: 0.1.0
       - key: WORKERS
@@ -28,6 +32,12 @@ services:
         value: faraday-ai.onrender.com,localhost,127.0.0.1
       - key: CORS_ORIGINS
         value: https://faraday-ai.onrender.com
+      - key: RATELIMIT_STORAGE_URL
+        value: memory://
+      - key: RATELIMIT_DEFAULT
+        value: "100/minute"
+      - key: RATELIMIT_STRATEGY
+        value: fixed-window
     healthCheckPath: /health
     autoDeploy: true
     scaling:
