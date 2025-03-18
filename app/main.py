@@ -38,7 +38,8 @@ limiter = Limiter(
     key_func=get_remote_address,
     storage_uri="memory://",
     default_limits=["100/minute"],
-    strategy="fixed-window"
+    strategy="fixed-window",
+    env_file=[]  # Explicitly tell slowapi not to look for any env files
 )
 
 # Initialize FastAPI app
