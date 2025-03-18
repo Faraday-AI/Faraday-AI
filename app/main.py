@@ -1,3 +1,14 @@
+import logging
+from typing import Optional
+import tempfile
+import os
+from pathlib import Path
+
+# Set rate limiting environment variables before importing slowapi
+os.environ["RATELIMIT_STORAGE_URL"] = "memory://"
+os.environ["RATELIMIT_DEFAULT"] = "100/minute"
+os.environ["RATELIMIT_STRATEGY"] = "fixed-window"
+
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, Response
@@ -10,11 +21,6 @@ from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 from starlette.config import Config
-import logging
-from typing import Optional
-import tempfile
-import os
-from pathlib import Path
 
 from app.core.config import get_settings
 from app.services.openai_service import get_openai_service
@@ -33,11 +39,8 @@ from app.models.api import (
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Create config with empty env_files list
-config = Config(env_files=[])
-
-# Initialize rate limiter with config
-limiter = Limiter(key_func=get_remote_address, app_config=config)
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Initialize FastAPI app
 app = FastAPI(title=get_settings().APP_NAME)
