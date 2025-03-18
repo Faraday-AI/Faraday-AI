@@ -1,8 +1,22 @@
 import multiprocessing
 import os
 
-# Create logs directory if it doesn't exist
-os.makedirs('logs', exist_ok=True)
+# Get environment-specific paths
+LOG_DIR = os.environ.get('LOG_DIR', 'logs')
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# Ensure log files are writable
+def ensure_writable(path):
+    try:
+        # Create parent directory if it doesn't exist
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        # Create or touch the file
+        open(path, 'a').close()
+        return path
+    except Exception as e:
+        # Fallback to stdout/stderr if we can't write to files
+        print(f"Warning: Could not create log file {path}: {e}")
+        return '-'
 
 # Server socket
 bind = "0.0.0.0:8000"
@@ -21,8 +35,8 @@ max_requests_jitter = 50
 proc_name = 'faraday-ai'
 
 # Logging
-accesslog = "logs/access.log"
-errorlog = "logs/error.log"
+accesslog = ensure_writable(os.path.join(LOG_DIR, 'access.log'))
+errorlog = ensure_writable(os.path.join(LOG_DIR, 'error.log'))
 loglevel = "info"
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s"'
 
