@@ -29,9 +29,9 @@ services:
       - key: WORKERS
         value: 4
       - key: ALLOWED_HOSTS
-        value: faraday-ai.onrender.com,localhost,127.0.0.1
+        value: faraday-ai.onrender.com,localhost,127.0.0.1,faraday-ai.com,www.faraday-ai.com
       - key: CORS_ORIGINS
-        value: https://faraday-ai.onrender.com
+        value: https://faraday-ai.com,https://www.faraday-ai.com
       - key: RATELIMIT_STORAGE_URL
         value: memory://
       - key: RATELIMIT_DEFAULT
@@ -43,8 +43,8 @@ services:
     scaling:
       minInstances: 1
       maxInstances: 1
-      targetMemoryPercent: 80
-      targetCPUPercent: 80
+      targetMemoryPercent: 90
+      targetCPUPercent: 90
     headers:
       - path: /*
         name: X-Frame-Options
