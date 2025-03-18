@@ -33,9 +33,8 @@ from app.models.api import (
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Initialize rate limiter with default config (no .env required)
-config = Config(environ=os.environ)
-limiter = Limiter(key_func=get_remote_address, config=config)
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Initialize FastAPI app
 app = FastAPI(title=get_settings().APP_NAME)
