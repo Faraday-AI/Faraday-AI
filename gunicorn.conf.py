@@ -1,6 +1,9 @@
 import multiprocessing
 import os
 
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
+
 # Server socket
 bind = "0.0.0.0:8000"
 backlog = 2048
