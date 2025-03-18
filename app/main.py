@@ -4,6 +4,13 @@ import tempfile
 import os
 from pathlib import Path
 
+# Create empty .env file if it doesn't exist
+env_file = Path(".env")
+if not env_file.exists():
+    logger = logging.getLogger(__name__)
+    logger.info("Creating empty .env file for rate limiting configuration")
+    env_file.touch()
+
 # Set rate limiting environment variables before importing slowapi
 os.environ["RATELIMIT_STORAGE_URL"] = "memory://"
 os.environ["RATELIMIT_DEFAULT"] = "100/minute"
@@ -39,11 +46,8 @@ from app.models.api import (
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Initialize rate limiter with empty env_files list to prevent .env lookup
-limiter = Limiter(
-    key_func=get_remote_address,
-    app_config=Config(env_files=[])  # Explicitly tell starlette not to look for .env files
-)
+# Initialize rate limiter
+limiter = Limiter(key_func=get_remote_address)
 
 # Initialize FastAPI app
 app = FastAPI(title=get_settings().APP_NAME)
