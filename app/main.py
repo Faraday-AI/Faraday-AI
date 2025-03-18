@@ -33,13 +33,15 @@ from app.models.api import (
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Set environment variables for rate limiting
-os.environ["RATELIMIT_STORAGE_URL"] = "memory://"
-os.environ["RATELIMIT_DEFAULT"] = "100/minute"
-os.environ["RATELIMIT_STRATEGY"] = "fixed-window"
+# Initialize rate limiter with direct configuration
+config = Config({
+    "RATELIMIT_STORAGE_URL": "memory://",
+    "RATELIMIT_DEFAULT": "100/minute",
+    "RATELIMIT_STRATEGY": "fixed-window"
+}, env_file=None)
 
 # Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=get_remote_address, app_config=config)
 
 # Initialize FastAPI app
 app = FastAPI(title=get_settings().APP_NAME)
