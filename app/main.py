@@ -70,15 +70,28 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 # Add security middlewares
 app.add_middleware(SecurityHeadersMiddleware)
+
+# Add debug logging for host headers
+@app.middleware("http")
+async def log_host_header(request: Request, call_next):
+    logger.debug(f"Received request with host header: {request.headers.get('host')}")
+    return await call_next(request)
+
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["faraday-ai.onrender.com", "localhost", "127.0.0.1"]
+    allowed_hosts=["*"]  # Allow all hosts temporarily for debugging
 )
 
 # Add CORS middleware with more restrictive settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://faraday-ai.onrender.com", "http://localhost:8000", "http://127.0.0.1:8000"],
+    allow_origins=[
+        "https://faraday-ai.onrender.com",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "https://faraday-ai.com",
+        "https://www.faraday-ai.com"
+    ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS", "HEAD"],
     allow_headers=["*"],
