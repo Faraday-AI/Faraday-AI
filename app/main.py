@@ -39,8 +39,11 @@ from app.models.api import (
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
-# Initialize rate limiter
-limiter = Limiter(key_func=get_remote_address)
+# Initialize rate limiter with empty env_files list to prevent .env lookup
+limiter = Limiter(
+    key_func=get_remote_address,
+    app_config=Config(env_files=[])  # Explicitly tell starlette not to look for .env files
+)
 
 # Initialize FastAPI app
 app = FastAPI(title=get_settings().APP_NAME)
