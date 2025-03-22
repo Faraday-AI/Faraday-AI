@@ -1,0 +1,22 @@
+{
+    "google": {
+        "client_id": "",
+        "client_secret": "",
+        "redirect_uri": ""
+    },
+    "microsoft": {
+        "client_id": "",
+        "client_secret": "",
+        "tenant_id": ""
+    },
+    "apple": {
+        "team_id": "",
+        "key_id": "",
+        "private_key_path": ""
+    },
+    "sync_interval": 300,
+    "cache_duration": 3600,
+    "max_events": 1000,
+    "default_reminder": 15,
+    "timezone": "UTC"
+} 
