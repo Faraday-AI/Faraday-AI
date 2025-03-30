@@ -1,79 +1,193 @@
-# Faraday AI Documentation
+# Faraday AI Personal Education Assistant and School Management System Platform
 
-## 📚 User Guides
-Subject-specific guides for Elizabeth Public Schools teachers:
+## Project Overview
+Faraday AI is an AI-powered personal education assistant and school management platform designed to enhance educational experiences through advanced tracking, security features, and AI-driven insights. The system combines personalized AI assistance with comprehensive tools for collaboration, resource management, and analytics to support educators and students in their educational journey.
 
-1. [Physical Education Guide](user_guides/PE_GUIDE.md)
-   - Lesson planning templates
-   - Activity modifications
-   - Assessment strategies
-   - Class management tips
+### Current Implementation
+- FastAPI backend service deployed on Render (https://faraday-ai.com)
+- Real-time collaboration features with WebSocket support
+- Document sharing and version control system
+- Custom landing page with static assets
+- Integration with ChatGPT's API for AI assistance
+- In-memory storage (SQL database in development)
 
-2. [Health Education Guide](user_guides/HEALTH_GUIDE.md)
-   - Sensitive topic handling
-   - Discussion scenarios
-   - Current events integration
-   - Parent communication
+### Development Phases
+1. Beta Version (Current):
+   - Focused implementation for K-12 PE, Health, and Driver's Ed teachers in Elizabeth Public Schools (EPS)
+   - Custom GPT integration:
+     * Specialized ChatGPT model trained for educational content
+     * Direct integration with Faraday-AI's codebase
+     * AI-powered assistance for curriculum development
+   - Data Management (In Development):
+     * SQL database implementation planned for beta launch
+     * Migration from in-memory to persistent storage
+     * Secure data handling for educational content
+   - Testing and Feedback:
+     * Core features and real-time collaboration testing
+     * User feedback collection through integrated systems
+     * Usage pattern analysis for optimization
+     * Performance metrics tracking
 
-3. [Driver's Education Guide](user_guides/DRIVERS_ED_GUIDE.md)
-   - NJ-specific content
-   - Scenario generation
-   - Safety protocols
-   - Test preparation
+2. Full Application (Planned):
+   - Option A: Pilot program implementation in selected school districts
+   - Option B: Private launch on Faraday-AI.com as a standalone service
+   - Complete feature set including all planned enhancements
+   - Scalable infrastructure for multiple institutions
+   - Enhanced AI capabilities and database optimization
 
-## 📝 Templates
-Ready-to-use templates for common tasks:
+## Setup Instructions
 
-1. [Feedback Form](templates/FEEDBACK_FORM.md)
-   - Beta testing feedback
-   - Feature requests
-   - Success stories
-   - Technical issues
+### Prerequisites
+1. Python 3.x
+2. Virtual environment (venv)
+3. Git (for version control)
+4. Terminal/Command Prompt
+5. Code editor (VS Code recommended)
 
-## 🎯 Quick Links
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/Faraday-AI/Faraday-AI.git
+   cd Faraday-AI
+   ```
 
-### Standards & Frameworks
-- [NJ PE Standards](https://www.state.nj.us/education/cccs/2020/2020%20NJSLS-CHPE.pdf)
-- [Danielson Framework](https://danielsongroup.org/framework)
-- [NJ Driver Education Manual](https://www.state.nj.us/mvc/pdf/license/drivermanual.pdf)
+2. Create and activate virtual environment:
+   ```bash
+   # Create virtual environment
+   python -m venv venv
+   
+   # Activate virtual environment
+   # On macOS/Linux:
+   source venv/bin/activate
+   # On Windows:
+   venv\Scripts\activate
+   ```
 
-### Support Resources
-- Technical Support: [Your Contact Info]
-- Feature Requests: [Your Contact Info]
-- Bug Reports: [Your Contact Info]
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## 🔄 Beta Program Timeline
+### Running the Server
+1. Start the FastAPI server:
+   ```bash
+   python -m uvicorn app.main:app --reload
+   ```
 
-### Beta.1 (Current Phase)
-- Word-of-mouth rollout
-- Initial teacher feedback
-- Core feature testing
-- Bug identification
+2. Access points:
+   - Main URL: http://127.0.0.1:8000
+   - API documentation: http://127.0.0.1:8000/docs
+   - Alternative docs: http://127.0.0.1:8000/redoc
+   - Landing page: http://127.0.0.1:8000/static/index.html
 
-### Beta.2 (Coming Soon)
-- Official school pilot
-- Extended feature set
-- Integration testing
-- Performance optimization
+## Project Structure
+- `app/`: Main application code, including API endpoints and services
+  - `app/main.py`: Core FastAPI application and endpoint definitions
+  - `app/services/realtime_collaboration_service.py`: Real-time collaboration implementation
+- `app/core/`: Core functionalities and configurations
+- `app/services/`: Service layer for business logic
+- `app/models/`: Data models and schemas
+- `app/static/`: Static files and landing page
+- `tests/`: Test files for unit and integration testing
+- `docs/`: Documentation and guides
 
-### Full Pilot (Future)
-- Multi-district deployment
-- Complete feature suite
-- Scaled infrastructure
-- District-level analytics
+## Features
 
-## 💡 Contributing
-During the beta phase:
-1. Use the feedback form to report issues
-2. Share success stories
-3. Suggest improvements
-4. Request new features
+### Original Features
+- **Educational Resources**: Resource recommendation and management
+- **Analytics and Metrics**: User engagement tracking and performance metrics
+- **Security**: Advanced security features and compliance tools
 
-## 📅 Updates
-Documentation is updated weekly based on:
-- Teacher feedback
-- New features
-- Bug fixes
-- Best practices
+### Real-time Collaboration Features
+1. Session Management:
+   - Create and manage collaboration sessions
+   - Track session participants
+   - Maintain session status and metadata
 
-Check back regularly for the latest guidance and templates. 
+2. Document Collaboration:
+   - Share documents within sessions
+   - Lock/unlock documents for editing
+   - Track document version history
+   - Prevent concurrent edits through locking mechanism
+
+3. Real-time Updates:
+   - WebSocket connections for live updates
+   - Broadcast changes to all session participants
+   - Track participant status
+
+## API Endpoints
+
+### Collaboration Endpoints
+- POST `/api/collaboration/create`: Create new collaboration session
+- GET `/api/collaboration/status`: Get session status
+- POST `/api/collaboration/share_document`: Share document in session
+- POST `/api/collaboration/lock`: Lock document for editing
+- POST `/api/collaboration/unlock`: Release document lock
+- POST `/api/collaboration/edit_document`: Edit document (requires lock)
+- GET `/api/collaboration/document/{document_id}`: Get document details
+- WS `/ws/{user_id}`: WebSocket connection for real-time updates
+
+### Resource Management
+- `/api/resources/`: Endpoints for resource management
+- `/api/metrics/`: Endpoints for accessing analytics data
+
+## Implementation Details
+
+### Current Features
+1. In-Memory Storage:
+   - Sessions stored in RealtimeCollaborationService
+   - Document content and history maintained in memory
+   - Lock status tracked per session/document
+
+2. Locking Mechanism:
+   - Single-user lock system
+   - Must acquire lock before editing
+   - Automatic lock validation
+   - Lock release functionality
+
+3. Version Control:
+   - Document versions tracked
+   - History maintained with timestamps
+   - User attribution for changes
+
+### Deployment
+- Deployed on Render (https://faraday-ai.com)
+- Custom landing page with static assets
+- Automatic deployments from main branch
+
+## Testing
+
+### Collaboration Feature Testing
+```bash
+# Create a session
+curl -X POST "http://127.0.0.1:8000/api/collaboration/create?session_id=test-session&user_id=user1"
+
+# Share a document
+curl -X POST "http://127.0.0.1:8000/api/collaboration/share_document?session_id=test-session&user_id=user1&document_id=doc1&document_type=text"
+
+# Lock and edit document
+curl -X POST "http://127.0.0.1:8000/api/collaboration/lock?session_id=test-session&user_id=user1&document_id=doc1"
+curl -X POST "http://127.0.0.1:8000/api/collaboration/edit_document?session_id=test-session&user_id=user1&document_id=doc1" \
+  -H "Content-Type: application/json" \
+  -d '{"content": "Updated content"}'
+```
+
+## Current Limitations
+1. In-memory storage (data lost on restart)
+2. Basic authentication system
+3. Limited error handling
+4. No conflict resolution for concurrent edits
+
+## Future Enhancements
+1. Persistent storage (database implementation)
+2. Enhanced authentication system
+3. Improved error handling
+4. Conflict resolution system
+5. Document diff tracking
+6. User presence indicators
+
+## Contributing
+Contributions are welcome! Please see the `CONTRIBUTING.md` file for guidelines.
+
+## Contact Information
+For support or inquiries, please contact the project maintainers at support@faraday-ai.com.

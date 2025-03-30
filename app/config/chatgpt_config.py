@@ -8,7 +8,7 @@ load_dotenv()
 class ChatGPTConfig(BaseSettings):
     # OpenAI API Configuration
     api_key: str = os.getenv("OPENAI_API_KEY", "")
-    model: str = os.getenv("GPT_MODEL", "gpt-4-turbo-preview")
+    model: str = os.getenv("GPT_MODEL", "gpt-3.5-turbo")
     max_tokens: int = int(os.getenv("MAX_TOKENS", "2000"))
     temperature: float = float(os.getenv("TEMPERATURE", "0.7"))
     

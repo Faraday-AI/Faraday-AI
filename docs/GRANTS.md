@@ -1,4 +1,4 @@
-[GRANTS.md](https://github.com/user-attachments/files/19404596/GRANTS.md)[Uplo# Faraday AI Grant Strategy
+# Faraday AI Grant Strategy
 
 ## Priority Grant Opportunities
 
@@ -117,4 +117,4 @@ Grants available to partner schools implementing Faraday AI:
 - Implementation case studies
 
 ## Contact
-For grant-related inquiries, please contact [Grant Coordinator Contact Information]. ading GRANTS.md…]()
+For grant-related inquiries, please contact [Grant Coordinator Contact Information]. 
