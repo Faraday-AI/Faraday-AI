@@ -1,49 +1,211 @@
 version: '3.8'
 
 services:
-  web:
+  # Core Platform Services
+  app:
     build: .
     ports:
-      - "8000:8000"
-    volumes:
-      - ./logs:/app/logs
-      - ./static:/app/static
+      - "${API_PORT:-8000}:${API_PORT:-8000}"
+      - "${METRICS_PORT:-9090}:${METRICS_PORT:-9090}"
+      - "${WEBSOCKET_PORT:-9100}:${WEBSOCKET_PORT:-9100}"
     environment:
-      - ENVIRONMENT=production
-      - WORKERS=4
-    restart: unless-stopped
+      - API_PORT=${API_PORT:-8000}
+      - METRICS_PORT=${METRICS_PORT:-9090}
+      - WEBSOCKET_PORT=${WEBSOCKET_PORT:-9100}
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/faraday
+      - REDIS_URL=redis://redis:6379/0
+      - MINIO_URL=minio:9000
+      - MINIO_ACCESS_KEY=minioadmin
+      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_BUCKET=faraday-media
+      - ENABLE_METRICS=true
+      - LOG_LEVEL=INFO
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - ./static:/app/static
+    depends_on:
+      - db
+      - redis
+      - minio
+      - prometheus
+      - grafana
+      - pgadmin
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '1'
-          memory: 1G
+    networks:
+      - faraday-network
 
-  nginx:
-    image: nginx:alpine
+  # Shared Database
+  db:
+    image: postgres:14
     ports:
-      - "80:80"
-      - "443:443"
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=faraday
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./static:/usr/share/nginx/html/static:ro
-      - ./certs:/etc/nginx/certs:ro
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - faraday-network
+
+  # Shared Cache
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - faraday-network
+
+  # Shared File Storage
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - faraday-network
+
+  # Database Management
+  pgadmin:
+    image: dpage/pgadmin4
+    ports:
+      - "5050:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@admin.com}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
     depends_on:
-      - web
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M 
+      - db
+
+  # Monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # PE-Specific Services
+  pe-video-processor:
+    build: 
+      context: .
+      dockerfile: Dockerfile.video
+    environment:
+      - OPENCV_FFMPEG_CAPTURE_OPTIONS=rtsp_transport;tcp
+      - SERVICE_TYPE=pe
+    volumes:
+      - media_volume:/app/media
+    depends_on:
+      - redis
+      - minio
+
+  pe-movement-analyzer:
+    build:
+      context: .
+      dockerfile: Dockerfile.movement
+    environment:
+      - MODEL_PATH=/app/models
+      - SERVICE_TYPE=pe
+    volumes:
+      - media_volume:/app/media
+      - ./models:/app/models
+    depends_on:
+      - redis
+      - pe-video-processor
+
+  # Future Service Placeholders
+  # admin-service:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.admin
+  #   environment:
+  #     - SERVICE_TYPE=admin
+  #   depends_on:
+  #     - redis
+  #     - minio
+
+  # secretary-service:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.secretary
+  #   environment:
+  #     - SERVICE_TYPE=secretary
+  #   depends_on:
+  #     - redis
+  #     - minio
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  pgadmin_data:
+  prometheus_data:
+  grafana_data:
+  media_volume:
+
+networks:
+  faraday-network:
+    driver: bridge 

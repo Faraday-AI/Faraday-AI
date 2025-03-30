@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, WebSocket, Header
+from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, WebSocket, Header, Body, Request
 from typing import List, Dict, Any, Optional
 from app.services.ai_analytics import get_ai_analytics_service, AIAnalytics
 from app.services.ai_vision import get_ai_vision_service, AIVisionAnalysis
@@ -7,13 +7,134 @@ from app.services.ai_emotion import get_ai_emotion_service, AIEmotionAnalysis
 from app.services.ai_group import get_ai_group_service, AIGroupAnalysis
 import json
 import numpy as np
+from pydantic import BaseModel, validator
+from fastapi.responses import JSONResponse
+import logging
+from datetime import datetime, timedelta
+from collections import defaultdict
+import time
+
+logger = logging.getLogger(__name__)
+
+# Rate limiting configuration
+RATE_LIMIT_REQUESTS = 100  # requests per window
+RATE_LIMIT_WINDOW = 60  # seconds
+
+class RateLimiter:
+    def __init__(self, requests_per_window: int, window_seconds: int):
+        self.requests_per_window = requests_per_window
+        self.window_seconds = window_seconds
+        self.requests = defaultdict(list)
+
+    def is_rate_limited(self, client_id: str) -> bool:
+        """Check if the client has exceeded the rate limit."""
+        now = time.time()
+        window_start = now - self.window_seconds
+        
+        # Clean up old requests
+        self.requests[client_id] = [t for t in self.requests[client_id] if t > window_start]
+        
+        # Check if rate limit is exceeded
+        if len(self.requests[client_id]) >= self.requests_per_window:
+            return True
+            
+        # Add new request
+        self.requests[client_id].append(now)
+        return False
+
+    def get_remaining_requests(self, client_id: str) -> int:
+        """Get the number of remaining requests for the client."""
+        now = time.time()
+        window_start = now - self.window_seconds
+        
+        # Clean up old requests
+        self.requests[client_id] = [t for t in self.requests[client_id] if t > window_start]
+        
+        return max(0, self.requests_per_window - len(self.requests[client_id]))
+
+rate_limiter = RateLimiter(RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW)
+
+async def check_rate_limit(request: Request):
+    """Dependency to check rate limiting."""
+    client_id = request.client.host
+    if rate_limiter.is_rate_limited(client_id):
+        remaining = rate_limiter.get_remaining_requests(client_id)
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "error": "Too many requests",
+                "remaining_requests": remaining,
+                "reset_time": RATE_LIMIT_WINDOW
+            }
+        )
+    return client_id
 
 router = APIRouter()
 
+class PerformanceRequest(BaseModel):
+    student_data: Dict[str, Any]
+    lesson_history: List[Dict[str, Any]]
+
+class GroupAnalysisRequest(BaseModel):
+    """Request model for group analysis."""
+    group_data: Dict[str, Any]
+
+    @validator('group_data')
+    def validate_group_data(cls, v):
+        """Validate group data structure and values."""
+        required_fields = {
+            'composition': ['total_students', 'grade_level', 'subject', 'diversity_metrics'],
+            'interaction_patterns': ['group_work_frequency', 'collaboration_level', 'peer_learning'],
+            'learning_outcomes': ['average_performance', 'participation_rate', 'completion_rate']
+        }
+
+        # Check required sections
+        for section, fields in required_fields.items():
+            if section not in v:
+                raise ValueError(f"Missing required section: {section}")
+            
+            # Check required fields in each section
+            for field in fields:
+                if field not in v[section]:
+                    raise ValueError(f"Missing required field: {section}.{field}")
+
+        # Validate numeric values
+        if not isinstance(v['composition']['total_students'], int) or v['composition']['total_students'] <= 0:
+            raise ValueError("total_students must be a positive integer")
+
+        if not isinstance(v['learning_outcomes']['average_performance'], (int, float)) or \
+           not 0 <= v['learning_outcomes']['average_performance'] <= 100:
+            raise ValueError("average_performance must be between 0 and 100")
+
+        if not isinstance(v['learning_outcomes']['participation_rate'], (int, float)) or \
+           not 0 <= v['learning_outcomes']['participation_rate'] <= 1:
+            raise ValueError("participation_rate must be between 0 and 1")
+
+        if not isinstance(v['learning_outcomes']['completion_rate'], (int, float)) or \
+           not 0 <= v['learning_outcomes']['completion_rate'] <= 1:
+            raise ValueError("completion_rate must be between 0 and 1")
+
+        # Validate diversity metrics
+        diversity_metrics = v['composition']['diversity_metrics']
+        if not isinstance(diversity_metrics.get('learning_styles'), list) or \
+           not all(isinstance(style, str) for style in diversity_metrics['learning_styles']):
+            raise ValueError("learning_styles must be a list of strings")
+
+        if not isinstance(diversity_metrics.get('performance_levels'), list) or \
+           not all(isinstance(level, str) for level in diversity_metrics['performance_levels']):
+            raise ValueError("performance_levels must be a list of strings")
+
+        # Validate interaction patterns
+        interaction_patterns = v['interaction_patterns']
+        valid_collaboration_levels = {'high', 'medium', 'low'}
+        if interaction_patterns['collaboration_level'].lower() not in valid_collaboration_levels:
+            raise ValueError("collaboration_level must be one of: high, medium, low")
+
+        return v
+
 @router.post("/analytics/performance")
 async def analyze_student_performance(
-    student_data: Dict[str, Any],
-    lesson_history: List[Dict[str, Any]],
+    request: PerformanceRequest,
     ai_service: AIAnalytics = Depends(get_ai_analytics_service)
 ) -> Dict[str, Any]:
     """
@@ -27,7 +148,7 @@ async def analyze_student_performance(
     5. Generates actionable insights
     """
     try:
-        return await ai_service.predict_student_performance(student_data, lesson_history)
+        return await ai_service.predict_student_performance(request.student_data, request.lesson_history)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -319,6 +440,39 @@ async def analyze_student_emotions(
         return await ai_service.analyze_student_emotions(video_path, context)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/analytics/group", response_model=Dict[str, Any])
+async def analyze_group_dynamics(
+    request: Request,
+    analysis_request: GroupAnalysisRequest,
+    client_id: str = Depends(check_rate_limit),
+    ai_analytics: AIAnalytics = Depends(get_ai_analytics_service)
+) -> Dict[str, Any]:
+    """Analyze group dynamics and learning patterns.
+    
+    This endpoint analyzes:
+    1. Group composition
+    2. Interaction patterns
+    3. Learning outcomes
+    4. Group dynamics
+    5. Optimization recommendations
+    """
+    try:
+        # Add rate limit headers to response
+        response = await ai_analytics.analyze_group_dynamics(analysis_request.group_data)
+        return JSONResponse(
+            content=response,
+            headers={
+                "X-RateLimit-Limit": str(RATE_LIMIT_REQUESTS),
+                "X-RateLimit-Remaining": str(rate_limiter.get_remaining_requests(client_id)),
+                "X-RateLimit-Reset": str(RATE_LIMIT_WINDOW)
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error in group analysis: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error during group analysis")
 
 @router.post("/group/dynamics-analysis")
 async def analyze_group_dynamics(
