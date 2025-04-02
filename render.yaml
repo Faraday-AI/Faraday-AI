@@ -5,14 +5,14 @@ services:
     region: oregon
     plan: free
     buildCommand: |
-      pip install -r requirements.txt
+      python3.10 -m pip install -r requirements.txt
       mkdir -p /tmp/faraday-ai/logs
       chmod -R 777 /tmp/faraday-ai/logs
       mkdir -p static/images
       chmod -R 755 static
       mkdir -p app
       cp -r app/* app/
-    startCommand: gunicorn --config gunicorn.conf.py wsgi:app
+    startCommand: python3.10 -m gunicorn --config gunicorn.conf.py wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
