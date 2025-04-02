@@ -35,6 +35,7 @@
             right: 0;
             bottom: 0;
             overflow: hidden;
+            background-color: #000;
         }
 
         .landing-page {
@@ -44,6 +45,7 @@
             right: 0;
             bottom: 0;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             background-color: #000;
@@ -52,20 +54,98 @@
             overflow: hidden;
         }
 
+        .image-container {
+            position: relative;
+            width: 100%;
+            height: 80vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            padding: 0;
+            margin: 0;
+            max-width: none;
+            background-color: #000;
+        }
+
         .landing-image {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            max-width: 100vw;
-            max-height: 100vh;
-            width: auto;
-            height: auto;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
             pointer-events: none;
             margin: 0;
             padding: 0;
             display: block;
+            background-color: #000;
+        }
+
+        /* Debug elements */
+        .debug-left, .debug-right, .debug-center {
+            position: absolute;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background-color: #ff0000;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        .debug-left {
+            left: 0;
+        }
+
+        .debug-right {
+            right: 0;
+        }
+
+        .debug-center {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Remove debug elements */
+        .feature-buttons {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            background-color: #000;
+        }
+
+        .feature-button {
+            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            border: none;
+            border-radius: 25px;
+            color: white;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            text-align: center;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .feature-button .description {
+            font-size: 14px;
+            font-weight: normal;
+            opacity: 0.9;
+        }
+
+        .feature-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
         }
 
         /* Hide scrollbars */
@@ -83,12 +163,43 @@
             .landing-page {
                 padding: 0;
             }
+            
+            .image-container {
+                height: 70vh;
+            }
+            
+            .feature-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 15px;
+            }
+            
+            .feature-button {
+                width: 80%;
+                max-width: 250px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="landing-page">
-        <img src="/static/images/New_Coming_Soon.png" alt="Faraday AI Coming Soon" class="landing-image">
+        <div class="image-container">
+            <img src="/static/images/New_Coming_Soon.png" alt="Faraday AI Coming Soon" class="landing-image">
+        </div>
+        <div class="feature-buttons">
+            <a href="/api/v1/math" class="feature-button">
+                <span>Math Assistant</span>
+                <span class="description">Solve complex equations and math problems</span>
+            </a>
+            <a href="/api/v1/science" class="feature-button">
+                <span>Science Assistant</span>
+                <span class="description">Explore scientific concepts and experiments</span>
+            </a>
+            <a href="/api/v1/memory" class="feature-button">
+                <span>Memory System</span>
+                <span class="description">Store and retrieve information efficiently</span>
+            </a>
+        </div>
     </div>
 </body>
 </html> 
