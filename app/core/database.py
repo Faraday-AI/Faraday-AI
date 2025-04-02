@@ -60,8 +60,8 @@ def get_db():
 
 async def init_db() -> bool:
     """Initialize database with retry logic and exponential backoff."""
-    max_retries = 15  # Increased retries
-    base_delay = 10  # Base delay in seconds
+    max_retries = 20  # Increased retries
+    base_delay = 5  # Reduced base delay to start retries faster
     max_delay = 120  # Maximum delay in seconds
     
     for attempt in range(max_retries):
