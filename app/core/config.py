@@ -46,6 +46,10 @@ class Settings(BaseSettings):
         "postgresql://postgres:postgres@localhost:5432/faraday"
     )
     
+    # Add Azure-specific database URL with connection parameters
+    if "azure" in DATABASE_URL.lower():
+        DATABASE_URL = DATABASE_URL + "?connect_timeout=120&keepalives=1&keepalives_idle=60&keepalives_interval=30&keepalives_count=10&application_name=faraday_ai"
+    
     # Redis settings
     REDIS_URL: str = os.getenv(
         "DOCKER_REDIS_URL" if check_service_availability("localhost", 6379) else "LOCAL_REDIS_URL",
