@@ -17,16 +17,17 @@ settings = get_settings()
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,  # Enable connection health checks
-    pool_size=5,  # Maintain a pool of connections
-    max_overflow=10,  # Allow up to 10 connections beyond pool_size
-    pool_timeout=60,  # Increase pool timeout to 60 seconds
+    pool_size=10,  # Increased pool size for Pro plan
+    max_overflow=20,  # Increased max overflow for Pro plan
+    pool_timeout=120,  # Increased timeout for Pro plan
     pool_recycle=3600,  # Recycle connections after 1 hour
     connect_args={
-        "connect_timeout": 30,  # Connection timeout in seconds
+        "connect_timeout": 60,  # Increased connection timeout
         "keepalives": 1,  # Enable TCP keepalive
         "keepalives_idle": 30,  # Time between keepalive packets
         "keepalives_interval": 10,  # Time between retries
-        "keepalives_count": 5  # Number of retries
+        "keepalives_count": 5,  # Number of retries
+        "sslmode": "require"  # Enable SSL for Azure PostgreSQL
     }
 )
 
@@ -43,12 +44,12 @@ def get_db():
 
 async def init_db() -> bool:
     """Initialize database with retry logic."""
-    max_retries = 3
-    retry_delay = 5  # seconds
+    max_retries = 5  # Increased retries for Pro plan
+    retry_delay = 10  # Increased delay between retries
     
     for attempt in range(max_retries):
         try:
-            # Test connection
+            # Test connection with timeout
             with engine.connect() as conn:
                 conn.execute("SELECT 1")
             
