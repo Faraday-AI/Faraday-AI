@@ -31,7 +31,7 @@ from app.core.config import get_settings
 from app.api import physical_education
 from app.core.database import init_db
 from app.api import auth
-from app.api.v1.endpoints import memory, math_assistant, science_assistant
+from app.api.endpoints import memory, math_assistant, science_assistant
 import socket
 from app.core.health import router as health_router
 
