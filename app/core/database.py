@@ -17,17 +17,18 @@ settings = get_settings()
 engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,  # Enable connection health checks
-    pool_size=10,  # Increased pool size for Pro plan
-    max_overflow=20,  # Increased max overflow for Pro plan
-    pool_timeout=120,  # Increased timeout for Pro plan
-    pool_recycle=3600,  # Recycle connections after 1 hour
+    pool_size=3,  # Reduced pool size to prevent connection exhaustion
+    max_overflow=5,  # Reduced max overflow
+    pool_timeout=300,  # Increased timeout to 5 minutes
+    pool_recycle=900,  # Recycle connections after 15 minutes
     connect_args={
-        "connect_timeout": 60,  # Increased connection timeout
+        "connect_timeout": 180,  # Increased connection timeout to 3 minutes
         "keepalives": 1,  # Enable TCP keepalive
-        "keepalives_idle": 30,  # Time between keepalive packets
-        "keepalives_interval": 10,  # Time between retries
-        "keepalives_count": 5,  # Number of retries
-        "sslmode": "require"  # Enable SSL for Azure PostgreSQL
+        "keepalives_idle": 120,  # Increased time between keepalive packets
+        "keepalives_interval": 60,  # Increased time between retries
+        "keepalives_count": 15,  # Increased number of retries
+        "sslmode": "require",  # Enable SSL for Azure PostgreSQL
+        "application_name": "faraday_ai"  # Add application name for better monitoring
     }
 )
 
@@ -35,18 +36,33 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def get_db():
-    """Get database session."""
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    """Get database session with retry logic."""
+    max_retries = 3
+    retry_delay = 5
+    
+    for attempt in range(max_retries):
+        try:
+            db = SessionLocal()
+            yield db
+            break
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.warning(f"Database connection attempt {attempt + 1} failed: {str(e)}")
+                time.sleep(retry_delay)
+            else:
+                logger.error(f"Failed to connect to database after {max_retries} attempts: {str(e)}")
+                raise
+        finally:
+            try:
+                db.close()
+            except:
+                pass
 
 async def init_db() -> bool:
     """Initialize database with retry logic and exponential backoff."""
-    max_retries = 10  # Increased retries
-    base_delay = 5  # Base delay in seconds
-    max_delay = 60  # Maximum delay in seconds
+    max_retries = 15  # Increased retries
+    base_delay = 10  # Base delay in seconds
+    max_delay = 120  # Maximum delay in seconds
     
     for attempt in range(max_retries):
         try:
