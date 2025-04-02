@@ -1,4 +1,5 @@
 from typing import List, Dict, Any, Optional
+from functools import lru_cache
 import openai
 from app.models.lesson_plan import LessonPlan
 from app.core.config import get_settings
