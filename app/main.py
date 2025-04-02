@@ -31,7 +31,7 @@ from app.core.config import get_settings
 from app.api import physical_education
 from app.core.database import init_db
 from app.api import auth
-from app.api.v1.endpoints import memory, pe_health, math_assistant, science_assistant
+from app.api.v1.endpoints import memory, math_assistant, science_assistant
 import socket
 from app.core.health import router as health_router
 
@@ -93,10 +93,9 @@ async def startup_event():
             raise
 
 # Include routers
-app.include_router(memory.router, prefix="/api/v1", tags=["Memory"])
-app.include_router(pe_health.router, prefix="/api/v1", tags=["PE/Health"])
-app.include_router(math_assistant.router, prefix="/api/v1", tags=["Math"])
-app.include_router(science_assistant.router, prefix="/api/v1", tags=["Science"])
+app.include_router(memory.router, prefix="/api/v1/memory", tags=["memory"])
+app.include_router(math_assistant.router, prefix="/api/v1/math", tags=["math"])
+app.include_router(science_assistant.router, prefix="/api/v1/science", tags=["science"])
 app.include_router(health_router, tags=["System"])
 
 # Start Prometheus metrics server
@@ -119,7 +118,6 @@ async def health_check():
         "database": "connected",
         "services": {
             "memory": "operational",
-            "pe_health": "operational",
             "math": "operational",
             "science": "operational"
         }
