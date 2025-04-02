@@ -80,11 +80,17 @@ app.add_middleware(
 @app.on_event("startup")
 async def startup_event():
     try:
-        await init_db()
-        logger.info("Database initialized successfully")
+        db_initialized = await init_db()
+        if not db_initialized:
+            logger.warning("Database initialization failed, but continuing with limited functionality")
+        else:
+            logger.info("Database initialized successfully")
     except Exception as e:
-        logger.error(f"Error initializing database: {str(e)}")
-        raise
+        logger.error(f"Error during startup: {str(e)}")
+        if settings.DEBUG:
+            logger.warning("Running in debug mode - continuing with limited functionality")
+        else:
+            raise
 
 # Include routers
 app.include_router(memory.router, prefix="/api/v1", tags=["Memory"])
