@@ -129,4 +129,4 @@ tzdata==2025.1
 chardet==5.2.0
 
 # Core protobuf dependency to resolve version conflicts
-protobuf>=3.20.3,<4.0.0 
+protobuf==3.20.3 
