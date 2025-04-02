@@ -1,4 +1,5 @@
 from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from app.models.base import Base
 from app.core.config import get_settings
@@ -7,26 +8,30 @@ import asyncio
 import time
 from typing import Optional
 
-settings = get_settings()
+# Configure logging
 logger = logging.getLogger(__name__)
 
-# Create database URL
-SQLALCHEMY_DATABASE_URL = settings.DATABASE_URL
+settings = get_settings()
 
-# Create SQLAlchemy engine with longer timeouts
+# Create SQLAlchemy engine with increased timeouts and connection pooling
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    pool_size=5,
-    max_overflow=10,
-    pool_timeout=60,  # Increased from 30
-    pool_recycle=1800,
+    settings.DATABASE_URL,
+    pool_pre_ping=True,  # Enable connection health checks
+    pool_size=5,  # Maintain a pool of connections
+    max_overflow=10,  # Allow up to 10 connections beyond pool_size
+    pool_timeout=60,  # Increase pool timeout to 60 seconds
+    pool_recycle=3600,  # Recycle connections after 1 hour
     connect_args={
-        "connect_timeout": 30,  # 30 seconds connection timeout
+        "connect_timeout": 30,  # Connection timeout in seconds
+        "keepalives": 1,  # Enable TCP keepalive
+        "keepalives_idle": 30,  # Time between keepalive packets
+        "keepalives_interval": 10,  # Time between retries
+        "keepalives_count": 5  # Number of retries
     }
 )
 
-# Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
 def get_db():
     """Get database session."""
@@ -36,30 +41,30 @@ def get_db():
     finally:
         db.close()
 
-async def init_db(max_retries: int = 3, retry_delay: int = 5) -> bool:
-    """Initialize database tables with retry logic."""
+async def init_db() -> bool:
+    """Initialize database with retry logic."""
+    max_retries = 3
+    retry_delay = 5  # seconds
+    
     for attempt in range(max_retries):
         try:
-            # Import all models here to ensure they are registered
-            from app.models.subject import SubjectCategory, AssistantProfile, AssistantCapability
-            from app.models.lesson import UserPreferences, Lesson
-            from app.models.user import User
-            from app.models.memory import UserMemory, MemoryInteraction
+            # Test connection
+            with engine.connect() as conn:
+                conn.execute("SELECT 1")
             
-            # Create all tables
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, Base.metadata.create_all, engine)
-            logger.info("Database tables created successfully")
+            # Create tables
+            Base.metadata.create_all(bind=engine)
+            logger.info("Database initialized successfully")
             return True
+            
         except Exception as e:
+            logger.warning(f"Database initialization attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
-                logger.warning(f"Database initialization attempt {attempt + 1} failed: {str(e)}")
                 logger.info(f"Retrying in {retry_delay} seconds...")
                 await asyncio.sleep(retry_delay)
             else:
                 logger.error(f"Failed to initialize database after {max_retries} attempts: {str(e)}")
                 if settings.DEBUG:
-                    logger.warning("Running in debug mode - continuing without database")
-                    return True
-                return False
-    return False 
+                    logger.warning("Running in debug mode - continuing with limited functionality")
+                    return False
+                raise 
