@@ -110,11 +110,11 @@ structlog==23.2.0
 python-json-logger==2.0.7
 
 # Translation (Optional - requires Google Cloud setup)
-google-cloud-translate==3.12.1; platform_system != "Darwin"  # Skip on macOS if not needed
-google-api-core[grpc]==2.11.0; platform_system != "Darwin"  # Skip on macOS if not needed
-googleapis-common-protos==1.62.0; platform_system != "Darwin"  # Skip on macOS if not needed
-proto-plus==1.22.3; platform_system != "Darwin"  # Skip on macOS if not needed
-google-cloud-core==2.3.3; platform_system != "Darwin"  # Skip on macOS if not needed
+google-cloud-translate==3.12.1; sys_platform != 'darwin'
+google-api-core[grpc]==2.11.0; sys_platform != 'darwin'
+googleapis-common-protos==1.62.0; sys_platform != 'darwin'
+proto-plus==1.22.3; sys_platform != 'darwin'
+google-cloud-core==2.3.3; sys_platform != 'darwin'
 
 # Additional dependencies
 annotated-types==0.7.0
@@ -129,4 +129,4 @@ tzdata==2025.1
 chardet==5.2.0
 
 # Core protobuf dependency to resolve version conflicts
-protobuf==3.20.3 
+protobuf>=3.20.3,<4.21.0,!=3.20.0,!=3.20.1,!=4.21.0,!=4.21.1,!=4.21.2,!=4.21.3,!=4.21.4,!=4.21.5 
