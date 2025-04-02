@@ -43,9 +43,10 @@ def get_db():
         db.close()
 
 async def init_db() -> bool:
-    """Initialize database with retry logic."""
-    max_retries = 5  # Increased retries for Pro plan
-    retry_delay = 10  # Increased delay between retries
+    """Initialize database with retry logic and exponential backoff."""
+    max_retries = 10  # Increased retries
+    base_delay = 5  # Base delay in seconds
+    max_delay = 60  # Maximum delay in seconds
     
     for attempt in range(max_retries):
         try:
@@ -61,8 +62,10 @@ async def init_db() -> bool:
         except Exception as e:
             logger.warning(f"Database initialization attempt {attempt + 1} failed: {str(e)}")
             if attempt < max_retries - 1:
-                logger.info(f"Retrying in {retry_delay} seconds...")
-                await asyncio.sleep(retry_delay)
+                # Calculate delay with exponential backoff
+                delay = min(base_delay * (2 ** attempt), max_delay)
+                logger.info(f"Retrying in {delay} seconds...")
+                await asyncio.sleep(delay)
             else:
                 logger.error(f"Failed to initialize database after {max_retries} attempts: {str(e)}")
                 if settings.DEBUG:
