@@ -10,7 +10,9 @@ services:
       chmod -R 777 /tmp/faraday-ai/logs
       mkdir -p static/images
       chmod -R 755 static
-    startCommand: gunicorn --config gunicorn.conf.py main:app
+      mkdir -p app
+      cp -r app/* app/
+    startCommand: gunicorn --config gunicorn.conf.py wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -38,7 +40,25 @@ services:
         value: "100/minute"
       - key: RATELIMIT_STRATEGY
         value: fixed-window
-    healthCheckPath: /test
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: MINIO_URL
+        sync: false
+      - key: MINIO_ACCESS_KEY
+        sync: false
+      - key: MINIO_SECRET_KEY
+        sync: false
+      - key: MINIO_BUCKET
+        value: faraday-media
+      - key: ENABLE_METRICS
+        value: "true"
+      - key: WEBSOCKET_PORT
+        value: "9100"
+      - key: DEBUG
+        value: "false"
+    healthCheckPath: /health
     autoDeploy: true
     scaling:
       minInstances: 1

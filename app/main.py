@@ -33,6 +33,7 @@ from app.core.database import init_db
 from app.api import auth
 from app.api.v1.endpoints import memory, pe_health, math_assistant, science_assistant
 import socket
+from app.core.health import router as health_router
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -90,6 +91,7 @@ app.include_router(memory.router, prefix="/api/v1", tags=["Memory"])
 app.include_router(pe_health.router, prefix="/api/v1", tags=["PE/Health"])
 app.include_router(math_assistant.router, prefix="/api/v1", tags=["Math"])
 app.include_router(science_assistant.router, prefix="/api/v1", tags=["Science"])
+app.include_router(health_router, tags=["System"])
 
 # Start Prometheus metrics server
 start_http_server(METRICS_PORT)
@@ -97,7 +99,12 @@ logger.info(f"Started Prometheus metrics server on port {METRICS_PORT}")
 
 @app.get("/")
 async def root():
-    return FileResponse("static/index.html")
+    """Serve the landing page"""
+    try:
+        return FileResponse("static/index.html", media_type="text/html")
+    except Exception as e:
+        logger.error(f"Error serving landing page: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error serving landing page")
 
 @app.get("/health")
 async def health_check():
@@ -433,13 +440,6 @@ async def admin_dashboard(request: Request):
         ERROR_COUNT.inc()
         raise HTTPException(status_code=403, detail="Access forbidden")
     return {"message": "Welcome to the admin dashboard"}
-
-
-# Health check endpoint
-@app.get("/health")
-@app.head("/health")
-async def health_check():
-    return {"status": "healthy"}
 
 
 # Topic graph analysis simulation
