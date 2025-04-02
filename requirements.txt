@@ -109,8 +109,12 @@ mypy==1.6.1
 structlog==23.2.0
 python-json-logger==2.0.7
 
-# Translation
-google-cloud-translate==3.12.1
+# Translation (Optional - requires Google Cloud setup)
+google-cloud-translate==3.12.1; platform_system != "Darwin"  # Skip on macOS if not needed
+google-api-core[grpc]==2.11.0; platform_system != "Darwin"  # Skip on macOS if not needed
+googleapis-common-protos==1.62.0; platform_system != "Darwin"  # Skip on macOS if not needed
+proto-plus==1.22.3; platform_system != "Darwin"  # Skip on macOS if not needed
+google-cloud-core==2.3.3; platform_system != "Darwin"  # Skip on macOS if not needed
 
 # Additional dependencies
 annotated-types==0.7.0
