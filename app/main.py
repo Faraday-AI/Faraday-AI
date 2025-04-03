@@ -111,6 +111,15 @@ async def root():
         logger.error(f"Error serving landing page: {str(e)}")
         raise HTTPException(status_code=500, detail="Error serving landing page")
 
+@app.get("/favicon.ico")
+async def favicon():
+    """Serve the favicon"""
+    try:
+        return FileResponse("static/favicon.ico", media_type="image/x-icon")
+    except Exception as e:
+        logger.error(f"Error serving favicon: {str(e)}")
+        raise HTTPException(status_code=404, detail="Favicon not found")
+
 @app.get("/health")
 async def health_check():
     return {
