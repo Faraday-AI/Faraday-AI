@@ -66,6 +66,7 @@
             margin: 0;
             max-width: none;
             background-color: #000;
+            clip-path: inset(0 27.9% 0 27%);  /* Clip from left 27% and right 27.9% */
         }
 
         .landing-image {
@@ -95,11 +96,11 @@
         }
 
         .debug-left {
-            left: 0;
+            left: 27%;
         }
 
         .debug-right {
-            right: 0;
+            right: 27.9%;
         }
 
         .debug-center {
@@ -107,7 +108,6 @@
             transform: translateX(-50%);
         }
 
-        /* Remove debug elements */
         .feature-buttons {
             position: relative;
             z-index: 1;
@@ -117,10 +117,11 @@
             flex-wrap: wrap;
             justify-content: center;
             background-color: #000;
+            padding: 0;
         }
 
         .feature-button {
-            background: linear-gradient(45deg, #FF6B6B, #FF8E53);
+            background: linear-gradient(45deg, #4A90E2, #357ABD);
             border: none;
             border-radius: 25px;
             color: white;
@@ -145,7 +146,7 @@
 
         .feature-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
         }
 
         /* Hide scrollbars */
@@ -187,17 +188,25 @@
             <img src="/static/images/New_Coming_Soon.png" alt="Faraday AI Coming Soon" class="landing-image">
         </div>
         <div class="feature-buttons">
+            <a href="/api/v1/phys-ed" class="feature-button">
+                <span>Phys Ed Assistant</span>
+                <span class="description">Get personalized fitness and sports guidance</span>
+            </a>
+            <a href="/api/v1/history" class="feature-button">
+                <span>History Assistant</span>
+                <span class="description">Explore historical events and figures</span>
+            </a>
             <a href="/api/v1/math" class="feature-button">
                 <span>Math Assistant</span>
                 <span class="description">Solve complex equations and math problems</span>
             </a>
-            <a href="/api/v1/science" class="feature-button">
-                <span>Science Assistant</span>
-                <span class="description">Explore scientific concepts and experiments</span>
+            <a href="/api/v1/collaboration" class="feature-button">
+                <span>Collaboration System</span>
+                <span class="description">Work together on projects and tasks</span>
             </a>
             <a href="/api/v1/memory" class="feature-button">
-                <span>Memory System</span>
-                <span class="description">Store and retrieve information efficiently</span>
+                <span>Memory Recall System</span>
+                <span class="description">Access and manage stored information</span>
             </a>
         </div>
     </div>
