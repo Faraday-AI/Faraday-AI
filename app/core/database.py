@@ -7,6 +7,7 @@ import logging
 import asyncio
 import time
 from typing import Optional
+from sqlalchemy.sql import text
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -68,7 +69,7 @@ async def init_db() -> bool:
         try:
             # Test connection with timeout
             with engine.connect() as conn:
-                conn.execute("SELECT 1")
+                conn.execute(text("SELECT 1"))  # Fixed: Added text() wrapper
             
             # Create tables
             Base.metadata.create_all(bind=engine)
