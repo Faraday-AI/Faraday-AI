@@ -135,32 +135,36 @@
         }
 
         .feature-button {
-            background: linear-gradient(45deg, #4A90E2, #357ABD);
-            border: none;
-            border-radius: 25px;
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
             color: white;
-            padding: 15px 30px;
-            font-size: 18px;
-            font-weight: 600;
+            border: none;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 10px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            text-decoration: none;
-            text-align: center;
-            min-width: 200px;
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-        }
-
-        .feature-button .description {
-            font-size: 14px;
-            font-weight: normal;
-            opacity: 0.9;
+            transition: all 0.3s ease;
+            text-align: left;
+            width: 100%;
+            max-width: 300px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         .feature-button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+            box-shadow: 0 6px 12px rgba(26, 115, 232, 0.3);
+        }
+
+        .feature-button h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.2em;
+            color: white;
+        }
+
+        .feature-button p {
+            margin: 0;
+            font-size: 0.9em;
+            line-height: 1.4;
+            opacity: 0.9;
         }
 
         /* Hide scrollbars */
@@ -216,15 +220,17 @@
             }
             
             .feature-button {
-                width: 100%;
-                max-width: 280px;
-                padding: 12px 20px;
-                font-size: 16px;
-                min-width: unset;
+                padding: 15px;
+                margin: 8px;
+                max-width: 100%;
             }
-
-            .feature-button .description {
-                font-size: 12px;
+            
+            .feature-button h3 {
+                font-size: 1.1em;
+            }
+            
+            .feature-button p {
+                font-size: 0.85em;
             }
         }
     </style>
@@ -235,26 +241,26 @@
             <img src="/static/images/New_Coming_Soon.png" alt="Faraday AI Coming Soon" class="landing-image" onerror="this.onerror=null; this.src='/static/images/coming-soon.png';">
         </div>
         <div class="feature-buttons">
-            <a href="/api/v1/phys-ed" class="feature-button">
-                <span>Phys Ed Assistant</span>
-                <span class="description">Get personalized fitness and sports guidance</span>
-            </a>
-            <a href="/api/v1/history" class="feature-button">
-                <span>History Assistant</span>
-                <span class="description">Explore historical events and figures</span>
-            </a>
-            <a href="/api/v1/math" class="feature-button">
-                <span>Math Assistant</span>
-                <span class="description">Solve complex equations and math problems</span>
-            </a>
-            <a href="/api/v1/collaboration" class="feature-button">
-                <span>Collaboration System</span>
-                <span class="description">Work together on projects and tasks</span>
-            </a>
-            <a href="/api/v1/memory" class="feature-button">
-                <span>Memory Recall System</span>
-                <span class="description">Access and manage stored information</span>
-            </a>
+            <button class="feature-button" onclick="window.location.href='/api/v1/phys-ed'">
+                <h3>Phys Ed Assistant</h3>
+                <p>Your personal AI fitness coach that provides real-time exercise guidance, form correction, and personalized workout plans. Get instant feedback on your movements and track your progress.</p>
+            </button>
+            <button class="feature-button" onclick="window.location.href='/api/v1/history'">
+                <h3>History Assistant</h3>
+                <p>Explore the past with an AI that brings history to life. Get detailed insights into historical events, analyze primary sources, and understand the connections between different time periods and cultures.</p>
+            </button>
+            <button class="feature-button" onclick="window.location.href='/api/v1/math'">
+                <h3>Math Assistant</h3>
+                <p>Your intelligent math tutor that helps you solve complex problems, explains mathematical concepts, and provides step-by-step solutions. From basic arithmetic to advanced calculus, get personalized math support.</p>
+            </button>
+            <button class="feature-button" onclick="window.location.href='/api/v1/collaboration'">
+                <h3>Collaboration System</h3>
+                <p>Seamless teamwork made easy with AI-powered project management. Share ideas, track progress, and work together in real-time with intelligent task organization and communication tools.</p>
+            </button>
+            <button class="feature-button" onclick="window.location.href='/api/v1/memory'">
+                <h3>Memory Recall System</h3>
+                <p>Enhance your learning and retention with AI-powered memory techniques. Get personalized study strategies, interactive quizzes, and smart review schedules to optimize your learning process.</p>
+            </button>
         </div>
     </div>
 </body>
