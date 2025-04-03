@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="true">
     <title>Faraday AI - Your Personal AI Assistant</title>
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
@@ -26,6 +28,8 @@
             -webkit-user-select: none;
             user-select: none;
             -webkit-user-drag: none;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         html, body {
@@ -35,6 +39,8 @@
             background-color: #000;
             margin: 0;
             padding: 0;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
         }
 
         body {
@@ -70,6 +76,7 @@
             overflow: hidden;
             background-color: black;
             clip-path: inset(0 1.8% 0 0);  /* Crop 1.8% from the right edge */
+            -webkit-clip-path: inset(0 1.8% 0 0);  /* For Safari support */
         }
 
         .landing-image {
@@ -85,6 +92,7 @@
             padding: 0;
             display: block;
             background-color: #000;
+            -webkit-transform: translate(-50%, -50%);  /* For Safari support */
         }
 
         .feature-buttons {
@@ -165,6 +173,7 @@
                 max-width: none;
                 background-color: #000;
                 clip-path: inset(0 2% 0 0);
+                -webkit-clip-path: inset(0 2% 0 0);  /* For Safari support */
             }
 
             .landing-image {
@@ -180,6 +189,7 @@
                 padding: 0;
                 display: block;
                 background-color: #000;
+                -webkit-transform: translate(-50%, -50%);  /* For Safari support */
             }
 
             .feature-buttons {
@@ -245,7 +255,7 @@
 <body>
     <div class="landing-page">
         <div class="image-container">
-            <img src="/static/images/New_Coming_Soon.png" alt="Faraday AI Coming Soon" class="landing-image" onerror="this.onerror=null; this.src='/static/images/coming-soon.png';">
+            <img src="/static/images/New_Coming_Soon.png?v=2" alt="Faraday AI Coming Soon" class="landing-image" onerror="this.onerror=null; this.src='/static/images/coming-soon.png';">
         </div>
         <div class="feature-buttons">
             <button class="feature-button" onclick="showComingSoonMessage()">
