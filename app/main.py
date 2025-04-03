@@ -111,6 +111,11 @@ async def root():
         logger.error(f"Error serving landing page: {str(e)}")
         raise HTTPException(status_code=500, detail="Error serving landing page")
 
+@app.head("/")
+async def head_root():
+    """Handle HEAD requests for the root endpoint"""
+    return Response(status_code=200)
+
 @app.get("/favicon.ico")
 async def favicon():
     """Serve the favicon"""
@@ -119,6 +124,51 @@ async def favicon():
     except Exception as e:
         logger.error(f"Error serving favicon: {str(e)}")
         raise HTTPException(status_code=404, detail="Favicon not found")
+
+@app.get("/api/v1/phys-ed")
+async def phys_ed():
+    """Coming Soon response for Phys Ed Assistant"""
+    return {
+        "status": "coming_soon",
+        "message": "Phys Ed Assistant is coming soon! This feature will help you with physical education and exercise guidance.",
+        "expected_release": "Q2 2024"
+    }
+
+@app.get("/api/v1/history")
+async def history():
+    """Coming Soon response for History Assistant"""
+    return {
+        "status": "coming_soon",
+        "message": "History Assistant is coming soon! This feature will help you explore and understand historical events and figures.",
+        "expected_release": "Q2 2024"
+    }
+
+@app.get("/api/v1/math")
+async def math():
+    """Coming Soon response for Math Assistant"""
+    return {
+        "status": "coming_soon",
+        "message": "Math Assistant is coming soon! This feature will help you with mathematical problems and concepts.",
+        "expected_release": "Q2 2024"
+    }
+
+@app.get("/api/v1/collaboration")
+async def collaboration():
+    """Coming Soon response for Collaboration System"""
+    return {
+        "status": "coming_soon",
+        "message": "Collaboration System is coming soon! This feature will enable seamless teamwork and project management.",
+        "expected_release": "Q2 2024"
+    }
+
+@app.get("/api/v1/memory")
+async def memory():
+    """Coming Soon response for Memory Recall System"""
+    return {
+        "status": "coming_soon",
+        "message": "Memory Recall System is coming soon! This feature will help you retain and recall information effectively.",
+        "expected_release": "Q2 2024"
+    }
 
 @app.get("/health")
 async def health_check():
