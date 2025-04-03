@@ -66,7 +66,7 @@
             margin: 0;
             max-width: none;
             background-color: #000;
-            clip-path: inset(0 27.9% 0 27%);  /* Clip from left 27% and right 27.9% */
+            clip-path: inset(0 31% 0 27%);  /* Restored to previous working settings */
         }
 
         .landing-image {
@@ -88,7 +88,7 @@
         .debug-left, .debug-right, .debug-center {
             position: absolute;
             top: 0;
-            width: 2px;
+            width: 1px;  /* Changed from 2px to 1px to make the line thinner */
             height: 100%;
             background-color: #ff0000;
             z-index: 1000;
@@ -100,7 +100,7 @@
         }
 
         .debug-right {
-            right: 27.9%;
+            right: 31%;  /* Increased from 30.5% to 31% to move the line further left */
         }
 
         .debug-center {
@@ -166,18 +166,51 @@
             }
             
             .image-container {
-                height: 70vh;
+                height: 80vh;
+                width: 100%;
+                position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                overflow: hidden;
+                padding: 0;
+                margin: 0;
+                max-width: none;
+                background-color: #000;
+            }
+
+            .landing-image {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 45.1%;  /* Width between red lines: 72.9% - 27% = 45.1% */
+                height: 100%;
+                object-fit: contain;
+                pointer-events: none;
+                margin: 0;
+                padding: 0;
+                display: block;
+                background-color: #000;
             }
             
             .feature-buttons {
                 flex-direction: column;
                 align-items: center;
-                gap: 15px;
+                gap: 10px;
+                padding: 0 20px;
             }
             
             .feature-button {
-                width: 80%;
-                max-width: 250px;
+                width: 100%;
+                max-width: 280px;
+                padding: 12px 20px;
+                font-size: 16px;
+                min-width: unset;
+            }
+
+            .feature-button .description {
+                font-size: 12px;
             }
         }
     </style>
@@ -185,7 +218,7 @@
 <body>
     <div class="landing-page">
         <div class="image-container">
-            <img src="/static/images/New_Coming_Soon.png" alt="Faraday AI Coming Soon" class="landing-image">
+            <img src="/static/images/New_Coming_Soon.png" alt="Faraday AI Coming Soon" class="landing-image" onerror="this.onerror=null; this.src='/static/images/coming-soon.png';">
         </div>
         <div class="feature-buttons">
             <a href="/api/v1/phys-ed" class="feature-button">
