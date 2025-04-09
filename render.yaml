@@ -8,9 +8,9 @@ services:
       python3.10 -m pip install -r requirements.txt
       mkdir -p /tmp/faraday-ai/logs
       chmod -R 777 /tmp/faraday-ai/logs
-      mkdir -p app/static
-      cp -r app/static/* app/static/
-      chmod -R 755 app/static
+      mkdir -p static
+      cp -r app/static/* static/
+      chmod -R 755 static
     startCommand: python3.10 -m gunicorn --config gunicorn.conf.py wsgi:app
     envVars:
       - key: PYTHON_VERSION
