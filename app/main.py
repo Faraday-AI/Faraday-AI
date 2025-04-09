@@ -102,13 +102,19 @@ app.include_router(debug_router)
 
 # Mount static files at /static instead of root
 base_dir = Path(__file__).parent.parent
-static_dir = Path(os.getenv("STATIC_DIR", str(base_dir / "static")))
+static_dir = Path("/app/static")
 
 if not static_dir.exists():
-    logger.error(f"Static directory not found at {static_dir}")
-    raise RuntimeError("Static directory not found")
+    # Fall back to local development path
+    static_dir = base_dir / "static"
+    if not static_dir.exists():
+        logger.error(f"Static directory not found at {static_dir}")
+        raise RuntimeError("Static directory not found")
+    else:
+        logger.info(f"Using local static directory at {static_dir}")
+else:
+    logger.info(f"Using deployment static directory at {static_dir}")
 
-logger.info(f"Using static directory at {static_dir}")
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Configure CORS
