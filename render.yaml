@@ -11,7 +11,12 @@ services:
       mkdir -p /opt/render/project/src/static
       cp -r app/static/* /opt/render/project/src/static/
       chmod -R 755 /opt/render/project/src/static
-    startCommand: python3.10 -m gunicorn --config gunicorn.conf.py wsgi:app
+      ln -sf /opt/render/project/src/static static
+      echo "Verifying static directory setup:"
+      ls -la /opt/render/project/src/static
+    startCommand: |
+      export STATIC_DIR=/opt/render/project/src/static
+      python3.10 -m gunicorn --config gunicorn.conf.py wsgi:app
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0
