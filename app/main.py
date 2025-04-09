@@ -73,7 +73,7 @@ async def debug_paths(request: Request):
     """Debug endpoint to check file paths."""
     logger.info(f"Debug endpoint called with method: {request.method}, url: {request.url}")
     try:
-        static_path = Path("Faraday-AI/app/static")
+        static_path = Path("app/static")
         services_path = static_path / "services"
         phys_ed_path = services_path / "phys-ed.html"
         
@@ -101,7 +101,7 @@ app.include_router(ai_analysis.router, prefix="/api")
 app.include_router(debug_router)
 
 # Mount static files at /static instead of root
-app.mount("/static", StaticFiles(directory="Faraday-AI/app/static"), name="static")
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 # Configure CORS
 app.add_middleware(
@@ -737,7 +737,7 @@ async def get_planning_tasks(user_id: str):
 # Dynamic static file creation
 @app.post("/static/create")
 async def create_static_file(filename: str, content: str):
-    static_dir = Path("Faraday-AI/app/static")
+    static_dir = Path("app/static")
     static_dir.mkdir(parents=True, exist_ok=True)
     file_path = static_dir / filename
     file_path.write_text(content)
@@ -746,7 +746,7 @@ async def create_static_file(filename: str, content: str):
 
 @app.get("/static/read/{filename}")
 async def read_static_file(filename: str):
-    file_path = Path("Faraday-AI/app/static") / filename
+    file_path = Path("app/static") / filename
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
     return FileResponse(str(file_path))
@@ -806,14 +806,14 @@ async def reset_data():
 # Endpoint to simulate saving and loading from disk (for demo purposes)
 @app.post("/save-session")
 async def save_session_to_disk():
-    save_path = Path("Faraday-AI/app/static") / "session_backup.json"
+    save_path = Path("app/static") / "session_backup.json"
     save_path.write_text(str(user_sessions))
     return {"message": "Session data saved to disk", "path": str(save_path)}
 
 
 @app.get("/load-session")
 async def load_session_from_disk():
-    save_path = Path("Faraday-AI/app/static") / "session_backup.json"
+    save_path = Path("app/static") / "session_backup.json"
     if not save_path.exists():
         raise HTTPException(status_code=404, detail="No saved session data found")
     content = save_path.read_text()
@@ -3062,7 +3062,7 @@ async def serve_service_page(service_name: str):
     """Serve static service pages."""
     try:
         # Use the absolute path in the Docker container
-        service_path = Path("Faraday-AI/app/static/services") / f"{service_name}.html"
+        service_path = Path("app/static/services") / f"{service_name}.html"
         
         # Check if the file exists
         if not service_path.exists():
@@ -3088,7 +3088,7 @@ async def serve_service_page(service_name: str):
 async def serve_service_page_head(service_name: str):
     """Handle HEAD requests for service pages."""
     try:
-        service_path = Path("Faraday-AI/app/static/services") / f"{service_name}.html"
+        service_path = Path("app/static/services") / f"{service_name}.html"
         if not service_path.exists():
             raise HTTPException(status_code=404, detail=f"Service page not found: {service_name}")
         return Response(headers={"Content-Type": "text/html"})
