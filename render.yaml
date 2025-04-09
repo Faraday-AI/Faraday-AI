@@ -8,14 +8,47 @@ services:
       python3.10 -m pip install -r requirements.txt
       mkdir -p /tmp/faraday-ai/logs
       chmod -R 777 /tmp/faraday-ai/logs
-      mkdir -p /opt/render/project/src/static
-      cp -r app/static/* /opt/render/project/src/static/
-      chmod -R 755 /opt/render/project/src/static
-      ln -sf /opt/render/project/src/static static
-      echo "Verifying static directory setup:"
-      ls -la /opt/render/project/src/static
+      
+      # Debug information
+      echo "Current working directory: $(pwd)"
+      echo "Directory contents:"
+      ls -la
+      
+      # Create static directory structure
+      echo "Creating static directory structure..."
+      mkdir -p /app/static
+      echo "Static directory created at /app/static"
+      
+      # Copy static files
+      echo "Copying static files..."
+      if [ -d "app/static" ]; then
+        echo "Source directory exists, contents:"
+        ls -la app/static
+        cp -rv app/static/* /app/static/
+        echo "Files copied successfully"
+      else
+        echo "ERROR: app/static directory not found"
+        exit 1
+      fi
+      
+      # Verify the copy
+      echo "Verifying static directory contents:"
+      ls -la /app/static
+      
+      # Set permissions
+      chmod -R 755 /app/static
+      
+      # Create symlink
+      ln -sf /app/static static
+      
+      # Final verification
+      echo "Final directory structure:"
+      ls -la /app/static
     startCommand: |
-      export STATIC_DIR=/opt/render/project/src/static
+      echo "Starting application..."
+      echo "Current directory: $(pwd)"
+      echo "Static directory contents:"
+      ls -la /app/static
       python3.10 -m gunicorn --config gunicorn.conf.py wsgi:app
     envVars:
       - key: PYTHON_VERSION
