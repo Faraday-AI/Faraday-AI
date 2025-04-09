@@ -102,11 +102,17 @@ app.include_router(debug_router)
 
 # Mount static files at /static instead of root
 base_dir = Path(__file__).parent.parent
+logger.info(f"Base directory: {base_dir}")
+
+# Try deployment path first
 static_dir = Path("/app/static")
+logger.info(f"Checking deployment static directory at {static_dir}")
 
 if not static_dir.exists():
     # Fall back to local development path
     static_dir = base_dir / "static"
+    logger.info(f"Deployment path not found, checking local path at {static_dir}")
+    
     if not static_dir.exists():
         logger.error(f"Static directory not found at {static_dir}")
         raise RuntimeError("Static directory not found")
@@ -114,6 +120,12 @@ if not static_dir.exists():
         logger.info(f"Using local static directory at {static_dir}")
 else:
     logger.info(f"Using deployment static directory at {static_dir}")
+
+# Verify static directory contents
+if static_dir.exists():
+    logger.info(f"Static directory contents: {[f.name for f in static_dir.glob('*')]}")
+else:
+    logger.error("Static directory does not exist after all checks")
 
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
