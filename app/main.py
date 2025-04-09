@@ -104,11 +104,8 @@ app.include_router(debug_router)
 base_dir = Path(__file__).parent.parent
 static_dir = base_dir / "static"
 if not static_dir.exists():
-    # Try Render's deployment path
-    static_dir = Path("/opt/render/project/src/static")
-    if not static_dir.exists():
-        logger.error(f"Static directory not found at {static_dir}")
-        raise RuntimeError("Static directory not found")
+    logger.error(f"Static directory not found at {static_dir}")
+    raise RuntimeError("Static directory not found")
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Configure CORS
