@@ -101,7 +101,7 @@ app.include_router(ai_analysis.router, prefix="/api")
 app.include_router(debug_router)
 
 # Mount static files at /static instead of root
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Configure CORS
 app.add_middleware(
