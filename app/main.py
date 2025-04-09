@@ -180,10 +180,75 @@ async def favicon():
     try:
         base_dir = Path(__file__).parent.parent
         favicon_path = base_dir / "static" / "favicon.ico"
-        return FileResponse(favicon_path, media_type="image/x-icon")
+        response = FileResponse(
+            favicon_path,
+            media_type="image/x-icon",
+            headers={
+                "Cache-Control": "public, max-age=86400",  # Cache for 24 hours
+                "X-Content-Type-Options": "nosniff"
+            }
+        )
+        return response
     except Exception as e:
         logger.error(f"Error serving favicon: {str(e)}")
         raise HTTPException(status_code=404, detail="Favicon not found")
+
+@app.get("/apple-touch-icon.png")
+async def apple_touch_icon():
+    """Serve the apple-touch-icon"""
+    try:
+        base_dir = Path(__file__).parent.parent
+        icon_path = base_dir / "static" / "images" / "apple-touch-icon.png"
+        response = FileResponse(
+            icon_path,
+            media_type="image/png",
+            headers={
+                "Cache-Control": "public, max-age=86400",  # Cache for 24 hours
+                "X-Content-Type-Options": "nosniff"
+            }
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Error serving apple-touch-icon: {str(e)}")
+        raise HTTPException(status_code=404, detail="Apple touch icon not found")
+
+@app.get("/apple-touch-icon-precomposed.png")
+async def apple_touch_icon_precomposed():
+    """Serve the apple-touch-icon-precomposed"""
+    try:
+        base_dir = Path(__file__).parent.parent
+        icon_path = base_dir / "static" / "images" / "apple-touch-icon-precomposed.png"
+        response = FileResponse(
+            icon_path,
+            media_type="image/png",
+            headers={
+                "Cache-Control": "public, max-age=86400",  # Cache for 24 hours
+                "X-Content-Type-Options": "nosniff"
+            }
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Error serving apple-touch-icon-precomposed: {str(e)}")
+        raise HTTPException(status_code=404, detail="Apple touch icon precomposed not found")
+
+@app.get("/robots.txt")
+async def robots_txt():
+    """Serve the robots.txt file with proper caching headers"""
+    try:
+        base_dir = Path(__file__).parent.parent
+        robots_path = base_dir / "static" / "robots.txt"
+        response = FileResponse(
+            robots_path,
+            media_type="text/plain",
+            headers={
+                "Cache-Control": "public, max-age=86400",  # Cache for 24 hours
+                "X-Content-Type-Options": "nosniff"
+            }
+        )
+        return response
+    except Exception as e:
+        logger.error(f"Error serving robots.txt: {str(e)}")
+        raise HTTPException(status_code=404, detail="robots.txt not found")
 
 def get_pe_service() -> PEService:
     """Get PE service instance."""
