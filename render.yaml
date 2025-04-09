@@ -8,14 +8,8 @@ services:
       python3.10 -m pip install -r requirements.txt
       mkdir -p /tmp/faraday-ai/logs
       chmod -R 777 /tmp/faraday-ai/logs
-      echo "Current directory: $(pwd)"
-      echo "Contents of app/static:"
-      ls -la app/static
-      rm -rf /opt/render/project/src/static
-      mkdir -p /opt/render/project/src/static
-      echo "Copying files from app/static to /opt/render/project/src/static"
-      cp -r app/static/* /opt/render/project/src/static/
-      chmod -R 755 /opt/render/project/src/static
+      mkdir -p static/images
+      chmod -R 755 static
     startCommand: python3.10 -m gunicorn --config gunicorn.conf.py wsgi:app
     envVars:
       - key: PYTHON_VERSION
