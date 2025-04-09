@@ -28,7 +28,6 @@ engine = create_engine(
         "keepalives_idle": 120,  # Increased time between keepalive packets
         "keepalives_interval": 60,  # Increased time between retries
         "keepalives_count": 15,  # Increased number of retries
-        "sslmode": "require",  # Enable SSL for Azure PostgreSQL
         "application_name": "faraday_ai"  # Add application name for better monitoring
     }
 )

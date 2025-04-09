@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Save Template</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/activity-design/activity-templates/customization/customization.html" class="back-button" aria-label="Back to Customization">
+                <span class="back-arrow">←</span> Back to Customization
+            </a>
+            <h1>Save Template</h1>
+            <p class="service-description">Save your customized templates for future use</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <form id="saveForm">
+                <div class="form-group">
+                    <label for="templateName">Template Name</label>
+                    <input type="text" id="templateName" name="templateName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="templateType">Template Type</label>
+                    <select id="templateType" name="templateType" required>
+                        <option value="">Select a template type</option>
+                        <option value="game">Game Template</option>
+                        <option value="drill">Drill Template</option>
+                        <option value="warmup">Warmup Template</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="saveLocation">Save Location</label>
+                    <select id="saveLocation" name="saveLocation" required>
+                        <option value="">Select save location</option>
+                        <option value="my-templates">My Templates</option>
+                        <option value="shared-templates">Shared Templates</option>
+                        <option value="favorites">Favorites</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="category">Category</label>
+                    <select id="category" name="category" required>
+                        <option value="">Select a category</option>
+                        <option value="fitness">Fitness</option>
+                        <option value="skills">Skills</option>
+                        <option value="team">Team</option>
+                        <option value="assessment">Assessment</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="tags">Tags</label>
+                    <input type="text" id="tags" name="tags" placeholder="Add tags separated by commas">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea id="description" name="description" rows="4" placeholder="Add a description of the template"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="makePublic" name="makePublic">
+                        Make this template public
+                    </label>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="primary-button">Save Template</button>
+                    <button type="button" class="secondary-button" id="cancelButton">Cancel</button>
+                </div>
+            </form>
+
+            <!-- Success Message (Initially Hidden) -->
+            <div class="success-message" id="successMessage" style="display: none;">
+                <h2>Template Saved Successfully!</h2>
+                <p>Your template has been saved and is ready to use.</p>
+                <div class="button-group">
+                    <a href="/static/services/services_subpages/phys-ed-teacher/activity-design/activity-templates/customization/customization.html" class="primary-button">Return to Customization</a>
+                    <button class="secondary-button" id="viewTemplateButton">View Template</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const saveForm = document.getElementById('saveForm');
+            const successMessage = document.getElementById('successMessage');
+            const cancelButton = document.getElementById('cancelButton');
+            const viewTemplateButton = document.getElementById('viewTemplateButton');
+
+            saveForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveForm.style.display = 'none';
+                successMessage.style.display = 'block';
+            });
+
+            cancelButton.addEventListener('click', function() {
+                window.location.href = '/static/services/services_subpages/phys-ed-teacher/activity-design/activity-templates/customization/customization.html';
+            });
+
+            viewTemplateButton.addEventListener('click', function() {
+                // Implement view template functionality
+                alert('View template functionality will be implemented');
+            });
+        });
+    </script>
+</body>
+</html> 

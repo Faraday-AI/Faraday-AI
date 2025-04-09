@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="HandheldFriendly" content="true">
+    <title>Faraday AI - AI-Powered Educational Tools</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Faraday AI - AI-powered educational tools for teachers and students">
+    <meta name="keywords" content="AI assistant, education, fitness, learning, physical education, history, math, collaboration">
+    <meta name="author" content="Faraday AI">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="Faraday AI - AI-Powered Educational Tools">
+    <meta property="og:description" content="AI-powered educational tools for teachers and students">
+    <meta property="og:image" content="/static/images/New_Coming_Soon.png">
+    <meta property="og:url" content="https://faraday-ai.com">
+    <meta property="og:type" content="website">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Faraday AI - AI-Powered Educational Tools">
+    <meta name="twitter:description" content="AI-powered educational tools for teachers and students">
+    <meta name="twitter:image" content="/static/images/New_Coming_Soon.png">
+    
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/static/images/apple-touch-icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="120x120" href="/static/images/apple-touch-icon-120x120.png">
+    <link rel="apple-touch-icon" sizes="76x76" href="/static/images/apple-touch-icon-76x76.png">
+    <link rel="apple-touch-icon" sizes="60x60" href="/static/images/apple-touch-icon-60x60.png">
+    <link rel="apple-touch-icon-precomposed" sizes="180x180" href="/static/images/apple-touch-icon-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="152x152" href="/static/images/apple-touch-icon-precomposed-152x152.png">
+    <link rel="apple-touch-icon-precomposed" sizes="120x120" href="/static/images/apple-touch-icon-precomposed-120x120.png">
+    <link rel="apple-touch-icon-precomposed" sizes="76x76" href="/static/images/apple-touch-icon-precomposed-76x76.png">
+    <link rel="apple-touch-icon-precomposed" sizes="60x60" href="/static/images/apple-touch-icon-precomposed-60x60.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Faraday AI">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-user-drag: none;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        html {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            overflow-y: auto;
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+            overflow-x: hidden;
+            overflow-y: auto;
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000;
+            z-index: 0;
+            pointer-events: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .landing-page {
+            position: relative;
+            width: 100%;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            background-color: #000;
+            margin: 0;
+            padding: 0;
+            overflow: visible;
+            z-index: 1;
+        }
+
+        .landing-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .image-container {
+            position: relative;
+            width: 100%;
+            height: 80vh;
+            overflow: hidden;
+            background-color: #000;
+            z-index: 3;
+        }
+
+        .landing-image {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+            margin: 0;
+            padding: 0;
+            display: block;
+            background-color: #000;
+            -webkit-transform: translate(-50%, -50%);  /* For Safari support */
+        }
+
+        .feature-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 3;
+        }
+
+        .category-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .category-button {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .service-category {
+            display: none;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            padding: 1rem;
+            width: 100%;
+            background: rgba(26, 115, 232, 0.1);
+            border-radius: 10px;
+            margin-top: 0.5rem;
+        }
+
+        .service-category.active {
+            display: grid;
+        }
+
+        .feature-button {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+
+        .feature-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(26, 115, 232, 0.3);
+        }
+
+        .feature-button h3 {
+            margin: 0;
+            font-size: 1.2em;
+            color: white;
+        }
+
+        .feature-button p {
+            margin: 0;
+            font-size: 0.9em;
+            line-height: 1.4;
+            opacity: 0.9;
+        }
+
+        /* Hide scrollbars */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+
+        * {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+            outline: none;
+        }
+
+        @media (max-width: 768px) {
+            .feature-buttons {
+                padding: 1rem;
+            }
+            
+            .service-category {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Newsletter Signup */
+        .newsletter-signup {
+            position: fixed;
+            top: 60px;  /* Position below language button */
+            left: 0;
+            width: 300px;
+            height: auto;
+            min-height: 150px;
+            background-color: #000000;
+            padding: 10px;
+            z-index: 99998;
+            display: block;
+            opacity: 1;
+            text-align: left;
+        }
+
+        .newsletter-signup h3 {
+            color: white;
+            margin-bottom: 2px;  /* Reduced from 3px */
+            font-size: 0.85em;  /* Reduced from 0.9em */
+            display: inline-block;
+            margin-right: 6px;  /* Reduced from 8px */
+        }
+
+        .newsletter-signup p {
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 2px;  /* Reduced from 3px */
+            font-size: 0.75em;  /* Reduced from 0.8em */
+            display: inline-block;
+        }
+
+        .newsletter-form {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;  /* Reduced from 8px */
+            margin-top: 10px;  /* Reduced from 15px */
+        }
+
+        .newsletter-form input {
+            width: 100%;
+            padding: 4px;  /* Reduced from 6px */
+            font-size: 0.75em;  /* Reduced from 0.8em */
+        }
+
+        .newsletter-form button {
+            width: 100%;
+            padding: 4px;  /* Reduced from 6px */
+            font-size: 0.75em;  /* Reduced from 0.8em */
+        }
+
+        .newsletter-close {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+        }
+
+        .newsletter-success {
+            color: #28a745;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+            padding: 5px;
+            border-radius: 3px;
+            background-color: rgba(40, 167, 69, 0.1);
+        }
+
+        /* Cookie Consent Banner */
+        .cookie-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px;
+            display: none;
+            z-index: 9997;
+            text-align: center;
+        }
+
+        .cookie-banner.show {
+            display: block;
+        }
+
+        .cookie-banner-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .cookie-banner p {
+            margin: 0;
+            flex: 1;
+        }
+
+        .cookie-banner-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .cookie-button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .accept-cookies {
+            background-color: #1a73e8;
+            color: white;
+        }
+
+        .decline-cookies {
+            background-color: transparent;
+            border: 1px solid #1a73e8;
+            color: #1a73e8;
+        }
+
+        /* Footer Styles */
+        .footer {
+            width: 100%;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            text-align: center;
+            margin-top: auto;
+            position: relative;
+            z-index: 9998;
+            margin-bottom: 60px;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 9998;
+        }
+
+        .social-links a {
+            color: #fff;
+            text-decoration: none;
+            transition: color 0.3s ease;
+            position: relative;
+            z-index: 9998;
+        }
+
+        .social-links a:hover {
+            color: #1a73e8;
+        }
+
+        .footer-text {
+            font-size: 14px;
+            opacity: 0.8;
+            position: relative;
+            z-index: 9998;
+        }
+
+        /* Accessibility Improvements */
+        .feature-button:focus {
+            outline: 2px solid #1a73e8;
+            outline-offset: 2px;
+        }
+
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 0;
+            background: #1a73e8;
+            color: white;
+            padding: 8px;
+            z-index: 100;
+        }
+
+        .skip-link:focus {
+            top: 0;
+        }
+
+        @media (max-width: 767px) {
+            .newsletter-signup {
+                position: fixed;
+                top: 30px;
+                left: 0;
+                width: 100%;
+                min-height: 120px;  /* Reduced for mobile */
+                padding: 8px;  /* Reduced from 5px */
+            }
+        }
+
+        /* Version Indicator */
+        .version-indicator {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            z-index: 9999;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .version-indicator:hover {
+            opacity: 1;
+        }
+
+        /* Loading State */
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: #1a73e8;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+
+        @keyframes spin {
+            to { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        /* Authentication Container */
+        .auth-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 10000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            padding-top: 40px; /* Increased padding to move it down more */
+        }
+
+        .auth-container.active {
+            display: flex;
+        }
+
+        .auth-container > div {
+            position: relative;
+            width: 90%;
+            max-width: 300px; /* Reduced from 350px */
+            max-height: 70vh; /* Reduced from 80vh */
+            background-color: rgba(0, 0, 0, 0.95);
+            padding: 1.2rem; /* Reduced from 1.5rem */
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(26, 115, 232, 0.3);
+            overflow-y: auto;
+            margin: auto;
+            margin-top: 40px; /* Increased from 20px */
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-header h2 {
+            font-size: 1.3rem; /* Reduced from 1.5rem */
+            margin-bottom: 0.6rem; /* Reduced from 0.8rem */
+        }
+
+        .form-group {
+            margin-bottom: 0.8rem; /* Reduced from 1rem */
+        }
+
+        .form-group input {
+            padding: 0.5rem; /* Reduced from 0.6rem */
+            font-size: 0.85rem; /* Reduced from 0.9rem */
+        }
+
+        .auth-button {
+            background: #FFD700;
+            color: #1a73e8;
+            border: none;
+            outline: 2px solid #1a73e8;
+            border-radius: 4px;
+            padding: 4px 8px;
+            margin: 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: auto;
+            max-width: 100px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            font-size: 0.7em;
+            font-weight: 500;
+            position: relative;
+            padding-right: 30px;
+        }
+
+        .auth-close-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #1a73e8;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+            z-index: 10001;
+        }
+
+        .auth-close-button:hover {
+            opacity: 1;
+        }
+
+        .auth-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .auth-toggle button {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 1.1em;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .auth-toggle button.active {
+            color: white;
+            border-bottom: 2px solid #1a73e8;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .auth-error {
+            color: #ff4444;
+            font-size: 0.9em;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .auth-success {
+            color: #00C851;
+            font-size: 1.1em;
+            margin-top: 1rem;
+            display: none;
+            padding: 15px;
+            background-color: rgba(0, 200, 81, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            width: 100%;
+            position: relative;
+            z-index: 1000;
+            border: 1px solid #00C851;
+            font-weight: 500;
+        }
+
+        .auth-success.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .auth-loading {
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+        }
+
+        .auth-loading.active {
+            display: block;
+        }
+
+        .auth-loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #1a73e8;
+            animation: spin 1s linear infinite;
+        }
+
+        @media (max-width: 767px) {
+            .auth-container {
+                width: 95%;
+                padding: 1.5rem;
+                max-height: 85vh;
+            }
+
+            .auth-toggle {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .auth-toggle button {
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* Language Switcher */
+        .language-switcher {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .language-switcher-container {
+            display: flex;
+            align-items: center;
+        }
+
+        .language-button {
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 1px solid #1a73e8;
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            font-size: 0.7em;
+        }
+
+        .language-close {
+            position: absolute;
+            right: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #1a73e8;
+            font-size: 0.9em;
+            cursor: pointer;
+            padding: 2px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .language-close:hover {
+            opacity: 1;
+        }
+
+        @media (max-width: 767px) {
+            .language-switcher {
+                position: fixed;
+                top: 8px;
+                left: 8px;
+                z-index: 1000;
+            }
+
+            .language-button {
+                padding: 4px 8px;
+                font-size: 0.7em;
+                background-color: rgba(0, 0, 0, 0.7);
+                color: white;
+                border: 1px solid #1a73e8;
+                border-radius: 4px;
+                cursor: pointer;
+            }
+
+            .language-close {
+                position: absolute;
+                right: -20px;
+                top: 50%;
+                transform: translateY(-50%);
+                background: none;
+                border: none;
+                color: #1a73e8;
+                font-size: 0.9em;
+                cursor: pointer;
+                padding: 2px;
+                opacity: 0.7;
+            }
+        }
+
+        /* Language Modal Styles */
+        .language-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .language-modal-content {
+            background-color: rgba(0, 0, 0, 0.95);
+            border: 1px solid rgba(26, 115, 232, 0.3);
+            border-radius: 10px;
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            position: relative;
+            color: white;
+        }
+
+        .language-modal-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            padding: 5px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .language-modal-close:hover {
+            opacity: 1;
+        }
+
+        .language-modal h3 {
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .language-modal p {
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+
+        .language-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .language-option {
+            padding: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 5px;
+            background: none;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .language-option.active {
+            border-color: #1a73e8;
+            background-color: rgba(26, 115, 232, 0.2);
+        }
+
+        .language-option.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .language-option:not(.disabled):hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Toast Message */
+        .language-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            max-width: 80%;
+            text-align: center;
+            z-index: 10000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(26, 115, 232, 0.3);
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        
+        .language-toast.hide {
+            animation: fadeOut 0.3s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, 20px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translate(-50%, 0); }
+            to { opacity: 0; transform: translate(-50%, 20px); }
+        }
+
+        @media (max-width: 767px) {
+            .language-switcher {
+                position: fixed;
+                top: 8px;
+                left: 8px;
+                z-index: 1000;
+            }
+        }
+
+        .auth-button-container {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .auth-button {
+            padding: 4px 8px;
+            font-size: 0.7em;
+            background-color: transparent;
+            color: #1a73e8;
+            border: 1px solid #1a73e8;
+            border-radius: 4px;
+            cursor: pointer;
+            max-width: 100px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-button:hover {
+            background-color: rgba(26, 115, 232, 0.1);
+        }
+
+        .auth-close {
+            background: none;
+            border: none;
+            color: #1a73e8;
+            font-size: 0.9em;
+            cursor: pointer;
+            padding: 2px;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+
+        .auth-close:hover {
+            opacity: 1;
+        }
+
+        @media (max-width: 767px) {
+            .auth-button-container {
+                position: fixed;
+                top: 8px;
+                right: 8px;
+                z-index: 1000;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+            .auth-button {
+                padding: 4px 8px;
+                font-size: 0.7em;
+                background-color: transparent;
+                color: #1a73e8;
+                border: 1px solid #1a73e8;
+                border-radius: 4px;
+                cursor: pointer;
+                max-width: 100px;
+                transition: all 0.3s ease;
+            }
+
+            .auth-button:hover {
+                background-color: rgba(26, 115, 232, 0.1);
+            }
+
+            .auth-close {
+                background: none;
+                border: none;
+                color: #1a73e8;
+                font-size: 0.9em;
+                cursor: pointer;
+                padding: 2px;
+                opacity: 0.7;
+                transition: opacity 0.3s ease;
+            }
+
+            .auth-close:hover {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip Link for Accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <!-- Language Switcher -->
+    <div class="language-switcher" id="languageSwitcher">
+        <div class="language-switcher-container">
+            <button class="language-button" onclick="toggleLanguage()">
+                <i class="fas fa-globe"></i> EN
+            </button>
+        </div>
+        <button class="language-close" onclick="closeLanguage()">&times;</button>
+    </div>
+
+    <!-- Newsletter Signup -->
+    <div class="newsletter-signup" id="newsletterSignup">
+        <button class="newsletter-close" onclick="closeNewsletter()">&times;</button>
+        <h3>Newsletter</h3>
+        <p>Subscribe to our newsletter for updates and announcements!</p>
+        <form class="newsletter-form" onsubmit="handleNewsletterSubmit(event)">
+            <input type="email" placeholder="Enter your email" required>
+            <button type="submit">Subscribe</button>
+            <div class="newsletter-success" style="display: none;"></div>
+        </form>
+    </div>
+
+    <!-- Language Selection Modal -->
+    <div id="languageModal" class="language-modal">
+        <div class="language-modal-content">
+            <button class="language-modal-close" onclick="closeLanguageModal()">&times;</button>
+            <h3>Language Selection</h3>
+            <p>Coming Soon! Additional languages will be available shortly.</p>
+            <div class="language-options">
+                <button class="language-option active">English</button>
+                <button class="language-option disabled">Español</button>
+                <button class="language-option disabled">Français</button>
+                <button class="language-option disabled">Deutsch</button>
+                <button class="language-option disabled">中文</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="landing-page">
+        <div class="grid-overlay"></div>
+        <div class="auth-button-container">
+            <button class="auth-button" onclick="showAuthForm()">Login / Register</button>
+        </div>
+        <div class="image-container">
+            <div class="loading-spinner" id="loadingSpinner"></div>
+            <img src="/static/images/New_Coming_Soon.png?v=2" 
+                 alt="Faraday AI Coming Soon" 
+                 class="landing-image" 
+                 onerror="this.onerror=null; this.src='/static/images/coming-soon.png';"
+                 onload="document.getElementById('loadingSpinner').style.display='none'"
+                 role="img">
+        </div>
+        <div class="feature-buttons" id="main-content" role="main">
+            <!-- Teacher/Admin Assistants Category -->
+            <div class="category-container">
+                <button class="category-button" onclick="window.location.href='/static/services/teacher-admin.html'">
+                    <h3>Teacher/Admin Assistants</h3>
+                    <p>AI-powered tools for educators and administrators</p>
+                </button>
+            </div>
+
+            <!-- Student Tutors Category -->
+            <div class="category-container">
+                <button class="category-button" onclick="window.location.href='/static/services/student-tutors.html'">
+                    <h3>Student Tutors</h3>
+                    <p>AI-powered learning assistants</p>
+                </button>
+            </div>
+
+            <!-- Additional Services Category -->
+            <div class="category-container">
+                <button class="category-button" onclick="window.location.href='/static/services/additional-services.html'">
+                    <h3>Additional Services</h3>
+                    <p>General educational tools and resources</p>
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer" role="contentinfo">
+            <div class="footer-content">
+                <div class="footer-text">
+                    FARADAY-AI, LLC 2025
+                </div>
+                <div class="social-links">
+                    <a href="https://github.com/faradayai" target="_blank" rel="noopener noreferrer" aria-label="Follow us on GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Authentication Container -->
+    <div class="auth-container">
+        <div>
+            <button class="auth-close-button" onclick="closeAuthForm()">&times;</button>
+            <div class="auth-header">
+                <h2>Welcome to Faraday AI</h2>
+                <div class="auth-toggle">
+                    <button class="login-toggle active">Login</button>
+                    <button class="register-toggle">Register</button>
+                </div>
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form login-form active">
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email" required>
+                    <div class="auth-error login-email-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password" required>
+                    <div class="auth-error login-password-error"></div>
+                </div>
+                <button type="submit" class="auth-button login-button">Login</button>
+                <div class="auth-loading login-loading"></div>
+                <div class="auth-success login-success"></div>
+            </form>
+
+            <!-- Registration Form -->
+            <form class="auth-form register-form">
+                <div class="form-group">
+                    <label for="register-name">Full Name</label>
+                    <input type="text" id="register-name" placeholder="Enter your full name" required>
+                    <div class="auth-error register-name-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="register-email">Email</label>
+                    <input type="email" id="register-email" placeholder="Enter your email" required>
+                    <div class="auth-error register-email-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Password</label>
+                    <input type="password" id="register-password" placeholder="Create a password" required>
+                    <div class="auth-error register-password-error"></div>
+                </div>
+                <div class="form-group">
+                    <label for="register-confirm-password">Confirm Password</label>
+                    <input type="password" id="register-confirm-password" placeholder="Confirm your password" required>
+                    <div class="auth-error register-confirm-password-error"></div>
+                </div>
+                <button type="submit" class="auth-button register-button">Register</button>
+                <div class="auth-loading register-loading"></div>
+                <div class="auth-success register-success"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cookie Consent Banner -->
+    <div class="cookie-banner" id="cookieBanner">
+        <div class="cookie-banner-content">
+            <p>We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.</p>
+            <div class="cookie-banner-buttons">
+                <button class="cookie-button accept-cookies" onclick="acceptCookies()">Accept</button>
+                <button class="cookie-button decline-cookies" onclick="declineCookies()">Decline</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Version Indicator -->
+    <div class="version-indicator" role="status">v1.0.0</div>
+
+    <!-- Font Awesome for social icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/services.js"></script>
+    <script>
+        // Newsletter Signup
+        function closeNewsletter() {
+            const newsletter = document.getElementById('newsletterSignup');
+            if (newsletter) {
+                newsletter.style.display = 'none';
+                sessionStorage.setItem('newsletterClosed', 'true');
+            }
+        }
+
+        // Handle newsletter form submission
+        function handleNewsletterSubmit(event) {
+            event.preventDefault();
+            const emailInput = event.target.querySelector('input[type="email"]');
+            const subscribeButton = event.target.querySelector('button[type="submit"]');
+            const successMessage = event.target.querySelector('.newsletter-success');
+            
+            // Store email for future use
+            const email = emailInput.value;
+            localStorage.setItem('newsletter_email', email);
+            
+            // Disable button and show loading state
+            subscribeButton.disabled = true;
+            subscribeButton.innerHTML = 'Subscribing...';
+            
+            // Simulate loading for a moment
+            setTimeout(() => {
+                // Show success message
+                successMessage.textContent = 'Coming Soon! Newsletter subscription will be available shortly.';
+                successMessage.style.display = 'block';
+                
+                // Reset button
+                subscribeButton.disabled = false;
+                subscribeButton.innerHTML = 'Subscribe';
+                
+                // Clear input field
+                emailInput.value = '';
+                
+                // Close the newsletter
+                closeNewsletter();
+            }, 1000);
+        }
+
+        // Initialize newsletter on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check newsletter state
+            const newsletterElement = document.getElementById('newsletterSignup');
+            if (newsletterElement) {
+                if (!sessionStorage.getItem('newsletterClosed')) {
+                    newsletterElement.style.display = 'block';
+                } else {
+                    newsletterElement.style.display = 'none';
+                }
+            }
+        });
+
+        // Language Switcher
+        function toggleLanguage() {
+            const languageSwitcher = document.getElementById('languageSwitcher');
+            const languageModal = document.getElementById('languageModal');
+            
+            if (window.innerWidth <= 767) {
+                if (languageSwitcher.style.display === 'none') {
+                    languageSwitcher.style.display = 'flex';
+                    sessionStorage.setItem('languageButtonClosed', 'false');
+                } else {
+                    languageSwitcher.style.display = 'none';
+                    sessionStorage.setItem('languageButtonClosed', 'true');
+                }
+            }
+            
+            // Show the language selection modal
+            languageModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close language modal
+        function closeLanguageModal() {
+            const languageModal = document.getElementById('languageModal');
+            languageModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close language button
+        function closeLanguage() {
+            const languageSwitcher = document.getElementById('languageSwitcher');
+            if (languageSwitcher.style.display === 'none') {
+                languageSwitcher.style.display = 'flex';
+                sessionStorage.setItem('languageButtonClosed', 'false');
+            } else {
+                languageSwitcher.style.display = 'none';
+                sessionStorage.setItem('languageButtonClosed', 'true');
+            }
+        }
+
+        // Close auth button
+        function closeAuth() {
+            const authButton = document.querySelector('.auth-button');
+            if (authButton.style.display === 'none') {
+                authButton.style.display = 'block';
+            } else {
+                authButton.style.display = 'none';
+            }
+        }
+
+        // Show Authentication Form
+        function showAuthForm() {
+            const authContainer = document.querySelector('.auth-container');
+            authContainer.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+
+        // Close Authentication Form
+        function closeAuthForm() {
+            const authContainer = document.querySelector('.auth-container');
+            authContainer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close Authentication Form when clicking outside
+        document.addEventListener('click', (e) => {
+            const authContainer = document.querySelector('.auth-container');
+            if (e.target === authContainer) {
+                closeAuthForm();
+            }
+            
+            // Also handle language modal close when clicking outside
+            const languageModal = document.getElementById('languageModal');
+            if (e.target === languageModal) {
+                closeLanguageModal();
+            }
+        });
+
+        // Authentication Form Toggle
+        const loginToggle = document.querySelector('.login-toggle');
+        const registerToggle = document.querySelector('.register-toggle');
+        const loginForm = document.querySelector('.login-form');
+        const registerForm = document.querySelector('.register-form');
+        
+        function toggleForms() {
+            loginForm.classList.toggle('active');
+            registerForm.classList.toggle('active');
+            loginToggle.classList.toggle('active');
+            registerToggle.classList.toggle('active');
+        }
+
+        loginToggle.addEventListener('click', toggleForms);
+        registerToggle.addEventListener('click', toggleForms);
+
+        // Form Validation
+        function showError(element, message) {
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        function hideError(element) {
+            element.textContent = '';
+            element.style.display = 'none';
+        }
+
+        function showSuccess(element, message) {
+            element.textContent = message;
+            element.style.display = 'block';
+        }
+
+        function hideSuccess(element) {
+            element.textContent = '';
+            element.style.display = 'none';
+        }
+
+        function showLoading(element) {
+            element.classList.add('active');
+        }
+
+        function hideLoading(element) {
+            element.classList.remove('active');
+        }
+
+        // Login Form Handler
+        const loginFormElement = document.querySelector('.login-form');
+        loginFormElement.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const loginSuccess = document.querySelector('.login-success');
+            const loginEmailError = document.querySelector('.login-email-error');
+            const loginPasswordError = document.querySelector('.login-password-error');
+
+            // Reset errors and success messages
+            hideError(loginEmailError);
+            hideError(loginPasswordError);
+            hideSuccess(loginSuccess);
+
+            // Show coming soon message
+            loginSuccess.classList.add('active');
+            showSuccess(loginSuccess, 'Coming Soon! Login functionality will be available shortly.');
+        });
+
+        // Registration Form Handler
+        const registerFormElement = document.querySelector('.register-form');
+        registerFormElement.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const registerSuccess = document.querySelector('.register-success');
+            const registerNameError = document.querySelector('.register-name-error');
+            const registerEmailError = document.querySelector('.register-email-error');
+            const registerPasswordError = document.querySelector('.register-password-error');
+            const registerConfirmPasswordError = document.querySelector('.register-confirm-password-error');
+
+            // Reset errors and success messages
+            hideError(registerNameError);
+            hideError(registerEmailError);
+            hideError(registerPasswordError);
+            hideError(registerConfirmPasswordError);
+            hideSuccess(registerSuccess);
+
+            // Show coming soon message
+            registerSuccess.classList.add('active');
+            showSuccess(registerSuccess, 'Coming Soon! Registration functionality will be available shortly.');
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,33 @@
+/* Back Button Styles */
+.back-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s ease;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 1rem;
+}
+
+.back-button:hover {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.back-button:active {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.back-button svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Ensure the header has relative positioning for absolute positioning of back button */
+.service-header {
+    position: relative;
+    padding-top: 4rem; /* Add space for the back button */
+} 

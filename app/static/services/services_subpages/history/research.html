@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Research Assistant</title>
+    <link rel="stylesheet" href="/static/css/features.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="AI-powered research assistant for historical research and essay writing">
+</head>
+<body>
+    <div class="feature-container">
+        <!-- Header Section -->
+        <header class="feature-header">
+            <nav class="feature-nav">
+                <a href="/services/history" class="back-button">← Back to History</a>
+                <div class="auth-section">
+                    <button class="auth-button" onclick="showAuthForm()">Login / Register</button>
+                </div>
+            </nav>
+            <div class="feature-hero">
+                <h1>Research Assistant</h1>
+                <p class="feature-tagline">Your AI-powered partner for historical research and writing</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <section class="feature-overview">
+                <h2>Overview</h2>
+                <p>Our Research Assistant system helps students and researchers with historical research and essay writing. Using AI-powered analysis, we provide guidance on research methodology, source evaluation, thesis development, and writing structure while maintaining academic integrity and proper citation practices.</p>
+                
+                <div class="feature-image">
+                    <div class="placeholder-content">
+                        <span class="placeholder-icon">📚</span>
+                        <p>Research Assistant Interface</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-benefits">
+                <h2>Benefits for Researchers</h2>
+                <ul class="benefits-list">
+                    <li>
+                        <h3>Research Guidance</h3>
+                        <p>Get help with research methodology and source evaluation</p>
+                    </li>
+                    <li>
+                        <h3>Writing Support</h3>
+                        <p>Receive assistance with thesis development and essay structure</p>
+                    </li>
+                    <li>
+                        <h3>Citation Help</h3>
+                        <p>Ensure proper citation and academic integrity</p>
+                    </li>
+                    <li>
+                        <h3>Time Management</h3>
+                        <p>Stay organized and meet research deadlines</p>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="feature-details">
+                <h2>Technical Details</h2>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <h3>Research Planning</h3>
+                        <p>AI-powered assistance with research methodology and planning</p>
+                    </div>
+                    <div class="detail-item">
+                        <h3>Source Evaluation</h3>
+                        <p>Guidance on evaluating historical sources and evidence</p>
+                    </div>
+                    <div class="detail-item">
+                        <h3>Writing Assistant</h3>
+                        <p>Help with thesis development and essay structure</p>
+                    </div>
+                    <div class="detail-item">
+                        <h3>Citation Tools</h3>
+                        <p>Support for various citation styles and formats</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-demo">
+                <h2>See It In Action</h2>
+                <div class="demo-container">
+                    <div class="video-container">
+                        <div class="placeholder-content demo-placeholder">
+                            <span class="placeholder-icon">▶️</span>
+                            <p>Video Demo Coming Soon</p>
+                        </div>
+                    </div>
+                    <p class="demo-caption">Watch how our research assistant helps with historical research and writing.</p>
+                </div>
+            </section>
+
+            <section class="feature-testimonials">
+                <h2>What Researchers Say</h2>
+                <div class="testimonials-container">
+                    <div class="testimonial">
+                        <p>"The research assistant has transformed how I approach historical research. The guidance on methodology and source evaluation has significantly improved the quality of my work."</p>
+                        <div class="testimonial-author">
+                            <span class="name">Dr. Elizabeth Martinez</span>
+                            <span class="title">Historical Researcher</span>
+                        </div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"My students are now able to produce higher quality research papers with proper citations and academic integrity, thanks to the research assistant's guidance."</p>
+                        <div class="testimonial-author">
+                            <span class="name">Professor David Wilson</span>
+                            <span class="title">History Department Chair</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-cta">
+                <h2>Ready to Enhance Your Research?</h2>
+                <p>Start using our research assistant for your historical research today.</p>
+                <button class="cta-button" onclick="showAuthForm()">Start Using Research Assistant</button>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="feature-footer">
+            <div class="footer-links">
+                <a href="/services/history">Back to History</a>
+                <a href="/features/history/research">Explore Research Assistant</a>
+                <a href="/pricing">Pricing Options</a>
+            </div>
+            <div class="footer-text">
+                © 2025 Faraday AI. All rights reserved.
+            </div>
+        </footer>
+    </div>
+
+    <!-- Auth Form Container -->
+    <div id="auth-container" class="auth-container">
+        <!-- Auth form will be injected here -->
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script>
+        // Show auth form when clicking CTA button
+        function showAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Load auth form content
+            fetch('/static/auth-form.html')
+                .then(response => response.text())
+                .then(html => {
+                    authContainer.innerHTML = html;
+                    initializeAuthForm();
+                })
+                .catch(error => console.error('Error loading auth form:', error));
+        }
+
+        // Close auth form
+        function closeAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize auth form functionality
+        function initializeAuthForm() {
+            const closeButton = document.querySelector('.auth-close-button');
+            if (closeButton) {
+                closeButton.onclick = closeAuthForm;
+            }
+
+            // Add click outside to close
+            document.addEventListener('click', (e) => {
+                const authContainer = document.getElementById('auth-container');
+                if (e.target === authContainer) {
+                    closeAuthForm();
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

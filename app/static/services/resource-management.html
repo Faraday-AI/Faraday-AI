@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resource Management Assistant - Faraday AI</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="Faraday AI's Resource Management Assistant - Your AI-powered tool for managing educational resources">
+</head>
+<body data-service="resource-management">
+    <div class="service-container">
+        <header class="service-header">
+            <a href="/" class="back-button">← Back to Home</a>
+            <h1>Resource Management Assistant</h1>
+            <p class="service-description">Your AI-powered resource management companion</p>
+        </header>
+        
+        <section class="service-features">
+            <h2>Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card" data-href="/static/services/services_subpages/resource-management/organization.html" tabindex="0" aria-label="Resource Organization - Smart categorization and tagging">
+                    <h3>Resource Organization</h3>
+                    <p>Smart categorization and tagging</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/resource-management/search.html" tabindex="0" aria-label="Advanced Search - Find resources quickly">
+                    <h3>Advanced Search</h3>
+                    <p>Find resources quickly</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/resource-management/sharing.html" tabindex="0" aria-label="Resource Sharing - Share with colleagues">
+                    <h3>Resource Sharing</h3>
+                    <p>Share with colleagues</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/resource-management/tracking.html" tabindex="0" aria-label="Usage Tracking - Monitor resource utilization">
+                    <h3>Usage Tracking</h3>
+                    <p>Monitor resource utilization</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-implementation">
+            <h2>How It Works</h2>
+            <div class="implementation-details">
+                <div class="detail-card" data-href="/static/services/services_subpages/resource-management/upload.html" tabindex="0" aria-label="Resource Upload - Add new materials">
+                    <h3>Resource Upload</h3>
+                    <p>Add new materials</p>
+                </div>
+                <div class="detail-card" data-href="/static/services/services_subpages/resource-management/categorization.html" tabindex="0" aria-label="AI Categorization - Automatic organization">
+                    <h3>AI Categorization</h3>
+                    <p>Automatic organization</p>
+                </div>
+                <div class="detail-card" data-href="/static/services/services_subpages/resource-management/access.html" tabindex="0" aria-label="Access Control - Manage permissions">
+                    <h3>Access Control</h3>
+                    <p>Manage permissions</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-examples">
+            <h2>Example Use Cases</h2>
+            <div class="examples-grid">
+                <div class="example-card" data-href="/static/services/services_subpages/resource-management/teaching.html" tabindex="0" aria-label="Teaching Materials - Lesson resources">
+                    <h3>Teaching Materials</h3>
+                    <p>Lesson resources</p>
+                </div>
+                <div class="example-card" data-href="/static/services/services_subpages/resource-management/student.html" tabindex="0" aria-label="Student Resources - Learning materials">
+                    <h3>Student Resources</h3>
+                    <p>Learning materials</p>
+                </div>
+                <div class="example-card" data-href="/static/services/services_subpages/resource-management/assessment.html" tabindex="0" aria-label="Assessment Tools - Tests and quizzes">
+                    <h3>Assessment Tools</h3>
+                    <p>Tests and quizzes</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="technical-section">
+            <h2>Advanced Features</h2>
+            <div class="technical-specs">
+                <div class="feature-card" data-href="/static/services/services_subpages/resource-management/ai-analysis.html" tabindex="0" aria-label="AI Analysis - Smart resource optimization">
+                    <h3>AI Analysis</h3>
+                    <p>Smart resource optimization</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-cta">
+            <h2>Ready to Manage Your Resources?</h2>
+            <p>Start using our AI-powered resource management system today.</p>
+            <button class="cta-button" onclick="showAuthForm()">Start Using Resource Management Assistant</button>
+        </section>
+    </div>
+
+    <style>
+        .service-cta {
+            text-align: center;
+            margin: 4rem 0;
+        }
+
+        .cta-button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background: #1557b0;
+        }
+
+        @media (max-width: 768px) {
+            .service-cta {
+                margin: 2rem 0;
+            }
+        }
+    </style>
+
+    <!-- Auth Form Container -->
+    <div id="auth-container" class="auth-container">
+        <!-- Auth form will be injected here -->
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/services.js"></script>
+    <script>
+        // Show auth form when clicking CTA button
+        function showAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Load auth form content
+            fetch('/static/auth-form.html')
+                .then(response => response.text())
+                .then(html => {
+                    authContainer.innerHTML = html;
+                    
+                    // Initialize the auth form
+                    if (typeof initializeAuthForm === 'function') {
+                        initializeAuthForm();
+                    }
+                    
+                    // Initialize toggle functionality
+                    const loginToggle = document.querySelector('.login-toggle');
+                    const registerToggle = document.querySelector('.register-toggle');
+                    const loginForm = document.querySelector('.login-form');
+                    const registerForm = document.querySelector('.register-form');
+                    
+                    if (loginToggle && registerToggle && loginForm && registerForm) {
+                        // Set initial state
+                        loginForm.classList.add('active');
+                        loginToggle.classList.add('active');
+                        registerForm.classList.remove('active');
+                        registerToggle.classList.remove('active');
+                        
+                        // Add click handlers
+                        loginToggle.onclick = function(e) {
+                            e.preventDefault();
+                            loginForm.classList.add('active');
+                            loginToggle.classList.add('active');
+                            registerForm.classList.remove('active');
+                            registerToggle.classList.remove('active');
+                        };
+                        
+                        registerToggle.onclick = function(e) {
+                            e.preventDefault();
+                            registerForm.classList.add('active');
+                            registerToggle.classList.add('active');
+                            loginForm.classList.remove('active');
+                            loginToggle.classList.remove('active');
+                        };
+                    }
+                })
+                .catch(error => console.error('Error loading auth form:', error));
+        }
+
+        // Close auth form
+        function closeAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize auth form functionality
+        function initializeAuthForm() {
+            const closeButton = document.querySelector('.auth-close-button');
+            if (closeButton) {
+                closeButton.onclick = closeAuthForm;
+            }
+
+            // Add click outside to close
+            document.addEventListener('click', (e) => {
+                const authContainer = document.getElementById('auth-container');
+                if (e.target === authContainer) {
+                    closeAuthForm();
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

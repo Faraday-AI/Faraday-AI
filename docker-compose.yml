@@ -5,16 +5,16 @@ services:
   app:
     build: .
     ports:
-      - "${API_PORT:-8000}:${API_PORT:-8000}"
-      - "${METRICS_PORT:-9090}:${METRICS_PORT:-9090}"
-      - "${WEBSOCKET_PORT:-9100}:${WEBSOCKET_PORT:-9100}"
+      - "8000:8000"
+      - "9091:9090"
+      - "9100:9100"
     environment:
-      - API_PORT=${API_PORT:-8000}
-      - METRICS_PORT=${METRICS_PORT:-9090}
-      - WEBSOCKET_PORT=${WEBSOCKET_PORT:-9100}
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/faraday
+      - API_PORT=8000
+      - METRICS_PORT=9090
+      - WEBSOCKET_PORT=9100
+      - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=redis://redis:6379/0
-      - MINIO_URL=minio:9000
+      - MINIO_URL=minio:9002
       - MINIO_ACCESS_KEY=minioadmin
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_BUCKET=faraday-media
@@ -22,14 +22,12 @@ services:
       - LOG_LEVEL=INFO
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - ./static:/app/static
+      - ./app/static:/app/static
     depends_on:
-      - db
       - redis
       - minio
       - prometheus
       - grafana
-      - pgadmin
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -39,31 +37,11 @@ services:
     networks:
       - faraday-network
 
-  # Shared Database
-  db:
-    image: postgres:14
-    ports:
-      - "5432:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=faraday
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    networks:
-      - faraday-network
-
   # Shared Cache
   redis:
     image: redis:7
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -79,8 +57,8 @@ services:
   minio:
     image: minio/minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9002:9000"
+      - "9003:9001"
     environment:
       - MINIO_ROOT_USER=minioadmin
       - MINIO_ROOT_PASSWORD=minioadmin
@@ -88,7 +66,7 @@ services:
       - minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://minio:9000/minio/health/live"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -96,26 +74,13 @@ services:
     networks:
       - faraday-network
 
-  # Database Management
-  pgadmin:
-    image: dpage/pgadmin4
-    ports:
-      - "5050:80"
-    environment:
-      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_EMAIL:-admin@admin.com}
-      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_PASSWORD:-admin}
-    volumes:
-      - pgadmin_data:/var/lib/pgadmin
-    depends_on:
-      - db
-
   # Monitoring
   prometheus:
     image: prom/prometheus:latest
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./app/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -128,6 +93,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - faraday-network
 
   grafana:
     image: grafana/grafana:latest
@@ -147,6 +114,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
+    networks:
+      - faraday-network
 
   # PE-Specific Services
   pe-video-processor:
@@ -161,6 +130,8 @@ services:
     depends_on:
       - redis
       - minio
+    networks:
+      - faraday-network
 
   pe-movement-analyzer:
     build:
@@ -175,33 +146,12 @@ services:
     depends_on:
       - redis
       - pe-video-processor
-
-  # Future Service Placeholders
-  # admin-service:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.admin
-  #   environment:
-  #     - SERVICE_TYPE=admin
-  #   depends_on:
-  #     - redis
-  #     - minio
-
-  # secretary-service:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.secretary
-  #   environment:
-  #     - SERVICE_TYPE=secretary
-  #   depends_on:
-  #     - redis
-  #     - minio
+    networks:
+      - faraday-network
 
 volumes:
-  postgres_data:
   redis_data:
   minio_data:
-  pgadmin_data:
   prometheus_data:
   grafana_data:
   media_volume:

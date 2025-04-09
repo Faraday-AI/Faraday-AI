@@ -82,32 +82,32 @@ class MovementAnalyzer:
         """Calculate detailed movement metrics."""
         try:
             metrics = {
-                "range_of_motion": await this.calculate_range_of_motion(analysis),
-                "speed_and_timing": await this.analyze_speed_and_timing(analysis),
-                "balance_and_stability": await this.assess_balance(analysis),
-                "coordination": await this.assess_coordination(analysis)
+                "range_of_motion": await self.calculate_range_of_motion(analysis),
+                "speed_and_timing": await self.analyze_speed_and_timing(analysis),
+                "balance_and_stability": await self.assess_balance(analysis),
+                "coordination": await self.assess_coordination(analysis)
             }
             
             return metrics
             
         except Exception as e:
-            this.logger.error(f"Error calculating movement metrics: {str(e)}")
+            self.logger.error(f"Error calculating movement metrics: {str(e)}")
             raise
             
     async def generate_movement_feedback(self, analysis: Dict[str, Any], metrics: Dict[str, Any]) -> Dict[str, Any]:
         """Generate detailed feedback based on analysis and metrics."""
         try:
             feedback = {
-                "form_feedback": await this.generate_form_feedback(analysis),
-                "performance_feedback": await this.generate_performance_feedback(metrics),
-                "safety_recommendations": await this.generate_safety_recommendations(analysis),
-                "improvement_suggestions": await this.generate_improvement_suggestions(analysis, metrics)
+                "form_feedback": await self.generate_form_feedback(analysis),
+                "performance_feedback": await self.generate_performance_feedback(metrics),
+                "safety_recommendations": await self.generate_safety_recommendations(analysis),
+                "improvement_suggestions": await self.generate_improvement_suggestions(analysis, metrics)
             }
             
             return feedback
             
         except Exception as e:
-            this.logger.error(f"Error generating movement feedback: {str(e)}")
+            self.logger.error(f"Error generating movement feedback: {str(e)}")
             raise
             
     async def generate_recommendations(self, analysis: Dict[str, Any], metrics: Dict[str, Any]) -> List[str]:
@@ -116,32 +116,32 @@ class MovementAnalyzer:
             recommendations = []
             
             # Form-based recommendations
-            form_recs = await this.generate_form_recommendations(analysis)
+            form_recs = await self.generate_form_recommendations(analysis)
             recommendations.extend(form_recs)
             
             # Performance-based recommendations
-            perf_recs = await this.generate_performance_recommendations(metrics)
+            perf_recs = await self.generate_performance_recommendations(metrics)
             recommendations.extend(perf_recs)
             
             # Safety-based recommendations
-            safety_recs = await this.generate_safety_recommendations(analysis)
+            safety_recs = await self.generate_safety_recommendations(analysis)
             recommendations.extend(safety_recs)
             
             return recommendations
             
         except Exception as e:
-            this.logger.error(f"Error generating recommendations: {str(e)}")
+            self.logger.error(f"Error generating recommendations: {str(e)}")
             raise
             
     async def get_total_analyses(self) -> int:
         """Get total number of analyses performed."""
-        return this.total_analyses
+        return self.total_analyses
         
     async def get_average_analysis_time(self) -> float:
         """Get average time taken for analysis."""
-        if not this.analysis_times:
+        if not self.analysis_times:
             return 0.0
-        return sum(this.analysis_times) / len(this.analysis_times)
+        return sum(self.analysis_times) / len(self.analysis_times)
         
     # Helper methods
     async def assess_movement_quality(self, patterns: List[Dict[str, Any]]) -> Dict[str, Any]:
