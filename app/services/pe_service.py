@@ -121,6 +121,18 @@ class PEService(BaseService):
             "average_analysis_time": await self.movement_analyzer.get_average_analysis_time()
         }
     
+    async def get_lesson_plans_count(self) -> int:
+        """Get the total number of lesson plans generated."""
+        # For now, return a placeholder value
+        # TODO: Implement actual lesson plan counting logic
+        return 0
+    
+    async def get_active_students_count(self) -> int:
+        """Get the number of active students using the service."""
+        # For now, return a placeholder value
+        # TODO: Implement actual student counting logic
+        return 0
+    
     # Helper methods
     async def generate_activities(self, grade_level: str, focus_areas: List[str]) -> List[Dict[str, Any]]:
         """Generate activities based on grade level and focus areas."""

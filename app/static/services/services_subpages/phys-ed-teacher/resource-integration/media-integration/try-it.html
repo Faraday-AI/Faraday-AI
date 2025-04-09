@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Media Integration - Resource Integration</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/resource-integration/media-integration.html" class="back-button" aria-label="Back to Media Integration">
+                <span class="back-arrow">←</span> Back to Media Integration
+            </a>
+            <h1>Try Media Integration</h1>
+            <p class="service-description">Create and integrate multimedia resources for your lessons</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Try It Widget -->
+            <section class="try-it-widget">
+                <form id="mediaIntegrationForm" class="widget-form">
+                    <div class="form-group">
+                        <label for="mediaType">Media Type</label>
+                        <select id="mediaType" name="mediaType" required>
+                            <option value="">Select a media type</option>
+                            <option value="video">Video</option>
+                            <option value="image">Image</option>
+                            <option value="audio">Audio</option>
+                            <option value="presentation">Presentation</option>
+                            <option value="interactive">Interactive Content</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mediaTitle">Media Title</label>
+                        <input type="text" id="mediaTitle" name="mediaTitle" placeholder="Enter media title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mediaFile">Upload Media</label>
+                        <input type="file" id="mediaFile" name="mediaFile" accept="video/*,image/*,audio/*,.ppt,.pptx" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gradeLevel">Grade Level</label>
+                        <select id="gradeLevel" name="gradeLevel" required>
+                            <option value="">Select grade level</option>
+                            <option value="k-2">K-2</option>
+                            <option value="3-5">3-5</option>
+                            <option value="6-8">6-8</option>
+                            <option value="9-12">9-12</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject Area</label>
+                        <select id="subject" name="subject" required>
+                            <option value="">Select subject area</option>
+                            <option value="physical-education">Physical Education</option>
+                            <option value="health">Health</option>
+                            <option value="drivers-education">Driver's Education</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Media Description</label>
+                        <textarea id="description" name="description" placeholder="Enter a description of the media content" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="usageInstructions">Usage Instructions</label>
+                        <textarea id="usageInstructions" name="usageInstructions" placeholder="Enter instructions for using this media in lessons" required></textarea>
+                    </div>
+
+                    <button type="submit" class="cta-button primary">
+                        <span class="button-icon">🎥</span>
+                        <span class="button-text">Upload and Integrate Media</span>
+                    </button>
+                </form>
+
+                <div id="mediaPreview" class="widget-preview" style="display: none;">
+                    <h3>Your Media Resource</h3>
+                    <div class="preview-content">
+                        <!-- Preview content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.getElementById('mediaIntegrationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // TODO: Add media upload and integration logic
+            document.getElementById('mediaPreview').style.display = 'block';
+        });
+    </script>
+</body>
+</html> 

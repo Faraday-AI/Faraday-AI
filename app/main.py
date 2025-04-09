@@ -12,9 +12,9 @@ import networkx as nx
 from prometheus_client import Gauge, Counter, Histogram, start_http_server, generate_latest
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
-from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile, WebSocket, WebSocketDisconnect, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, Response
+from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, Response, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -34,6 +34,7 @@ from app.api import auth
 from app.api.endpoints import memory, math_assistant, science_assistant
 import socket
 from app.core.health import router as health_router
+from app.services.pe_service import PEService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -64,13 +65,48 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Mount static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Create a debug router
+debug_router = APIRouter(prefix="/api/debug", tags=["debug"])
+
+@debug_router.get("/paths", include_in_schema=True)
+async def debug_paths(request: Request):
+    """Debug endpoint to check file paths."""
+    logger.info(f"Debug endpoint called with method: {request.method}, url: {request.url}")
+    try:
+        static_path = Path("/app/static")
+        services_path = static_path / "services"
+        phys_ed_path = services_path / "phys-ed.html"
+        
+        result = {
+            "static_path_exists": static_path.exists(),
+            "services_path_exists": services_path.exists(),
+            "phys_ed_path_exists": phys_ed_path.exists(),
+            "static_path": str(static_path),
+            "services_path": str(services_path),
+            "phys_ed_path": str(phys_ed_path),
+            "static_files": [f.name for f in static_path.glob("**/*") if f.is_file()]
+        }
+        logger.info(f"Debug endpoint result: {result}")
+        return JSONResponse(content=result)
+    except Exception as e:
+        logger.error(f"Debug error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Include routers
+app.include_router(memory.router, prefix="/api/v1/memory", tags=["memory"])
+app.include_router(math_assistant.router, prefix="/api/v1/math", tags=["math"])
+app.include_router(science_assistant.router, prefix="/api/v1/science", tags=["science"])
+app.include_router(health_router, tags=["System"])
+app.include_router(ai_analysis.router, prefix="/api")
+app.include_router(debug_router)
+
+# Mount static files at /static instead of root
+app.mount("/static", StaticFiles(directory="/app/static"), name="static")
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Update this in production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -92,12 +128,6 @@ async def startup_event():
         else:
             raise
 
-# Include routers
-app.include_router(memory.router, prefix="/api/v1/memory", tags=["memory"])
-app.include_router(math_assistant.router, prefix="/api/v1/math", tags=["math"])
-app.include_router(science_assistant.router, prefix="/api/v1/science", tags=["science"])
-app.include_router(health_router, tags=["System"])
-
 # Start Prometheus metrics server
 start_http_server(METRICS_PORT)
 logger.info(f"Started Prometheus metrics server on port {METRICS_PORT}")
@@ -106,7 +136,9 @@ logger.info(f"Started Prometheus metrics server on port {METRICS_PORT}")
 async def root():
     """Serve the landing page"""
     try:
-        return FileResponse("static/index.html", media_type="text/html")
+        base_dir = Path(__file__).parent.parent
+        index_path = base_dir / "static" / "index.html"
+        return FileResponse(index_path, media_type="text/html")
     except Exception as e:
         logger.error(f"Error serving landing page: {str(e)}")
         raise HTTPException(status_code=500, detail="Error serving landing page")
@@ -120,18 +152,29 @@ async def head_root():
 async def favicon():
     """Serve the favicon"""
     try:
-        return FileResponse("static/favicon.ico", media_type="image/x-icon")
+        base_dir = Path(__file__).parent.parent
+        favicon_path = base_dir / "static" / "favicon.ico"
+        return FileResponse(favicon_path, media_type="image/x-icon")
     except Exception as e:
         logger.error(f"Error serving favicon: {str(e)}")
         raise HTTPException(status_code=404, detail="Favicon not found")
 
+def get_pe_service() -> PEService:
+    """Get PE service instance."""
+    return PEService("physical_education")
+
 @app.get("/api/v1/phys-ed")
-async def phys_ed():
-    """Coming Soon response for Phys Ed Assistant"""
+async def phys_ed(pe_service: PEService = Depends(get_pe_service)):
+    """Get Phys Ed Assistant features and status."""
     return {
-        "status": "coming_soon",
-        "message": "Phys Ed Assistant is coming soon! This feature will help you with physical education and exercise guidance.",
-        "expected_release": "Q2 2024"
+        "status": "active",
+        "features": [
+            "movement_analysis",
+            "lesson_planning",
+            "skill_assessment",
+            "progress_tracking"
+        ],
+        "service_metrics": await pe_service.get_service_metrics()
     }
 
 @app.get("/api/v1/history")
@@ -172,24 +215,21 @@ async def memory():
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "database": "connected",
-        "services": {
-            "memory": "operational",
-            "math": "operational",
-            "science": "operational"
+    """Simple health check endpoint for Docker."""
+    try:
+        return {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat()
         }
-    }
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # Set up rate limiting
 limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
-
-# Include routers
-app.include_router(ai_analysis.router, prefix="/api")
 
 # Create a singleton instance
 _realtime_collaboration_service = None
@@ -221,7 +261,7 @@ _file_processing_service = FileProcessingService()
 _ai_analytics_service = AIAnalytics()
 
 # Serve static files
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Prometheus metrics
 LEARNING_ACCURACY = Gauge("learning_accuracy", "User learning accuracy by topic")
@@ -3015,5 +3055,44 @@ async def analyze_file(
         return result
     except Exception as e:
         logger.error(f"Error analyzing file: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/services/{service_name}")
+async def serve_service_page(service_name: str):
+    """Serve static service pages."""
+    try:
+        # Use the absolute path in the Docker container
+        service_path = Path("/app/static/services") / f"{service_name}.html"
+        
+        # Check if the file exists
+        if not service_path.exists():
+            logger.error(f"Service page not found: {service_path}")
+            raise HTTPException(status_code=404, detail=f"Service page not found: {service_name}")
+            
+        # Read the file content
+        with open(service_path, 'r') as f:
+            content = f.read()
+            
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error serving service page {service_name}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving service page: {str(e)}")
+
+@app.head("/services/{service_name}")
+async def serve_service_page_head(service_name: str):
+    """Handle HEAD requests for service pages."""
+    try:
+        service_path = Path("/app/static/services") / f"{service_name}.html"
+        if not service_path.exists():
+            raise HTTPException(status_code=404, detail=f"Service page not found: {service_name}")
+        return Response(headers={"Content-Type": "text/html"})
+    except Exception as e:
+        logger.error(f"Error handling HEAD request for {service_name}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 

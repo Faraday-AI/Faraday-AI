@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Skill Progression - Phys Ed Teacher Assistant</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/content-sequencing/skill-progression/skill-progression.html" class="back-button" aria-label="Back to Skill Progression">
+                <span class="back-arrow">←</span> Back to Skill Progression
+            </a>
+            <h1>Try Skill Progression</h1>
+            <p class="service-description">Create your own skill progression for physical education</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Try It Widget -->
+            <section class="try-it-widget">
+                <div class="widget-content">
+                    <div class="widget-form">
+                        <form id="progressionForm">
+                            <div class="form-group">
+                                <label for="skill-name">Skill Name</label>
+                                <input type="text" id="skill-name" name="skill-name" placeholder="Enter skill name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="grade-level">Grade Level</label>
+                                <select id="grade-level" name="grade-level" required>
+                                    <option value="">Select grade level</option>
+                                    <option value="k-2">K-2</option>
+                                    <option value="3-5">3-5</option>
+                                    <option value="6-8">6-8</option>
+                                    <option value="9-12">9-12</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="skill-level">Starting Skill Level</label>
+                                <select id="skill-level" name="skill-level" required>
+                                    <option value="">Select starting level</option>
+                                    <option value="beginner">Beginner</option>
+                                    <option value="intermediate">Intermediate</option>
+                                    <option value="advanced">Advanced</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="progressions">Skill Progressions</label>
+                                <div class="progressions-list">
+                                    <div class="progression-item">
+                                        <input type="text" name="progression[]" placeholder="Progression 1" required>
+                                        <select name="difficulty[]" required>
+                                            <option value="beginner">Beginner</option>
+                                            <option value="intermediate">Intermediate</option>
+                                            <option value="advanced">Advanced</option>
+                                        </select>
+                                        <button type="button" class="remove-progression">×</button>
+                                    </div>
+                                </div>
+                                <button type="button" class="add-progression">Add Progression</button>
+                            </div>
+                            <div class="form-group">
+                                <label for="assessment">Assessment Criteria</label>
+                                <textarea id="assessment" name="assessment" placeholder="Enter assessment criteria" required></textarea>
+                            </div>
+                            <button type="submit" class="cta-button primary">Generate Progression</button>
+                        </form>
+                    </div>
+                    <div class="widget-preview" id="previewSection" style="display: none;">
+                        <h3>Your Skill Progression</h3>
+                        <div class="preview-content" id="previewContent">
+                            <!-- Preview content will be generated here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('progressionForm');
+            const previewSection = document.getElementById('previewSection');
+            const previewContent = document.getElementById('previewContent');
+            const addProgressionButton = document.querySelector('.add-progression');
+            const progressionsList = document.querySelector('.progressions-list');
+
+            // Add progression input
+            addProgressionButton.addEventListener('click', function() {
+                const progressionCount = progressionsList.children.length + 1;
+                const progressionItem = document.createElement('div');
+                progressionItem.className = 'progression-item';
+                progressionItem.innerHTML = `
+                    <input type="text" name="progression[]" placeholder="Progression ${progressionCount}" required>
+                    <select name="difficulty[]" required>
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                    <button type="button" class="remove-progression">×</button>
+                `;
+                progressionsList.appendChild(progressionItem);
+            });
+
+            // Remove progression input
+            progressionsList.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-progression')) {
+                    e.target.parentElement.remove();
+                    // Update progression numbers
+                    const progressions = progressionsList.querySelectorAll('.progression-item input');
+                    progressions.forEach((input, index) => {
+                        input.placeholder = `Progression ${index + 1}`;
+                    });
+                }
+            });
+
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form values
+                const skillName = document.getElementById('skill-name').value;
+                const gradeLevel = document.getElementById('grade-level').value;
+                const skillLevel = document.getElementById('skill-level').value;
+                const assessment = document.getElementById('assessment').value;
+                const progressions = Array.from(document.querySelectorAll('input[name="progression[]"]')).map(input => input.value);
+                const difficulties = Array.from(document.querySelectorAll('select[name="difficulty[]"]')).map(select => select.value);
+
+                // Generate preview content
+                let previewHTML = `
+                    <h4>${skillName}</h4>
+                    <p><strong>Grade Level:</strong> ${gradeLevel}</p>
+                    <p><strong>Starting Level:</strong> ${skillLevel}</p>
+                    <h4>Skill Progressions:</h4>
+                    <ol>
+                `;
+
+                progressions.forEach((progression, index) => {
+                    previewHTML += `<li>${progression} (${difficulties[index]})</li>`;
+                });
+
+                previewHTML += `
+                    </ol>
+                    <h4>Assessment Criteria:</h4>
+                    <p>${assessment}</p>
+                `;
+
+                // Display preview
+                previewContent.innerHTML = previewHTML;
+                previewSection.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html> 

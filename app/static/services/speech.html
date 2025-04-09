@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Assistant - Faraday AI</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="Faraday AI's Speech Assistant - Your personal AI speech coach for improved speaking skills">
+</head>
+<body data-service="speech">
+    <div class="service-container">
+        <header class="service-header">
+            <a href="/" class="back-button">← Back to Home</a>
+            <h1>Speech Assistant</h1>
+            <p class="service-description">Your AI-powered speech coach</p>
+        </header>
+        
+        <section class="service-features">
+            <h2>Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card" data-href="/static/services/services_subpages/speech/recognition.html" tabindex="0" aria-label="Speech Recognition - Real-time speech analysis and feedback">
+                    <h3>Speech Recognition</h3>
+                    <p>Real-time speech analysis and feedback</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/speech/practice.html" tabindex="0" aria-label="Practice Sessions - Interactive speech practice">
+                    <h3>Practice Sessions</h3>
+                    <p>Interactive speech practice</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/speech/feedback.html" tabindex="0" aria-label="Real-time Feedback - Instant pronunciation and delivery feedback">
+                    <h3>Real-time Feedback</h3>
+                    <p>Instant pronunciation and delivery feedback</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/speech/progress.html" tabindex="0" aria-label="Progress Tracking - Monitor your speaking improvement">
+                    <h3>Progress Tracking</h3>
+                    <p>Monitor your speaking improvement</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-implementation">
+            <h2>How It Works</h2>
+            <div class="implementation-details">
+                <div class="detail-card" data-href="/static/services/services_subpages/speech/analysis.html" tabindex="0" aria-label="Speech Analysis - AI-powered speech analysis">
+                    <h3>Speech Analysis</h3>
+                    <p>AI-powered speech analysis</p>
+                </div>
+                <div class="detail-card" data-href="/static/services/services_subpages/speech/coaching.html" tabindex="0" aria-label="Personalized Coaching - Customized speech improvement plans">
+                    <h3>Personalized Coaching</h3>
+                    <p>Customized speech improvement plans</p>
+                </div>
+                <div class="detail-card" data-href="/static/services/services_subpages/speech/improvement.html" tabindex="0" aria-label="Continuous Improvement - Track your speaking progress">
+                    <h3>Continuous Improvement</h3>
+                    <p>Track your speaking progress</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-examples">
+            <h2>Example Use Cases</h2>
+            <div class="examples-grid">
+                <div class="example-card" data-href="/static/services/services_subpages/speech/presentation.html" tabindex="0" aria-label="Public Speaking - Improve presentation skills">
+                    <h3>Public Speaking</h3>
+                    <p>Improve presentation skills</p>
+                </div>
+                <div class="example-card" data-href="/static/services/services_subpages/speech/language.html" tabindex="0" aria-label="Language Learning - Enhance pronunciation">
+                    <h3>Language Learning</h3>
+                    <p>Enhance pronunciation</p>
+                </div>
+                <div class="example-card" data-href="/static/services/services_subpages/speech/interview.html" tabindex="0" aria-label="Interview Preparation - Practice interview responses">
+                    <h3>Interview Preparation</h3>
+                    <p>Practice interview responses</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="technical-section">
+            <h2>Advanced Features</h2>
+            <div class="technical-specs">
+                <div class="feature-card" data-href="/static/services/services_subpages/speech/ai-algorithms.html" tabindex="0" aria-label="AI Algorithms - Advanced speech analysis and improvement">
+                    <h3>AI Algorithms</h3>
+                    <p>Advanced speech analysis and improvement</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-cta">
+            <h2>Ready to Improve Your Speaking?</h2>
+            <p>Start using our AI-powered speech system today.</p>
+            <button class="cta-button" onclick="showAuthForm()">Start Using Speech Assistant</button>
+        </section>
+    </div>
+
+    <style>
+        .service-cta {
+            text-align: center;
+            margin: 4rem 0;
+        }
+
+        .cta-button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background: #1557b0;
+        }
+
+        @media (max-width: 768px) {
+            .service-cta {
+                margin: 2rem 0;
+            }
+        }
+    </style>
+
+    <!-- Auth Form Container -->
+    <div id="auth-container" class="auth-container">
+        <!-- Auth form will be injected here -->
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/services.js"></script>
+    <script>
+        // Show auth form when clicking CTA button
+        function showAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Load auth form content
+            fetch('/static/auth-form.html')
+                .then(response => response.text())
+                .then(html => {
+                    authContainer.innerHTML = html;
+                    
+                    // Initialize the auth form
+                    if (typeof initializeAuthForm === 'function') {
+                        initializeAuthForm();
+                    }
+                    
+                    // Initialize toggle functionality
+                    const loginToggle = document.querySelector('.login-toggle');
+                    const registerToggle = document.querySelector('.register-toggle');
+                    const loginForm = document.querySelector('.login-form');
+                    const registerForm = document.querySelector('.register-form');
+                    
+                    if (loginToggle && registerToggle && loginForm && registerForm) {
+                        // Set initial state
+                        loginForm.classList.add('active');
+                        loginToggle.classList.add('active');
+                        registerForm.classList.remove('active');
+                        registerToggle.classList.remove('active');
+                        
+                        // Add click handlers
+                        loginToggle.onclick = function(e) {
+                            e.preventDefault();
+                            loginForm.classList.add('active');
+                            loginToggle.classList.add('active');
+                            registerForm.classList.remove('active');
+                            registerToggle.classList.remove('active');
+                        };
+                        
+                        registerToggle.onclick = function(e) {
+                            e.preventDefault();
+                            registerForm.classList.add('active');
+                            registerToggle.classList.add('active');
+                            loginForm.classList.remove('active');
+                            loginToggle.classList.remove('active');
+                        };
+                    }
+                })
+                .catch(error => console.error('Error loading auth form:', error));
+        }
+
+        // Close auth form
+        function closeAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize auth form functionality
+        function initializeAuthForm() {
+            const closeButton = document.querySelector('.auth-close-button');
+            if (closeButton) {
+                closeButton.onclick = closeAuthForm;
+            }
+
+            // Add click outside to close
+            document.addEventListener('click', (e) => {
+                const authContainer = document.getElementById('auth-container');
+                if (e.target === authContainer) {
+                    closeAuthForm();
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

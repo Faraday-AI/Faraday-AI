@@ -1,0 +1,55 @@
+<div class="auth-form">
+    <div class="auth-header">
+        <h2>Welcome to Faraday AI</h2>
+        <button class="auth-close-button" onclick="closeAuthForm()">&times;</button>
+    </div>
+    
+    <div class="auth-tabs">
+        <button class="auth-tab login-toggle active" onclick="toggleForms()">Login</button>
+        <button class="auth-tab register-toggle" onclick="toggleForms()">Register</button>
+    </div>
+
+    <!-- Login Form -->
+    <form class="login-form active">
+        <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" required>
+            <div class="login-email-error"></div>
+        </div>
+        <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" required>
+            <div class="login-password-error"></div>
+        </div>
+        <button type="submit" class="login-button">Login</button>
+        <div class="login-loading"></div>
+        <div class="login-success"></div>
+    </form>
+
+    <!-- Register Form -->
+    <form class="register-form">
+        <div class="form-group">
+            <label for="register-name">Name</label>
+            <input type="text" id="register-name" required>
+            <div class="register-name-error"></div>
+        </div>
+        <div class="form-group">
+            <label for="register-email">Email</label>
+            <input type="email" id="register-email" required>
+            <div class="register-email-error"></div>
+        </div>
+        <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" required>
+            <div class="register-password-error"></div>
+        </div>
+        <div class="form-group">
+            <label for="register-confirm-password">Confirm Password</label>
+            <input type="password" id="register-confirm-password" required>
+            <div class="register-confirm-password-error"></div>
+        </div>
+        <button type="submit" class="register-button">Register</button>
+        <div class="register-loading"></div>
+        <div class="register-success"></div>
+    </form>
+</div> 
