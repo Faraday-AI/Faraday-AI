@@ -22,7 +22,8 @@ services:
       - LOG_LEVEL=INFO
       - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
-      - ./app/static:/app/static
+      - ./static:/app/static
+      - ./models:/app/models
     depends_on:
       - redis
       - minio

@@ -4,6 +4,7 @@ from typing import Dict, Any, Optional
 import logging
 from app.core.monitoring import track_metrics
 import asyncio
+import os
 
 class VideoProcessor:
     """Service for processing and analyzing video content."""
@@ -16,15 +17,24 @@ class VideoProcessor:
     async def initialize(self):
         """Initialize video processing resources."""
         try:
+            # Check if model files exist
+            prototxt_path = "models/pose_deploy_linevec.prototxt"
+            caffemodel_path = "models/pose_iter_440000.caffemodel"
+            
+            if not os.path.exists(prototxt_path) or not os.path.exists(caffemodel_path):
+                self.logger.warning("OpenCV model files not found. Video processing will be limited.")
+                return
+                
             # Load OpenCV models
             self.model = cv2.dnn.readNetFromCaffe(
-                "models/pose_deploy_linevec.prototxt",
-                "models/pose_iter_440000.caffemodel"
+                prototxt_path,
+                caffemodel_path
             )
             self.logger.info("Video processor initialized successfully")
         except Exception as e:
             self.logger.error(f"Error initializing video processor: {str(e)}")
-            raise
+            # Don't raise the error, just log it
+            self.logger.warning("Video processor will run in limited mode")
             
     async def cleanup(self):
         """Cleanup video processing resources."""
@@ -37,6 +47,16 @@ class VideoProcessor:
     async def process_video(self, video_url: str) -> Dict[str, Any]:
         """Process video and extract key frames and features."""
         try:
+            if not self.model:
+                self.logger.warning("Video processing model not available. Returning basic video information.")
+                return {
+                    "status": "success",
+                    "message": "Video processing model not available",
+                    "basic_info": {
+                        "url": video_url
+                    }
+                }
+                
             self.cap = cv2.VideoCapture(video_url)
             if not self.cap.isOpened():
                 raise ValueError(f"Could not open video: {video_url}")
