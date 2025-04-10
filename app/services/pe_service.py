@@ -4,11 +4,27 @@ from app.services.video_processor import VideoProcessor
 from app.services.movement_analyzer import MovementAnalyzer
 from app.core.monitoring import track_metrics
 import logging
+import mediapipe as mp
 
 class PEService(BaseService):
     """Physical Education Service implementation."""
     
+    _instance = None
+    _model = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(PEService, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self, service_type: str):
+        if self._model is None:
+            self._model = mp.solutions.pose.Pose(
+                static_image_mode=False,
+                model_complexity=2,
+                enable_segmentation=True,
+                min_detection_confidence=0.5
+            )
         super().__init__(service_type)
         self.video_processor = VideoProcessor()
         self.movement_analyzer = MovementAnalyzer()

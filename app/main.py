@@ -138,21 +138,41 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize database
+@lru_cache()
+def get_pe_service() -> PEService:
+    """Get PE service instance."""
+    service = PEService("physical_education")
+    return service
+
+# Initialize services
 @app.on_event("startup")
 async def startup_event():
+    """Initialize services on startup."""
     try:
-        db_initialized = await init_db()
-        if not db_initialized:
-            logger.warning("Database initialization failed, but continuing with limited functionality")
-        else:
-            logger.info("Database initialized successfully")
+        # Initialize database
+        await init_db()
+        
+        # Initialize PE service
+        pe_service = get_pe_service()
+        await pe_service.initialize()
+        
+        logger.info("Services initialized successfully")
     except Exception as e:
         logger.error(f"Error during startup: {str(e)}")
-        if settings.DEBUG:
-            logger.warning("Running in debug mode - continuing with limited functionality")
-        else:
-            raise
+        raise
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Cleanup services on shutdown."""
+    try:
+        # Cleanup PE service
+        pe_service = get_pe_service()
+        await pe_service.cleanup()
+        
+        logger.info("Services cleaned up successfully")
+    except Exception as e:
+        logger.error(f"Error during shutdown: {str(e)}")
+        raise
 
 # Start Prometheus metrics server
 start_http_server(METRICS_PORT)
@@ -249,10 +269,6 @@ async def robots_txt():
     except Exception as e:
         logger.error(f"Error serving robots.txt: {str(e)}")
         raise HTTPException(status_code=404, detail="robots.txt not found")
-
-def get_pe_service() -> PEService:
-    """Get PE service instance."""
-    return PEService("physical_education")
 
 @app.get("/api/v1/phys-ed")
 async def phys_ed(pe_service: PEService = Depends(get_pe_service)):

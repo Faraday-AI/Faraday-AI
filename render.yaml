@@ -49,7 +49,7 @@ services:
       echo "Current directory: $(pwd)"
       echo "Static directory contents:"
       ls -la /app/static
-      python3.10 -m gunicorn --config gunicorn.conf.py wsgi:app
+      python3.10 -m gunicorn --config gunicorn.conf.py wsgi:application
     envVars:
       - key: PYTHON_VERSION
         value: 3.10.0

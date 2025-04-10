@@ -56,3 +56,26 @@ Faraday-AI/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Generated data
+data/test_data/
+data/training_data/
+data/validation_data/
+data/*.json
+data/*.csv
+data/*.pkl
+data/*.h5
+data/*.npy
+
+# Generated models
+models/*.pkl
+models/*.h5
+models/*.onnx
+models/checkpoints/
+models/saved_models/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
