@@ -35,6 +35,9 @@ from app.api.endpoints import memory, math_assistant, science_assistant
 import socket
 from app.core.health import router as health_router
 from app.services.pe_service import PEService
+from app.api.v1 import activity_management
+import redis.asyncio as redis
+from app.services.physical_education.services.security_service import SecurityService
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -99,6 +102,7 @@ app.include_router(science_assistant.router, prefix="/api/v1/science", tags=["sc
 app.include_router(health_router, tags=["System"])
 app.include_router(ai_analysis.router, prefix="/api")
 app.include_router(debug_router)
+app.include_router(activity_management.router, prefix="/api/v1/activities", tags=["activities"])
 
 # Mount static files at /static instead of root
 base_dir = Path(__file__).parent.parent
@@ -156,6 +160,14 @@ async def startup_event():
         pe_service = get_pe_service()
         await pe_service.initialize()
         
+        # Initialize Redis client
+        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+        
+        # Initialize Security service
+        global security_service
+        security_service = SecurityService(redis_client)
+        await security_service.initialize()
+        
         logger.info("Services initialized successfully")
     except Exception as e:
         logger.error(f"Error during startup: {str(e)}")
@@ -168,6 +180,13 @@ async def shutdown_event():
         # Cleanup PE service
         pe_service = get_pe_service()
         await pe_service.cleanup()
+        
+        # Cleanup Security service
+        if security_service:
+            await security_service.cleanup()
+        
+        # Close Redis connection
+        await redis_client.close()
         
         logger.info("Services cleaned up successfully")
     except Exception as e:
