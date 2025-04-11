@@ -1,0 +1,127 @@
+{
+  "movement_type": "crawling",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:04:14.927050",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.14291964645011623,
+        0.5145268606488308,
+        0.034078778860273745
+      ],
+      "elbows": [
+        0.0878734883222827,
+        0.49461050512053334,
+        0.03846455130285903
+      ],
+      "wrists": [
+        0.11424952302477642,
+        0.4175437528101473,
+        0.06510699192409644
+      ],
+      "hips": [
+        -0.10206998074189372,
+        0.4130245699975646,
+        -0.03278693187679382
+      ],
+      "knees": [
+        -0.13506027581954905,
+        0.352288240647171,
+        0.014029135033874263
+      ],
+      "ankles": [
+        -0.02617901297868208,
+        0.16600553835895812,
+        0.007483943763533674
+      ]
+    },
+    "angles": {
+      "knee": 45.65595683343215,
+      "hip": 139.34713016690088,
+      "shoulder": 27.835352472400103,
+      "elbow": 155.26037280341708
+    },
+    "analysis_scores": {
+      "alignment": 0.9377000412533965,
+      "balance": 0.7525404083032003,
+      "form": 0.8517349075404949,
+      "stability": 0.8941742123432308,
+      "coordination": 0.6199623746009095,
+      "precision": 0.7025334208673202,
+      "power": 0.8607459760302612,
+      "efficiency": 0.6008938914219627,
+      "safety": 0.6145162622774959,
+      "overall": 0.7578772513046338,
+      "shoulder": 0.7614455119714424,
+      "elbow": 0.6547239138373083,
+      "wrist": 0.6632647553736009,
+      "hip": 0.8962698879209743,
+      "knee": 0.73110056764077,
+      "ankle": 0.7479274013449824,
+      "back": 0.9766343647436573,
+      "neck": 0.6808387198984395
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Work on maintaining symmetrical movement patterns",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.5512193985650686,
+      "force_transfer": 0.5887393433331913,
+      "efficiency": 0.7626438207815388,
+      "acceleration": 0.4924607664188414,
+      "deceleration": 0.8622141796448646,
+      "power_output": 0.4161977252680244,
+      "energy_efficiency": 0.9653968631357691,
+      "reaction_time": 0.7640490125930365,
+      "impulse": 0.762308432658496
+    },
+    "technical_metrics": {
+      "precision": 0.7300811014936763,
+      "consistency": 0.4091950552470582,
+      "fluidity": 0.4401972260231105,
+      "complexity": 0.4666591005045689,
+      "adaptability": 0.8887294229841021,
+      "control": 0.6607123917903035,
+      "rhythm": 0.6472096851817342,
+      "timing": 0.7654169763307762
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.740363265600924,
+      "muscle_activation": 0.6141081680791578,
+      "energy_efficiency": 0.6020676234216567,
+      "spinal_alignment": 0.7356642006733158,
+      "muscle_balance": 0.8297587546152208,
+      "injury_risk": 0.841927252256707,
+      "recovery_rate": 0.4412890595810932,
+      "fatigue_level": 0.6048848747385718
+    },
+    "performance_metrics": {
+      "speed": 0.47856185587932554,
+      "accuracy": 0.9574723890609202,
+      "endurance": 0.4679019298948205,
+      "consistency": 0.9145028379916496,
+      "recovery_rate": 0.7951584339131736,
+      "agility": 0.48400478769477834,
+      "flexibility": 0.6736160316278038,
+      "strength": 0.9214926596846128,
+      "power": 0.4660391520140881,
+      "stamina": 0.7011608782060995
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.6628822775783431,
+    "skill_requirement": 0.4582406995390209,
+    "physical_demand": 0.8208630461816342,
+    "technical_complexity": 0.4768771974428907,
+    "risk_factor": 0.9050842777679197,
+    "learning_curve": 0.970290164438891
+  }
+}

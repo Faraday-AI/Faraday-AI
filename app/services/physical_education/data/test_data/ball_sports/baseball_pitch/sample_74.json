@@ -1,0 +1,127 @@
+{
+  "movement_type": "baseball_pitch",
+  "category": "ball_sports",
+  "timestamp": "2025-04-10T11:04:15.481025",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.003548203703510333,
+        0.6023989984436026,
+        0.00036884801535017053
+      ],
+      "elbows": [
+        -0.29734258088856086,
+        0.5972862772029167,
+        -0.09160268223539435
+      ],
+      "wrists": [
+        -0.24063105816952915,
+        0.4430596232427798,
+        -0.012412536615903691
+      ],
+      "hips": [
+        0.03828135622741921,
+        0.352549354064615,
+        0.04371524630683249
+      ],
+      "knees": [
+        -0.20751203301767968,
+        0.29616231449964125,
+        0.07015045993359167
+      ],
+      "ankles": [
+        0.2855476706458835,
+        0.18677603277260713,
+        -0.07456525433422086
+      ]
+    },
+    "angles": {
+      "knee": 89.08060503368807,
+      "hip": 128.13982211208358,
+      "shoulder": 16.550808996526012,
+      "elbow": 72.73942671550513
+    },
+    "analysis_scores": {
+      "alignment": 0.6292117573738328,
+      "balance": 0.9949216581045017,
+      "form": 0.9525128831057945,
+      "stability": 0.9128017157050365,
+      "coordination": 0.9575344631802379,
+      "precision": 0.7256247635948001,
+      "power": 0.9213181297441112,
+      "efficiency": 0.9916592636147977,
+      "safety": 0.9344508449822233,
+      "overall": 0.6787951091263762,
+      "shoulder": 0.8982303946002321,
+      "elbow": 0.9935501462736154,
+      "wrist": 0.6124946400247905,
+      "hip": 0.8343492350366064,
+      "knee": 0.6978871965689849,
+      "ankle": 0.6654690926875715,
+      "back": 0.9943102081739925,
+      "neck": 0.7846726828183732
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Work on maintaining symmetrical movement patterns",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.45090479659699606,
+      "force_transfer": 0.5321199750624079,
+      "efficiency": 0.6531712885149213,
+      "acceleration": 0.9282272416849062,
+      "deceleration": 0.7728111170556409,
+      "power_output": 0.5846476896862521,
+      "energy_efficiency": 0.7582320221107743,
+      "reaction_time": 0.9714961764148106,
+      "impulse": 0.870111219246579
+    },
+    "technical_metrics": {
+      "precision": 0.8282709992474453,
+      "consistency": 0.960379834061371,
+      "fluidity": 0.5583146325166675,
+      "complexity": 0.44693349333968735,
+      "adaptability": 0.9776068621895841,
+      "control": 0.44530091168599545,
+      "rhythm": 0.4591459530748065,
+      "timing": 0.8208695052093349
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.47334329416875925,
+      "muscle_activation": 0.75053970428317,
+      "energy_efficiency": 0.6609926165267488,
+      "spinal_alignment": 0.7427470736557524,
+      "muscle_balance": 0.4017368919206648,
+      "injury_risk": 0.6922583502317159,
+      "recovery_rate": 0.5305406830622266,
+      "fatigue_level": 0.9516693993182066
+    },
+    "performance_metrics": {
+      "speed": 0.5129960617886735,
+      "accuracy": 0.943578226209096,
+      "endurance": 0.6322985119460549,
+      "consistency": 0.6135694987627441,
+      "recovery_rate": 0.7969579261139857,
+      "agility": 0.5153960025318645,
+      "flexibility": 0.762151645819384,
+      "strength": 0.5995924923860814,
+      "power": 0.7177150056059163,
+      "stamina": 0.4811423926828823
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.21041770827090847,
+    "skill_requirement": 0.4846203726804208,
+    "physical_demand": 0.6240831980008226,
+    "technical_complexity": 0.5578628258394885,
+    "risk_factor": 0.9485627847067073,
+    "learning_curve": 0.5061064484269047
+  }
+}

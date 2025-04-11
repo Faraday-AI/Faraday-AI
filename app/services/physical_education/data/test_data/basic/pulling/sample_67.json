@@ -1,0 +1,127 @@
+{
+  "movement_type": "pulling",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:04:14.908870",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.10248022152739696,
+        0.6747622547686064,
+        -0.09123069224104599
+      ],
+      "elbows": [
+        0.21012518886515513,
+        0.5277121908925956,
+        -0.0034415734327576802
+      ],
+      "wrists": [
+        -0.09622029673158938,
+        0.40996743256562457,
+        0.08125501261061838
+      ],
+      "hips": [
+        -0.04453767149505211,
+        0.4543880883600067,
+        0.08754984655238796
+      ],
+      "knees": [
+        0.10712546354488872,
+        0.37679768038196226,
+        0.07221203845123766
+      ],
+      "ankles": [
+        0.18573691592011976,
+        0.14888828410712981,
+        -0.009942530728340143
+      ]
+    },
+    "angles": {
+      "knee": 115.4968036536492,
+      "hip": 153.3006974297892,
+      "shoulder": 21.345199155467814,
+      "elbow": 108.11042142438664
+    },
+    "analysis_scores": {
+      "alignment": 0.842657874902593,
+      "balance": 0.780111159735372,
+      "form": 0.9028713801676598,
+      "stability": 0.9615344791645016,
+      "coordination": 0.7146436028691542,
+      "precision": 0.8430269621155624,
+      "power": 0.6882582125698771,
+      "efficiency": 0.6820481355936369,
+      "safety": 0.6952942482331499,
+      "overall": 0.6014267555301714,
+      "shoulder": 0.9964504788125067,
+      "elbow": 0.6340362989673133,
+      "wrist": 0.6485556668239353,
+      "hip": 0.9023740466615247,
+      "knee": 0.6467970302536944,
+      "ankle": 0.6869335367960823,
+      "back": 0.8253072154716151,
+      "neck": 0.8527104211646845
+    },
+    "recommendations": {
+      "form": "Focus on maintaining proper joint angles during movement",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.8508939614477393,
+      "force_transfer": 0.8309698994513521,
+      "efficiency": 0.6512603720149243,
+      "acceleration": 0.6650819792130997,
+      "deceleration": 0.46155880635782387,
+      "power_output": 0.4444771707837956,
+      "energy_efficiency": 0.5062823561469668,
+      "reaction_time": 0.419795021871076,
+      "impulse": 0.8766871613249729
+    },
+    "technical_metrics": {
+      "precision": 0.7597751573636687,
+      "consistency": 0.7233716589620003,
+      "fluidity": 0.9032763290583786,
+      "complexity": 0.4513305165031479,
+      "adaptability": 0.6185276252664668,
+      "control": 0.5499642481272413,
+      "rhythm": 0.5294921994764182,
+      "timing": 0.4807553805407175
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.40101710281114533,
+      "muscle_activation": 0.8783035176234718,
+      "energy_efficiency": 0.5703796850026766,
+      "spinal_alignment": 0.8159751476794579,
+      "muscle_balance": 0.4756426999090862,
+      "injury_risk": 0.4709590549134083,
+      "recovery_rate": 0.6371990967520798,
+      "fatigue_level": 0.7809025037025974
+    },
+    "performance_metrics": {
+      "speed": 0.6405570651320146,
+      "accuracy": 0.9885767889383293,
+      "endurance": 0.4551502865225772,
+      "consistency": 0.8499435287748689,
+      "recovery_rate": 0.925375351616152,
+      "agility": 0.666162691480382,
+      "flexibility": 0.680904416831771,
+      "strength": 0.542842582415612,
+      "power": 0.9705795898425742,
+      "stamina": 0.7658411695294438
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.1451544744135721,
+    "skill_requirement": 0.5730295763277711,
+    "physical_demand": 0.8267294040548278,
+    "technical_complexity": 0.6978615428143822,
+    "risk_factor": 0.3889455180583452,
+    "learning_curve": 0.618545780346956
+  }
+}

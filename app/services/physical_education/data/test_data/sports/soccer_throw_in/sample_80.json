@@ -1,0 +1,127 @@
+{
+  "movement_type": "soccer_throw_in",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.940742",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.06432309767637129,
+        0.5706658649059319,
+        -0.04266747736592178
+      ],
+      "elbows": [
+        -0.1375312284252538,
+        0.5067362286059994,
+        -0.05744280659146737
+      ],
+      "wrists": [
+        0.1684958995848329,
+        0.40998683594857466,
+        -0.08067114333859281
+      ],
+      "hips": [
+        0.17197580097105902,
+        0.4110045217004658,
+        0.024176787457018678
+      ],
+      "knees": [
+        -0.019294158619934665,
+        0.3601092457756888,
+        0.0031302565230364177
+      ],
+      "ankles": [
+        -0.02028540934507167,
+        0.18272360432245532,
+        -0.007777608450520848
+      ]
+    },
+    "angles": {
+      "knee": 86.0263770100235,
+      "hip": 70.5840080190875,
+      "shoulder": 38.870788020487716,
+      "elbow": 16.21854937348123
+    },
+    "analysis_scores": {
+      "alignment": 0.9263622598918717,
+      "balance": 0.961003624270377,
+      "form": 0.7202051557809359,
+      "stability": 0.7670384849485355,
+      "coordination": 0.8074040345466234,
+      "precision": 0.874180557627043,
+      "power": 0.8003682967909754,
+      "efficiency": 0.6009140998260659,
+      "safety": 0.6187157604014119,
+      "overall": 0.9980859446693369,
+      "shoulder": 0.7304483176181518,
+      "elbow": 0.6616201155038174,
+      "wrist": 0.9951964792835744,
+      "hip": 0.7655917909591134,
+      "knee": 0.929013361193264,
+      "ankle": 0.9701008492732952,
+      "back": 0.66352496676008,
+      "neck": 0.6530859022820609
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.4518970710338323,
+      "force_transfer": 0.9497664449911937,
+      "efficiency": 0.9294284717300473,
+      "acceleration": 0.4379508988581794,
+      "deceleration": 0.6909625095734192,
+      "power_output": 0.5538511671089701,
+      "energy_efficiency": 0.6009107073771041,
+      "reaction_time": 0.4268944285165978,
+      "impulse": 0.5119615414602124
+    },
+    "technical_metrics": {
+      "precision": 0.8629546609636017,
+      "consistency": 0.6049990381835884,
+      "fluidity": 0.46446823106306717,
+      "complexity": 0.8868321040178018,
+      "adaptability": 0.9639833771855535,
+      "control": 0.7079762482906798,
+      "rhythm": 0.738033157251773,
+      "timing": 0.652204306560191
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.8936634211330239,
+      "muscle_activation": 0.7951367646889428,
+      "energy_efficiency": 0.6714478055778581,
+      "spinal_alignment": 0.7267773290019511,
+      "muscle_balance": 0.5992890980117159,
+      "injury_risk": 0.7413959935163197,
+      "recovery_rate": 0.45337303732720874,
+      "fatigue_level": 0.8557550597638868
+    },
+    "performance_metrics": {
+      "speed": 0.6617107846990193,
+      "accuracy": 0.6698383339323746,
+      "endurance": 0.5321049777925884,
+      "consistency": 0.5861023671388177,
+      "recovery_rate": 0.6957222156351408,
+      "agility": 0.528376610359968,
+      "flexibility": 0.6790498772547267,
+      "strength": 0.8290519556135707,
+      "power": 0.7448832216533283,
+      "stamina": 0.4229396196925046
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.844283511976281,
+    "skill_requirement": 0.3131600578643117,
+    "physical_demand": 0.9239179470289569,
+    "technical_complexity": 0.5025477823768293,
+    "risk_factor": 0.9482273465383563,
+    "learning_curve": 0.9648990403259091
+  }
+}

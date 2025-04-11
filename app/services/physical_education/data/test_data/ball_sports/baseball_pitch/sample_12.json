@@ -1,0 +1,127 @@
+{
+  "movement_type": "baseball_pitch",
+  "category": "ball_sports",
+  "timestamp": "2025-04-10T11:04:15.463584",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.07356027375841087,
+        0.6075106233654396,
+        -0.08590583526109329
+      ],
+      "elbows": [
+        0.1951716071142957,
+        0.44705025365462553,
+        -0.04436239054087017
+      ],
+      "wrists": [
+        0.23125903474614384,
+        0.3622227284640195,
+        0.07176606287365547
+      ],
+      "hips": [
+        0.08720367995552541,
+        0.30503569956337434,
+        -0.060155754712048794
+      ],
+      "knees": [
+        0.2176572107285551,
+        0.26007352640179976,
+        0.07211895598773474
+      ],
+      "ankles": [
+        -0.37861327297811265,
+        0.10017943898583931,
+        0.0865588176633143
+      ]
+    },
+    "angles": {
+      "knee": 125.34807098361236,
+      "hip": 117.05011346856922,
+      "shoulder": 32.089052448978386,
+      "elbow": 21.228715902044737
+    },
+    "analysis_scores": {
+      "alignment": 0.628256908364303,
+      "balance": 0.6455983637451707,
+      "form": 0.9216271622960255,
+      "stability": 0.6773211368111741,
+      "coordination": 0.8645390654944847,
+      "precision": 0.8085188052216972,
+      "power": 0.68957190312546,
+      "efficiency": 0.7504271098590785,
+      "safety": 0.6324524971587873,
+      "overall": 0.6252931061564897,
+      "shoulder": 0.8796927172730402,
+      "elbow": 0.9128297306636635,
+      "wrist": 0.7594611074093686,
+      "hip": 0.8229639105489103,
+      "knee": 0.9060679067964788,
+      "ankle": 0.9566043874096117,
+      "back": 0.7680781066513821,
+      "neck": 0.6256872472103151
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.7350987852936632,
+      "force_transfer": 0.5726319723535273,
+      "efficiency": 0.59446910144779,
+      "acceleration": 0.8431546821797018,
+      "deceleration": 0.8663060479254274,
+      "power_output": 0.6386691394051589,
+      "energy_efficiency": 0.9744429865935854,
+      "reaction_time": 0.7180358603334951,
+      "impulse": 0.6641578169232705
+    },
+    "technical_metrics": {
+      "precision": 0.5270183198342602,
+      "consistency": 0.8588910027642593,
+      "fluidity": 0.9777174665316314,
+      "complexity": 0.5823598287513995,
+      "adaptability": 0.40548626245930586,
+      "control": 0.40063642250576526,
+      "rhythm": 0.4197544902987491,
+      "timing": 0.7783297459448326
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.8090819880415829,
+      "muscle_activation": 0.80013086395306,
+      "energy_efficiency": 0.7196283910159224,
+      "spinal_alignment": 0.7569405555494699,
+      "muscle_balance": 0.5916971121670569,
+      "injury_risk": 0.7816189203660169,
+      "recovery_rate": 0.43002006916961544,
+      "fatigue_level": 0.4518820487019259
+    },
+    "performance_metrics": {
+      "speed": 0.4851391012948454,
+      "accuracy": 0.5166516193818386,
+      "endurance": 0.8706227462095151,
+      "consistency": 0.7170102466568654,
+      "recovery_rate": 0.6720600197059994,
+      "agility": 0.7139447217044539,
+      "flexibility": 0.9762711986796313,
+      "strength": 0.4654887604350092,
+      "power": 0.9632968207926716,
+      "stamina": 0.7223439582014495
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.5332908069993609,
+    "skill_requirement": 0.9554103511835254,
+    "physical_demand": 0.9442173872959856,
+    "technical_complexity": 0.3921511922994043,
+    "risk_factor": 0.17530235445475228,
+    "learning_curve": 0.9766702250667569
+  }
+}

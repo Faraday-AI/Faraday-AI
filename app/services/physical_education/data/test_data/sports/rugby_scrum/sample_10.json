@@ -1,0 +1,127 @@
+{
+  "movement_type": "rugby_scrum",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.997614",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.1237290616423083,
+        0.5459202154098335,
+        -0.009538880375792452
+      ],
+      "elbows": [
+        0.19573941571906806,
+        0.5634175269300842,
+        -0.049532285965343516
+      ],
+      "wrists": [
+        -0.3941066838390076,
+        0.49434095034196424,
+        -0.0921310794936175
+      ],
+      "hips": [
+        0.05814160936592455,
+        0.41338360391460083,
+        -0.04097642919608351
+      ],
+      "knees": [
+        -0.25113774582090526,
+        0.24105497114179775,
+        -0.026613740518491746
+      ],
+      "ankles": [
+        -0.13585964443427845,
+        0.1739773657002109,
+        -0.05370628567720255
+      ]
+    },
+    "angles": {
+      "knee": 10.871461025957444,
+      "hip": 98.74659588394037,
+      "shoulder": 12.086137640017967,
+      "elbow": 15.61039701826911
+    },
+    "analysis_scores": {
+      "alignment": 0.9543844013716232,
+      "balance": 0.7554653439341619,
+      "form": 0.6043686438371785,
+      "stability": 0.8622082681470962,
+      "coordination": 0.8033504240071041,
+      "precision": 0.794456320921112,
+      "power": 0.6158935593900363,
+      "efficiency": 0.9770311336216659,
+      "safety": 0.6760012716915871,
+      "overall": 0.9145527585913087,
+      "shoulder": 0.6676851098950894,
+      "elbow": 0.9781220346068148,
+      "wrist": 0.8406979557586705,
+      "hip": 0.940345492607192,
+      "knee": 0.8995905845778963,
+      "ankle": 0.8221623631652427,
+      "back": 0.6204226550480174,
+      "neck": 0.632868393842284
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.4830130259268306,
+      "force_transfer": 0.5827004798072557,
+      "efficiency": 0.8436744920928654,
+      "acceleration": 0.8871553386973262,
+      "deceleration": 0.5219624129856588,
+      "power_output": 0.6801547705375519,
+      "energy_efficiency": 0.650727065344213,
+      "reaction_time": 0.6615828284281124,
+      "impulse": 0.597953285617183
+    },
+    "technical_metrics": {
+      "precision": 0.9598164270601691,
+      "consistency": 0.6037612160955563,
+      "fluidity": 0.4664635344934884,
+      "complexity": 0.6845741186145503,
+      "adaptability": 0.7777544800927818,
+      "control": 0.4107480382105739,
+      "rhythm": 0.40857144862162914,
+      "timing": 0.9718570076539947
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.576559920230437,
+      "muscle_activation": 0.5401731306426022,
+      "energy_efficiency": 0.8610717494818749,
+      "spinal_alignment": 0.6943889631840755,
+      "muscle_balance": 0.8029353513104094,
+      "injury_risk": 0.9097550299279983,
+      "recovery_rate": 0.9748568732688558,
+      "fatigue_level": 0.5839623397601769
+    },
+    "performance_metrics": {
+      "speed": 0.8962622237585176,
+      "accuracy": 0.4106715141300247,
+      "endurance": 0.5622258667249618,
+      "consistency": 0.5478530938454707,
+      "recovery_rate": 0.44509474294481627,
+      "agility": 0.9706049933211812,
+      "flexibility": 0.9975980134661969,
+      "strength": 0.4873087637132215,
+      "power": 0.7906536906872003,
+      "stamina": 0.7941561445533478
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.37934706915525807,
+    "skill_requirement": 0.7473661013238774,
+    "physical_demand": 0.8587857152403555,
+    "technical_complexity": 0.3795241861208589,
+    "risk_factor": 0.6300108676298075,
+    "learning_curve": 0.3109283710348631
+  }
+}

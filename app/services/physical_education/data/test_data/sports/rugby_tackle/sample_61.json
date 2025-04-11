@@ -1,0 +1,127 @@
+{
+  "movement_type": "rugby_tackle",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.342680",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.006744016853656498,
+        0.6143209789177826,
+        0.0237711173803858
+      ],
+      "elbows": [
+        0.1549209238092376,
+        0.5243398625806999,
+        0.0392428372510735
+      ],
+      "wrists": [
+        -0.1649257704804586,
+        0.3548238934980809,
+        -0.027729696523976097
+      ],
+      "hips": [
+        0.024876156143758182,
+        0.31804695130556687,
+        -0.02616407046019957
+      ],
+      "knees": [
+        -0.14795659334460823,
+        0.2567223548518299,
+        -0.08936598408290337
+      ],
+      "ankles": [
+        -0.257791294668002,
+        0.21211644342836183,
+        -0.08822291870142125
+      ]
+    },
+    "angles": {
+      "knee": 120.07261100904077,
+      "hip": 115.89879959464788,
+      "shoulder": 30.798159517435785,
+      "elbow": 4.64312293755793
+    },
+    "analysis_scores": {
+      "alignment": 0.8350037705526375,
+      "balance": 0.9087828775762437,
+      "form": 0.9526108026683725,
+      "stability": 0.7920175190263625,
+      "coordination": 0.9802426415546751,
+      "precision": 0.692522409297386,
+      "power": 0.6897938615085786,
+      "efficiency": 0.9156249767741262,
+      "safety": 0.7788904208968651,
+      "overall": 0.6020207079311092,
+      "shoulder": 0.9688305803027142,
+      "elbow": 0.9899612797268591,
+      "wrist": 0.9410970499438082,
+      "hip": 0.7183108649036012,
+      "knee": 0.7548924642936322,
+      "ankle": 0.8390123601112007,
+      "back": 0.7050077969138957,
+      "neck": 0.9435741049822022
+    },
+    "recommendations": {
+      "form": "Focus on maintaining proper joint angles during movement",
+      "alignment": "Work on maintaining symmetrical movement patterns",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.8729189020895567,
+      "force_transfer": 0.43277931528299196,
+      "efficiency": 0.7003663939431872,
+      "acceleration": 0.4051354592148785,
+      "deceleration": 0.40949387565057505,
+      "power_output": 0.8624329559285567,
+      "energy_efficiency": 0.6717803099059766,
+      "reaction_time": 0.4815514412527461,
+      "impulse": 0.8164156376077671
+    },
+    "technical_metrics": {
+      "precision": 0.668652112657313,
+      "consistency": 0.845447630903901,
+      "fluidity": 0.5700992654795728,
+      "complexity": 0.4468698112819745,
+      "adaptability": 0.8691634193237063,
+      "control": 0.4347040673008659,
+      "rhythm": 0.7620497598343204,
+      "timing": 0.8392571127353736
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.9120207197233198,
+      "muscle_activation": 0.7683304726981539,
+      "energy_efficiency": 0.8460048588531145,
+      "spinal_alignment": 0.8431657582148924,
+      "muscle_balance": 0.7521048906381205,
+      "injury_risk": 0.5640702542494787,
+      "recovery_rate": 0.8595649936910452,
+      "fatigue_level": 0.41404342673210975
+    },
+    "performance_metrics": {
+      "speed": 0.6173211081643731,
+      "accuracy": 0.6102838190355686,
+      "endurance": 0.8429668010435569,
+      "consistency": 0.9900700457215167,
+      "recovery_rate": 0.45389891048139785,
+      "agility": 0.9971629044774215,
+      "flexibility": 0.8831827840340327,
+      "strength": 0.7526159242438414,
+      "power": 0.7082672218905137,
+      "stamina": 0.5313726951316838
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.26621142117531027,
+    "skill_requirement": 0.3672821891084278,
+    "physical_demand": 0.8251551172090688,
+    "technical_complexity": 0.8246836956390425,
+    "risk_factor": 0.1565684770208438,
+    "learning_curve": 0.9955878256083405
+  }
+}

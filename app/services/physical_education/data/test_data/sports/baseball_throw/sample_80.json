@@ -1,0 +1,127 @@
+{
+  "movement_type": "baseball_throw",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.701518",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.06772472715888417,
+        0.5785861987815759,
+        0.0713905218397172
+      ],
+      "elbows": [
+        -0.22805250898636892,
+        0.4423664527330646,
+        0.033333326381124184
+      ],
+      "wrists": [
+        -0.20001920638084547,
+        0.48302781474217643,
+        0.09375904767397125
+      ],
+      "hips": [
+        0.08637767289731951,
+        0.3956437585552982,
+        0.0373923007064034
+      ],
+      "knees": [
+        0.2467638469809174,
+        0.3086980022924095,
+        0.03590242321386103
+      ],
+      "ankles": [
+        0.27367578100215095,
+        0.28132072387259877,
+        0.07149179178048834
+      ]
+    },
+    "angles": {
+      "knee": 114.0432402346742,
+      "hip": 93.00096358472585,
+      "shoulder": 76.15645320845955,
+      "elbow": 93.18139402911305
+    },
+    "analysis_scores": {
+      "alignment": 0.6226854208818045,
+      "balance": 0.8037410186286725,
+      "form": 0.8612072968015925,
+      "stability": 0.7629596115387982,
+      "coordination": 0.7098619852680905,
+      "precision": 0.785272553971955,
+      "power": 0.7191449758560202,
+      "efficiency": 0.733515325167159,
+      "safety": 0.7814391816984531,
+      "overall": 0.7334999526686294,
+      "shoulder": 0.9310913278176803,
+      "elbow": 0.9913634211354659,
+      "wrist": 0.8778380886174715,
+      "hip": 0.8464589202459638,
+      "knee": 0.9964412432245737,
+      "ankle": 0.9793349036292044,
+      "back": 0.9346166444308978,
+      "neck": 0.868136492418833
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.9933168482456955,
+      "force_transfer": 0.7364181876584166,
+      "efficiency": 0.8486710394893762,
+      "acceleration": 0.6994964904274584,
+      "deceleration": 0.5598103224717403,
+      "power_output": 0.5262898260693314,
+      "energy_efficiency": 0.41354811153002446,
+      "reaction_time": 0.4647949016476519,
+      "impulse": 0.7311354806691703
+    },
+    "technical_metrics": {
+      "precision": 0.7541855320715669,
+      "consistency": 0.8291087599961879,
+      "fluidity": 0.7188817075768634,
+      "complexity": 0.718941826123654,
+      "adaptability": 0.8760648813541103,
+      "control": 0.966362420209135,
+      "rhythm": 0.9961825965666488,
+      "timing": 0.7701361149551045
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.4260609103844395,
+      "muscle_activation": 0.676158222831962,
+      "energy_efficiency": 0.8225254351405429,
+      "spinal_alignment": 0.6104161399030084,
+      "muscle_balance": 0.6015576637113482,
+      "injury_risk": 0.6168852264090849,
+      "recovery_rate": 0.48123624043293545,
+      "fatigue_level": 0.9195894786604893
+    },
+    "performance_metrics": {
+      "speed": 0.5164155483819368,
+      "accuracy": 0.920871637232184,
+      "endurance": 0.7583772031053213,
+      "consistency": 0.8547866216803801,
+      "recovery_rate": 0.5622168764429627,
+      "agility": 0.47002239646482047,
+      "flexibility": 0.8622655589967066,
+      "strength": 0.7536698208671881,
+      "power": 0.4919344034645858,
+      "stamina": 0.5872867797022309
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.2674706341176438,
+    "skill_requirement": 0.7183985787098328,
+    "physical_demand": 0.10962505794571464,
+    "technical_complexity": 0.9859187605526147,
+    "risk_factor": 0.7472562636954356,
+    "learning_curve": 0.6552334269002031
+  }
+}

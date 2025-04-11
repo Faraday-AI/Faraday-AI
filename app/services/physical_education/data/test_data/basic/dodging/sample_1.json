@@ -1,0 +1,61 @@
+{
+  "movement_type": "dodging",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:19:00.000000",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.12,
+        0.58,
+        0.03
+      ],
+      "hips": [
+        -0.15,
+        0.42,
+        0.04
+      ],
+      "knees": [
+        -0.18,
+        0.25,
+        0.03
+      ],
+      "ankles": [
+        -0.20,
+        0.15,
+        0.02
+      ],
+      "center_of_mass": [
+        -0.15,
+        0.35,
+        0.03
+      ]
+    },
+    "angles": {
+      "hip_angle": 75.5,
+      "knee_angle": 110.3,
+      "ankle_angle": 85.7,
+      "body_lean_angle": 15.2
+    },
+    "velocities": {
+      "lateral_velocity": 3.5,
+      "body_rotation_velocity": 2.8,
+      "direction_change_velocity": 4.2
+    },
+    "timing": {
+      "reaction_phase": 0.2,
+      "movement_phase": 0.3,
+      "recovery_phase": 0.2
+    }
+  },
+  "performance_metrics": {
+    "agility": 0.88,
+    "balance": 0.85,
+    "form_score": 0.86
+  },
+  "feedback_points": [
+    "Stay on the balls of feet",
+    "Keep knees bent",
+    "Maintain low center of gravity",
+    "Quick direction changes"
+  ]
+} 

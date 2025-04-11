@@ -1,0 +1,128 @@
+{
+  "movement_type": "squatting",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:04:14.786829",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.17024933549363996,
+        0.560401549769134,
+        -0.06134501863959026
+      ],
+      "elbows": [
+        0.21059739512690606,
+        0.5949557074071863,
+        -0.009030649627398274
+      ],
+      "wrists": [
+        0.20272834612674961,
+        0.427423815717335,
+        0.009628116468485451
+      ],
+      "hips": [
+        0.13573643636404314,
+        0.4770922551178619,
+        0.09032614329389324
+      ],
+      "knees": [
+        0.00797875475751525,
+        0.24488361471222722,
+        0.07342749233510559
+      ],
+      "ankles": [
+        0.006166019227442754,
+        0.22517374156697295,
+        -0.050427646952472975
+      ]
+    },
+    "angles": {
+      "knee": 106.99066724806714,
+      "hip": 97.36976289816606,
+      "shoulder": 32.437798852795126,
+      "elbow": 6.796197374412301
+    },
+    "analysis_scores": {
+      "alignment": 0.7888277122457955,
+      "balance": 0.9349013937709748,
+      "form": 0.8222864743858236,
+      "stability": 0.9848273097475682,
+      "coordination": 0.623503380616323,
+      "precision": 0.7392450938390944,
+      "power": 0.7961578047675152,
+      "efficiency": 0.7429596547835294,
+      "safety": 0.9170088246279988,
+      "overall": 0.6797129442810862,
+      "shoulder": 0.8680907693916405,
+      "elbow": 0.949796852750411,
+      "wrist": 0.7100354388917699,
+      "hip": 0.6559084292397425,
+      "knee": 0.6826107074701985,
+      "ankle": 0.7899002437676451,
+      "back": 0.7243599368527256,
+      "neck": 0.8680242032326577
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Work on improving stability and balance",
+      "Maintain proper ankle stability"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.6256891010980086,
+      "force_transfer": 0.6167147821947091,
+      "efficiency": 0.6827636817588149,
+      "acceleration": 0.4245793236036367,
+      "deceleration": 0.5911271102583414,
+      "power_output": 0.9811979141487331,
+      "energy_efficiency": 0.753956968591831,
+      "reaction_time": 0.4319767940928414,
+      "impulse": 0.6201960038821713
+    },
+    "technical_metrics": {
+      "precision": 0.7171480624940457,
+      "consistency": 0.8816876567133773,
+      "fluidity": 0.6169475611650821,
+      "complexity": 0.422035552011364,
+      "adaptability": 0.9109487004890922,
+      "control": 0.6656544386864188,
+      "rhythm": 0.6692470625580358,
+      "timing": 0.455679867019417
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7109034506897811,
+      "muscle_activation": 0.9198516645788455,
+      "energy_efficiency": 0.5463964466309139,
+      "spinal_alignment": 0.9510897714158759,
+      "muscle_balance": 0.7389955242533908,
+      "injury_risk": 0.7034910984479089,
+      "recovery_rate": 0.4530809364700263,
+      "fatigue_level": 0.8789338003941958
+    },
+    "performance_metrics": {
+      "speed": 0.5156198013448914,
+      "accuracy": 0.5085906904745275,
+      "endurance": 0.9239014882201501,
+      "consistency": 0.6189334698019997,
+      "recovery_rate": 0.6400799079798316,
+      "agility": 0.6975705299748487,
+      "flexibility": 0.456631280046271,
+      "strength": 0.7306558482326987,
+      "power": 0.7923371381525379,
+      "stamina": 0.8155940468907743
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.4592534764137032,
+    "skill_requirement": 0.10488041689055198,
+    "physical_demand": 0.921015218809617,
+    "technical_complexity": 0.48554802283111065,
+    "risk_factor": 0.44724014962561565,
+    "learning_curve": 0.7549878284922444
+  }
+}

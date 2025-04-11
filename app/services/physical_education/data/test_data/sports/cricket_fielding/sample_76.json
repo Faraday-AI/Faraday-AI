@@ -1,0 +1,127 @@
+{
+  "movement_type": "cricket_fielding",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.749041",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.19790085696696652,
+        0.6337027887962956,
+        0.0705390412264468
+      ],
+      "elbows": [
+        0.21996601101265528,
+        0.5364903204653952,
+        0.001303317537306059
+      ],
+      "wrists": [
+        -0.12453467971236531,
+        0.3268604175031579,
+        0.052353927944335216
+      ],
+      "hips": [
+        0.09398052871186707,
+        0.363968976657915,
+        0.07328790794655193
+      ],
+      "knees": [
+        -0.24704742549288727,
+        0.33403384231808286,
+        -0.026983636622967835
+      ],
+      "ankles": [
+        -0.13435940104407207,
+        0.28966617554279517,
+        0.007826771232329222
+      ]
+    },
+    "angles": {
+      "knee": 13.053645808790774,
+      "hip": 46.96138147817461,
+      "shoulder": 57.67332335717831,
+      "elbow": 113.16825115055713
+    },
+    "analysis_scores": {
+      "alignment": 0.9741319728135832,
+      "balance": 0.9368405100239234,
+      "form": 0.9664863020714982,
+      "stability": 0.6166456734807578,
+      "coordination": 0.8459050769473293,
+      "precision": 0.999534124881604,
+      "power": 0.9089100230038839,
+      "efficiency": 0.8184416308420571,
+      "safety": 0.7406097428386319,
+      "overall": 0.7438773134521608,
+      "shoulder": 0.749076349647323,
+      "elbow": 0.835526350001425,
+      "wrist": 0.6556494443541029,
+      "hip": 0.6033430159094136,
+      "knee": 0.6530027610605914,
+      "ankle": 0.9205232076856007,
+      "back": 0.6489645167040405,
+      "neck": 0.7066734782262996
+    },
+    "recommendations": {
+      "form": "Focus on maintaining proper joint angles during movement",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.5593607163002737,
+      "force_transfer": 0.9226001411197877,
+      "efficiency": 0.9656043700074942,
+      "acceleration": 0.6499430557243991,
+      "deceleration": 0.5724695534748219,
+      "power_output": 0.4499192466919132,
+      "energy_efficiency": 0.8657268791397035,
+      "reaction_time": 0.5156308396828916,
+      "impulse": 0.6291490246175255
+    },
+    "technical_metrics": {
+      "precision": 0.5371176462025828,
+      "consistency": 0.6655507554567248,
+      "fluidity": 0.5179100483237633,
+      "complexity": 0.5894427036722951,
+      "adaptability": 0.8734554704831449,
+      "control": 0.6068222384617205,
+      "rhythm": 0.9306581833264033,
+      "timing": 0.6958525826237383
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.9854627602550485,
+      "muscle_activation": 0.710833526986651,
+      "energy_efficiency": 0.9295057123485672,
+      "spinal_alignment": 0.9710155769585036,
+      "muscle_balance": 0.9626164493152632,
+      "injury_risk": 0.6112700497670268,
+      "recovery_rate": 0.7762870041805481,
+      "fatigue_level": 0.8739014428162211
+    },
+    "performance_metrics": {
+      "speed": 0.8928156406074415,
+      "accuracy": 0.6456033481035414,
+      "endurance": 0.8642337236890532,
+      "consistency": 0.5394272453865558,
+      "recovery_rate": 0.8432420681518109,
+      "agility": 0.8182610769946004,
+      "flexibility": 0.7889728936397409,
+      "strength": 0.7634702342579072,
+      "power": 0.6127780171018888,
+      "stamina": 0.9196948425910646
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.30079204898710066,
+    "skill_requirement": 0.4534406044036383,
+    "physical_demand": 0.2056082381941403,
+    "technical_complexity": 0.647966279720136,
+    "risk_factor": 0.6064185607416555,
+    "learning_curve": 0.797251401234033
+  }
+}

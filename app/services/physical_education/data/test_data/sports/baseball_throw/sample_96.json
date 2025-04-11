@@ -1,0 +1,127 @@
+{
+  "movement_type": "baseball_throw",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.705805",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.04800261336221956,
+        0.6569950846323902,
+        -0.0637044240673
+      ],
+      "elbows": [
+        0.29191829057247626,
+        0.5497953429533561,
+        -0.022284889346008876
+      ],
+      "wrists": [
+        0.06697037472860518,
+        0.46927825638772414,
+        0.009136388593023015
+      ],
+      "hips": [
+        0.11800316415731615,
+        0.33762182369035365,
+        0.03813121522002241
+      ],
+      "knees": [
+        -0.2583341554423646,
+        0.2446057959258503,
+        -0.0035204118743010354
+      ],
+      "ankles": [
+        0.006990750459148765,
+        0.26091558413676885,
+        0.011272667427753832
+      ]
+    },
+    "angles": {
+      "knee": 48.62349862335393,
+      "hip": 72.99839915988782,
+      "shoulder": 16.698304082748216,
+      "elbow": 135.26458591004004
+    },
+    "analysis_scores": {
+      "alignment": 0.7503565261198175,
+      "balance": 0.779619299250349,
+      "form": 0.7512197615706483,
+      "stability": 0.820568480430685,
+      "coordination": 0.60448258680361,
+      "precision": 0.7492550579454627,
+      "power": 0.6259847678241013,
+      "efficiency": 0.6442760385278443,
+      "safety": 0.8297418566455532,
+      "overall": 0.764811125307331,
+      "shoulder": 0.8365063334209113,
+      "elbow": 0.8639211967485707,
+      "wrist": 0.7406979059691559,
+      "hip": 0.882672765669203,
+      "knee": 0.8258779629312532,
+      "ankle": 0.8934395808862408,
+      "back": 0.9710133424916738,
+      "neck": 0.9003300101008846
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.5084817680921633,
+      "force_transfer": 0.9572099611990296,
+      "efficiency": 0.8175892432714271,
+      "acceleration": 0.6194308322774549,
+      "deceleration": 0.43188406581412875,
+      "power_output": 0.5215929220944621,
+      "energy_efficiency": 0.49431080078415535,
+      "reaction_time": 0.9016842547059164,
+      "impulse": 0.9005267766425961
+    },
+    "technical_metrics": {
+      "precision": 0.836479755674358,
+      "consistency": 0.6339529336813311,
+      "fluidity": 0.9263757653161853,
+      "complexity": 0.4406909035504475,
+      "adaptability": 0.6241304296586404,
+      "control": 0.844880593751474,
+      "rhythm": 0.4761629710101186,
+      "timing": 0.9876564475180046
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.5951773897501085,
+      "muscle_activation": 0.6595056509915692,
+      "energy_efficiency": 0.6364957386900413,
+      "spinal_alignment": 0.7214555827366369,
+      "muscle_balance": 0.9879481134174322,
+      "injury_risk": 0.6590650594339811,
+      "recovery_rate": 0.5852920066062064,
+      "fatigue_level": 0.804993856844926
+    },
+    "performance_metrics": {
+      "speed": 0.9605129715982738,
+      "accuracy": 0.6605034342110369,
+      "endurance": 0.8490032736301087,
+      "consistency": 0.45560582473548195,
+      "recovery_rate": 0.9389257107417746,
+      "agility": 0.8198475277255955,
+      "flexibility": 0.8794734136080562,
+      "strength": 0.9105647905105323,
+      "power": 0.6478922728239342,
+      "stamina": 0.8174997849483447
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.4900496709461232,
+    "skill_requirement": 0.15587991691857414,
+    "physical_demand": 0.8495998034766165,
+    "technical_complexity": 0.7971290360199935,
+    "risk_factor": 0.4129908294503497,
+    "learning_curve": 0.34356898440402595
+  }
+}

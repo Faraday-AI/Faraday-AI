@@ -1,0 +1,127 @@
+{
+  "movement_type": "rugby_maul",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:22.064671",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.1766629786995501,
+        0.5963706223865606,
+        0.055868387668209785
+      ],
+      "elbows": [
+        -0.21481522117909618,
+        0.5736583192977908,
+        -0.025815695436459035
+      ],
+      "wrists": [
+        0.04452861877082048,
+        0.40070495486771623,
+        0.03189947452859668
+      ],
+      "hips": [
+        -0.1859978325105332,
+        0.4135143507408924,
+        -0.07965232333095094
+      ],
+      "knees": [
+        -0.008844665778403593,
+        0.20878047948939657,
+        -0.06471772203032283
+      ],
+      "ankles": [
+        -0.07743003319856745,
+        0.17561756941124235,
+        0.04554953966815728
+      ]
+    },
+    "angles": {
+      "knee": 92.67193020913514,
+      "hip": 123.91509464369088,
+      "shoulder": 85.12281867033862,
+      "elbow": 151.3668630215349
+    },
+    "analysis_scores": {
+      "alignment": 0.6174143394177505,
+      "balance": 0.6873058143136852,
+      "form": 0.7873327906995935,
+      "stability": 0.7719659404651407,
+      "coordination": 0.7878307710348539,
+      "precision": 0.8395664744173386,
+      "power": 0.7759941115162977,
+      "efficiency": 0.708505803582721,
+      "safety": 0.8827679725282023,
+      "overall": 0.9166018850520001,
+      "shoulder": 0.7960785796544725,
+      "elbow": 0.7660075674648601,
+      "wrist": 0.856170112234452,
+      "hip": 0.9820618718659402,
+      "knee": 0.8789160593622158,
+      "ankle": 0.9614119072719869,
+      "back": 0.9586513475400464,
+      "neck": 0.9066045244384437
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.4904924471147068,
+      "force_transfer": 0.7052301716866758,
+      "efficiency": 0.40558245787153335,
+      "acceleration": 0.9991448294812149,
+      "deceleration": 0.9138893122423264,
+      "power_output": 0.8630519641750449,
+      "energy_efficiency": 0.9246107476637493,
+      "reaction_time": 0.8970714846085335,
+      "impulse": 0.5292854098488898
+    },
+    "technical_metrics": {
+      "precision": 0.8884784392857078,
+      "consistency": 0.5842728444671954,
+      "fluidity": 0.9535166397972059,
+      "complexity": 0.9153288878703526,
+      "adaptability": 0.6992628006118768,
+      "control": 0.9336602859211265,
+      "rhythm": 0.5998126213581363,
+      "timing": 0.4758712408731656
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.5599680873593462,
+      "muscle_activation": 0.8842197540399126,
+      "energy_efficiency": 0.7730378726792559,
+      "spinal_alignment": 0.4769665791249481,
+      "muscle_balance": 0.5689044490424202,
+      "injury_risk": 0.8736063944480235,
+      "recovery_rate": 0.8222912173991579,
+      "fatigue_level": 0.8840376053868813
+    },
+    "performance_metrics": {
+      "speed": 0.7540848017607356,
+      "accuracy": 0.8432563182913733,
+      "endurance": 0.778632802536539,
+      "consistency": 0.5338375512476152,
+      "recovery_rate": 0.4171100994080337,
+      "agility": 0.7703805322377864,
+      "flexibility": 0.6306781824687814,
+      "strength": 0.8736340121913027,
+      "power": 0.5194477085675067,
+      "stamina": 0.42770716692553934
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.49839737441451404,
+    "skill_requirement": 0.684258520843133,
+    "physical_demand": 0.5222322529011185,
+    "technical_complexity": 0.616591329762734,
+    "risk_factor": 0.4116334299874902,
+    "learning_curve": 0.17844299890026782
+  }
+}

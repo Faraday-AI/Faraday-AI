@@ -1,0 +1,127 @@
+{
+  "movement_type": "rugby_lineout",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:22.024359",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.0705571857666171,
+        0.602809983323298,
+        0.0969096772115112
+      ],
+      "elbows": [
+        0.07881879457654639,
+        0.49203847641666676,
+        0.09138925776393464
+      ],
+      "wrists": [
+        -0.3916532712100844,
+        0.4053587637880701,
+        -0.042310373911657574
+      ],
+      "hips": [
+        0.0007442758215144285,
+        0.4496927315596304,
+        0.035212629154850406
+      ],
+      "knees": [
+        -0.027402774952515696,
+        0.3942684708080056,
+        -0.0025056102948962655
+      ],
+      "ankles": [
+        -0.13006828416295496,
+        0.18899427249245135,
+        -0.03787107683634355
+      ]
+    },
+    "angles": {
+      "knee": 16.24483452686781,
+      "hip": 99.01225183098155,
+      "shoulder": 4.05376229173617,
+      "elbow": 81.87968478283382
+    },
+    "analysis_scores": {
+      "alignment": 0.6652440452406313,
+      "balance": 0.6037628528410238,
+      "form": 0.8239314577347194,
+      "stability": 0.8860337009118286,
+      "coordination": 0.6607491607011637,
+      "precision": 0.8978690489689041,
+      "power": 0.8478986450666991,
+      "efficiency": 0.9647341195086093,
+      "safety": 0.7562361492195999,
+      "overall": 0.6919959537396808,
+      "shoulder": 0.6093260615685366,
+      "elbow": 0.8004748761050842,
+      "wrist": 0.8546303743023965,
+      "hip": 0.6750032658188638,
+      "knee": 0.889593032188059,
+      "ankle": 0.7479362979012238,
+      "back": 0.7875706534402926,
+      "neck": 0.863090337395626
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.7050889278780098,
+      "force_transfer": 0.40893817204336835,
+      "efficiency": 0.5220016892107454,
+      "acceleration": 0.9283380956049875,
+      "deceleration": 0.9291810785202657,
+      "power_output": 0.6440411557605641,
+      "energy_efficiency": 0.4906867782663795,
+      "reaction_time": 0.6145795541545946,
+      "impulse": 0.9849020979009314
+    },
+    "technical_metrics": {
+      "precision": 0.4403906453191047,
+      "consistency": 0.9961737491963442,
+      "fluidity": 0.4893048777844927,
+      "complexity": 0.49177860938621065,
+      "adaptability": 0.4369752996170806,
+      "control": 0.41041335322396105,
+      "rhythm": 0.6132034363503457,
+      "timing": 0.9760055981718101
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.41402717821228857,
+      "muscle_activation": 0.7561106338927654,
+      "energy_efficiency": 0.810266298200626,
+      "spinal_alignment": 0.5122022505584427,
+      "muscle_balance": 0.7693286474076397,
+      "injury_risk": 0.4560731351889331,
+      "recovery_rate": 0.642558732340038,
+      "fatigue_level": 0.5489383027271157
+    },
+    "performance_metrics": {
+      "speed": 0.8096774997108152,
+      "accuracy": 0.7039941564253129,
+      "endurance": 0.5638919474852395,
+      "consistency": 0.5326678601541812,
+      "recovery_rate": 0.5190622503681372,
+      "agility": 0.968262844531084,
+      "flexibility": 0.49474452325634405,
+      "strength": 0.865532691817329,
+      "power": 0.679914840340283,
+      "stamina": 0.5228238809978023
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.7167332651139295,
+    "skill_requirement": 0.25369174573786263,
+    "physical_demand": 0.9754248810226562,
+    "technical_complexity": 0.3200923990817326,
+    "risk_factor": 0.580276487187019,
+    "learning_curve": 0.40378122153642326
+  }
+}

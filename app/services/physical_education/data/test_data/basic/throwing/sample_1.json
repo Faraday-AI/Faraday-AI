@@ -1,0 +1,67 @@
+{
+  "movement_type": "throwing",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:19:00.000000",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.15,
+        0.65,
+        0.02
+      ],
+      "elbows": [
+        -0.08,
+        0.55,
+        -0.07
+      ],
+      "wrists": [
+        0.38,
+        0.32,
+        0.07
+      ],
+      "hips": [
+        -0.12,
+        0.45,
+        0.03
+      ],
+      "knees": [
+        -0.10,
+        0.30,
+        0.01
+      ],
+      "ankles": [
+        -0.08,
+        0.15,
+        0.02
+      ]
+    },
+    "angles": {
+      "shoulder_angle": 85.5,
+      "elbow_angle": 120.3,
+      "wrist_angle": 15.7,
+      "hip_angle": 75.2,
+      "knee_angle": 110.4
+    },
+    "velocities": {
+      "arm_velocity": 4.2,
+      "wrist_velocity": 6.8,
+      "body_rotation_velocity": 2.1
+    },
+    "timing": {
+      "windup_phase": 0.8,
+      "stride_phase": 0.3,
+      "release_phase": 0.2
+    }
+  },
+  "performance_metrics": {
+    "accuracy": 0.85,
+    "power": 0.75,
+    "form_score": 0.82
+  },
+  "feedback_points": [
+    "Maintain proper shoulder alignment",
+    "Follow through with the throwing arm",
+    "Step forward with opposite foot",
+    "Keep eyes on target"
+  ]
+} 

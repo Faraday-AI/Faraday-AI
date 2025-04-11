@@ -1,0 +1,127 @@
+{
+  "movement_type": "basketball_layup",
+  "category": "ball_sports",
+  "timestamp": "2025-04-10T11:04:15.427608",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.016836572801218225,
+        0.5241073438818464,
+        0.08569656299110917
+      ],
+      "elbows": [
+        0.12209290664721845,
+        0.41557684231421144,
+        0.05706739447647344
+      ],
+      "wrists": [
+        0.04697650211660853,
+        0.41712592526306946,
+        -0.028756801785279604
+      ],
+      "hips": [
+        0.13950643878560415,
+        0.38311548733702044,
+        0.040097340145000576
+      ],
+      "knees": [
+        -0.0763958546296867,
+        0.3816223247357173,
+        0.019967543860756054
+      ],
+      "ankles": [
+        0.02699188521040108,
+        0.16588209504755752,
+        0.04684924799142226
+      ]
+    },
+    "angles": {
+      "knee": 54.95256109095132,
+      "hip": 151.30342231380448,
+      "shoulder": 40.11103454114768,
+      "elbow": 71.5731229762374
+    },
+    "analysis_scores": {
+      "alignment": 0.7700088398982272,
+      "balance": 0.9991292911532818,
+      "form": 0.641911298707238,
+      "stability": 0.9491690731724237,
+      "coordination": 0.8557029103412198,
+      "precision": 0.9064356565925826,
+      "power": 0.9899377071611136,
+      "efficiency": 0.9874225066300836,
+      "safety": 0.8093334998627622,
+      "overall": 0.8987829782098817,
+      "shoulder": 0.9854925494380531,
+      "elbow": 0.7398879565468721,
+      "wrist": 0.6257617082796096,
+      "hip": 0.695291420124136,
+      "knee": 0.9889122983918959,
+      "ankle": 0.9916139026099138,
+      "back": 0.6660252818592465,
+      "neck": 0.6287493128376549
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Work on improving stability and balance"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.7876933287476615,
+      "force_transfer": 0.8925307107754041,
+      "efficiency": 0.7323201069241609,
+      "acceleration": 0.9579406595338801,
+      "deceleration": 0.4239951273485461,
+      "power_output": 0.9564327705735395,
+      "energy_efficiency": 0.8794193367855181,
+      "reaction_time": 0.9915316864905606,
+      "impulse": 0.5907481841862369
+    },
+    "technical_metrics": {
+      "precision": 0.5954173049716629,
+      "consistency": 0.4260909558420925,
+      "fluidity": 0.6113200394945348,
+      "complexity": 0.7798685196675634,
+      "adaptability": 0.8672513862021569,
+      "control": 0.8378691612595209,
+      "rhythm": 0.6103076096560324,
+      "timing": 0.8396734522547531
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.48624094329808676,
+      "muscle_activation": 0.4791430399525096,
+      "energy_efficiency": 0.7591453853736475,
+      "spinal_alignment": 0.4045767331146034,
+      "muscle_balance": 0.7995411264258936,
+      "injury_risk": 0.5660169528441655,
+      "recovery_rate": 0.8580570771291169,
+      "fatigue_level": 0.6139141487955199
+    },
+    "performance_metrics": {
+      "speed": 0.43087482707133895,
+      "accuracy": 0.5377807196559399,
+      "endurance": 0.6051675623403558,
+      "consistency": 0.9760112979207184,
+      "recovery_rate": 0.7217433596996163,
+      "agility": 0.6294654589187878,
+      "flexibility": 0.5443214226645756,
+      "strength": 0.492538253075925,
+      "power": 0.989189650944577,
+      "stamina": 0.8726686601926876
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.7999299942918798,
+    "skill_requirement": 0.2160009420403095,
+    "physical_demand": 0.37963344484816675,
+    "technical_complexity": 0.49347494154082394,
+    "risk_factor": 0.3309380554211758,
+    "learning_curve": 0.2501945355100832
+  }
+}

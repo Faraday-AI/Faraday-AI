@@ -1,0 +1,127 @@
+{
+  "movement_type": "cricket_bowling",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.716449",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.18127215931478408,
+        0.6032499669145565,
+        -0.017809369322637075
+      ],
+      "elbows": [
+        -0.14710512845290694,
+        0.48523307217731665,
+        -0.002623897542861034
+      ],
+      "wrists": [
+        -0.07634000180266537,
+        0.4206472894655672,
+        -0.045234235287902935
+      ],
+      "hips": [
+        0.0641924432435555,
+        0.34747847188319414,
+        0.026844648504083718
+      ],
+      "knees": [
+        0.11475804060550798,
+        0.3052474041667185,
+        0.06654262673854155
+      ],
+      "ankles": [
+        -0.14249563127293968,
+        0.29421969152591254,
+        0.09667623878675877
+      ]
+    },
+    "angles": {
+      "knee": 82.95576487917242,
+      "hip": 143.50793725222135,
+      "shoulder": 24.864404207808576,
+      "elbow": 114.13316628576298
+    },
+    "analysis_scores": {
+      "alignment": 0.761822427559715,
+      "balance": 0.9686471673215233,
+      "form": 0.7738867000959576,
+      "stability": 0.64244591077783,
+      "coordination": 0.8839261579292927,
+      "precision": 0.8677044768654745,
+      "power": 0.9002783247695687,
+      "efficiency": 0.8715141117651588,
+      "safety": 0.6267599676493217,
+      "overall": 0.6829063668135027,
+      "shoulder": 0.8751990534565812,
+      "elbow": 0.8025410803609567,
+      "wrist": 0.9985648683662222,
+      "hip": 0.6020016572905525,
+      "knee": 0.9774568716328773,
+      "ankle": 0.9677694106482291,
+      "back": 0.8987678676293309,
+      "neck": 0.8168474720634002
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Work on maintaining symmetrical movement patterns",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.5121548520800973,
+      "force_transfer": 0.7256212058065785,
+      "efficiency": 0.4295244615360832,
+      "acceleration": 0.6968745612042782,
+      "deceleration": 0.9203791894410559,
+      "power_output": 0.4850379307249043,
+      "energy_efficiency": 0.7485187547922705,
+      "reaction_time": 0.5296960161525335,
+      "impulse": 0.5892433946301521
+    },
+    "technical_metrics": {
+      "precision": 0.9505521398814057,
+      "consistency": 0.7688490875930658,
+      "fluidity": 0.7970932259951093,
+      "complexity": 0.8211530680708581,
+      "adaptability": 0.49220974160539294,
+      "control": 0.9912490563958276,
+      "rhythm": 0.6338933686313707,
+      "timing": 0.6458849257639927
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.512917653973981,
+      "muscle_activation": 0.8312421939426171,
+      "energy_efficiency": 0.7004560319807607,
+      "spinal_alignment": 0.46815271237028094,
+      "muscle_balance": 0.4234925693639826,
+      "injury_risk": 0.9956335343889827,
+      "recovery_rate": 0.6093764053981892,
+      "fatigue_level": 0.5468329393209423
+    },
+    "performance_metrics": {
+      "speed": 0.6750032490401083,
+      "accuracy": 0.6509936684553621,
+      "endurance": 0.7541692184949351,
+      "consistency": 0.44947087532830693,
+      "recovery_rate": 0.4602197420846814,
+      "agility": 0.6481833608899974,
+      "flexibility": 0.5439273437154404,
+      "strength": 0.6256868573182197,
+      "power": 0.5081885248842476,
+      "stamina": 0.7523178652409871
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.6249567389062406,
+    "skill_requirement": 0.12135086180332269,
+    "physical_demand": 0.17020186024286482,
+    "technical_complexity": 0.7096482459764804,
+    "risk_factor": 0.2682799574214838,
+    "learning_curve": 0.9035015811939023
+  }
+}

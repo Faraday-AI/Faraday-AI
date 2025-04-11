@@ -1,0 +1,127 @@
+{
+  "movement_type": "golf_swing",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.140849",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.055083090924510886,
+        0.6741927003666621,
+        -0.06556841186688919
+      ],
+      "elbows": [
+        -0.2190560771292458,
+        0.4623346444116075,
+        -0.04703876549396451
+      ],
+      "wrists": [
+        -0.23018410109084916,
+        0.49000165295446674,
+        0.005015917807085685
+      ],
+      "hips": [
+        -0.16121866457642242,
+        0.42117700657876317,
+        0.023088334006148847
+      ],
+      "knees": [
+        0.10742397581764401,
+        0.26037248083735454,
+        0.01275767247723951
+      ],
+      "ankles": [
+        0.23696170493657276,
+        0.2654661948487773,
+        0.08458732001630756
+      ]
+    },
+    "angles": {
+      "knee": 17.297872306187642,
+      "hip": 93.35254383843096,
+      "shoulder": 15.681991971188808,
+      "elbow": 113.93273922751843
+    },
+    "analysis_scores": {
+      "alignment": 0.8536770352341239,
+      "balance": 0.8342025300286422,
+      "form": 0.9789991555925792,
+      "stability": 0.6706475536422113,
+      "coordination": 0.8953109963542909,
+      "precision": 0.7668183993637055,
+      "power": 0.9661738711482386,
+      "efficiency": 0.8865870077441433,
+      "safety": 0.9409137387323,
+      "overall": 0.6896605058143009,
+      "shoulder": 0.9568995791343899,
+      "elbow": 0.8422001961094214,
+      "wrist": 0.7717902409789948,
+      "hip": 0.6004619230603422,
+      "knee": 0.9597531431610136,
+      "ankle": 0.8365338663778549,
+      "back": 0.9555071427878942,
+      "neck": 0.9205480587127925
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Work on maintaining symmetrical movement patterns",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.7566151383130715,
+      "force_transfer": 0.8151420918929437,
+      "efficiency": 0.4400551715616145,
+      "acceleration": 0.7236892456510255,
+      "deceleration": 0.62406817699168,
+      "power_output": 0.820644474891392,
+      "energy_efficiency": 0.87833519463739,
+      "reaction_time": 0.7648964795543649,
+      "impulse": 0.7868617071037294
+    },
+    "technical_metrics": {
+      "precision": 0.40236713306799554,
+      "consistency": 0.7544562640855728,
+      "fluidity": 0.972788091315836,
+      "complexity": 0.8521960326858574,
+      "adaptability": 0.5532311788205442,
+      "control": 0.4027059620827824,
+      "rhythm": 0.8106101327885663,
+      "timing": 0.5915376669055934
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7248014099663243,
+      "muscle_activation": 0.59555948537147,
+      "energy_efficiency": 0.7671476822846541,
+      "spinal_alignment": 0.9879379749530298,
+      "muscle_balance": 0.4146101480457019,
+      "injury_risk": 0.9051402648605266,
+      "recovery_rate": 0.811088327919423,
+      "fatigue_level": 0.8888645399881844
+    },
+    "performance_metrics": {
+      "speed": 0.7586792496128237,
+      "accuracy": 0.46425394500390416,
+      "endurance": 0.483660338307039,
+      "consistency": 0.5423278921387844,
+      "recovery_rate": 0.5569290184037738,
+      "agility": 0.658315773405801,
+      "flexibility": 0.9200636810219234,
+      "strength": 0.9641607222584591,
+      "power": 0.590627231223267,
+      "stamina": 0.5297579407561566
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.4895472575208618,
+    "skill_requirement": 0.23842086144216165,
+    "physical_demand": 0.7475688680424974,
+    "technical_complexity": 0.1247938119953708,
+    "risk_factor": 0.9087759503110175,
+    "learning_curve": 0.22466117440204764
+  }
+}

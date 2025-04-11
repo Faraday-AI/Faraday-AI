@@ -1,0 +1,127 @@
+{
+  "movement_type": "cricket_fielding",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.737573",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.06626475123740483,
+        0.5236076864966471,
+        0.06875505106814639
+      ],
+      "elbows": [
+        -0.0003632751946356372,
+        0.5518115231080449,
+        -0.0729933238680834
+      ],
+      "wrists": [
+        -0.37872391047808995,
+        0.30669326120267654,
+        0.06261522159678634
+      ],
+      "hips": [
+        0.0936433955854622,
+        0.3577396948821766,
+        0.09179629763125377
+      ],
+      "knees": [
+        -0.08803966488888518,
+        0.27848323247182,
+        0.05566527571691099
+      ],
+      "ankles": [
+        0.07602020070816423,
+        0.18365333594464361,
+        0.0054771269734675
+      ]
+    },
+    "angles": {
+      "knee": 145.5436143116096,
+      "hip": 136.93272003085735,
+      "shoulder": 46.55823171580166,
+      "elbow": 150.76149590098947
+    },
+    "analysis_scores": {
+      "alignment": 0.7973218579143776,
+      "balance": 0.7630395639955139,
+      "form": 0.9011058838438347,
+      "stability": 0.7898813791252304,
+      "coordination": 0.7464803146969082,
+      "precision": 0.79740444665206,
+      "power": 0.6788318393723984,
+      "efficiency": 0.9575623266902734,
+      "safety": 0.868609277151683,
+      "overall": 0.9215897772869667,
+      "shoulder": 0.6435825142225103,
+      "elbow": 0.8986761851887874,
+      "wrist": 0.886157985816578,
+      "hip": 0.9189132850499359,
+      "knee": 0.946711877091374,
+      "ankle": 0.9504196490798584,
+      "back": 0.685431675997387,
+      "neck": 0.6100268315564827
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.525181257594807,
+      "force_transfer": 0.9603191588679284,
+      "efficiency": 0.9840189071931363,
+      "acceleration": 0.5307421257901545,
+      "deceleration": 0.7108539619699146,
+      "power_output": 0.859710243335186,
+      "energy_efficiency": 0.49890520035688424,
+      "reaction_time": 0.7064327936297197,
+      "impulse": 0.5637582448406692
+    },
+    "technical_metrics": {
+      "precision": 0.6324699869000732,
+      "consistency": 0.7935465316861976,
+      "fluidity": 0.4834661194955869,
+      "complexity": 0.7233225842859727,
+      "adaptability": 0.7546380444771195,
+      "control": 0.4705838595528682,
+      "rhythm": 0.7967318324313764,
+      "timing": 0.739223919570006
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7296510990923843,
+      "muscle_activation": 0.8440097616349245,
+      "energy_efficiency": 0.41624848793376457,
+      "spinal_alignment": 0.6839567644197031,
+      "muscle_balance": 0.7966803243643963,
+      "injury_risk": 0.44793498464127635,
+      "recovery_rate": 0.6132159993788215,
+      "fatigue_level": 0.649279571045861
+    },
+    "performance_metrics": {
+      "speed": 0.6452098446731054,
+      "accuracy": 0.8733557368050668,
+      "endurance": 0.9125632510436372,
+      "consistency": 0.9466672338831597,
+      "recovery_rate": 0.9080002335106164,
+      "agility": 0.4966358998256933,
+      "flexibility": 0.9937671703822618,
+      "strength": 0.6750210745963731,
+      "power": 0.6091245031660859,
+      "stamina": 0.7603138860460381
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.22300548019457958,
+    "skill_requirement": 0.10558932568613151,
+    "physical_demand": 0.6923464627895057,
+    "technical_complexity": 0.9373895582081648,
+    "risk_factor": 0.980498477297358,
+    "learning_curve": 0.2859595111216134
+  }
+}

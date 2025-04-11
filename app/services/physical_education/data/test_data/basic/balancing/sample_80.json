@@ -1,0 +1,127 @@
+{
+  "movement_type": "balancing",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:04:14.988023",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.019668410814671272,
+        0.5810669356039316,
+        0.07771497096827026
+      ],
+      "elbows": [
+        0.08244394805869704,
+        0.5569100110471616,
+        -0.0776807639914672
+      ],
+      "wrists": [
+        -0.3442470332764693,
+        0.43691898022802855,
+        0.06395832217575828
+      ],
+      "hips": [
+        -0.17412392237682872,
+        0.4028616442282746,
+        0.06748702434141263
+      ],
+      "knees": [
+        -0.18968577182069968,
+        0.2757959039036885,
+        -0.016775018529389868
+      ],
+      "ankles": [
+        0.34787309110591713,
+        0.22316614775801857,
+        0.04793597259509805
+      ]
+    },
+    "angles": {
+      "knee": 51.93424909755755,
+      "hip": 123.38213471314867,
+      "shoulder": 13.373001809804226,
+      "elbow": 113.89042523505144
+    },
+    "analysis_scores": {
+      "alignment": 0.8268431499521456,
+      "balance": 0.6261517288086117,
+      "form": 0.6011903379552969,
+      "stability": 0.7204454940338023,
+      "coordination": 0.9672544976074049,
+      "precision": 0.6908702586701958,
+      "power": 0.8983964934821715,
+      "efficiency": 0.9764756449861808,
+      "safety": 0.6870632053961485,
+      "overall": 0.8227208390215377,
+      "shoulder": 0.7863315629392506,
+      "elbow": 0.7288553859094012,
+      "wrist": 0.8321213568944856,
+      "hip": 0.6821863460890618,
+      "knee": 0.8197423084443207,
+      "ankle": 0.7534874253167048,
+      "back": 0.7890328174811345,
+      "neck": 0.8745722409116423
+    },
+    "recommendations": {
+      "form": "Focus on maintaining proper joint angles during movement",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.7500005972125396,
+      "force_transfer": 0.5313441866675911,
+      "efficiency": 0.46700178749283777,
+      "acceleration": 0.7519170368460626,
+      "deceleration": 0.6345876633946419,
+      "power_output": 0.6935120157686432,
+      "energy_efficiency": 0.8281506992744614,
+      "reaction_time": 0.4305332427682835,
+      "impulse": 0.41529891391151774
+    },
+    "technical_metrics": {
+      "precision": 0.5855993208965673,
+      "consistency": 0.4173328811605296,
+      "fluidity": 0.7692140492001753,
+      "complexity": 0.832069310487806,
+      "adaptability": 0.6724965598314112,
+      "control": 0.8428348774045281,
+      "rhythm": 0.5634361342151083,
+      "timing": 0.6990947822337896
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7208537104805952,
+      "muscle_activation": 0.44747810115802905,
+      "energy_efficiency": 0.5212854007546377,
+      "spinal_alignment": 0.8203443338461436,
+      "muscle_balance": 0.7582335306053147,
+      "injury_risk": 0.5297708684377594,
+      "recovery_rate": 0.8876978219097325,
+      "fatigue_level": 0.4834770908034106
+    },
+    "performance_metrics": {
+      "speed": 0.8853349195507316,
+      "accuracy": 0.9541798509237194,
+      "endurance": 0.9051965912401775,
+      "consistency": 0.7263636613549367,
+      "recovery_rate": 0.4769617573268542,
+      "agility": 0.7096323660737665,
+      "flexibility": 0.7375623565797871,
+      "strength": 0.47199132285787554,
+      "power": 0.7923083680683913,
+      "stamina": 0.7975505966341303
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.7649214912295006,
+    "skill_requirement": 0.16162012610317453,
+    "physical_demand": 0.5339629059656922,
+    "technical_complexity": 0.11399635087280957,
+    "risk_factor": 0.9003213973838088,
+    "learning_curve": 0.7951279774076806
+  }
+}

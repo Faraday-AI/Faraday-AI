@@ -1,0 +1,127 @@
+{
+  "movement_type": "bending",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:04:15.036067",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.0027059274352695672,
+        0.560731628323123,
+        0.0053247913929825585
+      ],
+      "elbows": [
+        -0.17359804358641331,
+        0.5280269170915144,
+        -0.009905152412975488
+      ],
+      "wrists": [
+        0.17525934202001714,
+        0.3281835739534693,
+        0.05192922561343652
+      ],
+      "hips": [
+        -0.09803923107358581,
+        0.35600651244675235,
+        0.09141709080099378
+      ],
+      "knees": [
+        0.07837740363847207,
+        0.3911503576915365,
+        0.05267709780170196
+      ],
+      "ankles": [
+        0.3082778135112544,
+        0.23157531155188446,
+        0.07983549156107397
+      ]
+    },
+    "angles": {
+      "knee": 115.08392274338537,
+      "hip": 39.49467862198769,
+      "shoulder": 64.67548989578864,
+      "elbow": 110.17516397382529
+    },
+    "analysis_scores": {
+      "alignment": 0.8379953136956245,
+      "balance": 0.6523219991992599,
+      "form": 0.9395461946903391,
+      "stability": 0.7100229138893457,
+      "coordination": 0.883326045697864,
+      "precision": 0.8862493011437462,
+      "power": 0.7221119142228335,
+      "efficiency": 0.7110462097280036,
+      "safety": 0.7284556614730869,
+      "overall": 0.704968703279951,
+      "shoulder": 0.6289833407101774,
+      "elbow": 0.9722992104444338,
+      "wrist": 0.9790995985007133,
+      "hip": 0.9010018033116447,
+      "knee": 0.6928770754292554,
+      "ankle": 0.8079745190597667,
+      "back": 0.9239898901814215,
+      "neck": 0.8429745691228796
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Work on improving stability and balance"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.7413565635439201,
+      "force_transfer": 0.7677533241240653,
+      "efficiency": 0.7043046603528547,
+      "acceleration": 0.5524344107753422,
+      "deceleration": 0.7554915518168228,
+      "power_output": 0.8506782835036405,
+      "energy_efficiency": 0.725625139745855,
+      "reaction_time": 0.9403343576589225,
+      "impulse": 0.48128327796087844
+    },
+    "technical_metrics": {
+      "precision": 0.8561828609935379,
+      "consistency": 0.952889627509386,
+      "fluidity": 0.9078092926452637,
+      "complexity": 0.9107346321423385,
+      "adaptability": 0.5705171141451238,
+      "control": 0.43107740024754404,
+      "rhythm": 0.46325369137844,
+      "timing": 0.6089385760015464
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.6504805733047503,
+      "muscle_activation": 0.9987622273828229,
+      "energy_efficiency": 0.8041328348882064,
+      "spinal_alignment": 0.8695453160513441,
+      "muscle_balance": 0.9982246923273037,
+      "injury_risk": 0.9511990344685184,
+      "recovery_rate": 0.5949994116295836,
+      "fatigue_level": 0.7263007308868292
+    },
+    "performance_metrics": {
+      "speed": 0.6765282306457325,
+      "accuracy": 0.7925460195788135,
+      "endurance": 0.46487698269229466,
+      "consistency": 0.5948001205936696,
+      "recovery_rate": 0.6963595152873354,
+      "agility": 0.7614708644444871,
+      "flexibility": 0.43046773620769796,
+      "strength": 0.41445336145581385,
+      "power": 0.4906316588417128,
+      "stamina": 0.9208314254295165
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.8523331756271862,
+    "skill_requirement": 0.6466304951321292,
+    "physical_demand": 0.8779594700231724,
+    "technical_complexity": 0.9674853391943858,
+    "risk_factor": 0.2684019829669777,
+    "learning_curve": 0.5873401033981626
+  }
+}

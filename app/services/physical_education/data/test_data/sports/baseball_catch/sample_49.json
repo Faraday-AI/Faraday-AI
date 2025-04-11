@@ -1,0 +1,127 @@
+{
+  "movement_type": "baseball_catch",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.669180",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.09445516527253553,
+        0.52329295434665,
+        0.09635927289377225
+      ],
+      "elbows": [
+        -0.046162686118950025,
+        0.4492115244534937,
+        -0.08466775517314913
+      ],
+      "wrists": [
+        -0.11882217072253759,
+        0.4651488108437912,
+        0.017507992556605373
+      ],
+      "hips": [
+        0.014239616450154868,
+        0.36609289041490556,
+        0.08490015993909705
+      ],
+      "knees": [
+        -0.2602739317993426,
+        0.2200432370797522,
+        -0.03698959944645748
+      ],
+      "ankles": [
+        -0.07607984799530082,
+        0.20574571625811106,
+        0.05884042955710905
+      ]
+    },
+    "angles": {
+      "knee": 110.7748515119315,
+      "hip": 174.4659732231902,
+      "shoulder": 13.279080012567594,
+      "elbow": 112.93460508872415
+    },
+    "analysis_scores": {
+      "alignment": 0.9443126763187135,
+      "balance": 0.8381221297453583,
+      "form": 0.7813627851935425,
+      "stability": 0.927088484187768,
+      "coordination": 0.798349747566925,
+      "precision": 0.9926628904576935,
+      "power": 0.856261273442666,
+      "efficiency": 0.9451916597177827,
+      "safety": 0.9654264995873605,
+      "overall": 0.7066949486000136,
+      "shoulder": 0.6628573044984044,
+      "elbow": 0.8677359282763939,
+      "wrist": 0.9123633929894528,
+      "hip": 0.8852144473800867,
+      "knee": 0.8089294324453139,
+      "ankle": 0.6076201055569408,
+      "back": 0.6562935340257876,
+      "neck": 0.913769025687743
+    },
+    "recommendations": {
+      "form": "Focus on maintaining proper joint angles during movement",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.5459348391751443,
+      "force_transfer": 0.9279105432713031,
+      "efficiency": 0.6719736130209086,
+      "acceleration": 0.815321687960161,
+      "deceleration": 0.5699565430381862,
+      "power_output": 0.975699207563545,
+      "energy_efficiency": 0.9025550495339871,
+      "reaction_time": 0.6234710903724949,
+      "impulse": 0.6549872284349032
+    },
+    "technical_metrics": {
+      "precision": 0.7311906094383076,
+      "consistency": 0.4595798945317443,
+      "fluidity": 0.8653970769170893,
+      "complexity": 0.5156299600360799,
+      "adaptability": 0.5924277617113305,
+      "control": 0.85680347620958,
+      "rhythm": 0.7051963394670049,
+      "timing": 0.5067575719057829
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7335272736865048,
+      "muscle_activation": 0.9492080813071256,
+      "energy_efficiency": 0.7014303704227836,
+      "spinal_alignment": 0.4761596841159908,
+      "muscle_balance": 0.42904459612994383,
+      "injury_risk": 0.8555480137173859,
+      "recovery_rate": 0.9399930010954346,
+      "fatigue_level": 0.8835151586737586
+    },
+    "performance_metrics": {
+      "speed": 0.7330826887112647,
+      "accuracy": 0.7608945713618416,
+      "endurance": 0.5206574902310157,
+      "consistency": 0.48784511992663754,
+      "recovery_rate": 0.5065182046516844,
+      "agility": 0.47386168576042775,
+      "flexibility": 0.45094006504881345,
+      "strength": 0.6923086001416521,
+      "power": 0.968191824751726,
+      "stamina": 0.5553328237904169
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.18171701927067593,
+    "skill_requirement": 0.8715230356357685,
+    "physical_demand": 0.5864913997608378,
+    "technical_complexity": 0.9772233358220138,
+    "risk_factor": 0.6145970363605995,
+    "learning_curve": 0.6197300696403173
+  }
+}

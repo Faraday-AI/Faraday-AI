@@ -1,0 +1,128 @@
+{
+  "movement_type": "rugby_scrum",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:22.008379",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.19682515799264363,
+        0.6345657476606248,
+        -0.06114390090443336
+      ],
+      "elbows": [
+        0.054882378308812374,
+        0.5687111361423539,
+        0.04418573775336482
+      ],
+      "wrists": [
+        -0.05417738517700316,
+        0.41726866245999816,
+        0.07904028326805321
+      ],
+      "hips": [
+        0.08930503889041991,
+        0.4917703703491074,
+        -0.0927754373155314
+      ],
+      "knees": [
+        -0.2434574349082662,
+        0.35279203686448035,
+        0.09679183141743802
+      ],
+      "ankles": [
+        0.13168737184574908,
+        0.24309368852720717,
+        0.05683457938093492
+      ]
+    },
+    "angles": {
+      "knee": 92.36243466690519,
+      "hip": 101.4387380658397,
+      "shoulder": 43.658698254622266,
+      "elbow": 43.10781448341218
+    },
+    "analysis_scores": {
+      "alignment": 0.6624519769900273,
+      "balance": 0.7777135946190068,
+      "form": 0.7222060936170887,
+      "stability": 0.6270867811137368,
+      "coordination": 0.6288342869328261,
+      "precision": 0.7492241237061331,
+      "power": 0.9158841191378402,
+      "efficiency": 0.7563987062524139,
+      "safety": 0.8618248192817837,
+      "overall": 0.6903420216129111,
+      "shoulder": 0.9683793662622192,
+      "elbow": 0.8283677695507128,
+      "wrist": 0.8343015609509463,
+      "hip": 0.9778510737317656,
+      "knee": 0.8825742957190519,
+      "ankle": 0.7926776129187144,
+      "back": 0.6265796391431574,
+      "neck": 0.921930398541556
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Work on maintaining symmetrical movement patterns",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement",
+      "Work on improving stability and balance"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.8851098968147386,
+      "force_transfer": 0.959151437556644,
+      "efficiency": 0.9071965500296754,
+      "acceleration": 0.6477533998687799,
+      "deceleration": 0.4459804450680402,
+      "power_output": 0.4182636206086424,
+      "energy_efficiency": 0.5157412515066025,
+      "reaction_time": 0.7865291777399543,
+      "impulse": 0.9066124335749909
+    },
+    "technical_metrics": {
+      "precision": 0.5355078346301219,
+      "consistency": 0.824966019897112,
+      "fluidity": 0.801789993356467,
+      "complexity": 0.4526842482288008,
+      "adaptability": 0.40759062753761055,
+      "control": 0.6353182529718092,
+      "rhythm": 0.7768905335846912,
+      "timing": 0.5773760246952999
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.6974233500497475,
+      "muscle_activation": 0.7569652361933568,
+      "energy_efficiency": 0.9999606881879027,
+      "spinal_alignment": 0.7774368543094767,
+      "muscle_balance": 0.9754030996077049,
+      "injury_risk": 0.5623755824317318,
+      "recovery_rate": 0.72218900490044,
+      "fatigue_level": 0.7295403097784833
+    },
+    "performance_metrics": {
+      "speed": 0.8695924801609495,
+      "accuracy": 0.40458629382298816,
+      "endurance": 0.4494922953554684,
+      "consistency": 0.4206197023889918,
+      "recovery_rate": 0.7092138925268153,
+      "agility": 0.955991621839203,
+      "flexibility": 0.7234749896278669,
+      "strength": 0.47345409807038924,
+      "power": 0.8356904552688577,
+      "stamina": 0.7091497042996744
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.25682240053017014,
+    "skill_requirement": 0.5185184164258471,
+    "physical_demand": 0.7527205622298757,
+    "technical_complexity": 0.6404527538082136,
+    "risk_factor": 0.3181752846747222,
+    "learning_curve": 0.19825094798581944
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "movement_type": "striking",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:19:00.000000",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.15,
+        0.60,
+        0.03
+      ],
+      "elbows": [
+        -0.12,
+        0.50,
+        -0.05
+      ],
+      "wrists": [
+        0.35,
+        0.30,
+        0.05
+      ],
+      "hips": [
+        -0.18,
+        0.40,
+        0.04
+      ],
+      "knees": [
+        -0.15,
+        0.25,
+        0.03
+      ],
+      "ankles": [
+        -0.12,
+        0.15,
+        0.02
+      ]
+    },
+    "angles": {
+      "shoulder_angle": 85.5,
+      "elbow_angle": 120.3,
+      "wrist_angle": 15.7,
+      "hip_angle": 80.2,
+      "knee_angle": 115.4
+    },
+    "velocities": {
+      "arm_velocity": 4.8,
+      "wrist_velocity": 6.5,
+      "body_rotation_velocity": 2.8
+    },
+    "timing": {
+      "windup_phase": 0.7,
+      "contact_phase": 0.2,
+      "follow_through": 0.4
+    }
+  },
+  "performance_metrics": {
+    "power": 0.85,
+    "accuracy": 0.80,
+    "form_score": 0.83
+  },
+  "feedback_points": [
+    "Keep eyes on the ball",
+    "Maintain proper grip",
+    "Follow through with the swing",
+    "Transfer weight properly"
+  ]
+} 

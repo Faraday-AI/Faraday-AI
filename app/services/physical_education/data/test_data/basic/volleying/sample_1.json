@@ -1,0 +1,67 @@
+{
+  "movement_type": "volleying",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:19:00.000000",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.10,
+        0.55,
+        0.02
+      ],
+      "elbows": [
+        -0.08,
+        0.45,
+        -0.04
+      ],
+      "wrists": [
+        0.32,
+        0.28,
+        0.04
+      ],
+      "hips": [
+        -0.12,
+        0.35,
+        0.03
+      ],
+      "knees": [
+        -0.10,
+        0.22,
+        0.02
+      ],
+      "ankles": [
+        -0.08,
+        0.12,
+        0.01
+      ]
+    },
+    "angles": {
+      "shoulder_angle": 75.5,
+      "elbow_angle": 110.3,
+      "wrist_angle": 12.7,
+      "hip_angle": 70.2,
+      "knee_angle": 105.4
+    },
+    "velocities": {
+      "arm_velocity": 3.2,
+      "hand_velocity": 4.5,
+      "body_movement_velocity": 1.8
+    },
+    "timing": {
+      "preparation_phase": 0.4,
+      "contact_phase": 0.2,
+      "recovery_phase": 0.3
+    }
+  },
+  "performance_metrics": {
+    "control": 0.85,
+    "accuracy": 0.82,
+    "form_score": 0.84
+  },
+  "feedback_points": [
+    "Keep hands firm but relaxed",
+    "Contact ball with flat surface",
+    "Keep eyes on the ball",
+    "Maintain balanced stance"
+  ]
+} 

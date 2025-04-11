@@ -1,0 +1,99 @@
+{
+  "movement_type": "throwing",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:20:00.000000",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.18,
+        0.68,
+        0.03
+      ],
+      "elbows": [
+        -0.12,
+        0.58,
+        -0.08
+      ],
+      "wrists": [
+        0.42,
+        0.35,
+        0.08
+      ],
+      "hips": [
+        -0.15,
+        0.48,
+        0.04
+      ],
+      "knees": [
+        -0.12,
+        0.32,
+        0.02
+      ],
+      "ankles": [
+        -0.10,
+        0.18,
+        0.03
+      ],
+      "head": [
+        -0.05,
+        0.65,
+        0.01
+      ],
+      "spine": [
+        -0.12,
+        0.45,
+        0.02
+      ]
+    },
+    "angles": {
+      "shoulder_angle": 92.5,
+      "elbow_angle": 125.3,
+      "wrist_angle": 18.7,
+      "hip_angle": 82.2,
+      "knee_angle": 115.4,
+      "spine_angle": 12.5,
+      "head_angle": 5.2
+    },
+    "velocities": {
+      "arm_velocity": 4.8,
+      "wrist_velocity": 7.2,
+      "body_rotation_velocity": 2.5,
+      "release_velocity": 8.5,
+      "follow_through_velocity": 3.2
+    },
+    "timing": {
+      "windup_phase": 0.9,
+      "stride_phase": 0.35,
+      "release_phase": 0.25,
+      "follow_through": 0.4
+    },
+    "force_metrics": {
+      "grip_strength": 0.75,
+      "core_engagement": 0.82,
+      "leg_drive": 0.78
+    }
+  },
+  "performance_metrics": {
+    "accuracy": 0.88,
+    "power": 0.82,
+    "form_score": 0.85,
+    "consistency": 0.83,
+    "efficiency": 0.80
+  },
+  "feedback_points": [
+    "Maintain proper shoulder alignment throughout motion",
+    "Follow through with the throwing arm towards target",
+    "Step forward with opposite foot for power",
+    "Keep eyes focused on target",
+    "Engage core muscles during throw",
+    "Maintain balanced stance during follow-through"
+  ],
+  "progression_level": "intermediate",
+  "difficulty_rating": 0.7,
+  "common_errors": [
+    "Over-rotation of shoulders",
+    "Incomplete follow-through",
+    "Poor weight transfer",
+    "Early release"
+  ]
+} 

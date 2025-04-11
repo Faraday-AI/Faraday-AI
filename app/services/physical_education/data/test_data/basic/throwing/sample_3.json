@@ -1,0 +1,109 @@
+{
+  "movement_type": "throwing",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:21:00.000000",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.12,
+        0.62,
+        0.02
+      ],
+      "elbows": [
+        -0.10,
+        0.52,
+        -0.06
+      ],
+      "wrists": [
+        0.35,
+        0.30,
+        0.06
+      ],
+      "hips": [
+        -0.10,
+        0.42,
+        0.03
+      ],
+      "knees": [
+        -0.08,
+        0.28,
+        0.01
+      ],
+      "ankles": [
+        -0.06,
+        0.14,
+        0.02
+      ],
+      "head": [
+        -0.03,
+        0.60,
+        0.01
+      ],
+      "spine": [
+        -0.08,
+        0.40,
+        0.02
+      ]
+    },
+    "angles": {
+      "shoulder_angle": 78.5,
+      "elbow_angle": 115.3,
+      "wrist_angle": 12.7,
+      "hip_angle": 72.2,
+      "knee_angle": 105.4,
+      "spine_angle": 8.5,
+      "head_angle": 3.2
+    },
+    "velocities": {
+      "arm_velocity": 3.8,
+      "wrist_velocity": 5.2,
+      "body_rotation_velocity": 1.8,
+      "release_velocity": 6.5,
+      "follow_through_velocity": 2.2
+    },
+    "timing": {
+      "windup_phase": 0.7,
+      "stride_phase": 0.25,
+      "release_phase": 0.2,
+      "follow_through": 0.3
+    },
+    "force_metrics": {
+      "grip_strength": 0.65,
+      "core_engagement": 0.72,
+      "leg_drive": 0.68
+    }
+  },
+  "performance_metrics": {
+    "accuracy": 0.75,
+    "power": 0.68,
+    "form_score": 0.72,
+    "consistency": 0.70,
+    "efficiency": 0.65
+  },
+  "feedback_points": [
+    "Start with basic shoulder alignment",
+    "Focus on proper grip first",
+    "Practice stepping forward",
+    "Keep eyes on target",
+    "Work on basic follow-through",
+    "Maintain simple balanced stance"
+  ],
+  "progression_level": "beginner",
+  "difficulty_rating": 0.4,
+  "common_errors": [
+    "Inconsistent grip",
+    "Poor stance",
+    "Limited follow-through",
+    "Incorrect weight transfer"
+  ],
+  "learning_progression": {
+    "current_skill_level": "basic",
+    "next_skill_focus": "improved accuracy",
+    "drills_to_practice": [
+      "Stationary throwing",
+      "Step and throw",
+      "Target practice",
+      "Balance exercises"
+    ]
+  }
+} 
