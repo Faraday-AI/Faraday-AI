@@ -5,6 +5,7 @@ from typing import Dict, Any, Optional
 from functools import wraps
 import psutil
 import os
+import inspect
 
 logger = logging.getLogger(__name__)
 
@@ -24,21 +25,42 @@ MEMORY_USAGE = Gauge('ai_analytics_memory_usage_bytes', 'Memory usage in bytes')
 DISK_USAGE = Gauge('ai_analytics_disk_usage_bytes', 'Disk usage in bytes')
 MODEL_LOAD_TIME = Histogram('ai_analytics_model_load_seconds', 'Model load time in seconds', ['model_name'])
 
-def track_metrics(endpoint: str):
+def track_metrics(endpoint: str = None):
     """Decorator to track request metrics."""
     def decorator(func):
+        sig = inspect.signature(func)
+        
         @wraps(func)
         async def wrapper(*args, **kwargs):
             start_time = time.time()
             try:
-                result = await func(*args, **kwargs)
-                REQUEST_COUNT.labels(endpoint=endpoint, status='success').inc()
-                REQUEST_LATENCY.labels(endpoint=endpoint).observe(time.time() - start_time)
+                # Get the function's parameters
+                params = list(sig.parameters.values())
+                
+                # If this is a method (has 'self' as first parameter)
+                if params and params[0].name == 'self':
+                    # For method calls, pass self as first arg and bind remaining args
+                    self_arg = args[0]
+                    remaining_args = args[1:]
+                    bound_args = sig.bind(self_arg, *remaining_args, **kwargs)
+                    bound_args.apply_defaults()
+                    result = await func(*bound_args.args, **bound_args.kwargs)
+                else:
+                    # For regular function calls, bind all args
+                    bound_args = sig.bind(*args, **kwargs)
+                    bound_args.apply_defaults()
+                    result = await func(*bound_args.args, **bound_args.kwargs)
+                
+                # Use function name as endpoint if none provided
+                endpoint_name = endpoint or func.__name__
+                REQUEST_COUNT.labels(endpoint=endpoint_name, status='success').inc()
+                REQUEST_LATENCY.labels(endpoint=endpoint_name).observe(time.time() - start_time)
                 return result
             except Exception as e:
-                REQUEST_COUNT.labels(endpoint=endpoint, status='error').inc()
-                ERROR_COUNT.labels(endpoint=endpoint, error_type=type(e).__name__).inc()
-                raise
+                endpoint_name = endpoint or func.__name__
+                REQUEST_COUNT.labels(endpoint=endpoint_name, status='error').inc()
+                ERROR_COUNT.labels(endpoint=endpoint_name, error_type=type(e).__name__).inc()
+                raise e  # Re-raise the original exception
         return wrapper
     return decorator
 
