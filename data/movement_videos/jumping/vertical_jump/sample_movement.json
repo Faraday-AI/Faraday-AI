@@ -1,0 +1,55 @@
+{
+    "movement": "vertical_jump",
+    "key_points": {
+        "shoulders": {
+            "left": [0.5, 0.3, 0.0],
+            "right": [0.5, 0.3, 0.0]
+        },
+        "hips": {
+            "left": [0.5, 0.5, 0.0],
+            "right": [0.5, 0.5, 0.0]
+        },
+        "knees": {
+            "left": [0.5, 0.7, 0.0],
+            "right": [0.5, 0.7, 0.0]
+        },
+        "ankles": {
+            "left": [0.5, 0.9, 0.0],
+            "right": [0.5, 0.9, 0.0]
+        }
+    },
+    "angles": {
+        "shoulder_angle": 180.0,
+        "hip_angle": 90.0,
+        "knee_angle": 90.0
+    },
+    "distances": {
+        "shoulder_width": 0.4,
+        "hip_width": 0.3
+    },
+    "analysis": {
+        "form_score": 0.75,
+        "alignment_score": 0.8,
+        "stability_score": 0.7,
+        "power_score": 0.65
+    },
+    "recommendations": [
+        "Focus on maintaining shoulder alignment during takeoff",
+        "Increase knee bend for more power",
+        "Keep core engaged throughout movement"
+    ],
+    "safety_considerations": [
+        "Ensure proper landing technique to prevent knee injury",
+        "Maintain proper form to prevent back strain",
+        "Land softly with bent knees"
+    ],
+    "progression": {
+        "current_level": "intermediate",
+        "next_level": "advanced",
+        "exercises": [
+            "Box jumps",
+            "Depth jumps",
+            "Single-leg jumps"
+        ]
+    }
+} 
