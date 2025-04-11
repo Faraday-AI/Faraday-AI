@@ -305,312 +305,100 @@ class InjuryDataGenerator:
         
         return recommendations
     
-    def _generate_safety_considerations(self, movement_type: str, 
-                                      analysis: Dict[str, float]) -> List[str]:
-        """Generate safety considerations based on movement type and analysis."""
+    def _generate_safety_considerations(self, movement_type: str, analysis: Dict) -> List[str]:
+        """Generate safety considerations based on movement type and analysis data."""
         considerations = []
         
         # General safety considerations
-        if analysis['form'] < 0.6:
-            considerations.append("High risk of injury due to poor form")
-        if analysis['stability'] < 0.6:
-            considerations.append("High risk of falls or loss of balance")
+        if analysis.get('form', 0) < 0.7:
+            considerations.append("Focus on maintaining proper form throughout the movement")
+        if analysis.get('stability', 0) < 0.7:
+            considerations.append("Work on improving stability and balance")
         
-        # Parkour-specific considerations
-        if movement_type in ['precision_jump', 'kong_vault', 'dash_vault', 'lazy_vault', 'speed_vault', 'wall_run']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics to prevent impingement")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Maintain proper wrist alignment to prevent sprains")
-            if analysis['ankle'] < 0.7:
-                considerations.append("Ensure proper ankle positioning to prevent sprains")
+        # Movement-specific safety considerations
+        if movement_type in ['jumping', 'running', 'squatting']:
+            if analysis.get('knee', 0) < 0.7:
+                considerations.append("Ensure proper knee alignment and tracking")
+            if analysis.get('ankle', 0) < 0.7:
+                considerations.append("Maintain proper ankle stability")
         
-        # Acrobatics-specific considerations
-        elif movement_type in ['handspring', 'aerial_cartwheel', 'side_flip', 'webster', 'gainer', 'barani']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder stability to prevent injury")
-            if analysis['spine'] < 0.7:
-                considerations.append("Maintain proper spinal alignment to prevent back injuries")
-            if analysis['alignment'] < 0.7:
-                considerations.append("Ensure proper body alignment during rotation")
-        
-        # Functional fitness-specific considerations
-        elif movement_type in ['box_jump', 'wall_ball', 'rope_climb', 'sandbag_lift', 'kettlebell_swing', 'medicine_ball_throw']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics for overhead movements")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip alignment during explosive movements")
-            if analysis['knee'] < 0.7:
-                considerations.append("Ensure proper knee tracking during jumps and lifts")
-        
-        # Advanced yoga-specific considerations
-        elif movement_type in ['crow_pose', 'headstand', 'shoulderstand', 'wheel_pose', 'scorpion_pose', 'flying_pigeon']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder alignment to prevent impingement")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Maintain proper wrist positioning to prevent strain")
-            if analysis['spine'] < 0.7:
-                considerations.append("Ensure proper spinal alignment to prevent injury")
-        
-        # Advanced climbing-specific considerations
-        elif movement_type in ['toe_hook', 'heel_toe_cam', 'gaston', 'layback', 'stemming', 'mantle']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics to prevent impingement")
-            if analysis['elbow'] < 0.7:
-                considerations.append("Maintain proper elbow alignment to prevent tendonitis")
-            if analysis['hip'] < 0.7:
-                considerations.append("Ensure proper hip positioning to prevent strain")
-        
-        # Movement-specific considerations
-        if movement_type == 'jumping':
-            if analysis['power'] > 0.8:
-                considerations.append("Consider reducing jump height to prevent joint stress")
-            if analysis['alignment'] < 0.7:
-                considerations.append("Ensure proper landing technique to prevent knee injuries")
-        
-        elif movement_type == 'running':
-            if analysis['form'] < 0.7:
-                considerations.append("Focus on proper running form to prevent overuse injuries")
-            if analysis['stability'] < 0.7:
-                considerations.append("Consider running on softer surfaces to reduce impact")
-        
-        elif movement_type == 'squatting':
-            if analysis['knee'] < 0.7:
-                considerations.append("Ensure knees track over toes to prevent knee injuries")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip alignment to prevent lower back strain")
-        
-        elif movement_type in ['throwing', 'shooting']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics to prevent rotator cuff injuries")
-            if analysis['elbow'] < 0.7:
-                considerations.append("Maintain proper elbow alignment to prevent tennis elbow")
-        
-        elif movement_type in ['kicking', 'dribbling']:
-            if analysis['knee'] < 0.7:
-                considerations.append("Ensure proper knee alignment during kicking motion")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain hip stability to prevent groin injuries")
-        
-        elif movement_type == 'catching':
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder positioning to prevent impingement")
-            if analysis['elbow'] < 0.7:
-                considerations.append("Maintain proper elbow flexion to prevent hyperextension")
-        
-        elif movement_type == 'passing':
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics for accurate passing")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Maintain proper wrist alignment for ball control")
-        
-        # Add swimming-specific considerations
-        if movement_type in ['freestyle', 'backstroke', 'breaststroke', 'butterfly']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder rotation to prevent swimmer's shoulder")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip alignment to prevent lower back strain")
-            if analysis['knee'] < 0.7:
-                considerations.append("Ensure proper kick technique to prevent knee injuries")
-        
-        # Add gymnastics-specific considerations
-        elif movement_type in ['cartwheel', 'handstand']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder stability to prevent shoulder injuries")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Maintain proper wrist alignment to prevent wrist sprains")
-            if analysis['alignment'] < 0.7:
-                considerations.append("Ensure proper body alignment to prevent falls")
-        
-        # Add dance-specific considerations
-        elif movement_type in ['leap', 'turn']:
-            if analysis['knee'] < 0.7:
-                considerations.append("Focus on proper knee alignment during jumps and turns")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip alignment to prevent hip injuries")
-            if analysis['stability'] < 0.7:
-                considerations.append("Work on balance and stability to prevent falls")
-        
-        # Add martial arts-specific considerations
-        elif movement_type in ['punch', 'block']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics to prevent rotator cuff injuries")
-            if analysis['elbow'] < 0.7:
-                considerations.append("Maintain proper elbow alignment to prevent hyperextension")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Ensure proper wrist alignment to prevent sprains")
-        
-        # Add yoga-specific considerations
-        if movement_type in ['downward_dog', 'plank']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder alignment to prevent impingement")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Maintain proper wrist alignment to prevent strain")
-            if analysis['alignment'] < 0.7:
-                considerations.append("Ensure proper body alignment to prevent injury")
-        
-        elif movement_type in ['warrior_1', 'warrior_2']:
-            if analysis['knee'] < 0.7:
-                considerations.append("Ensure proper knee alignment to prevent strain")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip alignment to prevent injury")
-            if analysis['stability'] < 0.7:
-                considerations.append("Focus on balance and stability")
-        
-        elif movement_type == 'tree_pose':
-            if analysis['alignment'] < 0.7:
-                considerations.append("Focus on maintaining proper alignment")
-            if analysis['stability'] < 0.7:
-                considerations.append("Work on balance and stability")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip alignment")
-        
-        # Add climbing-specific considerations
-        elif movement_type in ['crimp', 'sloper', 'pinch']:
-            if analysis['wrist'] < 0.7:
-                considerations.append("Focus on proper wrist positioning to prevent strain")
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Ensure proper shoulder engagement to prevent impingement")
-            if analysis['elbow'] < 0.7:
-                considerations.append("Maintain proper elbow alignment to prevent tendonitis")
-        
-        elif movement_type in ['dyno', 'flag']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics during dynamic movements")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip control to prevent injury")
-            if analysis['stability'] < 0.7:
-                considerations.append("Work on body tension and control")
-        
-        elif movement_type == 'heel_hook':
-            if analysis['hip'] < 0.7:
-                considerations.append("Focus on proper hip positioning to prevent strain")
-            if analysis['knee'] < 0.7:
-                considerations.append("Maintain proper knee alignment to prevent injury")
-            if analysis['ankle'] < 0.7:
-                considerations.append("Ensure proper ankle positioning to prevent sprains")
-        
-        # Add weightlifting-specific considerations
-        if movement_type in ['deadlift', 'clean', 'snatch']:
-            if analysis['back'] < 0.7:
-                considerations.append("Focus on maintaining proper back alignment to prevent injury")
-            if analysis['hip'] < 0.7:
-                considerations.append("Ensure proper hip hinge mechanics")
-            if analysis['knee'] < 0.7:
-                considerations.append("Maintain proper knee tracking")
-        
-        elif movement_type in ['bench_press', 'overhead_press']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder positioning to prevent impingement")
-            if analysis['elbow'] < 0.7:
+        elif movement_type in ['throwing', 'catching', 'kicking']:
+            if analysis.get('shoulder', 0) < 0.7:
+                considerations.append("Focus on proper shoulder mechanics")
+            if analysis.get('elbow', 0) < 0.7:
                 considerations.append("Maintain proper elbow alignment")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Ensure proper wrist positioning")
         
-        # Add track and field-specific considerations
-        elif movement_type in ['sprint_start', 'long_jump']:
-            if analysis['hip'] < 0.7:
-                considerations.append("Focus on proper hip positioning for power generation")
-            if analysis['knee'] < 0.7:
-                considerations.append("Maintain proper knee alignment during takeoff")
-            if analysis['ankle'] < 0.7:
-                considerations.append("Ensure proper ankle stability")
+        elif movement_type in ['swimming', 'gymnastics']:
+            if analysis.get('shoulder', 0) < 0.7:
+                considerations.append("Ensure proper shoulder stability and rotation")
+            if analysis.get('back', 0) < 0.7:
+                considerations.append("Maintain proper spinal alignment")
         
-        elif movement_type in ['shot_put', 'discus', 'javelin']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics for throwing")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip rotation")
-            if analysis['alignment'] < 0.7:
-                considerations.append("Ensure proper body alignment during throw")
+        elif movement_type in ['dance', 'yoga']:
+            if analysis.get('balance', 0) < 0.7:
+                considerations.append("Focus on maintaining balance and control")
+            if analysis.get('back', 0) < 0.7:
+                considerations.append("Ensure proper spinal alignment")
         
-        # Add combat sports-specific considerations
-        elif movement_type in ['takedown', 'grapple']:
-            if analysis['back'] < 0.7:
-                considerations.append("Focus on maintaining proper back alignment during takedowns")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip positioning for stability")
-            if analysis['knee'] < 0.7:
-                considerations.append("Ensure proper knee alignment to prevent injury")
+        elif movement_type in ['martial_arts', 'combat']:
+            if analysis.get('knee', 0) < 0.7:
+                considerations.append("Maintain proper knee alignment during strikes")
+            if analysis.get('back', 0) < 0.7:
+                considerations.append("Keep spine neutral during movements")
         
-        elif movement_type in ['sparring', 'footwork']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder positioning for defense")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip alignment for movement")
-            if analysis['stability'] < 0.7:
-                considerations.append("Work on balance and stability during movement")
+        elif movement_type in ['climbing']:
+            if analysis.get('shoulder', 0) < 0.7:
+                considerations.append("Focus on proper shoulder mechanics during holds")
+            if analysis.get('elbow', 0) < 0.7:
+                considerations.append("Maintain proper elbow alignment")
         
-        # Add cycling-specific considerations
-        if movement_type in ['pedaling', 'climbing', 'sprinting']:
-            if analysis['knee'] < 0.7:
-                considerations.append("Focus on proper knee alignment to prevent overuse injuries")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip positioning to prevent strain")
-            if analysis['alignment'] < 0.7:
-                considerations.append("Ensure proper bike fit and body alignment")
+        elif movement_type in ['weightlifting']:
+            if analysis.get('back', 0) < 0.7:
+                considerations.append("Maintain proper spinal alignment during lifts")
+            if analysis.get('knee', 0) < 0.7:
+                considerations.append("Ensure proper knee tracking")
         
-        # Add rowing-specific considerations
-        elif movement_type in ['catch', 'drive', 'finish']:
-            if analysis['back'] < 0.7:
-                considerations.append("Focus on maintaining proper back alignment to prevent injury")
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Maintain proper shoulder mechanics to prevent impingement")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Ensure proper wrist positioning to prevent strain")
+        elif movement_type in ['track_field']:
+            if analysis.get('ankle', 0) < 0.7:
+                considerations.append("Focus on proper ankle stability")
+            if analysis.get('knee', 0) < 0.7:
+                considerations.append("Maintain proper knee alignment")
         
-        # Add overhead sports considerations
-        elif movement_type in ['volleyball_spike', 'tennis_serve']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics to prevent rotator cuff injuries")
-            if analysis['elbow'] < 0.7:
-                considerations.append("Maintain proper elbow alignment to prevent tennis elbow")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Ensure proper wrist positioning to prevent sprains")
+        elif movement_type in ['cycling']:
+            if analysis.get('knee', 0) < 0.7:
+                considerations.append("Ensure proper knee alignment during pedaling")
+            if analysis.get('back', 0) < 0.7:
+                considerations.append("Maintain proper spinal alignment")
         
-        # Add rotational sports considerations
-        elif movement_type in ['golf_swing', 'baseball_swing']:
-            if analysis['back'] < 0.7:
-                considerations.append("Focus on maintaining proper back alignment during rotation")
-            if analysis['hip'] < 0.7:
-                considerations.append("Maintain proper hip rotation mechanics")
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Ensure proper shoulder mechanics during swing")
+        elif movement_type in ['rowing']:
+            if analysis.get('back', 0) < 0.7:
+                considerations.append("Focus on proper back alignment during stroke")
+            if analysis.get('shoulder', 0) < 0.7:
+                considerations.append("Maintain proper shoulder mechanics")
         
-        # Add striking sports considerations
-        elif movement_type in ['cricket_batting', 'hockey_slap_shot']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics for power generation")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Maintain proper wrist alignment to prevent strain")
-            if analysis['hip'] < 0.7:
-                considerations.append("Ensure proper hip rotation for power transfer")
+        elif movement_type in ['sports']:
+            if analysis.get('knee', 0) < 0.7:
+                considerations.append("Ensure proper knee alignment during movements")
+            if analysis.get('ankle', 0) < 0.7:
+                considerations.append("Maintain proper ankle stability")
         
-        # Add martial arts-specific considerations
-        if movement_type in ['roundhouse_kick', 'front_kick', 'side_kick']:
-            if analysis['hip'] < 0.7:
-                considerations.append("Focus on proper hip rotation for power and safety")
-            if analysis['knee'] < 0.7:
-                considerations.append("Maintain proper knee alignment to prevent injury")
-            if analysis['ankle'] < 0.7:
-                considerations.append("Ensure proper ankle positioning for stability")
+        elif movement_type in ['parkour']:
+            if analysis.get('ankle', 0) < 0.7:
+                considerations.append("Focus on proper landing technique")
+            if analysis.get('back', 0) < 0.7:
+                considerations.append("Maintain proper spinal alignment during rolls")
         
-        elif movement_type in ['hook_punch', 'uppercut', 'jab']:
-            if analysis['shoulder'] < 0.7:
-                considerations.append("Focus on proper shoulder mechanics to prevent rotator cuff injuries")
-            if analysis['elbow'] < 0.7:
-                considerations.append("Maintain proper elbow alignment to prevent hyperextension")
-            if analysis['wrist'] < 0.7:
-                considerations.append("Ensure proper wrist alignment to prevent sprains")
+        elif movement_type in ['acrobatics']:
+            if analysis.get('back', 0) < 0.7:
+                considerations.append("Ensure proper spinal alignment during flips")
+            if analysis.get('shoulder', 0) < 0.7:
+                considerations.append("Maintain proper shoulder stability")
         
-        # Add dance-specific considerations
-        elif movement_type in ['pirouette', 'grand_jete', 'fouette']:
-            if analysis['alignment'] < 0.7:
-                considerations.append("Focus on maintaining proper body alignment")
-            if analysis['balance'] < 0.7:
-                considerations.append("Work on balance and stability")
-            if analysis['ankle'] < 0.7:
-                considerations.append("Ensure proper ankle strength and alignment")
+        elif movement_type in ['functional_fitness']:
+            if analysis.get('back', 0) < 0.7:
+                considerations.append("Maintain proper spinal alignment during movements")
+            if analysis.get('shoulder', 0) < 0.7:
+                considerations.append("Focus on proper shoulder mechanics")
         
         return considerations
 
