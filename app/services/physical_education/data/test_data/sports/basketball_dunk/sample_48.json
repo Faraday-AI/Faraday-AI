@@ -1,0 +1,127 @@
+{
+  "movement_type": "basketball_dunk",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.273806",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.023247831844831313,
+        0.6410536740817392,
+        -0.05876898481497426
+      ],
+      "elbows": [
+        0.026829071586250253,
+        0.4571227731206093,
+        0.0712326388623033
+      ],
+      "wrists": [
+        0.2694568322242671,
+        0.3335871438034273,
+        0.02515784579011865
+      ],
+      "hips": [
+        -0.041644957955925405,
+        0.335964279911271,
+        -0.053810470372325336
+      ],
+      "knees": [
+        0.03874624698607004,
+        0.24498379777687493,
+        -0.020937600590260924
+      ],
+      "ankles": [
+        0.27054934838538913,
+        0.29700176166157294,
+        0.075207597949252
+      ]
+    },
+    "angles": {
+      "knee": 146.11081832523615,
+      "hip": 104.36646574799849,
+      "shoulder": 24.106795834744155,
+      "elbow": 87.16473211323847
+    },
+    "analysis_scores": {
+      "alignment": 0.7292029235970172,
+      "balance": 0.9716766124564876,
+      "form": 0.9555727318366578,
+      "stability": 0.7378572365531652,
+      "coordination": 0.8152592737929888,
+      "precision": 0.8596287868306351,
+      "power": 0.7753170155122335,
+      "efficiency": 0.8576810051342876,
+      "safety": 0.8322135855438161,
+      "overall": 0.7031752800848532,
+      "shoulder": 0.700766212022357,
+      "elbow": 0.8659995246901204,
+      "wrist": 0.9271094705359808,
+      "hip": 0.8441621024510082,
+      "knee": 0.7358928113244875,
+      "ankle": 0.9614299036726164,
+      "back": 0.6983208487454816,
+      "neck": 0.7498339293731431
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.728125885666669,
+      "force_transfer": 0.5605310343093526,
+      "efficiency": 0.45853294538461137,
+      "acceleration": 0.942812728416917,
+      "deceleration": 0.9805328155426963,
+      "power_output": 0.9208862515170028,
+      "energy_efficiency": 0.524230222355576,
+      "reaction_time": 0.6416280255826788,
+      "impulse": 0.6772990912926835
+    },
+    "technical_metrics": {
+      "precision": 0.6336586559205417,
+      "consistency": 0.545732814419797,
+      "fluidity": 0.5898397453483301,
+      "complexity": 0.930347032661147,
+      "adaptability": 0.4669219681725656,
+      "control": 0.8554035476380685,
+      "rhythm": 0.5897318037217114,
+      "timing": 0.43810697424280437
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.5998076272515847,
+      "muscle_activation": 0.7088933988244119,
+      "energy_efficiency": 0.6044733617306731,
+      "spinal_alignment": 0.9642105102034284,
+      "muscle_balance": 0.9702479884936586,
+      "injury_risk": 0.7697941513734909,
+      "recovery_rate": 0.941113788350492,
+      "fatigue_level": 0.4796196220460795
+    },
+    "performance_metrics": {
+      "speed": 0.4989648235816139,
+      "accuracy": 0.43740204799614857,
+      "endurance": 0.46634403995523777,
+      "consistency": 0.6284192973652714,
+      "recovery_rate": 0.7221456664442647,
+      "agility": 0.8343216161592042,
+      "flexibility": 0.6259333836395095,
+      "strength": 0.7523878632745928,
+      "power": 0.7485274960796147,
+      "stamina": 0.6183003901895163
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.6442374451035784,
+    "skill_requirement": 0.7072142484270355,
+    "physical_demand": 0.9154278055523345,
+    "technical_complexity": 0.7734931986630301,
+    "risk_factor": 0.6262996904918664,
+    "learning_curve": 0.8656495769400997
+  }
+}

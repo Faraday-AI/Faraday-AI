@@ -1,0 +1,127 @@
+{
+  "movement_type": "badminton_drive",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:22.128819",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.1791253723848029,
+        0.6023639955630256,
+        0.03914316039812474
+      ],
+      "elbows": [
+        -0.12308287323648043,
+        0.5286953521642747,
+        -0.045528816092540336
+      ],
+      "wrists": [
+        0.1303997059400125,
+        0.47968050419877994,
+        0.07947369227905168
+      ],
+      "hips": [
+        -0.14677919603063683,
+        0.46923212181454244,
+        -0.07570546862555204
+      ],
+      "knees": [
+        -0.07498939804097643,
+        0.34232051331916746,
+        0.012887658776245536
+      ],
+      "ankles": [
+        0.07661825552642743,
+        0.1347755862313087,
+        0.09211127121842191
+      ]
+    },
+    "angles": {
+      "knee": 153.13835635196827,
+      "hip": 117.02552495313286,
+      "shoulder": 22.647183499834526,
+      "elbow": 147.3550970805205
+    },
+    "analysis_scores": {
+      "alignment": 0.6429243514902673,
+      "balance": 0.694269389473927,
+      "form": 0.7353118406360801,
+      "stability": 0.6384008178258015,
+      "coordination": 0.8297621822380712,
+      "precision": 0.7242400672581362,
+      "power": 0.7569066338817825,
+      "efficiency": 0.7848492171517231,
+      "safety": 0.6048317062306813,
+      "overall": 0.7094316208914221,
+      "shoulder": 0.6512718151288762,
+      "elbow": 0.9438296667500198,
+      "wrist": 0.6259899790101503,
+      "hip": 0.633329215450794,
+      "knee": 0.7892707497836371,
+      "ankle": 0.931526636404266,
+      "back": 0.7326764930569644,
+      "neck": 0.9697041845566552
+    },
+    "recommendations": {
+      "form": "Focus on maintaining proper joint angles during movement",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.841168061682142,
+      "force_transfer": 0.8308352894244762,
+      "efficiency": 0.9178596063116168,
+      "acceleration": 0.4310362996404039,
+      "deceleration": 0.569059664460729,
+      "power_output": 0.4500508500028241,
+      "energy_efficiency": 0.6744905721043091,
+      "reaction_time": 0.9275092395699696,
+      "impulse": 0.5974993606379986
+    },
+    "technical_metrics": {
+      "precision": 0.9225793990692648,
+      "consistency": 0.9698147150807298,
+      "fluidity": 0.6805756376575625,
+      "complexity": 0.8351718017312169,
+      "adaptability": 0.6368607238188503,
+      "control": 0.8394647040969836,
+      "rhythm": 0.9992801987047261,
+      "timing": 0.490386703216547
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.8136311305175412,
+      "muscle_activation": 0.6503432176750894,
+      "energy_efficiency": 0.720063753324139,
+      "spinal_alignment": 0.7354705213898156,
+      "muscle_balance": 0.8606924695343242,
+      "injury_risk": 0.4328667278543525,
+      "recovery_rate": 0.41917569055052356,
+      "fatigue_level": 0.5390133830051242
+    },
+    "performance_metrics": {
+      "speed": 0.5640262844415339,
+      "accuracy": 0.8359682548105261,
+      "endurance": 0.9800209510935828,
+      "consistency": 0.8742822411518338,
+      "recovery_rate": 0.7873279824355919,
+      "agility": 0.8311935574231245,
+      "flexibility": 0.41667747082292916,
+      "strength": 0.4391187232088278,
+      "power": 0.6461032880105412,
+      "stamina": 0.6492540043262027
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.24138650720558003,
+    "skill_requirement": 0.7087352845987354,
+    "physical_demand": 0.5859015098362425,
+    "technical_complexity": 0.8221542893323082,
+    "risk_factor": 0.6643087523185228,
+    "learning_curve": 0.8916645868575273
+  }
+}

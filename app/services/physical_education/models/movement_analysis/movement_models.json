@@ -1,0 +1,19 @@
+{
+    "pose_estimation": {
+        "model_path": "pose_landmark_full.tflite",
+        "input_size": [256, 256],
+        "min_detection_confidence": 0.5,
+        "min_tracking_confidence": 0.5
+    },
+    "movement_classification": {
+        "model_path": "movement_classifier.tflite",
+        "input_size": [224, 224],
+        "classes": [
+            "walking",
+            "running",
+            "jumping",
+            "squatting",
+            "stretching"
+        ]
+    }
+} 

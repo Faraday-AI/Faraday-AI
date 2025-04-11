@@ -1,0 +1,127 @@
+{
+  "movement_type": "soccer_corner_kick",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.957602",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.1151643311663823,
+        0.6606340460155988,
+        0.05017985600370403
+      ],
+      "elbows": [
+        -0.0029192943003077954,
+        0.48020159227168535,
+        0.045819333142418095
+      ],
+      "wrists": [
+        -0.22475554753987917,
+        0.4865989602730016,
+        0.04276335537904588
+      ],
+      "hips": [
+        -0.1389987226380813,
+        0.4383251155115334,
+        -0.020377407276728016
+      ],
+      "knees": [
+        0.0016664713416704169,
+        0.267763362367132,
+        0.08407334025387228
+      ],
+      "ankles": [
+        0.15552267784737395,
+        0.2956755424551783,
+        -0.003255127279339437
+      ]
+    },
+    "angles": {
+      "knee": 37.549043214758726,
+      "hip": 76.81504766209794,
+      "shoulder": 43.41653677844629,
+      "elbow": 51.78344357318827
+    },
+    "analysis_scores": {
+      "alignment": 0.9346591821725757,
+      "balance": 0.9510536625691942,
+      "form": 0.8032900272080836,
+      "stability": 0.9399582712725826,
+      "coordination": 0.6660978993422302,
+      "precision": 0.8750762123614135,
+      "power": 0.7232644675992277,
+      "efficiency": 0.9838768334450384,
+      "safety": 0.8425215868749591,
+      "overall": 0.8421160149335424,
+      "shoulder": 0.7012596422966805,
+      "elbow": 0.7258383436706431,
+      "wrist": 0.7999485951985912,
+      "hip": 0.8588216649332269,
+      "knee": 0.6165291156081603,
+      "ankle": 0.9232443359322432,
+      "back": 0.7835677468854372,
+      "neck": 0.8070561762279298
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Work on improving stability and balance"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.9113334586313658,
+      "force_transfer": 0.8866406793118992,
+      "efficiency": 0.7360302070372379,
+      "acceleration": 0.8746354250070196,
+      "deceleration": 0.577732724070777,
+      "power_output": 0.5877634762924562,
+      "energy_efficiency": 0.8398722242506087,
+      "reaction_time": 0.8648260632300482,
+      "impulse": 0.839369170005374
+    },
+    "technical_metrics": {
+      "precision": 0.6767150921483545,
+      "consistency": 0.9141395382902892,
+      "fluidity": 0.7585949831729009,
+      "complexity": 0.715389842589411,
+      "adaptability": 0.7186931715721294,
+      "control": 0.6945716000336355,
+      "rhythm": 0.7938274284294096,
+      "timing": 0.8041348160271113
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.4314895498897387,
+      "muscle_activation": 0.8031857314248033,
+      "energy_efficiency": 0.6067753104823799,
+      "spinal_alignment": 0.7221687016724201,
+      "muscle_balance": 0.6902662672225127,
+      "injury_risk": 0.4029099988375294,
+      "recovery_rate": 0.6006944194329784,
+      "fatigue_level": 0.979430187992202
+    },
+    "performance_metrics": {
+      "speed": 0.5101352352953358,
+      "accuracy": 0.6417351143917254,
+      "endurance": 0.49145816171072676,
+      "consistency": 0.8202415574969488,
+      "recovery_rate": 0.5278323174977573,
+      "agility": 0.974355832594793,
+      "flexibility": 0.4079063510473646,
+      "strength": 0.5749234795968223,
+      "power": 0.46671985252672976,
+      "stamina": 0.5588178352750033
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.5244591736194427,
+    "skill_requirement": 0.633886424078303,
+    "physical_demand": 0.12565715271030062,
+    "technical_complexity": 0.58024802648573,
+    "risk_factor": 0.8421947576033391,
+    "learning_curve": 0.18971269484311154
+  }
+}

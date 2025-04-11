@@ -1,0 +1,129 @@
+{
+  "movement_type": "running",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:04:14.766126",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.1276330537348105,
+        0.5694702925931584,
+        0.0671970125054294
+      ],
+      "elbows": [
+        0.12100907329345861,
+        0.5150362399775757,
+        -0.04377014108434301
+      ],
+      "wrists": [
+        -0.03861127246933804,
+        0.3595171877408516,
+        0.06710377372427873
+      ],
+      "hips": [
+        0.15840936645775455,
+        0.49516864475617606,
+        -0.04235871041304343
+      ],
+      "knees": [
+        0.2674987881551843,
+        0.32237188716803944,
+        0.03508084776836376
+      ],
+      "ankles": [
+        0.3771751988499382,
+        0.17857401114156765,
+        -0.06890249169764058
+      ]
+    },
+    "angles": {
+      "knee": 95.58811852153843,
+      "hip": 159.97670232743525,
+      "shoulder": 6.466067214517273,
+      "elbow": 144.59416478091637
+    },
+    "analysis_scores": {
+      "alignment": 0.7720313473047121,
+      "balance": 0.6273507274606512,
+      "form": 0.9496403795825787,
+      "stability": 0.8536672963690315,
+      "coordination": 0.8411061609401237,
+      "precision": 0.6595641793216344,
+      "power": 0.9237149297018923,
+      "efficiency": 0.7634075660406795,
+      "safety": 0.9227268775597113,
+      "overall": 0.6440477086325439,
+      "shoulder": 0.9796129245445158,
+      "elbow": 0.6271964485140152,
+      "wrist": 0.8598947824256793,
+      "hip": 0.6796001503472202,
+      "knee": 0.7724592859945764,
+      "ankle": 0.9785640432523239,
+      "back": 0.7322464438944749,
+      "neck": 0.6973485652272584
+    },
+    "recommendations": {
+      "form": "Focus on maintaining proper joint angles during movement",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement",
+      "Work on improving stability and balance",
+      "Maintain proper ankle stability"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.7026613900066787,
+      "force_transfer": 0.8571426485512468,
+      "efficiency": 0.6879647616387958,
+      "acceleration": 0.5806482529605306,
+      "deceleration": 0.5151165782228415,
+      "power_output": 0.6028731519671379,
+      "energy_efficiency": 0.9201444403733166,
+      "reaction_time": 0.4463970043100166,
+      "impulse": 0.7696218229027609
+    },
+    "technical_metrics": {
+      "precision": 0.5035608202016438,
+      "consistency": 0.8870535106020292,
+      "fluidity": 0.7311131161234705,
+      "complexity": 0.4182717330509152,
+      "adaptability": 0.87781902392663,
+      "control": 0.7538775086912155,
+      "rhythm": 0.9020422400668943,
+      "timing": 0.540939714182272
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.6200996652661661,
+      "muscle_activation": 0.6618019724454958,
+      "energy_efficiency": 0.4645830147595734,
+      "spinal_alignment": 0.7169336988828228,
+      "muscle_balance": 0.5134454357896434,
+      "injury_risk": 0.5683684116707461,
+      "recovery_rate": 0.7677331169352786,
+      "fatigue_level": 0.7420914918334462
+    },
+    "performance_metrics": {
+      "speed": 0.9194192391849183,
+      "accuracy": 0.948760082056027,
+      "endurance": 0.6356818789835768,
+      "consistency": 0.44895017493852185,
+      "recovery_rate": 0.44664393947043673,
+      "agility": 0.5171871751374072,
+      "flexibility": 0.9785556866581845,
+      "strength": 0.536941566268953,
+      "power": 0.5523612595911409,
+      "stamina": 0.461499803859949
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.4408364390476216,
+    "skill_requirement": 0.4587522060930532,
+    "physical_demand": 0.20353434249502206,
+    "technical_complexity": 0.6286465500960722,
+    "risk_factor": 0.6172350593975507,
+    "learning_curve": 0.3484534283192904
+  }
+}

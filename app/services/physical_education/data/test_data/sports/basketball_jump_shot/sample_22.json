@@ -1,0 +1,127 @@
+{
+  "movement_type": "basketball_jump_shot",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.845504",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.010471452841407214,
+        0.5324868064129747,
+        0.09690456084887103
+      ],
+      "elbows": [
+        0.22276376462905806,
+        0.44282121024808335,
+        0.010130204089284778
+      ],
+      "wrists": [
+        0.13850758428615317,
+        0.4782531807403209,
+        -0.09917238638884812
+      ],
+      "hips": [
+        0.06061894781691912,
+        0.46144339574058085,
+        -0.016032148380517322
+      ],
+      "knees": [
+        -0.03969812593793476,
+        0.29307243362703644,
+        0.0606044779102996
+      ],
+      "ankles": [
+        0.3549452267209019,
+        0.2513852811942825,
+        0.00881321295000037
+      ]
+    },
+    "angles": {
+      "knee": 41.896249007281014,
+      "hip": 57.40601456436731,
+      "shoulder": 51.6376780853696,
+      "elbow": 117.25245287136775
+    },
+    "analysis_scores": {
+      "alignment": 0.7189804001489314,
+      "balance": 0.9044029911250675,
+      "form": 0.9954545159413167,
+      "stability": 0.8648692293380825,
+      "coordination": 0.7592086647683586,
+      "precision": 0.9498427245424701,
+      "power": 0.9438919186053236,
+      "efficiency": 0.6344989131945168,
+      "safety": 0.6814152850319463,
+      "overall": 0.9424185495619418,
+      "shoulder": 0.8653613035612799,
+      "elbow": 0.908285757900882,
+      "wrist": 0.9102473220895848,
+      "hip": 0.8785941854064532,
+      "knee": 0.6038010695295123,
+      "ankle": 0.7841656153584657,
+      "back": 0.9005892460737697,
+      "neck": 0.6559968057116082
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Work on improving stability and balance"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.9293513210581132,
+      "force_transfer": 0.4675839339877141,
+      "efficiency": 0.7031233937946983,
+      "acceleration": 0.5702137017392034,
+      "deceleration": 0.4585018197157014,
+      "power_output": 0.7119734809993132,
+      "energy_efficiency": 0.7836670277171367,
+      "reaction_time": 0.8133604384334037,
+      "impulse": 0.5601394473165158
+    },
+    "technical_metrics": {
+      "precision": 0.9717840778135897,
+      "consistency": 0.4127746788391306,
+      "fluidity": 0.5489657424472361,
+      "complexity": 0.8077823227313736,
+      "adaptability": 0.5326344367863871,
+      "control": 0.9557255230034771,
+      "rhythm": 0.8855998070040074,
+      "timing": 0.8987677183040081
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7254594134749467,
+      "muscle_activation": 0.4626631438694833,
+      "energy_efficiency": 0.6117537063944102,
+      "spinal_alignment": 0.5924059188243789,
+      "muscle_balance": 0.7770715773298493,
+      "injury_risk": 0.8289973672824336,
+      "recovery_rate": 0.905650629741381,
+      "fatigue_level": 0.6072038245223428
+    },
+    "performance_metrics": {
+      "speed": 0.49595588628744625,
+      "accuracy": 0.4981821731876238,
+      "endurance": 0.45000849411391,
+      "consistency": 0.9395029377160582,
+      "recovery_rate": 0.8136391653755659,
+      "agility": 0.7738441042587818,
+      "flexibility": 0.7349612533920233,
+      "strength": 0.5448776080058777,
+      "power": 0.6085693548277062,
+      "stamina": 0.5336855313686913
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.635060135458293,
+    "skill_requirement": 0.6355815322858294,
+    "physical_demand": 0.3898778853051178,
+    "technical_complexity": 0.13905226407722684,
+    "risk_factor": 0.30177641010483375,
+    "learning_curve": 0.8386987723051594
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "movement_type": "basketball_layup",
+  "category": "ball_sports",
+  "timestamp": "2025-04-10T11:04:15.429489",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.059277214803981376,
+        0.5971357088235392,
+        -0.08790387813552031
+      ],
+      "elbows": [
+        0.15201133869652506,
+        0.5493543233523798,
+        -0.0012696057916538883
+      ],
+      "wrists": [
+        -0.21320790810431456,
+        0.3917516787251371,
+        -0.010183181923644799
+      ],
+      "hips": [
+        0.027442676353145234,
+        0.42442130622034147,
+        -0.0043552963275963474
+      ],
+      "knees": [
+        -0.1364210926275542,
+        0.24379249605898154,
+        -0.08913802644156553
+      ],
+      "ankles": [
+        -0.31333195545630127,
+        0.19041349178393518,
+        -0.0027726973104638536
+      ]
+    },
+    "angles": {
+      "knee": 66.98467927763853,
+      "hip": 147.3360978004819,
+      "shoulder": 20.700977424574717,
+      "elbow": 40.15414669638537
+    },
+    "analysis_scores": {
+      "alignment": 0.6230104575296704,
+      "balance": 0.7978059363993604,
+      "form": 0.7367325789685205,
+      "stability": 0.8188416234282878,
+      "coordination": 0.8085393614641057,
+      "precision": 0.8864594798259594,
+      "power": 0.9271548184938755,
+      "efficiency": 0.9890731319361551,
+      "safety": 0.9548351518438651,
+      "overall": 0.8920800611112717,
+      "shoulder": 0.6348480844915214,
+      "elbow": 0.8280877521595232,
+      "wrist": 0.9744357660361187,
+      "hip": 0.9115168806370171,
+      "knee": 0.8420625554749268,
+      "ankle": 0.7937649840157213,
+      "back": 0.7296483450484776,
+      "neck": 0.663535867336798
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.5984547342134733,
+      "force_transfer": 0.6737437197467582,
+      "efficiency": 0.6066802859481131,
+      "acceleration": 0.6757170996233681,
+      "deceleration": 0.4566055716859077,
+      "power_output": 0.62522422548222,
+      "energy_efficiency": 0.4772406536021296,
+      "reaction_time": 0.9805361987699907,
+      "impulse": 0.5223850769514704
+    },
+    "technical_metrics": {
+      "precision": 0.4434838889497427,
+      "consistency": 0.8509938694755339,
+      "fluidity": 0.5684989373076073,
+      "complexity": 0.6703842987636721,
+      "adaptability": 0.7738312817779165,
+      "control": 0.5070751623487614,
+      "rhythm": 0.6790535225574867,
+      "timing": 0.705372901407614
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7259115243128942,
+      "muscle_activation": 0.8526785926043671,
+      "energy_efficiency": 0.8659051593114615,
+      "spinal_alignment": 0.6409459401103211,
+      "muscle_balance": 0.4038083353900212,
+      "injury_risk": 0.6944565813023527,
+      "recovery_rate": 0.4585537536254481,
+      "fatigue_level": 0.7158165317625724
+    },
+    "performance_metrics": {
+      "speed": 0.4376763123926172,
+      "accuracy": 0.8229156383490679,
+      "endurance": 0.9819505427617281,
+      "consistency": 0.7552949937428018,
+      "recovery_rate": 0.7729462340188826,
+      "agility": 0.6044760717064633,
+      "flexibility": 0.6634680906392048,
+      "strength": 0.6154334415140248,
+      "power": 0.6416103160026967,
+      "stamina": 0.9327208165259199
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.6908746326424995,
+    "skill_requirement": 0.39054281332743923,
+    "physical_demand": 0.3647154566509899,
+    "technical_complexity": 0.4266432480869373,
+    "risk_factor": 0.29020049914001916,
+    "learning_curve": 0.9099170696877773
+  }
+}

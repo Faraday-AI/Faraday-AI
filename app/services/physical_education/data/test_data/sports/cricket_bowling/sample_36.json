@@ -1,0 +1,127 @@
+{
+  "movement_type": "cricket_bowling",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.715490",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.09976758551064935,
+        0.6502487117932202,
+        0.01571947231714614
+      ],
+      "elbows": [
+        -0.24235872297434885,
+        0.5118874023955771,
+        -0.08075369971090887
+      ],
+      "wrists": [
+        -0.16456995982949457,
+        0.41203662162129734,
+        0.06458165066692054
+      ],
+      "hips": [
+        -0.02902560287912878,
+        0.38152969143480386,
+        0.0032131356575231945
+      ],
+      "knees": [
+        0.24265321451651828,
+        0.26721298674171734,
+        -0.06616184652279714
+      ],
+      "ankles": [
+        -0.34936656212712935,
+        0.10994426380039884,
+        0.08297850460580689
+      ]
+    },
+    "angles": {
+      "knee": 45.41498611193205,
+      "hip": 51.30905527737189,
+      "shoulder": 9.141625305444952,
+      "elbow": 67.48626124361326
+    },
+    "analysis_scores": {
+      "alignment": 0.9786572398916311,
+      "balance": 0.6620322558574272,
+      "form": 0.7673382486160811,
+      "stability": 0.7416919021254261,
+      "coordination": 0.9841785416022734,
+      "precision": 0.8663876797043519,
+      "power": 0.7740590163340355,
+      "efficiency": 0.7969400823044422,
+      "safety": 0.7028082425923305,
+      "overall": 0.8772970693614826,
+      "shoulder": 0.9727728809924207,
+      "elbow": 0.7620757507803735,
+      "wrist": 0.9694586752402922,
+      "hip": 0.6489936941452348,
+      "knee": 0.9751687336717372,
+      "ankle": 0.6833433288137758,
+      "back": 0.850944607196933,
+      "neck": 0.6602155981402194
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.8539165440837011,
+      "force_transfer": 0.8267145282249753,
+      "efficiency": 0.5276725724988286,
+      "acceleration": 0.7925899929425602,
+      "deceleration": 0.6196727676212657,
+      "power_output": 0.5285903746736649,
+      "energy_efficiency": 0.6242371173931445,
+      "reaction_time": 0.8565738723421188,
+      "impulse": 0.41923897737777227
+    },
+    "technical_metrics": {
+      "precision": 0.7771783334724145,
+      "consistency": 0.8541022156572309,
+      "fluidity": 0.6492531775407699,
+      "complexity": 0.411873258266093,
+      "adaptability": 0.5992675523768878,
+      "control": 0.5404229938939665,
+      "rhythm": 0.8988547719140684,
+      "timing": 0.94714616018567
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7399279789040389,
+      "muscle_activation": 0.5450400633171736,
+      "energy_efficiency": 0.9610416970127594,
+      "spinal_alignment": 0.9735923841716594,
+      "muscle_balance": 0.9861161942647582,
+      "injury_risk": 0.5959875905974631,
+      "recovery_rate": 0.7656795951243138,
+      "fatigue_level": 0.441644581762872
+    },
+    "performance_metrics": {
+      "speed": 0.8436943989832992,
+      "accuracy": 0.4829156392700552,
+      "endurance": 0.6381446664928052,
+      "consistency": 0.9691322076772054,
+      "recovery_rate": 0.8388113820291312,
+      "agility": 0.8328249825719765,
+      "flexibility": 0.5958227628503613,
+      "strength": 0.6483123281782526,
+      "power": 0.42309730134124146,
+      "stamina": 0.7429547833369965
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.1851275433036384,
+    "skill_requirement": 0.9773331672076524,
+    "physical_demand": 0.7871992787446033,
+    "technical_complexity": 0.460700052133172,
+    "risk_factor": 0.31289872881267966,
+    "learning_curve": 0.7920191101744816
+  }
+}
