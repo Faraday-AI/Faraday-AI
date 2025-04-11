@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import Optional, List
 from enum import Enum
-from pydantic import Field
+from pydantic import Field, ConfigDict
 from dotenv import load_dotenv
 import os
 import socket
@@ -178,10 +178,11 @@ class Settings(BaseSettings):
     WS_HEARTBEAT_INTERVAL: int = Field(default=30)
     WS_MAX_CONNECTIONS: int = Field(default=1000)
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "ignore"  # Ignore extra fields in environment
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra="ignore"  # Ignore extra fields in environment
+    )
 
     @property
     def district_email_domains(self) -> List[str]:
