@@ -1,0 +1,127 @@
+{
+  "movement_type": "baseball_throw",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.700792",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.1910668235429615,
+        0.6761629718049549,
+        -0.018466738740641933
+      ],
+      "elbows": [
+        0.1943765394573485,
+        0.5394607749780946,
+        -0.06595393966665525
+      ],
+      "wrists": [
+        0.25220623021822774,
+        0.4179990364935097,
+        -0.06862043900123305
+      ],
+      "hips": [
+        -0.12163207057725574,
+        0.3133683422712008,
+        0.0020579624023954607
+      ],
+      "knees": [
+        0.2634012163759218,
+        0.2057865368021779,
+        -0.060653436858939404
+      ],
+      "ankles": [
+        0.132999208280157,
+        0.10510034604951701,
+        0.05641847698171662
+      ]
+    },
+    "angles": {
+      "knee": 129.36653471929867,
+      "hip": 53.60588505951606,
+      "shoulder": 53.82282191993898,
+      "elbow": 115.4898153908533
+    },
+    "analysis_scores": {
+      "alignment": 0.9272534351421262,
+      "balance": 0.8568964137412438,
+      "form": 0.9449443409506554,
+      "stability": 0.9106859645727572,
+      "coordination": 0.7045334497970693,
+      "precision": 0.7375133387891744,
+      "power": 0.8299563587751693,
+      "efficiency": 0.6008757293457866,
+      "safety": 0.9620711332739585,
+      "overall": 0.7061799536572869,
+      "shoulder": 0.7936702518365062,
+      "elbow": 0.7483584635455574,
+      "wrist": 0.9839935104510633,
+      "hip": 0.9966142751415155,
+      "knee": 0.8278384771002176,
+      "ankle": 0.7678575910895894,
+      "back": 0.8618922629464693,
+      "neck": 0.7718881797959736
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Focus on maintaining proper posture and balance",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.6289878855762046,
+      "force_transfer": 0.7738191416953842,
+      "efficiency": 0.9746795512325783,
+      "acceleration": 0.8992858796830143,
+      "deceleration": 0.9160552874786535,
+      "power_output": 0.5095694785635886,
+      "energy_efficiency": 0.9035718355349925,
+      "reaction_time": 0.9572307423445253,
+      "impulse": 0.5050750347351435
+    },
+    "technical_metrics": {
+      "precision": 0.4665805801171886,
+      "consistency": 0.6654662080429126,
+      "fluidity": 0.7777233720943328,
+      "complexity": 0.7639483563707017,
+      "adaptability": 0.6142625204270278,
+      "control": 0.890286049007447,
+      "rhythm": 0.44372024309935887,
+      "timing": 0.5314445872506548
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7400363038159328,
+      "muscle_activation": 0.8358695336169222,
+      "energy_efficiency": 0.6432081575832822,
+      "spinal_alignment": 0.7957209167507935,
+      "muscle_balance": 0.8101421466961743,
+      "injury_risk": 0.8193190428721213,
+      "recovery_rate": 0.4213254650791897,
+      "fatigue_level": 0.9779138258237479
+    },
+    "performance_metrics": {
+      "speed": 0.8639285704151629,
+      "accuracy": 0.5914504069642611,
+      "endurance": 0.6050292759915071,
+      "consistency": 0.6308512280441855,
+      "recovery_rate": 0.9405067074543066,
+      "agility": 0.4207955541435252,
+      "flexibility": 0.5131307254510165,
+      "strength": 0.5880636708549993,
+      "power": 0.5600065301152661,
+      "stamina": 0.9343556312086125
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.7634660553265583,
+    "skill_requirement": 0.32756227130137766,
+    "physical_demand": 0.7427732203265983,
+    "technical_complexity": 0.689977675873945,
+    "risk_factor": 0.8269532732971716,
+    "learning_curve": 0.1666902367841776
+  }
+}

@@ -1,0 +1,67 @@
+{
+  "movement_type": "catching",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:19:00.000000",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.12,
+        0.60,
+        0.03
+      ],
+      "elbows": [
+        -0.10,
+        0.50,
+        -0.05
+      ],
+      "wrists": [
+        0.35,
+        0.30,
+        0.05
+      ],
+      "hips": [
+        -0.10,
+        0.40,
+        0.02
+      ],
+      "knees": [
+        -0.08,
+        0.25,
+        0.01
+      ],
+      "ankles": [
+        -0.06,
+        0.12,
+        0.01
+      ]
+    },
+    "angles": {
+      "shoulder_angle": 75.5,
+      "elbow_angle": 110.3,
+      "wrist_angle": 12.7,
+      "hip_angle": 70.2,
+      "knee_angle": 105.4
+    },
+    "velocities": {
+      "hand_velocity": 3.2,
+      "body_movement_velocity": 1.8,
+      "reaction_time": 0.15
+    },
+    "timing": {
+      "preparation_phase": 0.5,
+      "catch_phase": 0.3,
+      "absorption_phase": 0.4
+    }
+  },
+  "performance_metrics": {
+    "accuracy": 0.88,
+    "reaction_time": 0.92,
+    "form_score": 0.85
+  },
+  "feedback_points": [
+    "Keep eyes on the ball",
+    "Hands ready in catching position",
+    "Absorb the catch with bent elbows",
+    "Maintain balanced stance"
+  ]
+} 

@@ -1,0 +1,127 @@
+{
+  "movement_type": "soccer_corner_kick",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.967193",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.002604850535887715,
+        0.552406845997118,
+        0.08841841724075325
+      ],
+      "elbows": [
+        0.09586462025984865,
+        0.527357101787614,
+        0.06566906622638502
+      ],
+      "wrists": [
+        -0.25841764405033785,
+        0.4974117189509718,
+        0.08312101118257473
+      ],
+      "hips": [
+        -0.049298640300279306,
+        0.3913253947110476,
+        0.012943543392500811
+      ],
+      "knees": [
+        0.010515443396460045,
+        0.33134323150157097,
+        -0.062312326095237895
+      ],
+      "ankles": [
+        0.028836637590493375,
+        0.17729576239952502,
+        0.008305828446170255
+      ]
+    },
+    "angles": {
+      "knee": 103.3206367095797,
+      "hip": 114.31137285824128,
+      "shoulder": 19.01509761832739,
+      "elbow": 140.2579054477489
+    },
+    "analysis_scores": {
+      "alignment": 0.7637658832694727,
+      "balance": 0.8072833730487202,
+      "form": 0.6071157254001381,
+      "stability": 0.8812261718119685,
+      "coordination": 0.9399159008216392,
+      "precision": 0.7175627952476418,
+      "power": 0.6189412420634806,
+      "efficiency": 0.6360739527271956,
+      "safety": 0.8765727477627949,
+      "overall": 0.9476245771822972,
+      "shoulder": 0.6261105725185544,
+      "elbow": 0.9453062931478527,
+      "wrist": 0.6522503724172286,
+      "hip": 0.7831541562811065,
+      "knee": 0.8892323581578649,
+      "ankle": 0.7156229277367301,
+      "back": 0.9797952814023276,
+      "neck": 0.9795619210661023
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.8507570196154517,
+      "force_transfer": 0.9231914079318557,
+      "efficiency": 0.7496918780232638,
+      "acceleration": 0.962557505803158,
+      "deceleration": 0.405820841976071,
+      "power_output": 0.9699186609455677,
+      "energy_efficiency": 0.898989873050857,
+      "reaction_time": 0.9158453740258452,
+      "impulse": 0.4994370504307494
+    },
+    "technical_metrics": {
+      "precision": 0.8084067876170408,
+      "consistency": 0.7877506330859898,
+      "fluidity": 0.8254059319217659,
+      "complexity": 0.5444095291145747,
+      "adaptability": 0.9360974493866098,
+      "control": 0.77840849245948,
+      "rhythm": 0.9469767750862892,
+      "timing": 0.982249350259712
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.901653983384387,
+      "muscle_activation": 0.6460306454119704,
+      "energy_efficiency": 0.8046605367462031,
+      "spinal_alignment": 0.8459738231265587,
+      "muscle_balance": 0.5695081385244759,
+      "injury_risk": 0.6332226855965186,
+      "recovery_rate": 0.8563659223814277,
+      "fatigue_level": 0.7068318138150642
+    },
+    "performance_metrics": {
+      "speed": 0.6182492141061167,
+      "accuracy": 0.6784331055133848,
+      "endurance": 0.9556257963345552,
+      "consistency": 0.8238119438672142,
+      "recovery_rate": 0.44530159930025914,
+      "agility": 0.5635371200934082,
+      "flexibility": 0.7080371202433972,
+      "strength": 0.8282880143507858,
+      "power": 0.8201199609612584,
+      "stamina": 0.8056200122602114
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.7345013253533436,
+    "skill_requirement": 0.2854542751198949,
+    "physical_demand": 0.4875380930428894,
+    "technical_complexity": 0.5471352827414012,
+    "risk_factor": 0.3686329632560196,
+    "learning_curve": 0.47311433047442586
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "movement_type": "sliding",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:04:15.174305",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.16385048340455996,
+        0.5573865669460989,
+        0.04776102751747652
+      ],
+      "elbows": [
+        -0.049396921552021134,
+        0.5999163169290699,
+        -0.01954743513705999
+      ],
+      "wrists": [
+        0.3163619986597761,
+        0.49933528594449594,
+        0.02842086846461042
+      ],
+      "hips": [
+        -0.11961549953472406,
+        0.3517248538121187,
+        0.03589887926476995
+      ],
+      "knees": [
+        0.27703298369720647,
+        0.3552506451151859,
+        0.006792942988332953
+      ],
+      "ankles": [
+        0.021860980391820217,
+        0.17962131957574853,
+        -0.05476288026683965
+      ]
+    },
+    "angles": {
+      "knee": 29.66378168944723,
+      "hip": 88.96399066627768,
+      "shoulder": 31.589536830276877,
+      "elbow": 135.01418721621434
+    },
+    "analysis_scores": {
+      "alignment": 0.611939479923606,
+      "balance": 0.9697533052436949,
+      "form": 0.9727898366352223,
+      "stability": 0.9945985271173294,
+      "coordination": 0.9378220937576144,
+      "precision": 0.6561607215319902,
+      "power": 0.8082980028356181,
+      "efficiency": 0.8224144125922368,
+      "safety": 0.6437808251514934,
+      "overall": 0.969587386376292,
+      "shoulder": 0.6476192824641199,
+      "elbow": 0.6496797009436893,
+      "wrist": 0.7449886799832767,
+      "hip": 0.9203779704191652,
+      "knee": 0.8141949554178796,
+      "ankle": 0.7833771627639434,
+      "back": 0.6664003963626758,
+      "neck": 0.6843575364409141
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.5729924465819196,
+      "force_transfer": 0.7537692559893397,
+      "efficiency": 0.9995876838547925,
+      "acceleration": 0.6025143634193226,
+      "deceleration": 0.9620212156787918,
+      "power_output": 0.9462667669505638,
+      "energy_efficiency": 0.8053462258019344,
+      "reaction_time": 0.6879714052783334,
+      "impulse": 0.7135600478710222
+    },
+    "technical_metrics": {
+      "precision": 0.7919671107840953,
+      "consistency": 0.9827677464923051,
+      "fluidity": 0.9172571383295255,
+      "complexity": 0.6104311746396129,
+      "adaptability": 0.5007355200686066,
+      "control": 0.9154159436927246,
+      "rhythm": 0.746328095413355,
+      "timing": 0.9200053796757109
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.44265427156160675,
+      "muscle_activation": 0.4475044733190619,
+      "energy_efficiency": 0.4002020083008883,
+      "spinal_alignment": 0.9298533234502492,
+      "muscle_balance": 0.9192165466309524,
+      "injury_risk": 0.5116285695551338,
+      "recovery_rate": 0.8864060941154828,
+      "fatigue_level": 0.6694068519799294
+    },
+    "performance_metrics": {
+      "speed": 0.6817140861114128,
+      "accuracy": 0.6475455237715512,
+      "endurance": 0.9628210229553089,
+      "consistency": 0.9270133917178184,
+      "recovery_rate": 0.6428469912007245,
+      "agility": 0.6777262372178374,
+      "flexibility": 0.6118592788009998,
+      "strength": 0.7499228515946765,
+      "power": 0.6775557621277091,
+      "stamina": 0.9920052356745145
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.18855548522227897,
+    "skill_requirement": 0.6645705965900951,
+    "physical_demand": 0.7979155532003281,
+    "technical_complexity": 0.771605552746422,
+    "risk_factor": 0.11487936480537476,
+    "learning_curve": 0.41069762810577326
+  }
+}

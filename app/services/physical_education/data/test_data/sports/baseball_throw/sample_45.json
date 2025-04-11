@@ -1,0 +1,127 @@
+{
+  "movement_type": "baseball_throw",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.692978",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.0908774562574326,
+        0.5394829063083033,
+        -0.00914367489370875
+      ],
+      "elbows": [
+        0.0172432449070985,
+        0.5899903292100466,
+        -0.09072812198342124
+      ],
+      "wrists": [
+        -0.22979130307765408,
+        0.36750550394521,
+        -0.06944644850318682
+      ],
+      "hips": [
+        -0.03247194491199262,
+        0.3046923725982837,
+        0.00892499258207484
+      ],
+      "knees": [
+        -0.20324569308669133,
+        0.20078020749562286,
+        -0.008176506998738106
+      ],
+      "ankles": [
+        -0.041956536073660455,
+        0.2943514494078594,
+        -0.05838340003819014
+      ]
+    },
+    "angles": {
+      "knee": 101.40572634234164,
+      "hip": 149.94012125215102,
+      "shoulder": 27.451480405444077,
+      "elbow": 160.64234802281464
+    },
+    "analysis_scores": {
+      "alignment": 0.6096122457244564,
+      "balance": 0.7800222205570462,
+      "form": 0.7373044213053177,
+      "stability": 0.8404976129144567,
+      "coordination": 0.617175355247298,
+      "precision": 0.6232655652325049,
+      "power": 0.7786102071186651,
+      "efficiency": 0.7929617751087579,
+      "safety": 0.8281855541406818,
+      "overall": 0.7524460404742382,
+      "shoulder": 0.8161060014296402,
+      "elbow": 0.821565788757313,
+      "wrist": 0.7967482131588586,
+      "hip": 0.6585709021971367,
+      "knee": 0.6161548926225895,
+      "ankle": 0.7049399682459403,
+      "back": 0.8371543925401177,
+      "neck": 0.8249394732428215
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.7202647115624161,
+      "force_transfer": 0.920369337820222,
+      "efficiency": 0.6340806338503759,
+      "acceleration": 0.6313007195653779,
+      "deceleration": 0.9434158192458777,
+      "power_output": 0.7885554519537183,
+      "energy_efficiency": 0.49627882378099314,
+      "reaction_time": 0.6483420933380752,
+      "impulse": 0.8246253605862306
+    },
+    "technical_metrics": {
+      "precision": 0.9079146056628723,
+      "consistency": 0.6509803679249258,
+      "fluidity": 0.5358161215823756,
+      "complexity": 0.881202904093033,
+      "adaptability": 0.8971957177358618,
+      "control": 0.8035148473947344,
+      "rhythm": 0.9683250724745399,
+      "timing": 0.4265197664556679
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.9320060734038046,
+      "muscle_activation": 0.8735753537465049,
+      "energy_efficiency": 0.9758532777448533,
+      "spinal_alignment": 0.559331049046856,
+      "muscle_balance": 0.4611515218497165,
+      "injury_risk": 0.8344747833996187,
+      "recovery_rate": 0.8551656133418899,
+      "fatigue_level": 0.9627237920073736
+    },
+    "performance_metrics": {
+      "speed": 0.9012878159332371,
+      "accuracy": 0.8748496540995185,
+      "endurance": 0.8411934766214517,
+      "consistency": 0.40436719380597647,
+      "recovery_rate": 0.6961887049191162,
+      "agility": 0.804980732838735,
+      "flexibility": 0.4801630126404786,
+      "strength": 0.5382410568382211,
+      "power": 0.536229618155166,
+      "stamina": 0.7612827579203432
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.827385597226454,
+    "skill_requirement": 0.7940989057950839,
+    "physical_demand": 0.777804733991871,
+    "technical_complexity": 0.5521611107098507,
+    "risk_factor": 0.9866398663634016,
+    "learning_curve": 0.2120229715957679
+  }
+}

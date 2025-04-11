@@ -1,0 +1,127 @@
+{
+  "movement_type": "soccer_throw_in",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.933711",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.16553158228254938,
+        0.5663546847572956,
+        -0.025815833097576985
+      ],
+      "elbows": [
+        0.29561608421363056,
+        0.5057921280825407,
+        0.05594323487487618
+      ],
+      "wrists": [
+        -0.37634202458162624,
+        0.49289419215296343,
+        -0.022221792336044335
+      ],
+      "hips": [
+        0.012460828510493599,
+        0.3249373933057442,
+        0.058187381609454
+      ],
+      "knees": [
+        0.24837144659195892,
+        0.33361979369346684,
+        0.08338489605213525
+      ],
+      "ankles": [
+        0.2860030879119052,
+        0.20811918447143538,
+        0.01491165219705018
+      ]
+    },
+    "angles": {
+      "knee": 47.00180137455319,
+      "hip": 84.05652735824188,
+      "shoulder": 49.064825592533005,
+      "elbow": 14.505027236448106
+    },
+    "analysis_scores": {
+      "alignment": 0.6864912719711381,
+      "balance": 0.7883327503047148,
+      "form": 0.7293011657869621,
+      "stability": 0.9184074507065407,
+      "coordination": 0.7002514896964647,
+      "precision": 0.6251937189466834,
+      "power": 0.7611392875717937,
+      "efficiency": 0.7824992086879097,
+      "safety": 0.7358126571903351,
+      "overall": 0.9411384849341415,
+      "shoulder": 0.9544597675826116,
+      "elbow": 0.9122739206100199,
+      "wrist": 0.9984880231970736,
+      "hip": 0.867531886270875,
+      "knee": 0.731431277233206,
+      "ankle": 0.9464255133919236,
+      "back": 0.7064308995351152,
+      "neck": 0.6344688261531205
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Good power output, maintain current intensity"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.8412742256470425,
+      "force_transfer": 0.6611313569028385,
+      "efficiency": 0.5116848436449527,
+      "acceleration": 0.555370073039577,
+      "deceleration": 0.522208111773092,
+      "power_output": 0.7557904466519458,
+      "energy_efficiency": 0.4701405276329152,
+      "reaction_time": 0.8729535339849297,
+      "impulse": 0.6916113912463562
+    },
+    "technical_metrics": {
+      "precision": 0.8068257529239885,
+      "consistency": 0.9996742632833225,
+      "fluidity": 0.9292462352896521,
+      "complexity": 0.7495281874096866,
+      "adaptability": 0.62901796561594,
+      "control": 0.8853493878313023,
+      "rhythm": 0.9757230261861559,
+      "timing": 0.5817605335009778
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7408271726204412,
+      "muscle_activation": 0.7442006288253346,
+      "energy_efficiency": 0.4241239773621674,
+      "spinal_alignment": 0.8422787363578592,
+      "muscle_balance": 0.507933055781909,
+      "injury_risk": 0.9592439607586366,
+      "recovery_rate": 0.5119488923664746,
+      "fatigue_level": 0.8904905656562019
+    },
+    "performance_metrics": {
+      "speed": 0.6348933220466435,
+      "accuracy": 0.40316260810912036,
+      "endurance": 0.5668920716163128,
+      "consistency": 0.46381423461848154,
+      "recovery_rate": 0.5597129927584288,
+      "agility": 0.542751193694726,
+      "flexibility": 0.8296495622053172,
+      "strength": 0.9199749086243201,
+      "power": 0.8409416288704299,
+      "stamina": 0.5980623182154825
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.9679860091988729,
+    "skill_requirement": 0.2154034941944341,
+    "physical_demand": 0.7875601184085,
+    "technical_complexity": 0.37699163657733914,
+    "risk_factor": 0.1631584333745959,
+    "learning_curve": 0.7965612604372012
+  }
+}

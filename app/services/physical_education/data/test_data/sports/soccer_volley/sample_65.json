@@ -1,0 +1,127 @@
+{
+  "movement_type": "soccer_volley",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.314100",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.05369183876974773,
+        0.6815426537105996,
+        -0.05615742974506721
+      ],
+      "elbows": [
+        -0.09568034300038361,
+        0.4090111623871985,
+        -0.07681294537960336
+      ],
+      "wrists": [
+        -0.27991640197510037,
+        0.3481319871424766,
+        -0.03807384332757207
+      ],
+      "hips": [
+        -0.08625509172141604,
+        0.4060010843975034,
+        -0.06946432742317987
+      ],
+      "knees": [
+        -0.2701094487684633,
+        0.300260900534842,
+        0.019805607645521153
+      ],
+      "ankles": [
+        -0.3419499178491672,
+        0.15076714863460777,
+        -0.03916129887427842
+      ]
+    },
+    "angles": {
+      "knee": 114.74254620750501,
+      "hip": 85.39846013322844,
+      "shoulder": 29.431161966977633,
+      "elbow": 49.6495998927966
+    },
+    "analysis_scores": {
+      "alignment": 0.6875652648409699,
+      "balance": 0.9291725270502036,
+      "form": 0.6653861847015174,
+      "stability": 0.849498196427074,
+      "coordination": 0.7145545189978009,
+      "precision": 0.7372414299012002,
+      "power": 0.7702733487265561,
+      "efficiency": 0.748672517799394,
+      "safety": 0.645440547308561,
+      "overall": 0.7496593045629734,
+      "shoulder": 0.9513727094593742,
+      "elbow": 0.9351999388214413,
+      "wrist": 0.8321218480087941,
+      "hip": 0.9841057690028241,
+      "knee": 0.6839476187903326,
+      "ankle": 0.6580365726268743,
+      "back": 0.9635696389472084,
+      "neck": 0.7145497042171837
+    },
+    "recommendations": {
+      "form": "Focus on maintaining proper joint angles during movement",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.6628390039602234,
+      "force_transfer": 0.41033990020368205,
+      "efficiency": 0.4700517363298548,
+      "acceleration": 0.40266285993005,
+      "deceleration": 0.8913660633597844,
+      "power_output": 0.4041333045895244,
+      "energy_efficiency": 0.9148799643874105,
+      "reaction_time": 0.8404738724089345,
+      "impulse": 0.5293908247017127
+    },
+    "technical_metrics": {
+      "precision": 0.980847910617722,
+      "consistency": 0.8866803022772412,
+      "fluidity": 0.4196503740322105,
+      "complexity": 0.7865324897548642,
+      "adaptability": 0.7878776744302136,
+      "control": 0.6062842612836575,
+      "rhythm": 0.5345713494187647,
+      "timing": 0.4261169280444211
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.8904820077848594,
+      "muscle_activation": 0.8023096038218982,
+      "energy_efficiency": 0.96202277441441,
+      "spinal_alignment": 0.47001786745760005,
+      "muscle_balance": 0.44002757692815725,
+      "injury_risk": 0.7237701826180574,
+      "recovery_rate": 0.7420795924228345,
+      "fatigue_level": 0.8048563433717997
+    },
+    "performance_metrics": {
+      "speed": 0.47101366613806217,
+      "accuracy": 0.5515547601055475,
+      "endurance": 0.7098121907398096,
+      "consistency": 0.7583861778386423,
+      "recovery_rate": 0.8438853086822944,
+      "agility": 0.6967393930449857,
+      "flexibility": 0.9015523914014072,
+      "strength": 0.5520394605112111,
+      "power": 0.5434819298931006,
+      "stamina": 0.6512698426106496
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.3040375488960716,
+    "skill_requirement": 0.1113490416534502,
+    "physical_demand": 0.39837953680458416,
+    "technical_complexity": 0.22729010434141259,
+    "risk_factor": 0.7367454466411949,
+    "learning_curve": 0.6624555063398044
+  }
+}

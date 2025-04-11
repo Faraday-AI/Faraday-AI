@@ -1,0 +1,127 @@
+{
+  "movement_type": "rugby_maul",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:22.045408",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        0.01423286724099912,
+        0.6579595554535163,
+        -0.05098288289470046
+      ],
+      "elbows": [
+        -0.07767544021217157,
+        0.5137758153942636,
+        0.05756156847463914
+      ],
+      "wrists": [
+        0.026426660888855813,
+        0.4431973164502729,
+        0.03885740279110994
+      ],
+      "hips": [
+        -0.17416227540712317,
+        0.37586225612077406,
+        -0.055126786865549865
+      ],
+      "knees": [
+        0.19521713636158872,
+        0.23763483758976292,
+        -0.01200401692181903
+      ],
+      "ankles": [
+        0.39748012758658846,
+        0.23161606717614194,
+        -0.010535063087613275
+      ]
+    },
+    "angles": {
+      "knee": 72.50979636517016,
+      "hip": 92.47502776590018,
+      "shoulder": 17.461601442440315,
+      "elbow": 85.11430581475314
+    },
+    "analysis_scores": {
+      "alignment": 0.6112433432939209,
+      "balance": 0.614319219196972,
+      "form": 0.7690003456560056,
+      "stability": 0.7298010004999704,
+      "coordination": 0.9585332940040068,
+      "precision": 0.983359389032754,
+      "power": 0.8713198002991671,
+      "efficiency": 0.6438467714916432,
+      "safety": 0.9762811720419977,
+      "overall": 0.6577908838476098,
+      "shoulder": 0.803790978529188,
+      "elbow": 0.9754308857859071,
+      "wrist": 0.727108373796941,
+      "hip": 0.9328406894421297,
+      "knee": 0.7332972624188446,
+      "ankle": 0.905283614119664,
+      "back": 0.9113493935889027,
+      "neck": 0.9441180942977961
+    },
+    "recommendations": {
+      "form": "Good form, continue practicing with current technique",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.6941469846963617,
+      "force_transfer": 0.5142698200706647,
+      "efficiency": 0.42028927028836116,
+      "acceleration": 0.7716430010968797,
+      "deceleration": 0.916782795750756,
+      "power_output": 0.5878974125753357,
+      "energy_efficiency": 0.6140581016465554,
+      "reaction_time": 0.5476995953641823,
+      "impulse": 0.8055291231100756
+    },
+    "technical_metrics": {
+      "precision": 0.7454649136662184,
+      "consistency": 0.7365481182811413,
+      "fluidity": 0.44013649076550954,
+      "complexity": 0.7069392927655442,
+      "adaptability": 0.6480440389939318,
+      "control": 0.7516629904591996,
+      "rhythm": 0.7228972587435547,
+      "timing": 0.7529664107322551
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.6782795800443839,
+      "muscle_activation": 0.5165377756840258,
+      "energy_efficiency": 0.6856474293750494,
+      "spinal_alignment": 0.5504009380574887,
+      "muscle_balance": 0.9377727175183828,
+      "injury_risk": 0.7398592176161265,
+      "recovery_rate": 0.4384271746309399,
+      "fatigue_level": 0.8694366334079145
+    },
+    "performance_metrics": {
+      "speed": 0.7186208882270653,
+      "accuracy": 0.884982154119442,
+      "endurance": 0.6762065886404918,
+      "consistency": 0.529594411628543,
+      "recovery_rate": 0.5804982872968958,
+      "agility": 0.8496726617281319,
+      "flexibility": 0.8457392350481707,
+      "strength": 0.9138027348329334,
+      "power": 0.6999730665966333,
+      "stamina": 0.8589438706114085
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.4106536881440054,
+    "skill_requirement": 0.20457497240111078,
+    "physical_demand": 0.33782323453157515,
+    "technical_complexity": 0.3512179880943833,
+    "risk_factor": 0.6932920722120339,
+    "learning_curve": 0.18146000386810252
+  }
+}

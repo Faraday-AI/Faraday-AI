@@ -1,0 +1,67 @@
+{
+  "movement_type": "dribbling",
+  "category": "basic",
+  "timestamp": "2025-04-10T11:19:00.000000",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.10,
+        0.55,
+        0.02
+      ],
+      "elbows": [
+        -0.08,
+        0.45,
+        -0.04
+      ],
+      "wrists": [
+        0.32,
+        0.28,
+        0.04
+      ],
+      "hips": [
+        -0.08,
+        0.35,
+        0.02
+      ],
+      "knees": [
+        -0.06,
+        0.22,
+        0.01
+      ],
+      "ankles": [
+        -0.04,
+        0.10,
+        0.01
+      ]
+    },
+    "angles": {
+      "shoulder_angle": 70.5,
+      "elbow_angle": 105.3,
+      "wrist_angle": 10.7,
+      "hip_angle": 65.2,
+      "knee_angle": 100.4
+    },
+    "velocities": {
+      "hand_velocity": 2.8,
+      "ball_velocity": 3.5,
+      "body_movement_velocity": 1.5
+    },
+    "timing": {
+      "bounce_phase": 0.4,
+      "control_phase": 0.3,
+      "recovery_phase": 0.3
+    }
+  },
+  "performance_metrics": {
+    "control": 0.87,
+    "consistency": 0.85,
+    "form_score": 0.83
+  },
+  "feedback_points": [
+    "Keep ball at waist level",
+    "Use fingertips, not palm",
+    "Keep head up",
+    "Maintain low stance"
+  ]
+} 

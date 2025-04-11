@@ -1,0 +1,127 @@
+{
+  "movement_type": "golf_swing",
+  "category": "sports",
+  "timestamp": "2025-04-10T11:04:21.154321",
+  "base_metrics": {
+    "key_points": {
+      "shoulders": [
+        -0.10603134465313323,
+        0.6594853561204762,
+        -0.032560458949599455
+      ],
+      "elbows": [
+        0.26848528871904703,
+        0.4572510344150388,
+        -0.05198991931185455
+      ],
+      "wrists": [
+        -0.04051494016953433,
+        0.46398210659943895,
+        -0.019081898569169795
+      ],
+      "hips": [
+        -0.1988186019386077,
+        0.4101400688423036,
+        0.08705520505396594
+      ],
+      "knees": [
+        0.28290686235036416,
+        0.3494881825296981,
+        0.0003946510766627692
+      ],
+      "ankles": [
+        0.04510648191774658,
+        0.23796508898396287,
+        0.03875628887828486
+      ]
+    },
+    "angles": {
+      "knee": 168.404117909415,
+      "hip": 116.7650242259163,
+      "shoulder": 11.34884645778029,
+      "elbow": 69.22956413650232
+    },
+    "analysis_scores": {
+      "alignment": 0.9692480166481725,
+      "balance": 0.7410362352033901,
+      "form": 0.8950554046121089,
+      "stability": 0.6826126392449626,
+      "coordination": 0.726636916554121,
+      "precision": 0.833688237891561,
+      "power": 0.7153366996665204,
+      "efficiency": 0.6450288262668676,
+      "safety": 0.8428195534859686,
+      "overall": 0.8848135711747613,
+      "shoulder": 0.9364980010314056,
+      "elbow": 0.6756525317892278,
+      "wrist": 0.8435404905871082,
+      "hip": 0.6665588073179466,
+      "knee": 0.6601975098077723,
+      "ankle": 0.9569828822600513,
+      "back": 0.7016434745360981,
+      "neck": 0.6152849633742962
+    },
+    "recommendations": {
+      "form": "Focus on maintaining proper joint angles during movement",
+      "alignment": "Good alignment, maintain current technique",
+      "stability": "Good stability, continue with current technique",
+      "power": "Consider increasing intensity gradually"
+    },
+    "safety_considerations": [
+      "Focus on maintaining proper form throughout the movement"
+    ]
+  },
+  "enhanced_metrics": {
+    "power_generation": {
+      "explosiveness": 0.46779077117612666,
+      "force_transfer": 0.4475646095886913,
+      "efficiency": 0.5564849295113871,
+      "acceleration": 0.5286942199958359,
+      "deceleration": 0.7456420803583286,
+      "power_output": 0.8261515456040432,
+      "energy_efficiency": 0.6497464934276218,
+      "reaction_time": 0.40948663456372963,
+      "impulse": 0.5815282804965032
+    },
+    "technical_metrics": {
+      "precision": 0.5460823528310619,
+      "consistency": 0.5749503067648009,
+      "fluidity": 0.9299548407315058,
+      "complexity": 0.7809292670216166,
+      "adaptability": 0.6840052378819992,
+      "control": 0.5829288959539244,
+      "rhythm": 0.9310920468534659,
+      "timing": 0.578933352567361
+    },
+    "biomechanical_metrics": {
+      "joint_loading": 0.7595810877374627,
+      "muscle_activation": 0.9887099594389517,
+      "energy_efficiency": 0.5123926248633146,
+      "spinal_alignment": 0.8877467281262822,
+      "muscle_balance": 0.8569468118192318,
+      "injury_risk": 0.8326497476697514,
+      "recovery_rate": 0.6175576033315168,
+      "fatigue_level": 0.5138825455480887
+    },
+    "performance_metrics": {
+      "speed": 0.5011398332537362,
+      "accuracy": 0.6590125706562228,
+      "endurance": 0.8721124527089466,
+      "consistency": 0.860526842135226,
+      "recovery_rate": 0.7807157433073553,
+      "agility": 0.4688571252340636,
+      "flexibility": 0.8673649804117609,
+      "strength": 0.7176779255855967,
+      "power": 0.8146108492527555,
+      "stamina": 0.504329557211806
+    }
+  },
+  "movement_parameters": {
+    "difficulty_level": 0.44227210168174125,
+    "skill_requirement": 0.7082845821371925,
+    "physical_demand": 0.5622264165393377,
+    "technical_complexity": 0.8688731599316609,
+    "risk_factor": 0.9878435772186731,
+    "learning_curve": 0.7415733789847854
+  }
+}
