@@ -1,0 +1,79 @@
+{
+    "skill": "push-ups",
+    "performance": {
+        "alignment": 0.7,
+        "technique": 0.6,
+        "control": 0.8,
+        "speed": 0.5,
+        "accuracy": 0.7,
+        "consistency": 0.6
+    },
+    "previous": [
+        {
+            "improvement": 0.3,
+            "consistency": 0.4,
+            "effort": 0.8
+        },
+        {
+            "improvement": 0.5,
+            "consistency": 0.6,
+            "effort": 0.9
+        }
+    ],
+    "skill_score": 0.65,
+    "progress_score": 0.55,
+    "detailed_analysis": {
+        "form_analysis": {
+            "alignment": {
+                "score": 0.7,
+                "feedback": "Good shoulder alignment, but could improve hip position"
+            },
+            "technique": {
+                "score": 0.6,
+                "feedback": "Basic technique understood, needs refinement in elbow positioning"
+            },
+            "control": {
+                "score": 0.8,
+                "feedback": "Excellent control during descent and ascent"
+            }
+        },
+        "performance_analysis": {
+            "speed": {
+                "score": 0.5,
+                "feedback": "Pace is inconsistent, focus on maintaining steady rhythm"
+            },
+            "accuracy": {
+                "score": 0.7,
+                "feedback": "Good accuracy in movement pattern"
+            },
+            "consistency": {
+                "score": 0.6,
+                "feedback": "Form varies between repetitions"
+            }
+        },
+        "strengths": ["control", "accuracy"],
+        "areas_for_improvement": ["speed", "consistency"]
+    },
+    "recommendations": [
+        "Focus on maintaining consistent form throughout all repetitions",
+        "Practice with a metronome to improve speed consistency",
+        "Record video of form for self-assessment"
+    ],
+    "goals": [
+        {
+            "type": "short_term",
+            "description": "Maintain consistent form for 3 sets of 8 repetitions",
+            "timeline": "1-2 weeks"
+        },
+        {
+            "type": "medium_term",
+            "description": "Achieve proper form with increased speed",
+            "timeline": "1 month"
+        },
+        {
+            "type": "long_term",
+            "description": "Master advanced push-up variations",
+            "timeline": "3 months"
+        }
+    ]
+} 
