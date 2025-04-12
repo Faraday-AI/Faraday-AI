@@ -7,16 +7,57 @@ services:
     buildCommand: |
       python3.10 -m pip install -r requirements.txt
       
-      # Create models directory and placeholder model
-      echo "Creating models directory and placeholder model..."
+      # Create models and logs directory structure
+      echo "Creating directory structure..."
       mkdir -p models
+      mkdir -p /tmp/faraday-ai/logs
+      chmod -R 777 /tmp/faraday-ai/logs
+      
+      # Create placeholder models
+      echo "Creating placeholder models..."
       python3.10 -c "
       import tensorflow as tf
-      model = tf.keras.Sequential([
-          tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)),
-          tf.keras.layers.Dense(1, activation='sigmoid')
-      ])
-      model.save('models/movement_analysis_model.h5')
+      import joblib
+      import numpy as np
+      import logging
+      import os
+      
+      # Configure logging
+      logging.basicConfig(
+          level=logging.INFO,
+          format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+          handlers=[
+              logging.FileHandler('/tmp/faraday-ai/logs/model_creation.log'),
+              logging.StreamHandler()
+          ]
+      )
+      logger = logging.getLogger(__name__)
+      
+      try:
+          # Create movement analysis model
+          logger.info('Creating movement analysis model...')
+          model = tf.keras.Sequential([
+              tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)),
+              tf.keras.layers.Dense(1, activation='sigmoid')
+          ])
+          model.save('models/movement_analysis.h5')
+          logger.info('Movement analysis model created successfully')
+          
+          # Create activity adaptation model
+          logger.info('Creating activity adaptation model...')
+          adaptation_model = {'weights': np.random.rand(10)}
+          joblib.dump(adaptation_model, 'models/activity_adaptation.joblib')
+          logger.info('Activity adaptation model created successfully')
+          
+          # Create activity assessment model
+          logger.info('Creating activity assessment model...')
+          assessment_model = {'weights': np.random.rand(10)}
+          joblib.dump(assessment_model, 'models/activity_assessment.joblib')
+          logger.info('Activity assessment model created successfully')
+          
+      except Exception as e:
+          logger.error(f'Error creating models: {str(e)}')
+          raise
       "
       
       # Run database migrations
@@ -26,14 +67,6 @@ services:
       # Seed the database
       echo "Seeding database with initial data..."
       python3.10 -m scripts.seed_data
-      
-      mkdir -p /tmp/faraday-ai/logs
-      chmod -R 777 /tmp/faraday-ai/logs
-      
-      # Debug information
-      echo "Current working directory: $(pwd)"
-      echo "Directory contents:"
-      ls -la
       
       # Create static directory structure
       echo "Creating static directory structure..."
@@ -94,6 +127,8 @@ services:
         value: info
       - key: LOG_DIR
         value: /tmp/faraday-ai/logs
+      - key: MODEL_DIR
+        value: /app/models
       - key: VERSION
         value: 0.1.0
       - key: WORKERS
