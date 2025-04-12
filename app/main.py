@@ -38,6 +38,7 @@ from app.services.pe_service import PEService
 from app.api.v1 import activity_management
 import redis.asyncio as redis
 from app.services.physical_education.services.security_service import SecurityService
+from app.api.v1.middleware.cache import add_caching
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -356,6 +357,7 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(BaseHTTPMiddleware, dispatch=add_caching)
 
 # Create a singleton instance
 _realtime_collaboration_service = None
