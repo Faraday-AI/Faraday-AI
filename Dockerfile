@@ -53,6 +53,14 @@ RUN mkdir -p /app/models && \
 # Copy application code
 COPY . .
 
+# Create initial models
+RUN python -c "import tensorflow as tf; \
+    model = tf.keras.Sequential([ \
+        tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)), \
+        tf.keras.layers.Dense(1, activation='sigmoid') \
+    ]); \
+    tf.keras.models.save_model(model, '/app/models/movement_analysis.h5', save_format='h5')"
+
 # Set ownership of application files
 RUN chown -R appuser:appuser /app
 
