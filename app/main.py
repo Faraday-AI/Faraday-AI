@@ -12,7 +12,7 @@ import networkx as nx
 from prometheus_client import Gauge, Counter, Histogram, start_http_server, generate_latest
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
-from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile, WebSocket, WebSocketDisconnect, APIRouter
+from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile, WebSocket, WebSocketDisconnect, APIRouter, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, Response, HTMLResponse
 from fastapi.staticfiles import StaticFiles
