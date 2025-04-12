@@ -83,7 +83,7 @@ class PhysicalEducationAI:
         os.makedirs(models_dir, exist_ok=True)
         
         # Movement analysis model
-        model_path = os.path.join(models_dir, 'movement_analysis.h5')
+        model_path = os.path.join(models_dir, 'movement_analysis_model.h5')
         logger.info(f"Loading movement model from: {model_path}")
         
         try:
