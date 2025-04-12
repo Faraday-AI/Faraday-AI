@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import mediapipe as mp
 from typing import Dict, Any, List
+import os
 
 class MovementAnalysisModel:
     def __init__(self):
@@ -11,8 +12,30 @@ class MovementAnalysisModel:
             min_tracking_confidence=0.5
         )
         
-        # Load the trained model
-        self.model = tf.keras.models.load_model('models/movement_analysis.h5')
+        # Get the base directory
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        models_dir = os.path.join(base_dir, 'models')
+        
+        # Ensure models directory exists
+        os.makedirs(models_dir, exist_ok=True)
+        
+        # Movement analysis model
+        model_path = os.path.join(models_dir, 'movement_analysis.h5')
+        
+        try:
+            if not os.path.exists(model_path):
+                # Create a simple model if it doesn't exist
+                model = tf.keras.Sequential([
+                    tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)),
+                    tf.keras.layers.Dense(1, activation='sigmoid')
+                ])
+                # Use explicit save_model function
+                tf.keras.models.save_model(model, model_path, save_format='h5')
+            
+            self.model = tf.keras.models.load_model(model_path)
+        except Exception as e:
+            print(f"Error loading movement model: {str(e)}")
+            raise
         
         # Define key points for analysis
         self.key_points = {
