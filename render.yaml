@@ -16,7 +16,7 @@ services:
           tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)),
           tf.keras.layers.Dense(1, activation='sigmoid')
       ])
-      model.save('models/movement_analysis.h5')
+      model.save('models/movement_analysis_model.h5')
       "
       
       # Run database migrations

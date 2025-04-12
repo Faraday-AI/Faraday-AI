@@ -3,6 +3,9 @@ import numpy as np
 import mediapipe as mp
 from typing import Dict, Any, List
 import os
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MovementAnalysisModel:
     def __init__(self):
@@ -20,7 +23,8 @@ class MovementAnalysisModel:
         os.makedirs(models_dir, exist_ok=True)
         
         # Movement analysis model
-        model_path = os.path.join(models_dir, 'movement_analysis.h5')
+        model_path = os.path.join(models_dir, 'movement_analysis_model.h5')
+        logger.info(f"Loading movement model from: {model_path}")
         
         try:
             if not os.path.exists(model_path):

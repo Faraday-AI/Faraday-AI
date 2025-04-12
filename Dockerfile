@@ -64,7 +64,7 @@ RUN /opt/venv/bin/python -c "import tensorflow as tf; \
         tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)), \
         tf.keras.layers.Dense(1, activation='sigmoid') \
     ]); \
-    tf.keras.models.save_model(model, '/app/models/movement_analysis.h5', save_format='h5')"
+    tf.keras.models.save_model(model, '/app/models/movement_analysis_model.h5', save_format='h5')"
 
 # Set environment variables
 ENV PYTHONPATH=/app
