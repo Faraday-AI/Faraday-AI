@@ -15,11 +15,11 @@ from ..models.activity import (
 from ..middleware.auth import oauth2_scheme, get_current_active_user
 from ..middleware.rate_limit import rate_limiter
 from ..middleware.cache import cache_manager
-from ...services.physical_education.services.activity_manager import ActivityManager
-from ...services.physical_education.services.activity_analysis_manager import ActivityAnalysisManager
-from ...services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
-from ...services.physical_education.services.activity_export_manager import ActivityExportManager
-from ...services.physical_education.services.activity_collaboration_manager import ActivityCollaborationManager
+from app.services.physical_education.services.activity_manager import ActivityManager
+from app.services.physical_education.services.activity_analysis_manager import ActivityAnalysisManager
+from app.services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
+from app.services.physical_education.services.activity_export_manager import ActivityExportManager
+from app.services.physical_education.services.activity_collaboration_manager import ActivityCollaborationManager
 
 # Initialize logging
 logger = logging.getLogger(__name__)
