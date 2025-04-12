@@ -11,12 +11,12 @@ from ..models.visualization import (
 )
 from ..middleware.auth import oauth2_scheme, get_current_active_user
 from app.services.physical_education.services.activity_manager import ActivityManager
-from app.services.physical_education.services.visualization_manager import VisualizationManager
-from app.services.physical_education.services.export_manager import ExportManager
+from app.services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
+from app.services.physical_education.services.activity_export_manager import ExportManager
 
 router = APIRouter()
 activity_manager = ActivityManager()
-visualization_manager = VisualizationManager()
+visualization_manager = ActivityVisualizationManager()
 export_manager = ExportManager()
 
 @router.post(
