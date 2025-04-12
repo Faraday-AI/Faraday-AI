@@ -77,39 +77,70 @@ class PhysicalEducationAI:
         """Initialize ML models for various features."""
         # Get the base directory
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        models_dir = os.path.join(base_dir, 'models')
+        
+        # Ensure models directory exists
+        os.makedirs(models_dir, exist_ok=True)
         
         # Movement analysis model
-        model_path = os.path.join(base_dir, 'models', 'movement_analysis.h5')
-        if not os.path.exists(model_path):
-            # Create a simple model if it doesn't exist
-            model = tf.keras.Sequential([
-                tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)),
-                tf.keras.layers.Dense(1, activation='sigmoid')
-            ])
-            os.makedirs(os.path.dirname(model_path), exist_ok=True)
-            model.save(model_path)
+        model_path = os.path.join(models_dir, 'movement_analysis.h5')
+        logger.info(f"Loading movement model from: {model_path}")
         
-        self.movement_model = tf.keras.models.load_model(model_path)
+        try:
+            if not os.path.exists(model_path):
+                logger.info("Model file not found, creating new model")
+                # Create a simple model if it doesn't exist
+                model = tf.keras.Sequential([
+                    tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)),
+                    tf.keras.layers.Dense(1, activation='sigmoid')
+                ])
+                model.save(model_path)
+                logger.info(f"Model saved to: {model_path}")
+            
+            self.movement_model = tf.keras.models.load_model(model_path)
+            logger.info("Movement model loaded successfully")
+            
+        except Exception as e:
+            logger.error(f"Error loading movement model: {str(e)}")
+            raise
         
         # Activity adaptation model
-        adaptation_path = os.path.join(base_dir, 'models', 'activity_adaptation.joblib')
-        if not os.path.exists(adaptation_path):
-            # Create a simple model if it doesn't exist
-            from sklearn.linear_model import LinearRegression
-            model = LinearRegression()
-            joblib.dump(model, adaptation_path)
+        adaptation_path = os.path.join(models_dir, 'activity_adaptation.joblib')
+        logger.info(f"Loading adaptation model from: {adaptation_path}")
         
-        self.adaptation_model = joblib.load(adaptation_path)
+        try:
+            if not os.path.exists(adaptation_path):
+                logger.info("Adaptation model not found, creating new model")
+                from sklearn.linear_model import LinearRegression
+                model = LinearRegression()
+                joblib.dump(model, adaptation_path)
+                logger.info(f"Adaptation model saved to: {adaptation_path}")
+            
+            self.adaptation_model = joblib.load(adaptation_path)
+            logger.info("Adaptation model loaded successfully")
+            
+        except Exception as e:
+            logger.error(f"Error loading adaptation model: {str(e)}")
+            raise
         
         # Assessment model
-        assessment_path = os.path.join(base_dir, 'models', 'skill_assessment.joblib')
-        if not os.path.exists(assessment_path):
-            # Create a simple model if it doesn't exist
-            from sklearn.linear_model import LinearRegression
-            model = LinearRegression()
-            joblib.dump(model, assessment_path)
+        assessment_path = os.path.join(models_dir, 'skill_assessment.joblib')
+        logger.info(f"Loading assessment model from: {assessment_path}")
         
-        self.assessment_model = joblib.load(assessment_path)
+        try:
+            if not os.path.exists(assessment_path):
+                logger.info("Assessment model not found, creating new model")
+                from sklearn.linear_model import LinearRegression
+                model = LinearRegression()
+                joblib.dump(model, assessment_path)
+                logger.info(f"Assessment model saved to: {assessment_path}")
+            
+            self.assessment_model = joblib.load(assessment_path)
+            logger.info("Assessment model loaded successfully")
+            
+        except Exception as e:
+            logger.error(f"Error loading assessment model: {str(e)}")
+            raise
 
     def _init_pe_prompts(self):
         """Initialize specialized prompts for physical education."""
