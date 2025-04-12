@@ -45,6 +45,11 @@ RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /opt/venv && \
     chmod -R 755 /opt/venv
 
+# Create models directory and set permissions
+RUN mkdir -p /app/models && \
+    chown -R appuser:appuser /app/models && \
+    chmod -R 755 /app/models
+
 # Copy application code
 COPY . .
 
