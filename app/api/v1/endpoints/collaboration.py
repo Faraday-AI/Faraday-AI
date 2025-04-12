@@ -4,8 +4,9 @@ from fastapi.encoders import jsonable_encoder
 from typing import List
 from datetime import datetime
 from ..models.collaboration import (
-    CollaborationRequest,
-    CollaborationResponse,
+    CollaborationSessionRequest,
+    CollaborationSessionResponse,
+    ChatMessageResponse,
     GroupRequest,
     GroupResponse
 )
