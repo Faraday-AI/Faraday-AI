@@ -58,8 +58,9 @@ RUN chown -R appuser:appuser /app
 
 USER appuser
 
-# Create initial models
-RUN python -c "import tensorflow as tf; \
+# Install TensorFlow and create initial models
+RUN pip install tensorflow && \
+    python -c "import tensorflow as tf; \
     model = tf.keras.Sequential([ \
         tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)), \
         tf.keras.layers.Dense(1, activation='sigmoid') \
