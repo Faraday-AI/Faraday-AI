@@ -1,25 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.encoders import jsonable_encoder
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import logging
+import os
 from ..models.activity import (
     ActivityData,
     ActivityResponse,
     ActivityStatusUpdate,
     BatchActivityRequest,
     ProgressResponse,
-    ScheduleResponse
+    ScheduleResponse,
+    ActivityRequest,
+    ActivityUpdate,
+    ActivityListResponse
 )
 from ..middleware.auth import oauth2_scheme, get_current_active_user
-from ..middleware.rate_limit import rate_limiter
-from ..middleware.cache import cache_manager
-from app.services.physical_education.services.activity_manager import ActivityManager
-from app.services.physical_education.services.activity_analysis_manager import ActivityAnalysisManager
-from app.services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
-from app.services.physical_education.services.activity_export_manager import ActivityExportManager
-from app.services.physical_education.services.activity_collaboration_manager import ActivityCollaborationManager
+from ...services.physical_education.services.activity_manager import ActivityManager
+from ...services.physical_education.services.activity_analysis_manager import ActivityAnalysisManager
+from ...services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
+from ...services.physical_education.services.activity_export_manager import ActivityExportManager
+from ...services.physical_education.services.activity_collaboration_manager import ActivityCollaborationManager
+from ...services.physical_education.services.activity_adaptation_manager import ActivityAdaptationManager
+from ...services.physical_education.services.activity_assessment_manager import ActivityAssessmentManager
+from ...services.physical_education.services.activity_security_manager import ActivitySecurityManager
+from ...services.physical_education.services.activity_cache_manager import ActivityCacheManager
+from ...services.physical_education.services.activity_rate_limit_manager import ActivityRateLimitManager
+from ...services.physical_education.services.activity_circuit_breaker_manager import ActivityCircuitBreakerManager
 
 # Initialize logging
 logger = logging.getLogger(__name__)
@@ -43,7 +51,13 @@ activity_manager = ActivityManager()
 analysis_manager = ActivityAnalysisManager()
 visualization_manager = ActivityVisualizationManager()
 export_manager = ActivityExportManager()
+adaptation_manager = ActivityAdaptationManager()
+assessment_manager = ActivityAssessmentManager()
 collaboration_manager = ActivityCollaborationManager()
+security_manager = ActivitySecurityManager()
+cache_manager = ActivityCacheManager()
+rate_limit_manager = ActivityRateLimitManager()
+circuit_breaker_manager = ActivityCircuitBreakerManager()
 
 # Rate limiting configuration
 RATE_LIMITS = {

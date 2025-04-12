@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
-from datetime import timedelta
+from typing import List, Optional
+from datetime import timedelta, datetime
 from jose import JWTError, jwt
-from ..models.security import Token
+from ..models.security import Token, SecurityRequest, SecurityResponse, ThreatAssessmentRequest, ThreatAssessmentResponse
 from ..middleware.auth import (
     oauth2_scheme,
     get_current_active_user,
@@ -14,8 +15,10 @@ from ..middleware.auth import (
     ALGORITHM,
     ACCESS_TOKEN_EXPIRE_MINUTES
 )
+from ...services.physical_education.services.activity_security_manager import ActivitySecurityManager
 
 router = APIRouter()
+security_manager = ActivitySecurityManager()
 
 @router.post("/token", response_model=Token)
 async def login_for_access_token(
