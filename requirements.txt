@@ -61,7 +61,7 @@ panel==1.4.1
 python-docx==1.1.2
 python-pptx==1.0.2
 XlsxWriter==3.2.2
-Pillow==11.1.0
+Pillow>=7.1.0,<11.0.0
 lxml==5.3.1
 python-magic==0.4.27
 PyPDF2==3.0.1
@@ -97,7 +97,7 @@ backoff==2.2.1
 phonenumbers==8.13.32
 tqdm==4.67.1
 click==8.1.8
-packaging==24.2
+packaging>=16.8,<24.0
 distro==1.9.0
 future==0.18.2
 macholib==1.15.2
