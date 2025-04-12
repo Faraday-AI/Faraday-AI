@@ -70,6 +70,8 @@ class Activity(Base):
     activity_performances = relationship("StudentActivityPerformance", back_populates="activity", cascade="all, delete-orphan")
     progressions = relationship("ActivityProgression", back_populates="activity", cascade="all, delete-orphan")
     plan_activities = relationship("ActivityPlanActivity", back_populates="activity", cascade="all, delete-orphan")
+    movement_analyses = relationship("MovementAnalysis", back_populates="activity", cascade="all, delete-orphan")
+    skill_assessments = relationship("SkillAssessment", back_populates="activity", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Activity {self.name}>"
