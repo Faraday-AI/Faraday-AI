@@ -19,9 +19,12 @@ services:
       - ENABLE_METRICS=true
       - LOG_LEVEL=INFO
       - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - MODEL_DIR=/app/models
+      - LOG_DIR=/app/logs
     volumes:
       - ./static:/app/static
       - ./models:/app/models
+      - ./logs:/app/logs
     depends_on:
       - redis
       - minio
@@ -41,8 +44,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.train
+    environment:
+      - MODEL_DIR=/app/models
+      - LOG_DIR=/app/logs
     volumes:
       - ./models:/app/models
+      - ./logs:/app/logs
       - ./data:/app/data
     networks:
       - faraday-network
@@ -135,8 +142,10 @@ services:
     environment:
       - OPENCV_FFMPEG_CAPTURE_OPTIONS=rtsp_transport;tcp
       - SERVICE_TYPE=pe
+      - LOG_DIR=/app/logs
     volumes:
       - media_volume:/app/media
+      - ./logs:/app/logs
     depends_on:
       - redis
       - minio
@@ -148,11 +157,13 @@ services:
       context: .
       dockerfile: Dockerfile.movement
     environment:
-      - MODEL_PATH=/app/models
+      - MODEL_DIR=/app/models
+      - LOG_DIR=/app/logs
       - SERVICE_TYPE=pe
     volumes:
       - media_volume:/app/media
       - ./models:/app/models
+      - ./logs:/app/logs
       - ./data:/app/data
     depends_on:
       - redis

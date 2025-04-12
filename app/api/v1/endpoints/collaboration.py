@@ -3,16 +3,16 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from typing import List
 from datetime import datetime
-from ..models.collaboration import (
+from app.api.v1.models.collaboration import (
     CollaborationSessionRequest,
     CollaborationSessionResponse,
     ChatMessageResponse
 )
-from ..middleware.auth import oauth2_scheme, get_current_active_user
-from app.services.physical_education.services.collaboration_manager import CollaborationManager
+from app.api.v1.middleware.auth import oauth2_scheme, get_current_active_user
+from app.services.physical_education.services.activity_collaboration_manager import ActivityCollaborationManager
 
 router = APIRouter()
-collaboration_manager = CollaborationManager()
+collaboration_manager = ActivityCollaborationManager()
 
 @router.post(
     "/collaboration/sessions",
