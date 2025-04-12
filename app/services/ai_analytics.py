@@ -94,11 +94,13 @@ class PhysicalEducationAI:
                     tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)),
                     tf.keras.layers.Dense(1, activation='sigmoid')
                 ])
-                # Use explicit save_model function
-                tf.keras.models.save_model(model, model_path, save_format='h5')
+                # Compile the model
+                model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+                # Save the model
+                model.save(model_path)
                 logger.info(f"Model saved to: {model_path}")
             
-            # Use the absolute path here
+            # Load the model
             self.movement_model = tf.keras.models.load_model(model_path)
             logger.info("Movement model loaded successfully")
             
