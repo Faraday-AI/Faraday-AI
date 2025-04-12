@@ -4,12 +4,13 @@ from fastapi.encoders import jsonable_encoder
 from typing import List
 from datetime import datetime
 from ..models.collaboration import (
-    CollaborationSessionRequest,
-    CollaborationSessionResponse,
-    ChatMessageResponse
+    CollaborationRequest,
+    CollaborationResponse,
+    GroupRequest,
+    GroupResponse
 )
 from ..middleware.auth import oauth2_scheme, get_current_active_user
-from ...services.physical_education.services.collaboration_manager import CollaborationManager
+from app.services.physical_education.services.collaboration_manager import CollaborationManager
 
 router = APIRouter()
 collaboration_manager = CollaborationManager()
