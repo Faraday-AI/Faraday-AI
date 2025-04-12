@@ -6,9 +6,7 @@ from datetime import datetime
 from ..models.collaboration import (
     CollaborationSessionRequest,
     CollaborationSessionResponse,
-    ChatMessageResponse,
-    GroupRequest,
-    GroupResponse
+    ChatMessageResponse
 )
 from ..middleware.auth import oauth2_scheme, get_current_active_user
 from ...services.physical_education.services.collaboration_manager import CollaborationManager
