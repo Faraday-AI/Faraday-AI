@@ -38,6 +38,17 @@ services:
     networks:
       - faraday-network
 
+  # Model Training Service
+  train:
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+    networks:
+      - faraday-network
+
   # Shared Cache
   redis:
     image: redis:7
@@ -144,9 +155,30 @@ services:
     volumes:
       - media_volume:/app/media
       - ./models:/app/models
+      - ./data:/app/data
     depends_on:
       - redis
       - pe-video-processor
+    networks:
+      - faraday-network
+    command: >
+      sh -c "
+        if [ \"$$TRAIN_MODEL\" = \"true\" ]; then
+          python models/train_movement_analysis.py;
+        else
+          python -m app.services.movement_analyzer;
+        fi
+      "
+
+  # JSON to Video Converter
+  json-to-video:
+    build:
+      context: .
+      dockerfile: Dockerfile.movement
+    volumes:
+      - ./data:/app/data
+      - ./scripts:/app/scripts
+    command: python scripts/json_to_video.py
     networks:
       - faraday-network
 
