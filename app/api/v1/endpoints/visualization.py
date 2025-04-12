@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.encoders import jsonable_encoder
-from typing import List
+from typing import List, Optional
 from datetime import datetime
+import os
 from ..models.visualization import (
     VisualizationRequest,
     VisualizationResponse,
@@ -10,9 +11,9 @@ from ..models.visualization import (
     ExportResponse
 )
 from ..middleware.auth import oauth2_scheme, get_current_active_user
-from app.services.physical_education.services.activity_manager import ActivityManager
-from app.services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
-from app.services.physical_education.services.activity_export_manager import ActivityExportManager
+from ...services.physical_education.services.activity_manager import ActivityManager
+from ...services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
+from ...services.physical_education.services.activity_export_manager import ActivityExportManager
 
 router = APIRouter()
 activity_manager = ActivityManager()
