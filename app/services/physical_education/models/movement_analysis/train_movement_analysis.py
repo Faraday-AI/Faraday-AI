@@ -10,6 +10,7 @@ from pathlib import Path
 import logging
 from app.core.monitoring import track_metrics
 from app.services.physical_education.models.movement_analysis.movement_models import MovementModels
+from datetime import datetime
 
 class MovementAnalysisTrainer:
     def __init__(self):
@@ -226,19 +227,20 @@ class MovementAnalysisTrainer:
             ]
         )
         
-        # Save model
-        model.save('models/movement_analysis.h5')
+        # Save the model
+        model.save('models/movement_analysis_model.h5')
         
         # Save model metadata
         metadata = {
-            'key_points': self.key_points,
-            'movement_categories': self.movement_categories,
             'input_shape': X.shape[1:],
-            'output_shape': y.shape[1:]
+            'num_classes': len(self._get_all_movements()),
+            'model_type': 'movement_analysis',
+            'version': '1.0.0',
+            'created_at': datetime.now().isoformat()
         }
         
         with open('models/movement_analysis_metadata.json', 'w') as f:
-            json.dump(metadata, f)
+            json.dump(metadata, f, indent=2)
 
 if __name__ == '__main__':
     # Create models directory if it doesn't exist
