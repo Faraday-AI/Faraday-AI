@@ -12,8 +12,6 @@ from ..models.activity import (
     BatchActivityRequest,
     ProgressResponse,
     ScheduleResponse,
-    ActivityRequest,
-    ActivityUpdate,
     ActivityListResponse
 )
 from ..middleware.auth import oauth2_scheme, get_current_active_user
