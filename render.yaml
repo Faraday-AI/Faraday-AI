@@ -6,6 +6,15 @@ services:
     plan: pro-plus
     buildCommand: |
       python3.10 -m pip install -r requirements.txt
+      
+      # Run database migrations
+      echo "Running database migrations..."
+      python3.10 -m alembic upgrade head
+      
+      # Seed the database
+      echo "Seeding database with initial data..."
+      python3.10 -m scripts.seed_data
+      
       mkdir -p /tmp/faraday-ai/logs
       chmod -R 777 /tmp/faraday-ai/logs
       
