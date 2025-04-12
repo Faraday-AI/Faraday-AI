@@ -25,6 +25,8 @@ class Student(Base):
     activity_progressions = relationship("ActivityProgression", back_populates="student", cascade="all, delete-orphan")
     activity_plans = relationship("ActivityPlan", back_populates="student", cascade="all, delete-orphan")
     classes = relationship("ClassStudent", back_populates="student", cascade="all, delete-orphan")
+    movement_analyses = relationship("MovementAnalysis", back_populates="student", cascade="all, delete-orphan")
+    skill_assessments = relationship("SkillAssessment", back_populates="student", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Student {self.name} - {self.grade}>" 
