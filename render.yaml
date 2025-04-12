@@ -1,11 +1,19 @@
 services:
   - type: web
     name: faraday-ai
-    env: python
+    runtime: python
     region: oregon
-    plan: pro-plus
+    plan: pro-4gb
     buildCommand: |
       python3.10 -m pip install -r requirements.txt
+      
+      # Create models directory
+      echo "Creating models directory..."
+      mkdir -p models
+      
+      # Create placeholder model file
+      echo "Creating placeholder model file..."
+      touch models/movement_analysis.h5
       
       # Run database migrations
       echo "Running database migrations..."
@@ -115,16 +123,3 @@ services:
       maxInstances: 1
       targetMemoryPercent: 90
       targetCPUPercent: 90
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Strict-Transport-Security
-        value: max-age=31536000; includeSubDomains
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline';"
