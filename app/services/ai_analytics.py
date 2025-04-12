@@ -98,6 +98,7 @@ class PhysicalEducationAI:
                 tf.keras.models.save_model(model, model_path, save_format='h5')
                 logger.info(f"Model saved to: {model_path}")
             
+            # Use the absolute path here
             self.movement_model = tf.keras.models.load_model(model_path)
             logger.info("Movement model loaded successfully")
             
