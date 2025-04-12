@@ -117,6 +117,27 @@ class ActivityResponse(BaseModel):
             raise ValueError(f'Intensity must be one of: {", ".join(valid_intensities)}')
         return v.lower()
 
+class ActivityListResponse(BaseModel):
+    activities: List[ActivityResponse] = Field(..., description="List of activities")
+    total_count: int = Field(..., description="Total number of activities")
+    page: int = Field(..., description="Current page number")
+    page_size: int = Field(..., description="Number of items per page")
+    total_pages: int = Field(..., description="Total number of pages")
+
+    @validator('activities')
+    def validate_activities(cls, v):
+        if not v:
+            raise ValueError('Activities list cannot be empty')
+        return v
+
+    @validator('total_pages')
+    def validate_total_pages(cls, v, values):
+        if 'page_size' in values and 'total_count' in values:
+            expected_pages = (values['total_count'] + values['page_size'] - 1) // values['page_size']
+            if v != expected_pages:
+                raise ValueError(f'Total pages should be {expected_pages} based on total_count and page_size')
+        return v
+
 class ActivityProgress(BaseModel):
     current_score: float = Field(..., description="Current score", ge=0, le=100)
     target_score: float = Field(..., description="Target score", ge=0, le=100)
