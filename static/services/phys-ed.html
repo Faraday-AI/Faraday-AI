@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Physical Education Teacher Assistant</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="AI-powered Physical Education Teacher Assistant to enhance your teaching experience">
+    <style>
+        :root {
+            --accent-color: #e74c3c;
+            --background-color: #000000;
+            --border-radius: 8px;
+            --card-background: #1a1a1a;
+            --card-hover: #2a2a2a;
+            --primary-color: #3498db;
+            --secondary-color: #ffd700;
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --spacing-unit: 1rem;
+            --text-color: #ffffff;
+            --text-light: #bdc3c7;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .service-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .service-header {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4) 0;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+        }
+
+        .service-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        .service-tagline {
+            font-size: 1.25rem;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 500;
+        }
+
+        .service-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .service-section h2 {
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .service-section p {
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card {
+            background-color: #2980b9;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            background-color: #1c6ea4;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card h3 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            font-weight: 500;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--card-background);
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+        }
+
+        .benefit-icon {
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+        }
+
+        .benefit-item h3 {
+            font-weight: 600;
+            margin-bottom: 0.1rem;
+        }
+
+        .benefit-item p {
+            font-weight: 500;
+            margin-bottom: 0;
+        }
+
+        .cta-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .service-footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+        }
+
+        .footer-links a:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="service-container">
+        <header class="service-header">
+            <div class="service-hero">
+                <h1>Physical Education Teacher Assistant</h1>
+                <p class="service-tagline">Enhance your teaching with AI-powered tools for physical education</p>
+            </div>
+        </header>
+
+        <section class="service-section">
+            <h2>Comprehensive Overview</h2>
+            <p>Our AI-powered Physical Education Teacher Assistant <strong>transforms how you teach and assess physical activities</strong>. From movement analysis to personalized lesson plans, we provide the tools you need to enhance your students' physical education experience.</p>
+            
+            <p>The system offers multiple ways to analyze, track, and improve physical education, ensuring every student can participate and progress at their own pace.</p>
+
+            <p><strong>What sets our Physical Education system apart:</strong></p>
+            <ul class="feature-list">
+                <li><strong>Movement Analysis:</strong> AI-powered analysis of student movements and techniques.</li>
+                <li><strong>Real-time Feedback:</strong> Instant suggestions for improvement during activities.</li>
+                <li><strong>Progress Tracking:</strong> Monitor student development over time.</li>
+                <li><strong>Customized Lesson Plans:</strong> Personalized activities based on skill levels.</li>
+            </ul>
+        </section>
+
+        <section class="service-section">
+            <h2>Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/activity-design/movement-analysis.html">
+                    <h3>Movement Analysis</h3>
+                    <p>AI-powered analysis of movement techniques</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/content-sequencing/real-time-feedback.html">
+                    <h3>Real-time Feedback</h3>
+                    <p>Instant suggestions for improvement</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/content-sequencing/progress-tracking.html">
+                    <h3>Progress Tracking</h3>
+                    <p>Monitor student development over time</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/activity-design/customized-lesson-plans.html">
+                    <h3>Customized Lesson Plans</h3>
+                    <p>Personalized activities based on skill levels</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-section">
+            <h2>Integration Capabilities</h2>
+            <div class="features-grid">
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/resource-integration/video-recording.html">
+                    <h3>Video Recording</h3>
+                    <p>Record student movements via camera or upload videos</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/resource-integration/ai-analysis.html">
+                    <h3>AI Analysis</h3>
+                    <p>Our AI analyzes movements against best practices</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/content-sequencing/personalized-feedback.html">
+                    <h3>Personalized Feedback</h3>
+                    <p>Get specific improvement suggestions</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-section">
+            <h2>Example Use Cases</h2>
+            <div class="features-grid">
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/resource-integration/gymnastics.html">
+                    <h3>Gymnastics</h3>
+                    <p>Analyze form in tumbling, balance beam, and more</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/resource-integration/team-sports.html">
+                    <h3>Team Sports</h3>
+                    <p>Basketball shooting form, soccer technique, etc.</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/resource-integration/fitness-activities.html">
+                    <h3>Fitness Activities</h3>
+                    <p>Improve weightlifting form, yoga poses, and more</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-section">
+            <h2>Advanced Features</h2>
+            <div class="features-grid">
+                <div class="feature-card" data-href="/static/services/services_subpages/phys-ed/resource-integration/video-processing.html">
+                    <h3>Video Processing</h3>
+                    <p>Advanced AI algorithms for movement analysis</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-footer">
+            <h2>Ready to Transform Your PE Classes?</h2>
+            <p>Start using our AI-powered movement analysis system today.</p>
+            <button class="cta-button" onclick="showAuthForm()">Start Using Physical Education Assistant</button>
+        </section>
+    </div>
+
+    <!-- Auth Form Container -->
+    <div id="auth-container" class="auth-container">
+        <!-- Auth form will be injected here -->
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/services.js"></script>
+    <script>
+        // Show auth form when clicking CTA button
+        function showAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Load auth form content
+            fetch('/static/auth-form.html')
+                .then(response => response.text())
+                .then(html => {
+                    authContainer.innerHTML = html;
+                    
+                    // Initialize the auth form
+                    if (typeof initializeAuthForm === 'function') {
+                        initializeAuthForm();
+                    }
+                    
+                    // Initialize toggle functionality
+                    const loginToggle = document.querySelector('.login-toggle');
+                    const registerToggle = document.querySelector('.register-toggle');
+                    const loginForm = document.querySelector('.login-form');
+                    const registerForm = document.querySelector('.register-form');
+                    
+                    if (loginToggle && registerToggle && loginForm && registerForm) {
+                        // Set initial state
+                        loginForm.classList.add('active');
+                        loginToggle.classList.add('active');
+                        registerForm.classList.remove('active');
+                        registerToggle.classList.remove('active');
+                        
+                        // Add click handlers
+                        loginToggle.onclick = function(e) {
+                            e.preventDefault();
+                            loginForm.classList.add('active');
+                            loginToggle.classList.add('active');
+                            registerForm.classList.remove('active');
+                            registerToggle.classList.remove('active');
+                        };
+                        
+                        registerToggle.onclick = function(e) {
+                            e.preventDefault();
+                            registerForm.classList.add('active');
+                            registerToggle.classList.add('active');
+                            loginForm.classList.remove('active');
+                            loginToggle.classList.remove('active');
+                        };
+                    }
+                })
+                .catch(error => console.error('Error loading auth form:', error));
+        }
+
+        // Close auth form
+        function closeAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize auth form functionality
+        function initializeAuthForm() {
+            const closeButton = document.querySelector('.auth-close-button');
+            if (closeButton) {
+                closeButton.onclick = closeAuthForm;
+            }
+
+            // Add click outside to close
+            document.addEventListener('click', (e) => {
+                const authContainer = document.getElementById('auth-container');
+                if (e.target === authContainer) {
+                    closeAuthForm();
+                }
+            });
+        }
+
+        // Add click handlers to feature cards
+        document.querySelectorAll('.feature-card').forEach(card => {
+            card.addEventListener('click', () => {
+                const href = card.getAttribute('data-href');
+                if (href) {
+                    window.location.href = href;
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

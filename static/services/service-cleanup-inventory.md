@@ -63,80 +63,74 @@
 
 ### Current Locations:
 1. `services/math-teacher/`
-   - assets/
+   - assets/ (empty)
    - subpages/
+     - visual-aids/
+     - problem-generation/
+     - lesson-planning/
+     - Multiple HTML files (25 files)
 
 2. `services/math-teacher.bak/`
-   - assets/
+   - assets/ (empty)
    - subpages/
+     - visual-aids/
+     - problem-generation/
+     - lesson-planning/
+     - Multiple HTML files (28 files)
 
-3. `services/services_subpages/math/`
-   - [Files to be inventoried]
+3. `services/services_subpages/math/` (empty)
 
 ### Action Plan for Math:
-[To be completed after Physical Education cleanup]
+
+#### Step 1: Directory Structure ✓
+1. Create new structure:
+   - `services/math-teacher.html` (main service file) ✓
+   - `services/services_subpages/math/` (new directory)
+
+2. Files to keep:
+   - Main service file: `math.html` (15KB, 372 lines) ✓
+   - Core feature files:
+     - `lesson-planning.html`
+     - `assessment.html`
+     - `visualization.html`
+     - `curriculum-aligned.html`
+     - `real-time-assessment.html`
+     - `adaptive-learning.html`
+     - `problem-generation.html`
+
+3. Subdirectories to merge:
+   - `visual-aids/`
+   - `problem-generation/`
+   - `lesson-planning/`
+
+#### Step 2: Merge Process
+1. First Phase - Main Service File: ✓
+   - Create `math-teacher.html` based on `math.html` ✓
+   - Update styling to match new format ✓
+   - Ensure all links are updated ✓
+
+2. Second Phase - Core Features:
+   - Move and update core feature files to `services_subpages/math/`
+   - Update styling and navigation
+   - Verify all internal links
+
+3. Third Phase - Subdirectories:
+   - Move and merge content from both directories
+   - Resolve any conflicts
+   - Update file paths and links
+
+4. Fourth Phase - Cleanup:
+   - Remove empty directories
+   - Verify all content is accessible
+   - Update any remaining links
+
+### Progress Tracking:
+- [x] Phase 1: Main service file creation
+- [ ] Phase 2: Core features migration
+- [ ] Phase 3: Subdirectories merge
+- [ ] Phase 4: Cleanup and verification
 
 ## History Service
 
 ### Current Locations:
-1. `services/history-teacher/`
-   - assets/
-   - subpages/
-
-2. `services/services_subpages/history/`
-   - [Files to be inventoried]
-
-### Action Plan for History:
-[To be completed after Math cleanup]
-
-## Science Service
-
-### Current Locations:
-1. `services/science-teacher/`
-   - assets/
-   - subpages/
-
-2. `services/services_subpages/science/`
-   - [Files to be inventoried]
-
-### Action Plan for Science:
-[To be completed after History cleanup]
-
-## Language Arts Service
-
-### Current Locations:
-1. `services/language-arts-teacher/`
-   - assets/
-   - subpages/
-
-2. `services/services_subpages/language-arts/`
-   - [Files to be inventoried]
-
-### Action Plan for Language Arts:
-[To be completed after Science cleanup]
-
-## Admin Assistant Service
-
-### Current Locations:
-1. `services/admin-assistant/`
-   - assets/
-   - subpages/
-
-2. `services/admin-assistant.bak/`
-   - assets/
-   - subpages/
-
-3. `services/services_subpages/admin-assistant/`
-   - [Files to be inventoried]
-
-### Action Plan for Admin Assistant:
-[To be completed after Language Arts cleanup]
-
-## Progress Tracking
-
-- [ ] Physical Education Service cleanup
-- [ ] Math Service cleanup
-- [ ] History Service cleanup
-- [ ] Science Service cleanup
-- [ ] Language Arts Service cleanup
-- [ ] Admin Assistant Service cleanup 
+1. `

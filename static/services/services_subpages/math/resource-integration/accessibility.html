@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered accessibility tools for math teachers">
+    <title>Accessibility & Inclusive Learning - Math Teacher Assistant</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <style>
+        :root {
+            --accent-color: #e74c3c;
+            --background-color: #000000;
+            --border-radius: 8px;
+            --card-background: #1a1a1a;
+            --card-hover: #2a2a2a;
+            --primary-color: #3498db;
+            --secondary-color: #ffd700;
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --spacing-unit: 1rem;
+            --text-color: #ffffff;
+            --text-light: #bdc3c7;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .service-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .service-header {
+            position: relative;
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4) 0;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+        }
+
+        .service-subpage-nav {
+            position: absolute;
+            top: 0.5rem;
+            left: var(--spacing-unit);
+            z-index: 10;
+        }
+
+        .service-hero h1 {
+            font-size: 2.75rem;
+            margin-bottom: 1.5rem;
+            color: var(--text-color);
+            font-weight: 900;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .service-tagline {
+            font-size: 1.4rem;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 700;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .content-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: var(--shadow-md);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .content-section h2 {
+            color: var(--secondary-color);
+            margin-bottom: 2rem;
+            font-size: 2rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .content-section p {
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            color: var(--text-light);
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .feature-list li {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+            position: relative;
+            color: var(--text-light);
+            font-weight: 700;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .feature-list li:before {
+            content: "•";
+            color: var(--secondary-color);
+            position: absolute;
+            left: 0;
+            font-size: 1.5rem;
+            line-height: 1;
+        }
+
+        .feature-list li strong {
+            color: var(--text-color);
+            font-weight: 800;
+            font-size: 1.15rem;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 700;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            background-color: var(--secondary-color);
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+
+        .back-link:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .integration-section {
+            margin-top: 2.5rem;
+            padding: 1.5rem;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius);
+        }
+
+        .integration-section h3 {
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.4rem;
+            font-weight: 800;
+        }
+
+        .integration-section p {
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .getting-started-section {
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .cta-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="service-container">
+        <header class="service-header">
+            <nav class="service-subpage-nav">
+                <a href="/static/services/math-teacher.html" class="back-link">← Back to Math Teacher Assistant</a>
+            </nav>
+            <div class="service-hero">
+                <h1>Accessibility & Inclusive Learning</h1>
+                <p class="service-tagline">AI-powered accessibility tools for inclusive math education</p>
+            </div>
+        </header>
+
+        <div class="content-section">
+            <h2>Comprehensive Overview</h2>
+            <p>Our AI-powered accessibility system <strong>ensures equal access to math education for all students</strong>. By providing adaptive tools and inclusive features, we help you create a learning environment that accommodates diverse needs and learning styles.</p>
+            
+            <p>The system offers multiple ways to access and interact with mathematical content, ensuring that every student can participate fully in the learning process.</p>
+
+            <p><strong>What sets our accessibility system apart:</strong></p>
+            <ul class="feature-list">
+                <li><strong>Multiple Access Modes:</strong> Provide content in various formats to suit different learning needs.</li>
+                <li><strong>Adaptive Interfaces:</strong> Customize the learning environment to match individual requirements.</li>
+                <li><strong>Assistive Technologies:</strong> Integrate with existing assistive tools and devices.</li>
+                <li><strong>Universal Design:</strong> Ensure content is accessible to all students from the start.</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>Key Features</h2>
+            <ul class="feature-list">
+                <li><strong>Screen Reader Support:</strong> Full compatibility with screen readers and other assistive technologies.</li>
+                <li><strong>Alternative Formats:</strong> Access content in multiple formats (text, audio, visual).</li>
+                <li><strong>Customizable Display:</strong> Adjust text size, colors, and contrast for better readability.</li>
+                <li><strong>Keyboard Navigation:</strong> Complete keyboard accessibility for all features.</li>
+                <li><strong>Captioning & Transcripts:</strong> Automatic generation of captions and transcripts.</li>
+                <li><strong>Cross-GPT Integration:</strong> Leverage insights from all your subscribed GPTs to enhance accessibility.</li>
+            </ul>
+        </div>
+
+        <div class="content-section">
+            <h2>Integration Capabilities</h2>
+            <div class="integration-section">
+                <h3>Unified Account System</h3>
+                <p>Access all your subscribed GPTs through a <strong>single account</strong>, with seamless data sharing between them to provide comprehensive accessibility features. Your preferences, progress, and customizations are synchronized across all platforms.</p>
+            </div>
+            <div class="integration-section">
+                <h3>Advanced Accessibility Tools</h3>
+                <p>Create and manage accessible content with our <strong>intuitive accessibility system</strong>. Design inclusive learning materials, track accessibility compliance, and ensure equal access for all students.</p>
+            </div>
+            <div class="integration-section">
+                <h3>Assistive Technology Integration</h3>
+                <p>Work seamlessly with existing assistive technologies through <strong>comprehensive integration support</strong>. Ensure compatibility with screen readers, speech recognition, and other accessibility tools.</p>
+            </div>
+            <div class="integration-section">
+                <h3>Accessibility Analytics</h3>
+                <p>Monitor and improve accessibility with <strong>detailed analytics and reporting tools</strong>. Identify areas for improvement and make data-driven decisions to enhance inclusive learning.</p>
+            </div>
+            <div class="integration-section">
+                <h3>Cross-GPT Intelligence</h3>
+                <p>Leverage the combined knowledge of all your subscribed GPTs to <strong>enhance accessibility quality and effectiveness</strong>. The system learns from interactions across all platforms to provide increasingly inclusive and accessible learning experiences.</p>
+            </div>
+        </div>
+
+        <section class="getting-started-section">
+            <h2>Getting Started</h2>
+            <p>Ready to transform your accessibility experience?</p>
+            <a href="/static/services/math-teacher.html" class="back-link" style="margin-right: 1rem;">← Back to Math Teacher Assistant</a>
+            <button class="cta-button" onclick="showComingSoon()">Get Started</button>
+        </section>
+    </div>
+
+    <script>
+        function showComingSoon() {
+            alert('This feature is coming soon! Stay tuned for updates.');
+        }
+    </script>
+</body>
+</html> 
