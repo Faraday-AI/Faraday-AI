@@ -17,6 +17,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, Response, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -27,7 +29,6 @@ from app.services.file_processing_service import FileProcessingService
 from app.services.ai_analytics import AIAnalytics
 from app.api.endpoints import ai_analysis
 import json
-from app.core.config import get_settings
 from app.api import physical_education
 from app.core.database import init_db
 from app.api import auth
@@ -36,9 +37,14 @@ import socket
 from app.core.health import router as health_router
 from app.services.pe_service import PEService
 from app.api.v1 import activity_management
-import redis.asyncio as redis
 from app.services.physical_education.services.security_service import SecurityService
 from app.api.v1.middleware.cache import add_caching
+from app.api.api_v1.api import api_router
+from fastapi_limiter import FastAPILimiter, RateLimitMiddleware
+from fastapi_limiter.depends import RateLimit
+from app.middleware.auth import AuthMiddleware
+from app.middleware.rate_limit import RateLimitMiddleware
+import redis
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -137,8 +143,8 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=settings.CORS_CREDENTIALS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -160,18 +166,28 @@ async def startup_event():
         # Initialize PE service
         pe_service = get_pe_service()
         await pe_service.initialize()
-        
+
         # Initialize Redis client
-        redis_client = redis.Redis(host='localhost', port=6379, db=0)
+        redis_client = redis.Redis(
+            host=settings.REDIS_HOST,
+            port=settings.REDIS_PORT,
+            db=settings.REDIS_DB,
+            password=settings.REDIS_PASSWORD,
+            decode_responses=True
+        )
         
         # Initialize Security service
         global security_service
         security_service = SecurityService(redis_client)
         await security_service.initialize()
         
+        # Set initialized flag
+        app.state.initialized = True
+        
         logger.info("Services initialized successfully")
     except Exception as e:
         logger.error(f"Error during startup: {str(e)}")
+        app.state.initialized = False
         raise
 
 @app.on_event("shutdown")
@@ -342,15 +358,61 @@ async def memory():
 
 @app.get("/health")
 async def health_check():
-    """Simple health check endpoint for Docker."""
+    """Comprehensive health check endpoint."""
     try:
+        # Check database connection
+        try:
+            await init_db()
+            db_status = "healthy"
+        except Exception as e:
+            logger.error(f"Database health check failed: {str(e)}")
+            db_status = "unhealthy"
+
+        # Check Redis connection
+        try:
+            redis_client.ping()
+            redis_status = "healthy"
+        except Exception as e:
+            logger.error(f"Redis health check failed: {str(e)}")
+            redis_status = "unhealthy"
+
+        # Check static files
+        try:
+            static_dir = Path("/app/static")
+            static_status = "healthy" if static_dir.exists() else "unhealthy"
+        except Exception as e:
+            logger.error(f"Static files health check failed: {str(e)}")
+            static_status = "unhealthy"
+
+        # Check models directory
+        try:
+            model_dir = Path("/app/models")
+            model_status = "healthy" if model_dir.exists() else "unhealthy"
+        except Exception as e:
+            logger.error(f"Models directory health check failed: {str(e)}")
+            model_status = "unhealthy"
+
+        # Overall status
+        overall_status = "healthy" if all(status == "healthy" for status in [db_status, redis_status, static_status, model_status]) else "degraded"
+
         return {
-            "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat()
+            "status": overall_status,
+            "timestamp": datetime.utcnow().isoformat(),
+            "components": {
+                "database": db_status,
+                "redis": redis_status,
+                "static_files": static_status,
+                "models": model_status
+            },
+            "version": os.getenv("VERSION", "0.1.0"),
+            "environment": os.getenv("APP_ENVIRONMENT", "production")
         }
     except Exception as e:
         logger.error(f"Health check failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Service is unhealthy"
+        )
 
 # Set up rate limiting
 limiter = Limiter(key_func=get_remote_address)
@@ -553,7 +615,7 @@ async def websocket_endpoint(websocket: WebSocket, user_id: str):
                     "type": "error",
                     "message": "Invalid JSON format"
                 })
-            except Exception as e:
+    except Exception as e:
                 logger.error(f"Error processing message from user {user_id}: {str(e)}")
                 await websocket.send_json({
                     "type": "error",
@@ -3223,4 +3285,108 @@ async def serve_service_page_head(service_name: str):
     except Exception as e:
         logger.error(f"Error handling HEAD request for {service_name}: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# Error handlers
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    logger.error(f"Validation error: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors(), "body": exc.body},
+    )
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    logger.error(f"HTTP error: {exc}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+    )
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Internal server error"},
+    )
+
+@app.get("/ready")
+async def readiness_probe():
+    """Readiness probe endpoint for Kubernetes/Render."""
+    try:
+        # Check if all required services are initialized
+        if not hasattr(app.state, 'initialized') or not app.state.initialized:
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={"status": "not_ready", "reason": "Application not fully initialized"}
+            )
+
+        # Check if all required services are available
+        services_status = {
+            "database": await check_database(),
+            "redis": await check_redis(),
+            "minio": await check_minio(),
+            "models": await check_models()
+        }
+
+        if all(status == "ready" for status in services_status.values()):
+            return {
+                "status": "ready",
+                "services": services_status,
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        else:
+            return JSONResponse(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                content={
+                    "status": "not_ready",
+                    "services": services_status,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
+    except Exception as e:
+        logger.error(f"Readiness probe failed: {str(e)}")
+        return JSONResponse(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            content={"status": "not_ready", "reason": str(e)}
+        )
+
+async def check_database():
+    try:
+        await init_db()
+        return "ready"
+    except Exception as e:
+        logger.error(f"Database check failed: {str(e)}")
+        return "not_ready"
+
+async def check_redis():
+    try:
+        redis_client.ping()
+        return "ready"
+    except Exception as e:
+        logger.error(f"Redis check failed: {str(e)}")
+        return "not_ready"
+
+async def check_minio():
+    try:
+        # Add MinIO check logic here
+        return "ready"
+    except Exception as e:
+        logger.error(f"MinIO check failed: {str(e)}")
+        return "not_ready"
+
+async def check_models():
+    try:
+        model_dir = Path("/app/models")
+        if not model_dir.exists():
+            return "not_ready"
+        required_models = ["movement_analysis.h5", "activity_adaptation.joblib", "activity_assessment.joblib"]
+        for model in required_models:
+            if not (model_dir / model).exists():
+                return "not_ready"
+        return "ready"
+    except Exception as e:
+        logger.error(f"Models check failed: {str(e)}")
+        return "not_ready"
 

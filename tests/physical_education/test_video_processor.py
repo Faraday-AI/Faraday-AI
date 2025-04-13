@@ -5,7 +5,7 @@ from datetime import datetime
 from unittest.mock import patch, MagicMock, AsyncMock
 from app.services.physical_education.services.video_processor import VideoProcessor
 from app.services.physical_education.models.movement_analysis.movement_models import MovementModels
-from app.services.physical_education.models.skill_assessment.skill_models import SkillModels
+from app.services.physical_education.models.skill_assessment.skill_assessment_models import SkillModels
 from app.services.physical_education.services.movement_analyzer import MovementAnalyzer
 
 @pytest.fixture
@@ -249,4 +249,54 @@ async def test_get_cache_stats(video_processor):
     
     assert "hits" in stats
     assert "misses" in stats
-    assert "evictions" in stats 
+    assert "evictions" in stats
+
+@pytest.mark.asyncio
+async def test_analyze_motion(video_processor, sample_frames):
+    """Test motion analysis."""
+    with patch.object(video_processor, 'extract_features', return_value={"motion_vectors": np.zeros((10, 2))}):
+        result = await video_processor.analyze_motion(sample_frames)
+        assert "motion_vectors" in result
+        assert "motion_metrics" in result
+
+@pytest.mark.asyncio
+async def test_analyze_temporal(video_processor, sample_frames):
+    """Test temporal analysis."""
+    with patch.object(video_processor, 'extract_features', return_value={"temporal_features": np.zeros(10)}):
+        result = await video_processor.analyze_temporal(sample_frames)
+        assert "temporal_features" in result
+        assert "temporal_metrics" in result
+
+@pytest.mark.asyncio
+async def test_analyze_spatial(video_processor, sample_frames):
+    """Test spatial analysis."""
+    with patch.object(video_processor, 'extract_features', return_value={"spatial_features": np.zeros((10, 3))}):
+        result = await video_processor.analyze_spatial(sample_frames)
+        assert "spatial_features" in result
+        assert "spatial_metrics" in result
+
+@pytest.mark.asyncio
+async def test_compress_video(video_processor, sample_frames):
+    """Test video compression."""
+    settings = {
+        "codec": "h264",
+        "quality": 0.8,
+        "fps": 30
+    }
+    result = await video_processor.compress_video(sample_frames, settings)
+    assert "compressed_frames" in result
+    assert len(result["compressed_frames"]) == len(sample_frames)
+
+@pytest.mark.asyncio
+async def test_detect_artifacts(video_processor, sample_frames):
+    """Test artifact detection."""
+    result = await video_processor.detect_artifacts(sample_frames)
+    assert "artifacts" in result
+    assert isinstance(result["artifacts"], list)
+
+@pytest.mark.asyncio
+async def test_optimize_processing(video_processor, sample_frames):
+    """Test processing optimization."""
+    result = await video_processor.optimize_processing(sample_frames)
+    assert "optimized_frames" in result
+    assert len(result["optimized_frames"]) == len(sample_frames) 

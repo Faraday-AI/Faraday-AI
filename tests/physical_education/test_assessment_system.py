@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timedelta
 import numpy as np
+import pandas as pd
 from app.services.physical_education.services.assessment_system import AssessmentSystem
 
 class TestAssessmentSystem(unittest.TestCase):
@@ -47,6 +48,33 @@ class TestAssessmentSystem(unittest.TestCase):
                     "adaptability": 0.6
                 }
             }
+        }
+        
+        # Additional test data for assessment operations
+        self.mock_assessment_data = {
+            'assessment_id': 'assess1',
+            'student_id': 'student1',
+            'type': 'fitness_test',
+            'date': datetime.now(),
+            'components': {
+                'endurance': {
+                    'score': 85,
+                    'max_score': 100,
+                    'metrics': ['distance', 'time', 'heart_rate']
+                },
+                'strength': {
+                    'score': 75,
+                    'max_score': 100,
+                    'metrics': ['reps', 'weight', 'form']
+                },
+                'flexibility': {
+                    'score': 90,
+                    'max_score': 100,
+                    'metrics': ['range', 'form', 'balance']
+                }
+            },
+            'overall_score': 83.3,
+            'notes': 'Good performance overall, needs improvement in strength'
         }
 
     def test_test_data_validity(self):
@@ -297,4 +325,119 @@ class TestAssessmentSystem(unittest.TestCase):
         self.assertIsInstance(feedback, str)
         self.assertGreater(len(feedback), 0)
         self.assertIn("strengths", feedback.lower())
-        self.assertIn("improvements", feedback.lower()) 
+        self.assertIn("improvements", feedback.lower())
+
+    async def test_assessment_operations(self):
+        """Test basic assessment operations (CRUD)."""
+        # Create assessment
+        assessment = await self.assessment_system.create_assessment(self.mock_assessment_data)
+        self.assertIsNotNone(assessment)
+        self.assertEqual(assessment['assessment_id'], self.mock_assessment_data['assessment_id'])
+        
+        # Get assessment
+        retrieved = await self.assessment_system.get_assessment(assessment['assessment_id'])
+        self.assertEqual(retrieved['assessment_id'], assessment['assessment_id'])
+        
+        # Update assessment
+        updated_data = self.mock_assessment_data.copy()
+        updated_data['components']['strength']['score'] = 80
+        updated = await self.assessment_system.update_assessment(assessment['assessment_id'], updated_data)
+        self.assertEqual(updated['components']['strength']['score'], 80)
+        
+        # Delete assessment
+        result = await self.assessment_system.delete_assessment(assessment['assessment_id'])
+        self.assertTrue(result)
+        with self.assertRaises(Exception):
+            await self.assessment_system.get_assessment(assessment['assessment_id'])
+
+    async def test_assessment_configuration(self):
+        """Test assessment configuration functionality."""
+        await self.assessment_system.configure_assessment(
+            assessment_types=['fitness_test', 'skill_test', 'performance_test'],
+            scoring_rules={
+                'weighted_average': True,
+                'component_weights': {'endurance': 0.4, 'strength': 0.3, 'flexibility': 0.3}
+            },
+            grading_criteria={
+                'A': 90,
+                'B': 80,
+                'C': 70,
+                'D': 60
+            }
+        )
+        
+        config = self.assessment_system.assessment_config
+        self.assertIn('fitness_test', config['assessment_types'])
+        self.assertTrue(config['scoring_rules']['weighted_average'])
+        self.assertEqual(config['grading_criteria']['A'], 90)
+
+    async def test_assessment_report_generation(self):
+        """Test assessment report generation."""
+        assessment = await self.assessment_system.create_assessment(self.mock_assessment_data)
+        report = await self.assessment_system.generate_assessment_report(assessment)
+        
+        self.assertIn('summary', report)
+        self.assertIn('component_scores', report)
+        self.assertIn('strengths', report)
+        self.assertIn('areas_for_improvement', report)
+        self.assertIn('recommendations', report)
+
+    async def test_assessment_trend_analysis(self):
+        """Test assessment trend analysis."""
+        assessment1 = await self.assessment_system.create_assessment(self.mock_assessment_data)
+        assessment2_data = self.mock_assessment_data.copy()
+        assessment2_data['assessment_id'] = 'assess2'
+        assessment2_data['date'] = datetime.now() + timedelta(days=30)
+        assessment2 = await self.assessment_system.create_assessment(assessment2_data)
+        
+        trends = await self.assessment_system.analyze_assessment_trends('student1')
+        self.assertIn('progress', trends)
+        self.assertIn('improvement_areas', trends)
+        self.assertIn('consistency', trends)
+        self.assertIn('predictions', trends)
+
+    async def test_assessment_comparison(self):
+        """Test assessment comparison functionality."""
+        assessment1 = await self.assessment_system.create_assessment(self.mock_assessment_data)
+        assessment2_data = self.mock_assessment_data.copy()
+        assessment2_data['assessment_id'] = 'assess2'
+        assessment2_data['components']['strength']['score'] = 85
+        assessment2 = await self.assessment_system.create_assessment(assessment2_data)
+        
+        comparison = await self.assessment_system.compare_assessments(
+            assessment1['assessment_id'],
+            assessment2['assessment_id']
+        )
+        self.assertIn('score_differences', comparison)
+        self.assertIn('improvements', comparison)
+        self.assertIn('regressions', comparison)
+        self.assertIn('overall_change', comparison)
+
+    async def test_assessment_export(self):
+        """Test assessment export functionality."""
+        assessment = await self.assessment_system.create_assessment(self.mock_assessment_data)
+        
+        with patch('pandas.DataFrame.to_csv') as mock_to_csv:
+            await self.assessment_system.export_assessment(assessment, 'csv', 'assessment.csv')
+            mock_to_csv.assert_called_once()
+        
+        with patch('reportlab.pdfgen.canvas.Canvas') as mock_canvas:
+            await self.assessment_system.export_assessment(assessment, 'pdf', 'assessment.pdf')
+            mock_canvas.assert_called_once()
+
+    async def test_assessment_validation(self):
+        """Test assessment data validation."""
+        valid_data = {
+            'assessment_id': 'assess1',
+            'student_id': 'student1',
+            'type': 'fitness_test',
+            'components': {
+                'endurance': {'score': 85, 'max_score': 100}
+            }
+        }
+        
+        self.assertTrue(await self.assessment_system._validate_assessment_data(valid_data))
+        
+        invalid_data = valid_data.copy()
+        invalid_data['components']['endurance']['score'] = 150  # Score above maximum
+        self.assertFalse(await self.assessment_system._validate_assessment_data(invalid_data)) 
