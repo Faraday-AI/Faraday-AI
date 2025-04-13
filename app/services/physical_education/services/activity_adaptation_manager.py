@@ -5,16 +5,14 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-from ..models.activity_adaptation import (
+from ..models.activity_adaptation.activity_adaptation_models import (
     ActivityAdaptation,
-    AdaptationHistory,
-    AdaptationRule,
-    AdaptationCriteria
+    AdaptationHistory
 )
 from ..models.activity import Activity
 from ..models.student import Student
 from app.core.database import get_db
-from app.services.physical_education.models.activity_adaptation import ActivityAdaptationModel
+from app.services.physical_education.models.activity_adaptation.activity_adaptation_models import ActivityAdaptationModel
 from ..config.model_paths import get_model_path, ensure_model_directories
 
 class ActivityAdaptationManager:
