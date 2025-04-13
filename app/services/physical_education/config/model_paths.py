@@ -6,8 +6,20 @@ from typing import Dict, Literal, Optional, Union
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Base model directory
-BASE_MODEL_DIR = Path(os.getenv('MODEL_DIR', '/app/models'))
+# Use relative path for models directory
+BASE_MODEL_DIR = Path(os.getenv('MODEL_DIR', './models'))
+
+# Ensure the directory exists
+BASE_MODEL_DIR.mkdir(parents=True, exist_ok=True)
+
+# Model paths
+ACTIVITY_ADAPTATION_MODEL = BASE_MODEL_DIR / "activity_adaptation_metadata.json"
+ACTIVITY_ASSESSMENT_MODEL = BASE_MODEL_DIR / "activity_assessment_metadata.json"
+MOVEMENT_ANALYSIS_MODEL = BASE_MODEL_DIR / "movement_analysis_metadata.json"
+
+# Ensure all model directories exist
+for path in [ACTIVITY_ADAPTATION_MODEL, ACTIVITY_ASSESSMENT_MODEL, MOVEMENT_ANALYSIS_MODEL]:
+    path.parent.mkdir(parents=True, exist_ok=True)
 
 # Model paths configuration
 MODEL_PATHS = {
