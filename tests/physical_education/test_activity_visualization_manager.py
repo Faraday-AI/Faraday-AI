@@ -4,6 +4,10 @@ import numpy as np
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock
 from app.services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
+import plotly.graph_objects as go
+import matplotlib.pyplot as plt
+import os
+from pathlib import Path
 
 @pytest.fixture
 def visualization_manager():
@@ -295,4 +299,224 @@ async def test_error_handling(visualization_manager):
             performance_data=sample_performance_data,
             skill_data=sample_skill_data,
             visualization_types=['invalid_type']
-        ) 
+        )
+
+def test_set_theme(visualization_manager):
+    # Test setting valid theme
+    visualization_manager.set_theme('dark')
+    assert visualization_manager.visualization_config['current_theme'] == 'dark'
+    
+    # Test setting invalid theme
+    with pytest.raises(KeyError):
+        visualization_manager.set_theme('invalid_theme')
+
+def test_set_accessibility(visualization_manager):
+    # Test setting accessibility options
+    visualization_manager.set_accessibility(
+        high_contrast=True,
+        screen_reader=False,
+        alt_text=True
+    )
+    
+    assert visualization_manager.visualization_config['accessibility']['high_contrast'] is True
+    assert visualization_manager.visualization_config['accessibility']['screen_reader'] is False
+    assert visualization_manager.visualization_config['accessibility']['alt_text'] is True
+
+@patch('plotly.express.line')
+def test_generate_performance_trend_plot(mock_line, visualization_manager, sample_performance_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_line.return_value = mock_fig
+    
+    # Test
+    fig = visualization_manager._generate_performance_trend_plot(
+        sample_performance_data,
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert fig == mock_fig
+    mock_line.assert_called_once()
+
+@patch('plotly.express.density_heatmap')
+def test_generate_category_heatmap(mock_heatmap, visualization_manager, sample_performance_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_heatmap.return_value = mock_fig
+    
+    # Test
+    fig = visualization_manager._generate_category_heatmap(
+        sample_performance_data,
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert fig == mock_fig
+    mock_heatmap.assert_called_once()
+
+@patch('plotly.express.histogram')
+def test_generate_activity_distribution_plot(mock_histogram, visualization_manager, sample_performance_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_histogram.return_value = mock_fig
+    
+    # Test
+    fig = visualization_manager._generate_activity_distribution_plot(
+        sample_performance_data,
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert fig == mock_fig
+    mock_histogram.assert_called_once()
+
+@patch('plotly.express.line')
+def test_generate_improvement_trends_plot(mock_line, visualization_manager, sample_performance_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_line.return_value = mock_fig
+    
+    # Test
+    fig = visualization_manager._generate_improvement_trends_plot(
+        sample_performance_data,
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert fig == mock_fig
+    mock_line.assert_called_once()
+
+@patch('plotly.express.scatter')
+def test_generate_skill_analysis_plot(mock_scatter, visualization_manager, sample_skill_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_scatter.return_value = mock_fig
+    
+    # Test
+    fig = visualization_manager._generate_skill_analysis_plot(
+        sample_skill_data,
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert fig == mock_fig
+    mock_scatter.assert_called_once()
+
+@patch('plotly.graph_objects.Figure')
+def test_generate_sankey_diagram(mock_figure, visualization_manager, sample_performance_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_figure.return_value = mock_fig
+    
+    # Test
+    fig = visualization_manager._generate_sankey_diagram(
+        sample_performance_data,
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert fig == mock_fig
+    mock_figure.assert_called_once()
+
+@patch('plotly.express.treemap')
+def test_generate_treemap(mock_treemap, visualization_manager, sample_performance_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_treemap.return_value = mock_fig
+    
+    # Test
+    fig = visualization_manager._generate_treemap(
+        sample_performance_data,
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert fig == mock_fig
+    mock_treemap.assert_called_once()
+
+@patch('plotly.express.sunburst')
+def test_generate_sunburst_chart(mock_sunburst, visualization_manager, sample_performance_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_sunburst.return_value = mock_fig
+    
+    # Test
+    fig = visualization_manager._generate_sunburst_chart(
+        sample_performance_data,
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert fig == mock_fig
+    mock_sunburst.assert_called_once()
+
+@patch('plotly.express.violin')
+def test_generate_violin_plot(mock_violin, visualization_manager, sample_performance_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_violin.return_value = mock_fig
+    
+    # Test
+    fig = visualization_manager._generate_violin_plot(
+        sample_performance_data,
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert fig == mock_fig
+    mock_violin.assert_called_once()
+
+@patch('plotly.graph_objects.Figure.update_layout')
+def test_add_accessibility_features(mock_update_layout, visualization_manager):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    
+    # Test
+    visualization_manager._add_accessibility_features(mock_fig, 'performance_trend')
+    
+    # Verify
+    mock_update_layout.assert_called()
+
+@patch('plotly.graph_objects.Figure.write_image')
+@patch('plotly.graph_objects.Figure.write_html')
+def test_save_visualization(mock_write_html, mock_write_image, visualization_manager):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    student_id = 'test_student'
+    viz_type = 'performance_trend'
+    
+    # Test
+    output_paths = visualization_manager._save_visualization(mock_fig, student_id, viz_type)
+    
+    # Verify
+    assert isinstance(output_paths, dict)
+    mock_write_image.assert_called()
+    mock_write_html.assert_called()
+
+@patch('plotly.graph_objects.Figure.write_image')
+def test_generate_visualizations(mock_write_image, visualization_manager, sample_performance_data):
+    # Setup
+    mock_fig = MagicMock(spec=go.Figure)
+    mock_write_image.return_value = None
+    
+    # Test
+    visualizations = visualization_manager.generate_visualizations(
+        sample_performance_data,
+        'test_student',
+        visualization_types=['performance_trend'],
+        interactive=True,
+        drill_down=True
+    )
+    
+    # Verify
+    assert isinstance(visualizations, dict)
+    assert 'performance_trend' in visualizations 

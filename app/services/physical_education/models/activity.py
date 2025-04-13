@@ -4,6 +4,7 @@ from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, JSO
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 import enum
+from pydantic import BaseModel, Field, validator
 
 # Import models to avoid circular imports
 from app.services.physical_education.models.class_ import Class
@@ -48,33 +49,74 @@ activity_category_association = Table(
 class Activity(Base):
     __tablename__ = "activities"
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    description = Column(String, nullable=False)
-    activity_type = Column(SQLEnum(ActivityType), nullable=False)
-    difficulty = Column(SQLEnum(DifficultyLevel), nullable=False)
-    equipment_required = Column(SQLEnum(EquipmentRequirement), nullable=False)
+    description = Column(String)
+    type = Column(SQLEnum(ActivityType), nullable=False)
+    difficulty_level = Column(SQLEnum(DifficultyLevel), nullable=False)
     duration_minutes = Column(Integer, nullable=False)
-    instructions = Column(String, nullable=False)
-    safety_notes = Column(String, nullable=False)
-    variations = Column(JSON, default=list)
-    modifications = Column(JSON, default=dict)
+    equipment_requirements = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    exercises = relationship("Exercise", back_populates="activity", cascade="all, delete-orphan")
     routines = relationship("RoutineActivity", back_populates="activity")
-    safety_incidents = relationship("SafetyIncident", back_populates="activity", cascade="all, delete-orphan")
-    risk_assessment = relationship("RiskAssessment", back_populates="activity", uselist=False, cascade="all, delete-orphan")
-    activity_performances = relationship("StudentActivityPerformance", back_populates="activity", cascade="all, delete-orphan")
-    progressions = relationship("ActivityProgression", back_populates="activity", cascade="all, delete-orphan")
-    plan_activities = relationship("ActivityPlanActivity", back_populates="activity", cascade="all, delete-orphan")
-    movement_analyses = relationship("MovementAnalysis", back_populates="activity", cascade="all, delete-orphan")
-    skill_assessments = relationship("SkillAssessment", back_populates="activity", cascade="all, delete-orphan")
+    adaptations = relationship("ActivityAdaptation", back_populates="activity")
+    assessments = relationship("SkillAssessment", back_populates="activity")
 
     def __repr__(self):
         return f"<Activity {self.name}>"
+
+class ActivityBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    type: ActivityType
+    difficulty_level: DifficultyLevel
+    duration_minutes: int = Field(..., gt=0, le=240)  # Max 4 hours
+    equipment_requirements: Optional[List[EquipmentRequirement]] = None
+
+    @validator('name')
+    def validate_name(cls, v):
+        if not v.strip():
+            raise ValueError('Name cannot be empty or whitespace')
+        return v.strip()
+
+    @validator('description')
+    def validate_description(cls, v):
+        if v is not None and not v.strip():
+            raise ValueError('Description cannot be empty or whitespace')
+        return v.strip() if v else v
+
+class ActivityCreate(ActivityBase):
+    pass
+
+class ActivityUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+    type: Optional[ActivityType] = None
+    difficulty_level: Optional[DifficultyLevel] = None
+    duration_minutes: Optional[int] = Field(None, gt=0, le=240)
+    equipment_requirements: Optional[List[EquipmentRequirement]] = None
+
+    @validator('name')
+    def validate_name(cls, v):
+        if v is not None and not v.strip():
+            raise ValueError('Name cannot be empty or whitespace')
+        return v.strip() if v else v
+
+    @validator('description')
+    def validate_description(cls, v):
+        if v is not None and not v.strip():
+            raise ValueError('Description cannot be empty or whitespace')
+        return v.strip() if v else v
+
+class ActivityResponse(ActivityBase):
+    id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        orm_mode = True
 
 class Exercise(Base):
     __tablename__ = "exercises"
