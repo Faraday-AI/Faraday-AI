@@ -1,5 +1,5 @@
 # Build stage
-FROM python:3.10-slim as builder
+FROM python:3.10.13-slim as builder
 
 WORKDIR /app
 
@@ -19,7 +19,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Final stage
-FROM python:3.10-slim
+FROM python:3.10.13-slim
 
 WORKDIR /app
 
@@ -45,10 +45,11 @@ RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /opt/venv && \
     chmod -R 755 /opt/venv
 
-# Create models directory and set permissions
-RUN mkdir -p /app/models && \
-    chown -R appuser:appuser /app/models && \
-    chmod -R 755 /app/models
+# Create required directories and set permissions
+RUN mkdir -p /app/models /app/static /tmp/faraday-ai/logs && \
+    chown -R appuser:appuser /app && \
+    chmod -R 755 /app && \
+    chmod -R 777 /tmp/faraday-ai/logs
 
 # Copy application code
 COPY . .
@@ -69,9 +70,17 @@ RUN /opt/venv/bin/python -c "import tensorflow as tf; \
 # Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+ENV APP_ENVIRONMENT=production
+ENV LOG_LEVEL=info
+ENV LOG_DIR=/tmp/faraday-ai/logs
+ENV MODEL_DIR=/app/models
+ENV WORKERS=8
+ENV DEBUG=false
 
-# Expose port
+# Expose ports
 EXPOSE 8000
+EXPOSE 8001
+EXPOSE 8002
 
 # Run the application
-CMD ["/opt/venv/bin/uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+CMD ["/opt/venv/bin/gunicorn", "--config", "gunicorn.conf.py", "wsgi:application"] 

@@ -9,7 +9,7 @@ services:
       
       # Create models and logs directory structure
       echo "Creating directory structure..."
-      mkdir -p models
+      mkdir -p /app/models
       mkdir -p /tmp/faraday-ai/logs
       chmod -R 777 /tmp/faraday-ai/logs
       
@@ -40,19 +40,19 @@ services:
               tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)),
               tf.keras.layers.Dense(1, activation='sigmoid')
           ])
-          model.save('models/movement_analysis.h5')
+          model.save('/app/models/movement_analysis.h5')
           logger.info('Movement analysis model created successfully')
           
           # Create activity adaptation model
           logger.info('Creating activity adaptation model...')
           adaptation_model = {'weights': np.random.rand(10)}
-          joblib.dump(adaptation_model, 'models/activity_adaptation.joblib')
+          joblib.dump(adaptation_model, '/app/models/activity_adaptation.joblib')
           logger.info('Activity adaptation model created successfully')
           
           # Create activity assessment model
           logger.info('Creating activity assessment model...')
           assessment_model = {'weights': np.random.rand(10)}
-          joblib.dump(assessment_model, 'models/activity_assessment.joblib')
+          joblib.dump(assessment_model, '/app/models/activity_assessment.joblib')
           logger.info('Activity assessment model created successfully')
           
       except Exception as e:
@@ -99,30 +99,30 @@ services:
       echo "Final directory structure:"
       ls -la /app/static
       echo "Models directory contents:"
-      ls -la models
+      ls -la /app/models
     startCommand: |
       echo "Starting application..."
       echo "Current directory: $(pwd)"
       echo "Static directory contents:"
       ls -la /app/static
       echo "Models directory contents:"
-      ls -la models
+      ls -la /app/models
       python3.10 -m gunicorn --config gunicorn.conf.py wsgi:application
     envVars:
       - key: PYTHON_VERSION
-        value: 3.10.0
+        value: 3.10.13
       - key: PYTHONPATH
         value: .
       - key: APP_ENVIRONMENT
         value: production
       - key: PORT
-        value: 10000
+        value: 8000
       - key: API_PORT
-        value: 10000
+        value: 8000
       - key: METRICS_PORT
-        value: 10001
+        value: 8001
       - key: WEBSOCKET_PORT
-        value: 10002
+        value: 8002
       - key: LOG_LEVEL
         value: info
       - key: LOG_DIR
@@ -132,7 +132,7 @@ services:
       - key: VERSION
         value: 0.1.0
       - key: WORKERS
-        value: 4
+        value: 8
       - key: ALLOWED_HOSTS
         value: faraday-ai.onrender.com,localhost,127.0.0.1,faraday-ai.com,www.faraday-ai.com
       - key: CORS_ORIGINS

@@ -1,0 +1,17 @@
+{
+    "video_settings": {
+        "frame_rate": 30,
+        "resolution": [1280, 720],
+        "codec": "h264",
+        "buffer_size": 100
+    },
+    "processing_settings": {
+        "max_frames_to_process": 1000,
+        "skip_frames": 1,
+        "preprocessing": {
+            "resize": true,
+            "normalize": true,
+            "convert_to_rgb": true
+        }
+    }
+} 

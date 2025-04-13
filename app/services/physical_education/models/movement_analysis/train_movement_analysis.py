@@ -7,9 +7,6 @@ import cv2
 from typing import List, Dict, Any
 import json
 from pathlib import Path
-import logging
-from app.core.monitoring import track_metrics
-from app.services.physical_education.models.movement_analysis.movement_models import MovementModels
 from datetime import datetime
 
 class MovementAnalysisTrainer:
@@ -231,9 +228,11 @@ class MovementAnalysisTrainer:
         model.save('models/movement_analysis_model.h5')
         
         # Save model metadata
+        input_shape = X.shape[1:]
+        num_classes = len(self._get_all_movements())
         metadata = {
-            'input_shape': X.shape[1:],
-            'num_classes': len(self._get_all_movements()),
+            'input_shape': input_shape,
+            'num_classes': num_classes,
             'model_type': 'movement_analysis',
             'version': '1.0.0',
             'created_at': datetime.now().isoformat()

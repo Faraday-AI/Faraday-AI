@@ -13,29 +13,67 @@ services:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=redis://redis:6379/0
       - MINIO_URL=minio:9002
-      - MINIO_ACCESS_KEY=minioadmin
-      - MINIO_SECRET_KEY=minioadmin
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
       - MINIO_BUCKET=faraday-media
       - ENABLE_METRICS=true
       - LOG_LEVEL=INFO
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - MODEL_DIR=/app/models
       - LOG_DIR=/app/logs
+      - REDIS_HOST=redis
+      - MINIO_ENDPOINT=minio:9000
     volumes:
       - ./static:/app/static
       - ./models:/app/models
       - ./logs:/app/logs
+      - ./exports:/app/exports
     depends_on:
       - redis
       - minio
       - prometheus
       - grafana
+      - exports
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - faraday-network
+
+  # Export Service
+  exports:
+    build: .
+    command: python -m app.services.export_service
+    volumes:
+      - ./exports:/app/exports
+      - ./logs:/app/logs
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://redis:6379/0
+      - LOG_LEVEL=INFO
+      - LOG_DIR=/app/logs
+    depends_on:
+      - redis
+    networks:
+      - faraday-network
+
+  # Database Service
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-faraday}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - faraday-network
 
@@ -56,17 +94,17 @@ services:
 
   # Shared Cache
   redis:
-    image: redis:7
+    image: redis:alpine
     ports:
-      - "6380:6379"
+      - "6379:6379"
     volumes:
       - redis_data:/data
+    command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
+      interval: 30s
+      timeout: 10s
       retries: 3
-      start_period: 10s
     networks:
       - faraday-network
 
@@ -74,47 +112,43 @@ services:
   minio:
     image: minio/minio
     ports:
-      - "9002:9000"
-      - "9003:9001"
+      - "9000:9000"
+      - "9001:9001"
     environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
+      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://minio:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s
-      timeout: 10s
+      timeout: 20s
       retries: 3
-      start_period: 10s
     networks:
       - faraday-network
 
   # Monitoring
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus
     ports:
       - "9090:9090"
     volumes:
-      - ./app/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:9090/-/healthy"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
     networks:
       - faraday-network
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana
     ports:
       - "3000:3000"
     environment:
@@ -122,15 +156,13 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning
     depends_on:
       - prometheus
     healthcheck:
-      test: ["CMD-SHELL", "wget --spider http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 10s
     networks:
       - faraday-network
 
@@ -197,6 +229,7 @@ volumes:
   prometheus_data:
   grafana_data:
   media_volume:
+  postgres_data:
 
 networks:
   faraday-network:

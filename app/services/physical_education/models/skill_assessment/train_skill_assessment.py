@@ -5,9 +5,6 @@ import joblib
 import json
 from typing import List, Dict, Any
 from pathlib import Path
-import logging
-from app.core.monitoring import track_metrics
-from app.services.physical_education.models.skill_assessment.skill_models import SkillModels
 
 class SkillAssessmentTrainer:
     def __init__(self):

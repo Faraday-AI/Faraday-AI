@@ -10,6 +10,7 @@ from fastapi.exceptions import HTTPException
 import time
 import json
 from pathlib import Path
+import pytest
 
 from app.services.physical_education.services.activity_manager import ActivityManager
 from app.services.physical_education.models.activity import (
@@ -21,6 +22,252 @@ from app.services.physical_education.models.activity import (
     EquipmentRequirement,
     ActivityCategory
 )
+
+@pytest.fixture
+def mock_db():
+    return MagicMock()
+
+@pytest.fixture
+def mock_websocket():
+    websocket = AsyncMock(spec=WebSocket)
+    websocket.accept = AsyncMock()
+    websocket.send_json = AsyncMock()
+    return websocket
+
+@pytest.fixture
+def activity_manager(mock_db):
+    with patch('app.services.physical_education.services.activity_manager.ActivityVisualizationManager'), \
+         patch('app.services.physical_education.services.activity_manager.ActivityCollaborationManager'), \
+         patch('app.services.physical_education.services.activity_manager.ActivityExportManager'), \
+         patch('app.services.physical_education.services.activity_manager.ActivityAnalysisManager'):
+        return ActivityManager(db=mock_db)
+
+@pytest.mark.asyncio
+async def test_connect_websocket(activity_manager, mock_websocket):
+    # Setup
+    student_id = 'test_student'
+    
+    # Test
+    await activity_manager.connect_websocket(student_id, mock_websocket)
+    
+    # Verify
+    assert student_id in activity_manager.active_connections
+    assert mock_websocket in activity_manager.active_connections[student_id]
+    mock_websocket.accept.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_disconnect_websocket(activity_manager, mock_websocket):
+    # Setup
+    student_id = 'test_student'
+    activity_manager.active_connections[student_id] = [mock_websocket]
+    
+    # Test
+    await activity_manager.disconnect_websocket(student_id, mock_websocket)
+    
+    # Verify
+    assert student_id not in activity_manager.active_connections
+
+@pytest.mark.asyncio
+async def test_broadcast_update(activity_manager, mock_websocket):
+    # Setup
+    student_id = 'test_student'
+    activity_manager.active_connections[student_id] = [mock_websocket]
+    update_data = {'type': 'activity_update', 'data': {'id': 'activity1'}}
+    
+    # Test
+    await activity_manager.broadcast_update(student_id, update_data)
+    
+    # Verify
+    mock_websocket.send_json.assert_called_once_with(update_data)
+
+@pytest.mark.asyncio
+async def test_create_activity_success(activity_manager, mock_db):
+    # Setup
+    activity_data = {
+        'name': 'Test Activity',
+        'description': 'Test Description',
+        'activity_type': ActivityType.STRENGTH.value,
+        'difficulty': DifficultyLevel.INTERMEDIATE.value,
+        'equipment_required': EquipmentRequirement.NONE.value,
+        'categories': [ActivityCategory.FITNESS.value],
+        'duration_minutes': 30,
+        'instructions': 'Test Instructions',
+        'safety_notes': 'Test Safety Notes'
+    }
+    mock_activity = MagicMock(spec=Activity)
+    mock_db.add.return_value = None
+    mock_db.commit.return_value = None
+    mock_db.refresh.return_value = None
+    
+    # Test
+    result = await activity_manager.create_activity(**activity_data)
+    
+    # Verify
+    assert isinstance(result, Activity)
+    mock_db.add.assert_called_once()
+    mock_db.commit.assert_called_once()
+    mock_db.refresh.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_create_activity_invalid_type(activity_manager):
+    # Setup
+    activity_data = {
+        'name': 'Test Activity',
+        'description': 'Test Description',
+        'activity_type': 'invalid_type',
+        'difficulty': DifficultyLevel.INTERMEDIATE.value,
+        'equipment_required': EquipmentRequirement.NONE.value,
+        'categories': [ActivityCategory.FITNESS.value],
+        'duration_minutes': 30,
+        'instructions': 'Test Instructions',
+        'safety_notes': 'Test Safety Notes'
+    }
+    
+    # Test and Verify
+    with pytest.raises(ValueError):
+        await activity_manager.create_activity(**activity_data)
+
+@pytest.mark.asyncio
+async def test_create_activity_invalid_difficulty(activity_manager):
+    # Setup
+    activity_data = {
+        'name': 'Test Activity',
+        'description': 'Test Description',
+        'activity_type': ActivityType.STRENGTH.value,
+        'difficulty': 'invalid_difficulty',
+        'equipment_required': EquipmentRequirement.NONE.value,
+        'categories': [ActivityCategory.FITNESS.value],
+        'duration_minutes': 30,
+        'instructions': 'Test Instructions',
+        'safety_notes': 'Test Safety Notes'
+    }
+    
+    # Test and Verify
+    with pytest.raises(ValueError):
+        await activity_manager.create_activity(**activity_data)
+
+@pytest.mark.asyncio
+async def test_create_activity_invalid_equipment(activity_manager):
+    # Setup
+    activity_data = {
+        'name': 'Test Activity',
+        'description': 'Test Description',
+        'activity_type': ActivityType.STRENGTH.value,
+        'difficulty': DifficultyLevel.INTERMEDIATE.value,
+        'equipment_required': 'invalid_equipment',
+        'categories': [ActivityCategory.FITNESS.value],
+        'duration_minutes': 30,
+        'instructions': 'Test Instructions',
+        'safety_notes': 'Test Safety Notes'
+    }
+    
+    # Test and Verify
+    with pytest.raises(ValueError):
+        await activity_manager.create_activity(**activity_data)
+
+@pytest.mark.asyncio
+async def test_create_activity_invalid_category(activity_manager):
+    # Setup
+    activity_data = {
+        'name': 'Test Activity',
+        'description': 'Test Description',
+        'activity_type': ActivityType.STRENGTH.value,
+        'difficulty': DifficultyLevel.INTERMEDIATE.value,
+        'equipment_required': EquipmentRequirement.NONE.value,
+        'categories': ['invalid_category'],
+        'duration_minutes': 30,
+        'instructions': 'Test Instructions',
+        'safety_notes': 'Test Safety Notes'
+    }
+    
+    # Test and Verify
+    with pytest.raises(ValueError):
+        await activity_manager.create_activity(**activity_data)
+
+@pytest.mark.asyncio
+async def test_get_activity_found(activity_manager, mock_db):
+    # Setup
+    activity_id = 'test_activity'
+    mock_activity = MagicMock(spec=Activity)
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_activity
+    
+    # Test
+    result = await activity_manager.get_activity(activity_id)
+    
+    # Verify
+    assert result == mock_activity
+    mock_db.query.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_get_activity_not_found(activity_manager, mock_db):
+    # Setup
+    activity_id = 'test_activity'
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+    
+    # Test
+    result = await activity_manager.get_activity(activity_id)
+    
+    # Verify
+    assert result is None
+    mock_db.query.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_update_activity_success(activity_manager, mock_db):
+    # Setup
+    activity_id = 'test_activity'
+    update_data = {'name': 'Updated Activity'}
+    mock_activity = MagicMock(spec=Activity)
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_activity
+    
+    # Test
+    result = await activity_manager.update_activity(activity_id, update_data)
+    
+    # Verify
+    assert result == mock_activity
+    mock_db.commit.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_update_activity_not_found(activity_manager, mock_db):
+    # Setup
+    activity_id = 'test_activity'
+    update_data = {'name': 'Updated Activity'}
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+    
+    # Test
+    result = await activity_manager.update_activity(activity_id, update_data)
+    
+    # Verify
+    assert result is None
+    mock_db.commit.assert_not_called()
+
+@pytest.mark.asyncio
+async def test_delete_activity_success(activity_manager, mock_db):
+    # Setup
+    activity_id = 'test_activity'
+    mock_activity = MagicMock(spec=Activity)
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_activity
+    
+    # Test
+    result = await activity_manager.delete_activity(activity_id)
+    
+    # Verify
+    assert result is True
+    mock_db.delete.assert_called_once_with(mock_activity)
+    mock_db.commit.assert_called_once()
+
+@pytest.mark.asyncio
+async def test_delete_activity_not_found(activity_manager, mock_db):
+    # Setup
+    activity_id = 'test_activity'
+    mock_db.query.return_value.filter.return_value.first.return_value = None
+    
+    # Test
+    result = await activity_manager.delete_activity(activity_id)
+    
+    # Verify
+    assert result is False
+    mock_db.delete.assert_not_called()
+    mock_db.commit.assert_not_called()
 
 class TestActivityManager(unittest.TestCase):
     def setUp(self):

@@ -1,7 +1,8 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.services.physical_education.models.class_ import Class, ClassStatus
+from app.services.physical_education.models.class_ import Class
+from app.services.physical_education.models.class_types import ClassStatus
 from app.services.physical_education.models.student import Student
 from app.services.physical_education.models.routine import Routine
 from app.services.physical_education.services.class_service import ClassService

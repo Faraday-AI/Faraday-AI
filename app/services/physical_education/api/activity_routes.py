@@ -1,7 +1,8 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from app.services.physical_education.models.activity import Activity, ActivityType, DifficultyLevel, EquipmentRequirement
+from app.services.physical_education.models.activity import Activity
+from app.services.physical_education.models.activity_types import ActivityType, DifficultyLevel, EquipmentRequirement
 from app.services.physical_education.services.activity_service import ActivityService
 from app.db.database import get_db
 from pydantic import BaseModel, Field
