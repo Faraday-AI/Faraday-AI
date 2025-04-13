@@ -1,0 +1,21 @@
+{
+    "model_name": "activity_adaptation",
+    "version": "1.0.0",
+    "description": "Model for adapting physical activities based on student capabilities",
+    "input_features": [
+        "student_age",
+        "student_ability_level",
+        "activity_type",
+        "environmental_conditions"
+    ],
+    "output_features": [
+        "adapted_activity",
+        "modifications",
+        "safety_considerations"
+    ],
+    "parameters": {
+        "learning_rate": 0.001,
+        "batch_size": 32,
+        "epochs": 100
+    }
+} 
