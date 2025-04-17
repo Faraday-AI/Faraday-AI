@@ -150,7 +150,7 @@ class ActivityDifficultyTrainer:
                 restore_best_weights=True
             ),
             ModelCheckpoint(
-                'models/activity_difficulty.h5',
+                '/app/models/activity_difficulty.h5',
                 monitor='val_loss',
                 save_best_only=True
             )
@@ -184,19 +184,20 @@ class ActivityDifficultyTrainer:
         Path('models').mkdir(exist_ok=True)
         
         # Save model
-        self.model.save('models/activity_difficulty.h5')
+        self.model.save('/app/models/activity_difficulty.h5')
         
         # Save scaler
-        joblib.dump(self.scaler, 'models/activity_difficulty_scaler.joblib')
+        joblib.dump(self.scaler, '/app/models/activity_difficulty_scaler.joblib')
         
         # Save metadata
         metadata = {
             'model_type': 'activity_difficulty',
             'input_shape': self.model.input_shape,
-            'output_shape': self.model.output_shape
+            'output_shape': self.model.output_shape,
+            'model_path': '/app/models/activity_difficulty.h5'
         }
         
-        with open('models/activity_difficulty_metadata.json', 'w') as f:
+        with open('/app/models/activity_difficulty_metadata.json', 'w') as f:
             json.dump(metadata, f, indent=4)
         
         logger.info("Model saved successfully")

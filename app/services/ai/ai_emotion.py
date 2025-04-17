@@ -3,10 +3,12 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.keras.applications import ResNet50V2
 import openai
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from app.core.config import get_settings
 import logging
 from functools import lru_cache
+from datetime import datetime
+import json
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

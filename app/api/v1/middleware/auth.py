@@ -4,7 +4,12 @@ from fastapi.security.oauth2 import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
-from ..models.security import TokenData, User
+from passlib.context import CryptContext
+from sqlalchemy.orm import Session
+
+from app.api.v1.models.security import TokenData, User
+from app.core.database import get_db
+from app.core.config import settings
 
 # Security configuration
 SECRET_KEY = "your-secret-key"  # TODO: Move to environment variables

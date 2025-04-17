@@ -15,17 +15,18 @@ from app.api.v1.models.activity import (
     ActivityListResponse
 )
 from app.api.v1.middleware.auth import oauth2_scheme, get_current_active_user
-from app.services.physical_education.services.activity_manager import ActivityManager
-from app.services.physical_education.services.activity_analysis_manager import ActivityAnalysisManager
-from app.services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
-from app.services.physical_education.services.activity_export_manager import ActivityExportManager
-from app.services.physical_education.services.activity_collaboration_manager import ActivityCollaborationManager
-from app.services.physical_education.services.activity_adaptation_manager import ActivityAdaptationManager
-from app.services.physical_education.services.activity_assessment_manager import ActivityAssessmentManager
-from app.services.physical_education.services.activity_security_manager import ActivitySecurityManager
-from app.services.physical_education.services.activity_cache_manager import ActivityCacheManager
-from app.services.physical_education.services.activity_rate_limit_manager import ActivityRateLimitManager
-from app.services.physical_education.services.activity_circuit_breaker_manager import ActivityCircuitBreakerManager
+from app.api.v1.middleware.rate_limiter import rate_limiter
+from app.services.physical_education.activity_manager import ActivityManager
+from app.services.physical_education.activity_analysis_manager import ActivityAnalysisManager
+from app.services.physical_education.activity_visualization_manager import ActivityVisualizationManager
+from app.services.physical_education.activity_export_manager import ActivityExportManager
+from app.services.physical_education.activity_collaboration_manager import ActivityCollaborationManager
+from app.services.physical_education.activity_adaptation_manager import ActivityAdaptationManager
+from app.services.physical_education.activity_assessment_manager import ActivityAssessmentManager
+from app.services.physical_education.activity_security_manager import ActivitySecurityManager
+from app.services.physical_education.activity_cache_manager import ActivityCacheManager
+from app.services.physical_education.activity_rate_limit_manager import ActivityRateLimitManager
+from app.services.physical_education.activity_circuit_breaker_manager import ActivityCircuitBreakerManager
 
 # Initialize logging
 logger = logging.getLogger(__name__)

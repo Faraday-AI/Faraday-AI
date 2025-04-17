@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.core.database import get_db
-from app.services.memory_service import MemoryService
+from app.services.memory.memory_service import MemoryService
 from app.models.memory import UserMemory, MemoryInteraction, UserMemoryResponse, MemoryInteractionResponse
 from app.core.auth import get_current_user
 from app.models.lesson import User

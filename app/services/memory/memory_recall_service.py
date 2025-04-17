@@ -2,8 +2,8 @@ from typing import Dict, List, Optional, Any
 import logging
 from datetime import datetime
 from sqlalchemy.orm import Session
-from app.database.models import User, LearningProgress, Memory
-from app.database.database import get_db
+from app.models import User, LearningProgress, Memory
+from app.core.database import get_db
 
 logger = logging.getLogger(__name__)
 

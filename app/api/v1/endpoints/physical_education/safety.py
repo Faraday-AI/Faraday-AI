@@ -7,14 +7,18 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel, Field, validator, confloat, conint, ConfigDict
 import logging
 from functools import lru_cache
-from ...middleware.auth import oauth2_scheme, get_current_active_user
-from ...middleware.rate_limit import rate_limit
-from ....services.physical_education.services.safety_manager import SafetyManager
-from ....services.physical_education.services.equipment_manager import EquipmentManager
-from ....services.physical_education.services.safety_incident_manager import SafetyIncidentManager
-from ....services.physical_education.services.risk_assessment_manager import RiskAssessmentManager
-from ....core.cache import cache_manager
+from app.api.v1.middleware.auth import oauth2_scheme, get_current_active_user
+from app.middleware.rate_limit import limiter
+from app.services.physical_education.safety_manager import SafetyManager
+from app.services.physical_education.equipment_manager import EquipmentManager
+from app.services.physical_education.safety_incident_manager import SafetyIncidentManager
+from app.services.physical_education.risk_assessment_manager import RiskAssessmentManager
+from app.core.cache import cache_manager
 import asyncio
+from sqlalchemy.orm import Session
+
+from app.api.v1.models.safety import SafetyIncident, SafetyIncidentCreate, SafetyIncidentUpdate
+from app.core.database import get_db
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -190,7 +194,7 @@ class AuthorizationError(SafetyError):
         500: {"description": "Internal server error"}
     }
 )
-@rate_limit(requests=RATE_LIMIT["risk_assessment"]["requests"], period=RATE_LIMIT["risk_assessment"]["period"])
+@limiter(requests=RATE_LIMIT["risk_assessment"]["requests"], period=RATE_LIMIT["risk_assessment"]["period"])
 async def conduct_risk_assessment(
     request: RiskAssessmentRequest,
     token: str = Depends(oauth2_scheme),
@@ -580,7 +584,7 @@ class SafetyIncidentResponse(BaseModel):
         500: {"description": "Internal server error"}
     }
 )
-@rate_limit(requests=RATE_LIMIT["incidents"]["requests"], period=RATE_LIMIT["incidents"]["period"])
+@limiter(requests=RATE_LIMIT["incidents"]["requests"], period=RATE_LIMIT["incidents"]["period"])
 async def record_incident(
     request: SafetyIncidentRequest,
     token: str = Depends(oauth2_scheme),

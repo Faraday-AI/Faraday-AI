@@ -33,28 +33,26 @@ from bokeh.plotting import figure, show
 from bokeh.models import HoverTool, ColumnDataSource
 import streamlit as st
 
-from ..models.activity import (
+from app.services.physical_education.models.activity import (
     Activity,
     Exercise,
     Routine,
-    RoutineActivity,
-    ActivityType,
-    DifficultyLevel,
-    EquipmentRequirement,
-    ActivityCategory,
     StudentActivityPerformance,
     StudentActivityPreference,
     ActivityProgression,
-    ActivityPlan,
-    ActivityPlanActivity
+    ActivityType,
+    DifficultyLevel,
+    EquipmentRequirement,
+    ActivityCategory
 )
-from ..models.student import Student
-from ..models.class_ import Class
-from app.core.database import get_db  # Updated import path
-from .activity_visualization_manager import ActivityVisualizationManager
-from .activity_collaboration_manager import ActivityCollaborationManager
-from .activity_export_manager import ActivityExportManager
-from .activity_analysis_manager import ActivityAnalysisManager
+from app.services.physical_education.models.routine_activity import RoutineActivity
+from app.services.physical_education.models.student import Student
+from app.services.physical_education.models.class_ import Class
+from app.core.database import get_db
+from app.services.physical_education.activity_visualization_manager import ActivityVisualizationManager
+from app.services.physical_education.activity_collaboration_manager import ActivityCollaborationManager
+from app.services.physical_education.activity_export_manager import ActivityExportManager
+from app.services.physical_education.activity_analysis_manager import ActivityAnalysisManager
 
 class ActivityManager:
     def __init__(self, db: Session = Depends(get_db)):

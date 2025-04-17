@@ -3,7 +3,7 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import json
 from app.core.monitoring import track_metrics
-from app.services.physical_education.services.assessment_system import AssessmentSystem
+from app.services.physical_education.assessment_system import AssessmentSystem
 
 class LessonPlanner:
     """Service for managing physical education lesson plans and curriculum."""

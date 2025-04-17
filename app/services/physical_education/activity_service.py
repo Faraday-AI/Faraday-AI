@@ -1,10 +1,14 @@
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from app.services.physical_education.models.activity import Activity, ActivityType, DifficultyLevel, EquipmentRequirement
-from app.services.physical_education.models.exercise import Exercise
-from app.services.physical_education.models.risk_assessment import RiskAssessment
-from app.services.physical_education.models.activity_category_association import ActivityCategoryAssociation
+from app.core.database import get_db
+from .models.activity import Activity, ActivityType, DifficultyLevel, EquipmentRequirement
+from .models.exercise import Exercise
+from .models.safety import RiskAssessment
+from .models.activity_category_association import ActivityCategoryAssociation
+from .models.class_ import Class
+from .models.student import Student
+from fastapi import Depends
 
 class ActivityService:
     """Service for managing physical education activities and related operations."""
@@ -217,4 +221,8 @@ class ActivityService:
         """
         return self.db.query(Activity).filter(
             Activity.duration_minutes <= max_duration
-        ).all() 
+        ).all()
+
+def get_activity_service(db: Session = Depends(get_db)) -> ActivityService:
+    """Dependency function to get an instance of ActivityService."""
+    return ActivityService(db) 

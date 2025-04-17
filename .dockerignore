@@ -1,0 +1,121 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Local development
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Test
+tests/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Models and data
+models/
+!models/movement_models.json
+!services/physical_education/models/movement_analysis/movement_models.json
+data/
+exports/
+
+# Static files
+static/
+!static/index.html
+!static/auth-form.html
+!static/css/
+!static/js/
+!static/icons/
+
+# Misc
+.DS_Store
+*.db
+*.sqlite3
+
+# OS
+Thumbs.db
+
+# Project specific
+/app/models/*.pth
+/app/models/*.h5
+/app/models/*.ckpt
+/app/models/*.pb
+static/uploads/
+static/generated/
+grafana/
+
+# Large media files
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.mkv
+*.webm
+*.m4v
+*.mpg
+*.mpeg
+*.mp3
+*.wav
+*.ogg
+*.flac
+
+# Database
+*.sqlite
+*.sql
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo 

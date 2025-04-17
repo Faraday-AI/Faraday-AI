@@ -12,7 +12,7 @@ import json
 from pathlib import Path
 import pytest
 
-from app.services.physical_education.services.activity_manager import ActivityManager
+from app.services.physical_education.activity_manager import ActivityManager
 from app.services.physical_education.models.activity import (
     Activity,
     Exercise,

@@ -96,10 +96,10 @@ Faraday-AI/
 │   │   └── v1/
 │   │       ├── endpoints/      # Activity, safety, student endpoints
 │   │       ├── middleware/     # Authentication, rate limiting
-│   │       └── models/         # Data models for PE activities
+│   │       └── /app/models/         # Data models for PE activities
 │   └── services/
 │       └── physical_education/
-│           ├── models/         # Data models
+│           ├── /app/models/         # Data models
 │           │   ├── activity.py
 │           │   ├── class_.py
 │           │   ├── routine.py

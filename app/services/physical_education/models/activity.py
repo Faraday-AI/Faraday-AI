@@ -5,9 +5,10 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 import enum
 from pydantic import BaseModel, Field, validator
-
-# Import models to avoid circular imports
-from app.services.physical_education.models.class_ import Class
+from .class_ import Class
+from .activity_category_association import ActivityCategoryAssociation
+from .routine import Routine
+from .exercise import Exercise
 
 # Enums for activity types
 class ActivityType(str, enum.Enum):
@@ -49,7 +50,7 @@ activity_category_association = Table(
 class Activity(Base):
     __tablename__ = "activities"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String)
     type = Column(SQLEnum(ActivityType), nullable=False)
@@ -63,6 +64,8 @@ class Activity(Base):
     routines = relationship("RoutineActivity", back_populates="activity")
     adaptations = relationship("ActivityAdaptation", back_populates="activity")
     assessments = relationship("SkillAssessment", back_populates="activity")
+    exercises = relationship("Exercise", back_populates="activity")
+    category_associations = relationship("ActivityCategoryAssociation", back_populates="activity", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Activity {self.name}>"
@@ -111,81 +114,19 @@ class ActivityUpdate(BaseModel):
         return v.strip() if v else v
 
 class ActivityResponse(ActivityBase):
-    id: int
+    id: str
     created_at: datetime
     updated_at: datetime
 
     class Config:
-        orm_mode = True
-
-class Exercise(Base):
-    __tablename__ = "exercises"
-
-    id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
-    description = Column(String, nullable=False)
-    activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
-    sets = Column(Integer, nullable=False)
-    reps = Column(Integer, nullable=False)
-    rest_time_seconds = Column(Integer, nullable=False)
-    technique_notes = Column(String, nullable=False)
-    progression_steps = Column(JSON, default=list)
-    regression_steps = Column(JSON, default=list)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    activity = relationship("Activity", back_populates="exercises")
-
-    def __repr__(self):
-        return f"<Exercise {self.name}>"
-
-class Routine(Base):
-    """Model for activity routines."""
-    __tablename__ = "routines"
-
-    id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
-    description = Column(String, nullable=False)
-    class_id = Column(String, ForeignKey("classes.id"), nullable=False)
-    duration_minutes = Column(Integer, nullable=False)
-    focus_areas = Column(JSON, default=list)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    class_ = relationship("Class", back_populates="routines")
-    activities = relationship("RoutineActivity", back_populates="routine", cascade="all, delete-orphan")
-
-    def __repr__(self):
-        return f"<Routine {self.name}>"
-
-class RoutineActivity(Base):
-    """Model for activities in a routine."""
-    __tablename__ = "routine_activities"
-
-    id = Column(String, primary_key=True)
-    routine_id = Column(String, ForeignKey("routines.id"), nullable=False)
-    activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
-    order = Column(Integer, nullable=False)
-    duration_minutes = Column(Integer, nullable=False)
-    activity_type = Column(String, nullable=False)  # warm_up, main, cool_down
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # Relationships
-    routine = relationship("Routine", back_populates="activities")
-    activity = relationship("Activity", back_populates="routines")
-
-    def __repr__(self):
-        return f"<RoutineActivity {self.routine_id} - {self.activity_id}>"
+        from_attributes = True
 
 class StudentActivityPerformance(Base):
     """Model for tracking student performance in specific activities."""
     __tablename__ = "student_activity_performances"
 
-    id = Column(String, primary_key=True)
-    student_id = Column(String, ForeignKey("students.id"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
     date = Column(DateTime, default=datetime.utcnow, nullable=False)
     score = Column(Float, nullable=False)
@@ -204,8 +145,8 @@ class StudentActivityPreference(Base):
     """Model for tracking student preferences for activities."""
     __tablename__ = "student_activity_preferences"
 
-    id = Column(String, primary_key=True)
-    student_id = Column(String, ForeignKey("students.id"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     activity_type = Column(SQLEnum(ActivityType), nullable=False)
     preference_score = Column(Float, nullable=False, default=0.5)
     last_updated = Column(DateTime, default=datetime.utcnow)
@@ -222,8 +163,8 @@ class ActivityProgression(Base):
     """Model for tracking student progression in activities."""
     __tablename__ = "activity_progressions"
 
-    id = Column(String, primary_key=True)
-    student_id = Column(String, ForeignKey("students.id"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
     current_level = Column(SQLEnum(DifficultyLevel), nullable=False)
     improvement_rate = Column(Float, nullable=False, default=0.0)

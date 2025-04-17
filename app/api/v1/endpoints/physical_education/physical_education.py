@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from typing import List, Dict, Any
-from app.services.ai_analytics import PhysicalEducationAI
+from app.services.ai.ai_analytics import PhysicalEducationAI
 from pydantic import BaseModel
 import json
 

@@ -7,15 +7,16 @@ from alembic import context
 
 import os
 import sys
-from pathlib import Path
+from dotenv import load_dotenv
 
 # Add the project root directory to the Python path
-project_root = str(Path(__file__).parent.parent)
-sys.path.append(project_root)
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Import your models here
+# Load environment variables from .env file
+load_dotenv()
+
 from app.core.config import settings
-from app.db.base import Base
+from app.core.database import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

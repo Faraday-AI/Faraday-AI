@@ -128,7 +128,7 @@ class PerformancePredictionTrainer:
                 restore_best_weights=True
             ),
             ModelCheckpoint(
-                'models/performance_prediction.h5',
+                '/app/models/performance_prediction.h5',
                 monitor='val_loss',
                 save_best_only=True
             )
@@ -162,20 +162,21 @@ class PerformancePredictionTrainer:
         Path('models').mkdir(exist_ok=True)
         
         # Save model
-        self.model.save('models/performance_prediction.h5')
+        self.model.save('/app/models/performance_prediction.h5')
         
         # Save scaler
-        joblib.dump(self.scaler, 'models/performance_scaler.joblib')
+        joblib.dump(self.scaler, '/app/models/performance_scaler.joblib')
         
         # Save metadata
         metadata = {
             'feature_columns': self.feature_columns,
             'model_type': 'performance_prediction',
             'input_shape': self.model.input_shape,
-            'output_shape': self.model.output_shape
+            'output_shape': self.model.output_shape,
+            'model_path': '/app/models/performance_prediction.h5'
         }
         
-        with open('models/performance_prediction_metadata.json', 'w') as f:
+        with open('/app/models/performance_prediction_metadata.json', 'w') as f:
             json.dump(metadata, f, indent=4)
         
         logger.info("Model saved successfully")

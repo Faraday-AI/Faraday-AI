@@ -1,4 +1,5 @@
-from typing import List, Dict, Optional
+import openai
+from typing import List, Dict, Optional, Any
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.models.gpt import GPTRole, GPTInteraction

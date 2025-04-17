@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from app.core.monitoring import track_metrics
-from app.services.physical_education.services.movement_analyzer import MovementAnalyzer
-from app.services.physical_education.services.activity_manager import ActivityManager
+from app.services.physical_education.movement_analyzer import MovementAnalyzer
+from app.services.physical_education.activity_manager import ActivityManager
 from collections import deque
 import asyncio
 from dataclasses import dataclass

@@ -1,10 +1,31 @@
-from typing import Dict, Any, List
-from app.services.base_service import BaseService
-from app.services.physical_education.services.video_processor import VideoProcessor
-from app.services.physical_education.services.movement_analyzer import MovementAnalyzer
+from typing import Dict, Any, List, Optional
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from app.core.database import get_db
+from app.services.core.base_service import BaseService
+from app.services.physical_education.video_processor import VideoProcessor
+from app.services.physical_education.movement_analyzer import MovementAnalyzer
 from app.core.monitoring import track_metrics
 import logging
 import mediapipe as mp
+from app.services.physical_education.models.activity import (
+    Activity, 
+    Exercise,
+    StudentActivityPerformance,
+    StudentActivityPreference,
+    ActivityProgression
+)
+from app.services.physical_education.models.student import Student
+from app.services.physical_education.models.class_ import Class
+from app.services.physical_education.models.activity_adaptation.activity_adaptation_models import ActivityAdaptation
+from app.services.physical_education.models.skill_assessment.skill_assessment_models import SkillAssessment
+from app.services.physical_education.models.movement_analysis.movement_models import MovementAnalysis
+from app.services.physical_education.models.safety import RiskAssessment
+from app.services.physical_education.models.activity_category_association import ActivityCategoryAssociation
+from app.services.physical_education.models.routine import Routine
+from app.services.physical_education.models.routine_activity import RoutineActivity
+from app.services.physical_education.models.activity_plan import ActivityPlan
+from app.services.physical_education.models.activity_plan_activity import ActivityPlanActivity
 
 class PEService(BaseService):
     """Physical Education Service implementation."""

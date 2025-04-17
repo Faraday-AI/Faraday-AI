@@ -1,158 +1,123 @@
 import os
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.preprocessing import LabelEncoder
-import joblib
 import json
-from typing import List, Dict, Any
+import numpy as np
 from pathlib import Path
+from sklearn.ensemble import RandomForestClassifier
+import joblib
+from datetime import datetime
 
 class ActivityAdaptationTrainer:
     def __init__(self):
-        # Define activity categories
-        self.activity_categories = {
-            'strength': ['push-ups', 'pull-ups', 'squats', 'lunges'],
-            'cardio': ['running', 'jumping', 'skipping', 'dancing'],
-            'flexibility': ['stretching', 'yoga', 'pilates', 'gymnastics'],
-            'coordination': ['dribbling', 'throwing', 'catching', 'balancing']
-        }
-        
-        # Define adaptation levels
+        self.activity_categories = ['strength', 'flexibility', 'endurance', 'coordination']
         self.adaptation_levels = ['beginner', 'intermediate', 'advanced']
-        
-        # Define student needs categories
         self.student_needs = {
-            'physical': ['mobility_issues', 'strength_limitations', 'coordination_challenges'],
-            'cognitive': ['attention_difficulties', 'memory_challenges', 'processing_speed'],
-            'sensory': ['visual_impairment', 'auditory_impairment', 'sensory_sensitivity']
+            'physical': ['mobility_issues', 'strength_limitations', 'limited_flexibility'],
+            'cognitive': ['attention_difficulties', 'memory_challenges'],
+            'sensory': ['visual_impairment', 'hearing_impairment']
         }
-        
-        # Define environment factors
-        self.environment_factors = {
+        self.environmental_factors = {
             'space': ['limited', 'adequate', 'spacious'],
-            'equipment': ['minimal', 'basic', 'full'],
-            'surface': ['hard', 'soft', 'mixed']
+            'equipment': ['none', 'minimal', 'full'],
+            'surface': ['hard', 'soft', 'uneven']
         }
-
-    def prepare_dataset(self, data_dir: str) -> tuple:
-        """Prepare the dataset for training."""
-        X = []
-        y = []
+    
+    def prepare_dataset(self, data_dir):
+        """Prepare dataset from JSON files."""
+        features = []
+        labels = []
         
-        # Process each activity in the dataset
-        for category, activities in self.activity_categories.items():
-            for activity in activities:
-                activity_dir = os.path.join(data_dir, category, activity)
-                if not os.path.exists(activity_dir):
+        for category in self.activity_categories:
+            category_dir = Path(data_dir) / category
+            if not category_dir.exists():
+                continue
+                
+            for activity_dir in category_dir.iterdir():
+                if not activity_dir.is_dir():
                     continue
                     
-                for data_file in os.listdir(activity_dir):
-                    if not data_file.endswith('.json'):
-                        continue
-                        
-                    data_path = os.path.join(activity_dir, data_file)
-                    with open(data_path, 'r') as f:
+                for json_file in activity_dir.glob('*.json'):
+                    with open(json_file) as f:
                         data = json.load(f)
                         
-                    features = self._prepare_features(
-                        activity=activity,
-                        needs=data['needs'],
-                        environment=data['environment']
-                    )
-                    
-                    if features is not None:
-                        X.append(features)
-                        y.append(data['adaptation_level'])
+                        # Extract features
+                        feature_vector = []
+                        
+                        # Activity category (one-hot encoded)
+                        category_vector = [0] * len(self.activity_categories)
+                        category_vector[self.activity_categories.index(category)] = 1
+                        feature_vector.extend(category_vector)
+                        
+                        # Student needs (one-hot encoded)
+                        for need_type, needs in self.student_needs.items():
+                            need_vector = [0] * len(needs)
+                            for need in data['needs'].get(need_type, []):
+                                if need in needs:
+                                    need_vector[needs.index(need)] = 1
+                            feature_vector.extend(need_vector)
+                        
+                        # Environmental factors (one-hot encoded)
+                        for factor_type, factors in self.environmental_factors.items():
+                            factor_vector = [0] * len(factors)
+                            factor = data['environment'].get(factor_type, '')
+                            if factor in factors:
+                                factor_vector[factors.index(factor)] = 1
+                            feature_vector.extend(factor_vector)
+                        
+                        # Performance metrics
+                        performance = data['performance']
+                        feature_vector.extend([
+                            performance['alignment'],
+                            performance['technique'],
+                            performance['control'],
+                            performance['speed'],
+                            performance['accuracy'],
+                            performance['consistency']
+                        ])
+                        
+                        # Previous performance
+                        if data['previous']:
+                            prev = data['previous'][0]
+                            feature_vector.extend([
+                                prev['improvement'],
+                                prev['consistency'],
+                                prev['effort']
+                            ])
+                        else:
+                            feature_vector.extend([0, 0, 0])
+                        
+                        features.append(feature_vector)
+                        labels.append(self.adaptation_levels.index(data['adaptation_level']))
         
-        return np.array(X), np.array(y)
-
-    def _prepare_features(self, activity: str, needs: Dict[str, List[str]], environment: Dict[str, str]) -> np.ndarray:
-        """Prepare features for the model."""
-        features = []
-        
-        # Activity category
-        category = self._get_activity_category(activity)
-        features.extend(self._one_hot_encode(category, list(self.activity_categories.keys())))
-        
-        # Activity type
-        features.extend(self._one_hot_encode(activity, self._get_all_activities()))
-        
-        # Student needs
-        for need_category, need_types in self.student_needs.items():
-            category_needs = needs.get(need_category, [])
-            features.extend(self._one_hot_encode_multiple(category_needs, need_types))
-        
-        # Environment factors
-        for factor, levels in self.environment_factors.items():
-            level = environment.get(factor, 'adequate')
-            features.extend(self._one_hot_encode(level, levels))
-        
-        return np.array(features)
-
-    def _get_activity_category(self, activity: str) -> str:
-        """Determine the category of an activity."""
-        for category, activities in self.activity_categories.items():
-            if activity in activities:
-                return category
-        return 'general'
-
-    def _get_all_activities(self) -> List[str]:
-        """Get all activity types."""
-        activities = []
-        for category_activities in self.activity_categories.values():
-            activities.extend(category_activities)
-        return activities
-
-    def _one_hot_encode(self, value: str, categories: List[str]) -> List[int]:
-        """One-hot encode a categorical value."""
-        return [1 if value == cat else 0 for cat in categories]
-
-    def _one_hot_encode_multiple(self, values: List[str], categories: List[str]) -> List[int]:
-        """One-hot encode multiple categorical values."""
-        return [1 if cat in values else 0 for cat in categories]
-
-    def create_model(self) -> RandomForestClassifier:
-        """Create the random forest classifier."""
-        return RandomForestClassifier(
-            n_estimators=100,
-            max_depth=10,
-            random_state=42
-        )
-
-    def train(self, data_dir: str):
-        """Train the activity adaptation model."""
+        return np.array(features), np.array(labels)
+    
+    def train(self, data_dir):
+        """Train the model and save it."""
         # Prepare dataset
         X, y = self.prepare_dataset(data_dir)
         
-        # Encode target variable
-        label_encoder = LabelEncoder()
-        y_encoded = label_encoder.fit_transform(y)
-        
-        # Create and train model
-        model = self.create_model()
-        model.fit(X, y_encoded)
+        # Train model
+        model = RandomForestClassifier(n_estimators=100, random_state=42)
+        model.fit(X, y)
         
         # Save model
-        joblib.dump(model, 'models/activity_adaptation.joblib')
+        model_dir = Path('/app/services/physical_education/models/activity_adaptation')
+        model_dir.mkdir(exist_ok=True)
+        joblib.dump(model, model_dir / 'activity_adaptation.joblib')
         
-        # Save model metadata
+        # Save metadata
         metadata = {
-            'activity_categories': self.activity_categories,
-            'adaptation_levels': self.adaptation_levels,
-            'student_needs': self.student_needs,
-            'environment_factors': self.environment_factors,
-            'label_encoder_classes': label_encoder.classes_.tolist()
+            'input_features': X.shape[1],
+            'output_features': len(self.adaptation_levels),  # Number of possible adaptation levels
+            'model_type': 'activity_adaptation',
+            'training_date': datetime.now().isoformat()
         }
         
-        with open('models/activity_adaptation_metadata.json', 'w') as f:
+        with open(model_dir / 'activity_adaptation_metadata.json', 'w') as f:
             json.dump(metadata, f)
 
 if __name__ == '__main__':
-    # Create models directory if it doesn't exist
-    Path('models').mkdir(exist_ok=True)
-    
     # Initialize trainer
     trainer = ActivityAdaptationTrainer()
     
     # Train model
-    trainer.train(data_dir='data/activity_adaptations') 
+    trainer.train(data_dir='/app/data/activity_adaptations') 

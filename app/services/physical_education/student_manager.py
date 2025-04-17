@@ -3,8 +3,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import json
 from app.core.monitoring import track_metrics
-from app.services.physical_education.services.assessment_system import AssessmentSystem
-from app.services.physical_education.services.lesson_planner import LessonPlanner
+from app.services.physical_education.assessment_system import AssessmentSystem
+from app.services.physical_education.lesson_planner import LessonPlanner
 
 class StudentManager:
     """Service for managing student profiles, class rosters, and progress tracking."""

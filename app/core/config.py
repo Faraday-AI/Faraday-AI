@@ -135,7 +135,7 @@ class Settings(BaseSettings):
     SCOPE: str = "User.Read Mail.Read Files.ReadWrite.All"
 
     # ML Model Settings
-    MODEL_PATH: str = "app/models"  # Default path for ML models
+    MODEL_PATH: str = "/app/models"  # Default path for ML models
 
     # Twilio Settings
     TWILIO_ACCOUNT_SID: str = Field(default="development")
@@ -192,4 +192,7 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     """Get cached settings instance."""
-    return Settings() 
+    return Settings()
+
+# Export settings instance
+settings = get_settings() 
