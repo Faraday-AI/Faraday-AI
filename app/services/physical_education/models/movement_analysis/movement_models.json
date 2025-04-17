@@ -1,19 +1,49 @@
 {
     "pose_estimation": {
-        "model_path": "pose_landmark_full.tflite",
-        "input_size": [256, 256],
+        "model_type": "mediapipe",
+        "confidence_threshold": 0.5,
         "min_detection_confidence": 0.5,
-        "min_tracking_confidence": 0.5
+        "min_tracking_confidence": 0.5,
+        "model_complexity": 2,
+        "static_image_mode": false
     },
-    "movement_classification": {
-        "model_path": "movement_classifier.tflite",
-        "input_size": [224, 224],
-        "classes": [
-            "walking",
-            "running",
-            "jumping",
-            "squatting",
-            "stretching"
-        ]
+    "models": {
+        "movement_analysis": {
+            "model_type": "lstm",
+            "input_shape": [100, 33, 3],
+            "sequence_length": 100,
+            "feature_dim": 99,
+            "hidden_units": [64, 32],
+            "dropout_rate": 0.2,
+            "learning_rate": 0.001
+        },
+        "activity_recognition": {
+            "model_type": "random_forest",
+            "n_estimators": 100,
+            "max_depth": 10,
+            "min_samples_split": 2,
+            "min_samples_leaf": 1
+        }
+    },
+    "processing": {
+        "frame_rate": 30,
+        "resolution": {
+            "width": 640,
+            "height": 480
+        },
+        "smoothing_window": 5,
+        "angle_threshold": 15,
+        "velocity_threshold": 0.5
+    },
+    "output": {
+        "save_keypoints": true,
+        "save_processed_video": true,
+        "save_analysis_results": true,
+        "output_format": "json",
+        "visualization": {
+            "draw_skeleton": true,
+            "draw_angles": true,
+            "draw_velocity": true
+        }
     }
 } 

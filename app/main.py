@@ -24,27 +24,33 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
-from app.services.realtime_collaboration_service import RealtimeCollaborationService
-from app.services.file_processing_service import FileProcessingService
-from app.services.ai_analytics import AIAnalytics
-from app.api.endpoints import ai_analysis
-import json
-from app.api import physical_education
+from app.services.collaboration.realtime_collaboration_service import RealtimeCollaborationService
+from app.services.utilities.file_processing_service import FileProcessingService
+from app.services.ai.ai_analytics import AIAnalytics
+from app.api.v1.endpoints.management.ai_analysis import router as ai_analysis_router
+from app.api.v1.endpoints.management.activity_management import router as activity_management
+from app.api.v1.endpoints.physical_education import physical_education
 from app.core.database import init_db
-from app.api import auth
-from app.api.endpoints import memory, math_assistant, science_assistant
+from app.api.v1 import auth
+from app.api.v1.endpoints.core.memory import router as memory_router
+from app.api.v1.endpoints.assistants.math_assistant import router as math_assistant_router
+from app.api.v1.endpoints.assistants.science_assistant import router as science_assistant_router
 import socket
 from app.core.health import router as health_router
-from app.services.pe_service import PEService
-from app.api.v1 import activity_management
-from app.services.physical_education.services.security_service import SecurityService
+from app.services.physical_education.pe_service import PEService
+from app.services.physical_education.activity_manager import ActivityManager
+from app.services.physical_education.security_service import SecurityService
 from app.api.v1.middleware.cache import add_caching
-from app.api.api_v1.api import api_router
-from fastapi_limiter import FastAPILimiter, RateLimitMiddleware
-from fastapi_limiter.depends import RateLimit
+from app.api.v1 import router as api_router
+from fastapi_limiter import FastAPILimiter
 from app.middleware.auth import AuthMiddleware
-from app.middleware.rate_limit import RateLimitMiddleware
+from app.api.v1.middleware.rate_limit import add_rate_limiting
 import redis
+from sqlalchemy.orm import Session
+from app.core.config import settings, get_settings
+from app.core.auth import get_current_active_user
+from app.services.physical_education.movement_analyzer import MovementAnalyzer
+from app.services.physical_education.video_processor import VideoProcessor
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -67,7 +73,7 @@ API_PORT = int(os.getenv('API_PORT', find_available_port(8000, 8100)))
 METRICS_PORT = int(os.getenv('METRICS_PORT', find_available_port(9090, 9100)))
 WEBSOCKET_PORT = int(os.getenv('WEBSOCKET_PORT', find_available_port(9100, 9200)))
 
-settings = get_settings()
+app_settings = get_settings()
 
 app = FastAPI(
     title="Faraday AI Educational Platform",
@@ -103,13 +109,13 @@ async def debug_paths(request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Include routers
-app.include_router(memory.router, prefix="/api/v1/memory", tags=["memory"])
-app.include_router(math_assistant.router, prefix="/api/v1/math", tags=["math"])
-app.include_router(science_assistant.router, prefix="/api/v1/science", tags=["science"])
+app.include_router(memory_router, prefix="/api/v1/memory", tags=["memory"])
+app.include_router(math_assistant_router, prefix="/api/v1/math", tags=["math"])
+app.include_router(science_assistant_router, prefix="/api/v1/science", tags=["science"])
 app.include_router(health_router, tags=["System"])
-app.include_router(ai_analysis.router, prefix="/api")
+app.include_router(ai_analysis_router, prefix="/api")
 app.include_router(debug_router)
-app.include_router(activity_management.router, prefix="/api/v1/activities", tags=["activities"])
+app.include_router(activity_management, prefix="/api/v1/activities", tags=["activities"])
 
 # Mount static files at /static instead of root
 base_dir = Path(__file__).parent.parent
@@ -143,8 +149,8 @@ app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=settings.CORS_CREDENTIALS,
+    allow_origins=app_settings.CORS_ORIGINS,
+    allow_credentials=app_settings.CORS_CREDENTIALS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -168,11 +174,11 @@ async def startup_event():
         await pe_service.initialize()
 
         # Initialize Redis client
-        redis_client = redis.Redis(
-            host=settings.REDIS_HOST,
-            port=settings.REDIS_PORT,
-            db=settings.REDIS_DB,
-            password=settings.REDIS_PASSWORD,
+        redis_client = redis.asyncio.Redis(
+            host=app_settings.REDIS_HOST,
+            port=app_settings.REDIS_PORT,
+            db=app_settings.REDIS_DB,
+            password=app_settings.REDIS_PASSWORD,
             decode_responses=True
         )
         
@@ -419,6 +425,7 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
+app.add_middleware(BaseHTTPMiddleware, dispatch=add_rate_limiting)
 app.add_middleware(BaseHTTPMiddleware, dispatch=add_caching)
 
 # Create a singleton instance

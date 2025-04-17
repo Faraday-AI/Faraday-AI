@@ -1,4 +1,6 @@
+import cv2
 import numpy as np
+import mediapipe as mp
 from typing import Dict, Any, List, Optional, Tuple
 import logging
 from app.core.monitoring import track_metrics
@@ -7,6 +9,8 @@ import os
 from datetime import datetime, timedelta
 from app.services.physical_education.models.movement_analysis.movement_models import MovementModels
 from app.services.physical_education.models.skill_assessment.skill_assessment_models import SkillModels
+from app.services.physical_education.models.movement_analysis.movement_models import MovementAnalysis
+from app.services.physical_education.models.movement_analysis.movement_models import MovementPattern
 
 class MovementAnalyzer:
     """Service for analyzing movement patterns and providing feedback."""

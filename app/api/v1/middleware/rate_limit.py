@@ -3,6 +3,17 @@ from datetime import timedelta
 from functools import wraps
 from typing import Callable, Any
 import asyncio
+import redis.asyncio as redis
+from app.core.config import settings
+
+# Initialize Redis client
+redis_client = redis.Redis(
+    host=settings.REDIS_HOST,
+    port=settings.REDIS_PORT,
+    db=settings.REDIS_DB,
+    password=settings.REDIS_PASSWORD,
+    decode_responses=True
+)
 
 # Rate limiting configuration
 RATE_LIMIT_WINDOW = 60  # 1 minute window
@@ -21,9 +32,9 @@ def rate_limiter(limit: int, window: int):
             key = f"rate_limit:{client_ip}"
             
             # Get current request count
-            current = redis_client.get(key)
+            current = await redis_client.get(key)
             if current is None:
-                redis_client.setex(key, window, 1)
+                await redis_client.setex(key, window, 1)
             else:
                 current = int(current)
                 if current >= limit:
@@ -31,7 +42,7 @@ def rate_limiter(limit: int, window: int):
                         status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                         detail="Too many requests"
                     )
-                redis_client.incr(key)
+                await redis_client.incr(key)
             
             return await func(*args, **kwargs)
         return wrapper
@@ -43,9 +54,9 @@ async def add_rate_limiting(request: Request, call_next):
     key = f"rate_limit:{client_ip}"
     
     # Get current request count
-    current = redis_client.get(key)
+    current = await redis_client.get(key)
     if current is None:
-        redis_client.setex(key, RATE_LIMIT_WINDOW, 1)
+        await redis_client.setex(key, RATE_LIMIT_WINDOW, 1)
     else:
         current = int(current)
         if current >= RATE_LIMIT_REQUESTS:
@@ -53,7 +64,7 @@ async def add_rate_limiting(request: Request, call_next):
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                 detail="Too many requests"
             )
-        redis_client.incr(key)
+        await redis_client.incr(key)
     
     response = await call_next(request)
     return response 

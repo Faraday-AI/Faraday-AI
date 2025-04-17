@@ -7,13 +7,14 @@ import json
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional
+import logging
 
 class ActivityAdaptation(Base):
     """Model for storing activity adaptations."""
     __tablename__ = "activity_adaptations"
 
     id = Column(Integer, primary_key=True, index=True)
-    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     adaptation_type = Column(String, nullable=False)
     adaptation_details = Column(JSON, nullable=False)
@@ -45,12 +46,13 @@ class AdaptationHistory(Base):
 ActivityAdaptation.history = relationship("AdaptationHistory", back_populates="adaptation")
 
 class ActivityAdaptationModel:
-    """Model for predicting activity adaptations."""
+    """Model for predicting and calculating activity adaptations."""
     def __init__(self):
+        self.logger = logging.getLogger(__name__)
         self.model = None
         self.metadata = None
-        self.model_path = Path('models/activity_adaptation.joblib')
-        self.metadata_path = Path('models/activity_adaptation_metadata.json')
+        self.model_path = Path('/app/services/physical_education/models/activity_adaptation/activity_adaptation.joblib')
+        self.metadata_path = Path('/app/services/physical_education/models/activity_adaptation/activity_adaptation_metadata.json')
         self._load_model()
 
     def _load_model(self):

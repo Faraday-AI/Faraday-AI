@@ -4,8 +4,8 @@ import logging
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-from ..models.safety import EquipmentCheck
-from ..database import get_db
+from app.services.physical_education.models.safety import EquipmentCheck
+from app.core.database import get_db
 
 class EquipmentManager:
     def __init__(self):

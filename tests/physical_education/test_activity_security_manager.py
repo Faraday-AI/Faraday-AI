@@ -2,8 +2,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
 from app.services.physical_education.services.activity_security_manager import ActivitySecurityManager
-from app.services.physical_education.services.activity_manager import ActivityManager
-from app.services.physical_education.services.security_service import SecurityService
+from app.services.physical_education.activity_manager import ActivityManager
+from app.services.physical_education.security_service import SecurityService
 
 @pytest.fixture
 def mock_db():

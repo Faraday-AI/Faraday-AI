@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 from app.core.assistant.base import BaseAssistant, AssistantCapability, AssistantContext
-from app.services.ai_group import AIGroupAnalysis
-from app.services.ai_analytics import AIAnalytics
+from app.services.ai.ai_group import AIGroupAnalysis
+from app.services.ai.ai_analytics import AIAnalytics
 import logging
 
 logger = logging.getLogger(__name__)

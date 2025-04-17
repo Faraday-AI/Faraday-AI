@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict, Any
 from app.models.lesson_plan import LessonPlan
 from app.services.document_service import get_document_service, DocumentService
-from app.services.ai_lesson_enhancement import get_ai_enhancement_service, AILessonEnhancement
+from app.services.ai.ai_lesson_enhancement import get_ai_enhancement_service, AILessonEnhancement
 from app.examples.example_lesson_plans import get_pe_lesson_plan, get_health_lesson_plan, get_drivers_ed_lesson_plan
 
 router = APIRouter()

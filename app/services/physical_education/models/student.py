@@ -3,7 +3,7 @@ from typing import List, Dict, Optional
 from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Boolean, Float, Integer, Enum, Date
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-from app.services.physical_education.models.student_types import Gender, FitnessLevel
+from .student_types import Gender, FitnessLevel
 from pydantic import BaseModel, Field, validator, EmailStr
 
 class Student(Base):

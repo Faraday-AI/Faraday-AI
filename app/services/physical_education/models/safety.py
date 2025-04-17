@@ -1,15 +1,16 @@
 from datetime import datetime
-from typing import Dict, Optional
-from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Boolean, Float
+from typing import List, Dict, Optional
+from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Boolean, Float, Integer, Enum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+from pydantic import BaseModel, Field, validator
 
 class SafetyIncident(Base):
     """Model for safety incidents."""
     __tablename__ = "safety_incidents"
 
-    id = Column(String, primary_key=True)
-    student_id = Column(String, ForeignKey("students.id"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
     date = Column(DateTime, default=datetime.utcnow, nullable=False)
     incident_type = Column(String, nullable=False)
@@ -31,26 +32,29 @@ class RiskAssessment(Base):
     """Model for risk assessments."""
     __tablename__ = "risk_assessments"
 
-    id = Column(String, primary_key=True)
-    activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
+    activity_type = Column(String, nullable=False)
+    environment = Column(String, nullable=False)
+    date = Column(DateTime, default=datetime.utcnow, nullable=False)
     risk_level = Column(String, nullable=False)
-    hazards = Column(JSON, default=list)
-    control_measures = Column(JSON, default=list)
+    environmental_risks = Column(JSON, default=list)
+    student_risks = Column(JSON, default=list)
+    activity_risks = Column(JSON, default=list)
+    mitigation_strategies = Column(JSON, default=list)
+    assessment_metadata = Column(JSON, default=dict)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
-    activity = relationship("Activity", back_populates="risk_assessment")
-
     def __repr__(self):
-        return f"<RiskAssessment {self.activity_id} - {self.risk_level}>"
+        return f"<RiskAssessment {self.id} - {self.risk_level}>"
 
 class SafetyCheck(Base):
     """Model for safety checks."""
     __tablename__ = "safety_checks"
 
-    id = Column(String, primary_key=True)
-    class_id = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True)
+    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
     check_type = Column(String, nullable=False)
     date = Column(DateTime, default=datetime.utcnow)
     results = Column(JSON, nullable=False)
@@ -66,8 +70,8 @@ class EquipmentCheck(Base):
     """Model for equipment safety checks."""
     __tablename__ = "equipment_checks"
 
-    id = Column(String, primary_key=True)
-    class_id = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True)
+    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
     equipment_id = Column(String, nullable=False)
     check_date = Column(DateTime, default=datetime.utcnow)
     maintenance_status = Column(Boolean, nullable=False)
@@ -87,8 +91,8 @@ class EnvironmentalCheck(Base):
     """Model for environmental safety checks."""
     __tablename__ = "environmental_checks"
 
-    id = Column(String, primary_key=True)
-    class_id = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True)
+    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
     check_date = Column(DateTime, default=datetime.utcnow)
     temperature = Column(Float)
     humidity = Column(Float)

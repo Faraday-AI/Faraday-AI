@@ -21,7 +21,7 @@ class MovementAnalysis(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
-    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow)
     movement_data = Column(JSON, nullable=False)
     analysis_results = Column(JSON, nullable=False)
@@ -59,10 +59,13 @@ class MovementModels:
             config_path: Optional path to movement_models.json config file.
                         If None, will look in the same directory as this file.
         """
-        self.config_path = config_path or os.path.join(
-            os.path.dirname(__file__), 
-            'movement_models.json'
-        )
+        if config_path is None:
+            # Get the directory of this file
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            self.config_path = os.path.join(current_dir, 'movement_models.json')
+        else:
+            self.config_path = config_path
+            
         self.config = self._load_config()
         
         # Initialize pose estimation model

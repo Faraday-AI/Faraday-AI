@@ -1,21 +1,21 @@
+from typing import Dict, Any, List, Optional
+from datetime import datetime
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.api.v1.models.security import Token, SecurityRequest, SecurityResponse, ThreatAssessmentRequest, ThreatAssessmentResponse
+from app.api.v1.middleware.auth import (
+    get_current_user,
+    get_current_active_user,
+    get_current_admin_user
+)
+from app.core.database import get_db
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
-from typing import List, Optional
-from datetime import timedelta, datetime
 from jose import JWTError, jwt
-from ..models.security import Token, SecurityRequest, SecurityResponse, ThreatAssessmentRequest, ThreatAssessmentResponse
-from ..middleware.auth import (
-    oauth2_scheme,
-    get_current_active_user,
-    create_access_token,
-    create_refresh_token,
-    SECRET_KEY,
-    ALGORITHM,
-    ACCESS_TOKEN_EXPIRE_MINUTES
-)
-from ...services.physical_education.services.activity_security_manager import ActivitySecurityManager
+from app.services.physical_education.activity_security_manager import ActivitySecurityManager
 
 router = APIRouter()
 security_manager = ActivitySecurityManager()

@@ -1,10 +1,13 @@
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from app.services.physical_education.models.class_ import Class, ClassStatus
-from app.services.physical_education.models.class_student import ClassStudent
-from app.services.physical_education.models.student import Student
-from app.services.physical_education.models.routine import Routine
+from app.core.database import get_db
+from .models.class_ import Class, ClassStatus
+from .models.class_student import ClassStudent
+from .models.student import Student
+from .models.routine import Routine
+from .models.activity import Activity
+from .models.lesson_plan import LessonPlan
 
 class ClassService:
     """Service for managing physical education classes and related operations."""

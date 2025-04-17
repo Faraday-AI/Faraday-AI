@@ -1,14 +1,15 @@
 import cv2
 import numpy as np
+import mediapipe as mp
 from typing import Dict, Any, List, Optional, Tuple
 import logging
 from app.core.monitoring import track_metrics
 import asyncio
 import os
 from datetime import datetime, timedelta
-from app.services.physical_education.models.movement_analysis.movement_models import MovementModels
-from ..models.skill_assessment.skill_assessment_models import SkillModels
-from app.services.physical_education.services.movement_analyzer import MovementAnalyzer
+from app.services.physical_education.models.movement_analysis.movement_models import MovementModels, MovementAnalysis, MovementPattern
+from app.services.physical_education.models.skill_assessment.skill_assessment_models import SkillModels
+from app.services.physical_education.movement_analyzer import MovementAnalyzer
 
 class VideoProcessor:
     """Service for processing video data and extracting movement information."""
@@ -112,8 +113,8 @@ class VideoProcessor:
         """Initialize video processing resources."""
         try:
             # Check if model files exist
-            prototxt_path = "models/pose_deploy_linevec.prototxt"
-            caffemodel_path = "models/pose_iter_440000.caffemodel"
+            prototxt_path = "/app/models/pose_deploy_linevec.prototxt"
+            caffemodel_path = "/app/models/pose_iter_440000.caffemodel"
             
             if not os.path.exists(prototxt_path) or not os.path.exists(caffemodel_path):
                 self.logger.warning("OpenCV model files not found. Video processing will be limited.")

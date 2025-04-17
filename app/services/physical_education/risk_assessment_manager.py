@@ -4,8 +4,8 @@ import logging
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-from ..models.safety import RiskAssessment
-from ..database import get_db
+from app.services.physical_education.models.safety import RiskAssessment
+from app.core.database import get_db
 
 class RiskAssessmentManager:
     def __init__(self):

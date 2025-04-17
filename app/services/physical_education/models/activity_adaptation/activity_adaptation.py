@@ -6,12 +6,12 @@ import joblib
 class ActivityAdaptationModel:
     def __init__(self):
         # Load the trained model
-        self.model = joblib.load('models/activity_adaptation.joblib')
+        self.model = joblib.load('/app/services/physical_education/models/activity_adaptation/activity_adaptation.joblib')
         
         # Define activity categories
         self.activity_categories = {
             'strength': ['push-ups', 'pull-ups', 'squats'],
-            'cardio': ['running', 'jumping', 'skipping'],
+            'endurance': ['running', 'jumping', 'skipping'],
             'flexibility': ['stretching', 'yoga', 'pilates'],
             'coordination': ['dribbling', 'throwing', 'catching']
         }

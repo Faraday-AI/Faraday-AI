@@ -1,0 +1,31 @@
+{
+    "activity": "walking",
+    "needs": {
+        "physical": ["low_fitness_level", "joint_pain"],
+        "cognitive": ["attention_difficulties"],
+        "sensory": ["balance_issues"]
+    },
+    "environment": {
+        "space": "track_or_safe_path",
+        "equipment": "comfortable_shoes",
+        "surface": "flat_and_even"
+    },
+    "adaptation_level": "beginner",
+    "modifications": {
+        "form": "brisk_walking_with_poles",
+        "duration": 10,
+        "intervals": "2_min_walk_1_min_rest",
+        "progression": "increase_duration_gradually"
+    },
+    "safety_considerations": [
+        "Wear proper footwear",
+        "Stay hydrated",
+        "Use walking poles for stability",
+        "Monitor heart rate",
+        "Walk with a partner if needed"
+    ],
+    "equipment_adaptations": {
+        "required": ["walking_shoes", "water_bottle"],
+        "optional": ["walking_poles", "heart_rate_monitor"]
+    }
+} 

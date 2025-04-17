@@ -6,7 +6,7 @@ import joblib
 class SkillAssessmentModel:
     def __init__(self):
         # Load the trained model
-        self.model = joblib.load('models/skill_assessment.joblib')
+        self.model = joblib.load('/app/services/physical_education/models/skill_assessment/skill_assessment.joblib')
         
         # Define skill categories
         self.skill_categories = {

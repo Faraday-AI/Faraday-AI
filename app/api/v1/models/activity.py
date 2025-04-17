@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, ConfigDict
 from enum import Enum
 
 class ActivityStatus(str, Enum):
@@ -10,6 +10,7 @@ class ActivityStatus(str, Enum):
     CANCELLED = "cancelled"
 
 class ActivityData(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     student_id: str = Field(..., description="ID of the student")
     date: datetime = Field(..., description="Date of the activity")
     score: float = Field(..., description="Score achieved in the activity", ge=0, le=100)
@@ -35,6 +36,7 @@ class ActivityData(BaseModel):
         return v.lower()
 
 class BatchActivityRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     activities: List[ActivityData] = Field(..., description="List of activities to create")
     batch_notes: Optional[str] = Field(None, description="Notes for the batch of activities")
 
@@ -45,10 +47,12 @@ class BatchActivityRequest(BaseModel):
         return v
 
 class ActivityStatusUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     status: ActivityStatus = Field(..., description="New status of the activity")
     notes: Optional[str] = Field(None, description="Notes about the status update")
 
 class ActivityCategory(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str = Field(..., description="Name of the category")
     description: str = Field(..., description="Description of the category")
     target_score: float = Field(..., description="Target score for this category", ge=0, le=100)
@@ -62,6 +66,7 @@ class ActivityCategory(BaseModel):
         return v.lower()
 
 class ActivityType(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     name: str = Field(..., description="Name of the activity type")
     category: str = Field(..., description="Category this type belongs to")
     description: str = Field(..., description="Description of the activity type")
@@ -90,6 +95,7 @@ class ActivityType(BaseModel):
         return v
 
 class ActivityResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     activity_id: str = Field(..., description="Unique identifier for the activity")
     student_id: str = Field(..., description="ID of the student")
     date: datetime = Field(..., description="Date of the activity")
@@ -118,6 +124,7 @@ class ActivityResponse(BaseModel):
         return v.lower()
 
 class ActivityListResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     activities: List[ActivityResponse] = Field(..., description="List of activities")
     total_count: int = Field(..., description="Total number of activities")
     page: int = Field(..., description="Current page number")
@@ -139,6 +146,7 @@ class ActivityListResponse(BaseModel):
         return v
 
 class ActivityProgress(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     current_score: float = Field(..., description="Current score", ge=0, le=100)
     target_score: float = Field(..., description="Target score", ge=0, le=100)
     progress_percentage: float = Field(..., description="Progress percentage", ge=0, le=100)
@@ -160,6 +168,7 @@ class ActivityProgress(BaseModel):
         return v.lower()
 
 class ActivityRecommendation(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     activity_type: str = Field(..., description="Type of activity recommended")
     category: str = Field(..., description="Category of the activity")
     duration: int = Field(..., description="Recommended duration in minutes", gt=0)
@@ -190,6 +199,7 @@ class ActivityRecommendation(BaseModel):
         return v.lower()
 
 class ActivitySchedule(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     activity_type: str = Field(..., description="Type of activity")
     category: str = Field(..., description="Category of the activity")
     scheduled_date: datetime = Field(..., description="Scheduled date and time")
@@ -206,6 +216,7 @@ class ActivitySchedule(BaseModel):
         return v.lower()
 
 class EquipmentCheck(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     activity_id: str = Field(..., description="ID of the activity")
     checked_by: str = Field(..., description="ID of the person who performed the check")
     check_date: datetime = Field(..., description="Date and time of the check")
@@ -243,6 +254,7 @@ class EquipmentCheck(BaseModel):
         return v
 
 class SafetyCheck(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     activity_id: str = Field(..., description="ID of the activity")
     checked_by: str = Field(..., description="ID of the person who performed the check")
     check_date: datetime = Field(..., description="Date and time of the check")
@@ -268,7 +280,7 @@ class SafetyCheck(BaseModel):
     def validate_hazards(cls, v):
         if not isinstance(v, list):
             raise ValueError('Hazards must be a list')
-        required_fields = {'hazard_id', 'description', 'severity', 'mitigation_plan'}
+        required_fields = {'hazard_id', 'description', 'severity', 'mitigation'}
         for hazard in v:
             if not isinstance(hazard, dict):
                 raise ValueError('Each hazard must be a dictionary')
@@ -283,22 +295,22 @@ class SafetyCheck(BaseModel):
     def validate_safety_measures(cls, v):
         if not isinstance(v, list):
             raise ValueError('Safety measures must be a list')
-        required_fields = {'measure_id', 'description', 'implementation_status'}
+        required_fields = {'measure_id', 'description', 'status', 'responsible_party'}
         for measure in v:
             if not isinstance(measure, dict):
                 raise ValueError('Each safety measure must be a dictionary')
             missing_fields = required_fields - set(measure.keys())
             if missing_fields:
                 raise ValueError(f'Missing required fields: {", ".join(missing_fields)}')
-            if not isinstance(measure['implementation_status'], str) or measure['implementation_status'] not in ['planned', 'in_progress', 'completed']:
-                raise ValueError('Implementation status must be one of: planned, in_progress, completed')
+            if not isinstance(measure['status'], str) or measure['status'] not in ['implemented', 'pending', 'not_applicable']:
+                raise ValueError('Status must be one of: implemented, pending, not_applicable')
         return v
 
     @validator('emergency_procedures')
     def validate_emergency_procedures(cls, v):
         if not isinstance(v, list):
             raise ValueError('Emergency procedures must be a list')
-        required_fields = {'procedure_id', 'description', 'contact_person', 'contact_number'}
+        required_fields = {'procedure_id', 'description', 'contact_person', 'location'}
         for procedure in v:
             if not isinstance(procedure, dict):
                 raise ValueError('Each emergency procedure must be a dictionary')
@@ -311,13 +323,11 @@ class SafetyCheck(BaseModel):
     def validate_weather_conditions(cls, v):
         if v is not None:
             required_fields = {'temperature', 'conditions', 'wind_speed'}
+            if not isinstance(v, dict):
+                raise ValueError('Weather conditions must be a dictionary')
             missing_fields = required_fields - set(v.keys())
             if missing_fields:
-                raise ValueError(f'Missing required weather fields: {", ".join(missing_fields)}')
-            if not isinstance(v['temperature'], (int, float)):
-                raise ValueError('Temperature must be a number')
-            if not isinstance(v['wind_speed'], (int, float)) or v['wind_speed'] < 0:
-                raise ValueError('Wind speed must be a non-negative number')
+                raise ValueError(f'Missing required fields: {", ".join(missing_fields)}')
         return v
 
     @validator('next_check_date')
@@ -327,6 +337,7 @@ class SafetyCheck(BaseModel):
         return v
 
 class ProgressResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     activity_id: str = Field(..., description="ID of the activity")
     student_id: str = Field(..., description="ID of the student")
     progress: ActivityProgress = Field(..., description="Progress information")
@@ -335,6 +346,7 @@ class ProgressResponse(BaseModel):
     estimated_completion: datetime = Field(..., description="Estimated completion date")
 
 class ScheduleResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
     schedule_id: str = Field(..., description="ID of the schedule")
     activity: ActivitySchedule = Field(..., description="Activity schedule information")
     participants: List[str] = Field(..., description="List of participant IDs")

@@ -20,6 +20,7 @@ import joblib
 import mediapipe as mp
 import httpx
 from openai import OpenAI
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 settings = get_settings()

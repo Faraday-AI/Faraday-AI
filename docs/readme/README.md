@@ -80,6 +80,37 @@ Faraday AI is an AI-powered personal education assistant and school management p
    - Alternative docs: http://127.0.0.1:8000/redoc
    - Landing page: http://127.0.0.1:8000/static/index.html
 
+### Environment Setup
+
+#### Local Development Setup
+To set up your local development environment to match production:
+
+1. Run the setup script:
+   ```bash
+   chmod +x setup_local.sh  # Make the script executable
+   ./setup_local.sh         # Run the setup script
+   ```
+
+The setup script:
+- Sets PYTHONPATH to `/app` to match production
+- Creates necessary directories (models, static, logs, exports)
+- Sets up symlinks for static files
+- Sets appropriate permissions
+
+#### Import Paths
+The project uses absolute import paths with `/app/` notation. This is configured to work in both production and local development:
+
+- Production: Configured through Docker and Render settings
+- Local: Configured through the setup script
+
+The imports in the codebase use `app.` notation (e.g., `from app.main import app`). This is intentional and matches the production environment.
+
+#### Production Environment
+In production (Render):
+- PYTHONPATH is set to `/app` in the Dockerfile
+- Static files are served from `/static/`
+- A symlink is created from `/app/static` to `/static/`
+
 ## Project Structure
 - `app/`: Main application code, including API endpoints and services
   - `app/main.py`: Core FastAPI application and endpoint definitions

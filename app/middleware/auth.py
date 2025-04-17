@@ -1,5 +1,5 @@
+from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi import Request, HTTPException
-from fastapi.middleware.base import BaseHTTPMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from datetime import datetime

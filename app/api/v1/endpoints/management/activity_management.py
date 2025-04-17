@@ -5,15 +5,16 @@ from pydantic import BaseModel, Field, validator
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm, SecurityScopes
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
-from app.services.physical_education.services.activity_manager import ActivityManager
-from app.services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
-from app.services.physical_education.services.activity_collaboration_manager import ActivityCollaborationManager
-from app.services.physical_education.services.activity_export_manager import ActivityExportManager
-from app.services.physical_education.services.activity_analysis_manager import ActivityAnalysisManager
+from app.services.physical_education.activity_manager import ActivityManager
+from app.services.physical_education.activity_visualization_manager import ActivityVisualizationManager
+from app.services.physical_education.activity_collaboration_manager import ActivityCollaborationManager
+from app.services.physical_education.activity_export_manager import ActivityExportManager
+from app.services.physical_education.activity_analysis_manager import ActivityAnalysisManager
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import redis
 from app.core.config import settings
+from app.api.v1.middleware.rate_limiter import rate_limiter
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(
@@ -978,112 +979,6 @@ async def get_current_active_user(
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
-# Rate limiting middleware
-@router.middleware("http")
-async def add_rate_limiting(request: Request, call_next):
-    client_ip = request.client.host
-    key = f"rate_limit:{client_ip}"
-    
-    # Get current request count
-    current = redis_client.get(key)
-    if current is None:
-        redis_client.setex(key, RATE_LIMIT_WINDOW, 1)
-    else:
-        current = int(current)
-        if current >= RATE_LIMIT_REQUESTS:
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail="Too many requests"
-            )
-        redis_client.incr(key)
-    
-    response = await call_next(request)
-    return response
-
-# Authentication middleware
-@router.middleware("http")
-async def add_authentication(request: Request, call_next):
-    if request.url.path not in ["/token", "/docs", "/openapi.json"]:
-        auth_header = request.headers.get("Authorization")
-        if not auth_header:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated"
-            )
-        try:
-            scheme, token = auth_header.split()
-            if scheme.lower() != "bearer":
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid authentication scheme"
-                )
-            await get_current_user(SecurityScopes([]), token)
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail=str(e)
-            )
-    response = await call_next(request)
-    return response
-
-# Token endpoints
-@router.post("/token", response_model=Token)
-async def login_for_access_token(
-    form_data: OAuth2PasswordRequestForm = Depends()
-):
-    user = await authenticate_user(form_data.username, form_data.password)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username, "scopes": user.scopes},
-        expires_delta=access_token_expires
-    )
-    refresh_token = create_refresh_token(
-        data={"sub": user.username, "scopes": user.scopes}
-    )
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "refresh_token": refresh_token
-    }
-
-@router.post("/token/refresh", response_model=Token)
-async def refresh_token(
-    refresh_token: str,
-    current_user: User = Depends(get_current_active_user)
-):
-    try:
-        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None or username != current_user.username:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid refresh token"
-            )
-        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-        access_token = create_access_token(
-            data={"sub": username, "scopes": payload.get("scopes", [])},
-            expires_delta=access_token_expires
-        )
-        new_refresh_token = create_refresh_token(
-            data={"sub": username, "scopes": payload.get("scopes", [])}
-        )
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "refresh_token": new_refresh_token
-        }
-    except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid refresh token"
-        )
-
 # Activity Management Endpoints
 @router.post(
     "/activities",
@@ -1091,7 +986,8 @@ async def refresh_token(
     status_code=status.HTTP_201_CREATED,
     summary="Create a new activity",
     description="Creates a new activity record with the provided data",
-    response_description="The created activity record"
+    response_description="The created activity record",
+    dependencies=[Depends(rate_limiter(limit=10, window=60))]  # 10 requests per minute
 )
 async def create_activity(
     activity: ActivityData,
@@ -1129,7 +1025,8 @@ async def create_activity(
     response_model=List[ActivityResponse],
     summary="Get activities for a student",
     description="Retrieves activities for a specific student with optional filters",
-    response_description="List of activities matching the criteria"
+    response_description="List of activities matching the criteria",
+    dependencies=[Depends(rate_limiter(limit=20, window=60))]  # 20 requests per minute
 )
 async def get_activities(
     student_id: str,
@@ -1167,7 +1064,8 @@ async def get_activities(
     response_model=List[VisualizationResponse],
     summary="Generate visualizations",
     description="Generates visualizations for a student's activities",
-    response_description="List of generated visualizations"
+    response_description="List of generated visualizations",
+    dependencies=[Depends(rate_limiter(limit=10, window=60))]  # 10 requests per minute
 )
 async def generate_visualizations(
     request: VisualizationRequest,
@@ -1215,7 +1113,8 @@ async def generate_visualizations(
     status_code=status.HTTP_201_CREATED,
     summary="Create collaboration session",
     description="Creates a new collaboration session for activities",
-    response_description="The created collaboration session"
+    response_description="The created collaboration session",
+    dependencies=[Depends(rate_limiter(limit=10, window=60))]  # 10 requests per minute
 )
 async def create_collaboration_session(
     request: CollaborationSessionRequest,

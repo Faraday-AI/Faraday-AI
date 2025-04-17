@@ -1,19 +1,20 @@
 import pytest
 import numpy as np
 from unittest.mock import Mock, patch, AsyncMock
-from app.services.ai_analytics import AIAnalytics
+from app.services.ai.ai_analytics import AIAnalytics
 from app.core.monitoring import track_metrics, track_model_performance
 import json
 import asyncio
+from datetime import datetime
 
 @pytest.fixture
 def ai_analytics():
     """Create AI analytics service instance for testing."""
-    with patch('app.services.ai_analytics.openai.Client') as mock_client:
-        with patch('app.services.ai_analytics.tf.keras.models.load_model') as mock_tf_model:
-            with patch('app.services.ai_analytics.joblib.load') as mock_joblib:
-                with patch('app.services.ai_analytics.mp.solutions.pose') as mock_pose:
-                    with patch('app.services.ai_analytics.mp.solutions.face_mesh') as mock_face_mesh:
+    with patch('app.services.ai.ai_analytics.openai.Client') as mock_client:
+        with patch('app.services.ai.ai_analytics.tf.keras.models.load_model') as mock_tf_model:
+            with patch('app.services.ai.ai_analytics.joblib.load') as mock_joblib:
+                with patch('app.services.ai.ai_analytics.mp.solutions.pose') as mock_pose:
+                    with patch('app.services.ai.ai_analytics.mp.solutions.face_mesh') as mock_face_mesh:
                         # Mock OpenAI client
                         mock_client.return_value.chat.completions.create = AsyncMock()
                         mock_client.return_value.chat.completions.create.return_value.choices = [

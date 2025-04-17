@@ -1,6 +1,6 @@
 import pytest
 from datetime import datetime
-from app.services.ai_analytics import PhysicalEducationAI
+from app.services.ai.ai_analytics import PhysicalEducationAI
 from app.services.pe_service import PEService
 import json
 import numpy as np

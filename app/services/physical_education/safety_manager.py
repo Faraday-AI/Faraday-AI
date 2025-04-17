@@ -3,8 +3,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import json
 from app.core.monitoring import track_metrics
-from app.services.physical_education.services.student_manager import StudentManager
-from app.services.physical_education.services.lesson_planner import LessonPlanner
+from app.services.physical_education.student_manager import StudentManager
+from app.services.physical_education.lesson_planner import LessonPlanner
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from app.core.database import get_db

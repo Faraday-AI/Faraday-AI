@@ -11,6 +11,7 @@
 8. [Volumes and Storage](#volumes-and-storage)
 9. [Troubleshooting](#troubleshooting)
 10. [Best Practices](#best-practices)
+11. [Faraday AI Specific Setup](#faraday-ai-specific-setup)
 
 ## Introduction to Docker
 
@@ -247,4 +248,185 @@ docker-compose up -d --build
 
 # Scale services
 docker-compose up -d --scale service_name=3
-``` 
+```
+
+## Faraday AI Specific Setup
+
+### Project Structure
+```
+Faraday-AI/
+├── Dockerfile              # Multi-stage build for all services
+├── docker-compose.yml     # Multi-container orchestration
+├── .dockerignore         # Files to exclude from builds
+├── app/                  # Application code
+│   ├── main.py          # FastAPI application
+│   └── services/        # Service modules
+├── models/              # ML model storage
+├── static/             # Static files
+├── logs/               # Application logs
+└── exports/            # Export data
+```
+
+### Multi-Container Architecture
+Our application consists of the following services:
+- **Main Application (app)**: FastAPI backend with core services
+- **PE Video Processor**: Handles video analysis and processing
+- **PE Movement Analyzer**: Manages movement tracking and analysis
+- **Redis**: In-memory data store and message broker
+- **MinIO**: Object storage for media files
+- **Prometheus**: Metrics collection
+- **Grafana**: Metrics visualization
+- **Exports**: Handles data export operations
+
+### Environment Configuration
+```bash
+# Core Configuration
+PORT=8000                  # Main application port
+API_PORT=8000             # API port
+APP_METRICS_PORT=9091     # Application metrics port
+WEBSOCKET_PORT=9100       # WebSocket port
+LOG_LEVEL=INFO           # Logging level
+
+# Database Configuration
+DATABASE_URL=            # PostgreSQL connection string
+
+# Redis Configuration
+REDIS_PORT=6379         # Redis port
+REDIS_URL=              # Redis connection string
+
+# MinIO Configuration
+MINIO_ACCESS_KEY=       # MinIO access key
+MINIO_SECRET_KEY=       # MinIO secret key
+MINIO_BUCKET=          # MinIO bucket name
+
+# Monitoring
+PROMETHEUS_PORT=9090    # Prometheus port
+GRAFANA_PORT=3000      # Grafana port
+
+# API Keys
+OPENAI_API_KEY=        # OpenAI API key
+```
+
+### Volume Management
+```yaml
+volumes:
+  # Application Volumes
+  - ./app:/app/app           # Application code
+  - ./models:/app/models     # ML models
+  - ./static:/app/static     # Static files
+  - ./logs:/app/logs        # Application logs
+  - ./exports:/app/exports  # Export data
+  
+  # Persistent Data Volumes
+  - redis_data:/data        # Redis data
+  - minio_data:/data       # MinIO data
+  - grafana_data:/var/lib/grafana  # Grafana data
+```
+
+### Security Features
+1. Multi-stage Docker builds for smaller images
+2. Non-root user (appuser) for container execution
+3. Environment variable configuration
+4. Health checks for critical services
+5. Custom bridge network isolation
+6. Secure volume permissions
+
+### Health Checks
+```yaml
+healthcheck:
+  test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+  interval: 30s
+  timeout: 10s
+  retries: 3
+  start_period: 40s
+```
+
+### Development Workflow
+1. Set up environment variables
+2. Start required services:
+   ```bash
+   docker-compose up -d
+   ```
+3. Monitor logs:
+   ```bash
+   docker-compose logs -f [service_name]
+   ```
+4. Make code changes
+5. Rebuild affected services:
+   ```bash
+   docker-compose up -d --build [service_name]
+   ```
+
+### Common Issues and Solutions
+
+#### Service Dependencies
+- Ensure Redis is running before dependent services
+- Check MinIO bucket exists and is accessible
+- Verify database connection settings
+
+#### Resource Management
+```yaml
+deploy:
+  resources:
+    limits:
+      memory: 4G
+      cpus: '2'
+```
+
+#### Model Loading
+- Models are generated during build
+- Check model paths in environment variables
+- Verify model file permissions
+
+### Production Deployment
+1. Set production environment variables
+2. Use production-ready database settings
+3. Configure proper logging
+4. Set up monitoring alerts
+5. Enable health check monitoring
+
+### Monitoring Setup
+1. Prometheus metrics collection
+2. Grafana dashboards for visualization
+3. Application-level metrics
+4. Container resource monitoring
+5. Custom alert rules
+
+### Backup Strategy
+1. Database backups
+2. MinIO data backups
+3. Model version control
+4. Log rotation
+5. Export data management
+
+### Development Workflow
+1. Make code changes
+2. Rebuild affected containers
+3. Test locally
+4. Push changes to repository
+5. Deploy to production
+
+### Production Deployment
+- Use `render.yaml` for Render.com deployment
+- Configure environment variables in production
+- Set up proper monitoring and logging
+- Implement health checks
+
+### Monitoring and Logging
+```bash
+# View container logs
+docker-compose logs -f
+
+# Check container health
+docker-compose ps
+
+# Monitor resource usage
+docker stats
+```
+
+### Security Best Practices
+1. Use `.dockerignore` to exclude sensitive files
+2. Never store secrets in Dockerfiles
+3. Use environment variables for configuration
+4. Regularly update base images
+5. Implement proper access controls 

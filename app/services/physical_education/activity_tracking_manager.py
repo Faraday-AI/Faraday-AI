@@ -1,0 +1,1 @@
+from app.services.physical_education.config.model_paths import get_model_path, ensure_model_directories 

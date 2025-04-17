@@ -69,11 +69,11 @@ data/*.npy
 data/movement_videos_processed/
 
 # Generated models
-models/*.pkl
-models/*.h5
-models/*.onnx
-models/checkpoints/
-models/saved_models/
+/app/models/*.pkl
+/app/models/*.h5
+/app/models/*.onnx
+/app/models/checkpoints/
+/app/models/saved_models/
 
 # Temporary files
 *.tmp
