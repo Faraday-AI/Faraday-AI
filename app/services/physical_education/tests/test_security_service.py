@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timedelta
 from fastapi import Request, HTTPException
 from unittest.mock import Mock
-from app.services.physical_education.services.security_service import SecurityService, ThreatLevel
+from app.services.physical_education.security_service import SecurityService, ThreatLevel
 
 @pytest.fixture
 async def redis_client():

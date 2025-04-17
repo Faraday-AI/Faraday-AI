@@ -11,8 +11,8 @@ import redis
 from minio import Minio
 from app.core.database import get_db, engine
 from app.core.monitoring import system_monitor, model_monitor
-from app.services.ai_analytics import AIAnalytics, get_ai_analytics_service
-from app.core.config import get_settings
+from app.services.ai.ai_analytics import AIAnalytics, get_ai_analytics_service
+from app.core.config import get_settings, settings
 import logging
 
 router = APIRouter()

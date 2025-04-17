@@ -9,7 +9,7 @@ from app.api.v1.models.collaboration import (
     ChatMessageResponse
 )
 from app.api.v1.middleware.auth import oauth2_scheme, get_current_active_user
-from app.services.physical_education.services.activity_collaboration_manager import ActivityCollaborationManager
+from app.services.physical_education.activity_collaboration_manager import ActivityCollaborationManager
 
 router = APIRouter()
 collaboration_manager = ActivityCollaborationManager()

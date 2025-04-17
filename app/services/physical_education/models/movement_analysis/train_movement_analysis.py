@@ -203,17 +203,17 @@ class MovementAnalysisTrainer:
         
         return model
 
-    def train(self, data_dir: str, epochs: int = 50, batch_size: int = 32):
-        """Train the movement analysis model."""
+    def train(self, data_dir):
+        """Train the model and save it."""
         # Prepare dataset
         X, y = self.prepare_dataset(data_dir)
         
-        # Create and train model
+        # Train model
         model = self.create_model((X.shape[1],))
         model.fit(
             X, y,
-            epochs=epochs,
-            batch_size=batch_size,
+            epochs=50,
+            batch_size=32,
             validation_split=0.2,
             callbacks=[
                 tf.keras.callbacks.EarlyStopping(
@@ -224,33 +224,30 @@ class MovementAnalysisTrainer:
             ]
         )
         
-        # Save the model
-        model.save('models/movement_analysis_model.h5')
+        # Save model
+        model_dir = Path('/app/services/physical_education/models/movement_analysis')
+        model_dir.mkdir(exist_ok=True)
+        model.save(model_dir / 'movement_analysis_model.keras', save_format='keras')
         
-        # Save model metadata
+        # Save metadata
         input_shape = X.shape[1:]
-        num_classes = len(self._get_all_movements())
+        output_shape = y.shape[1:]
+        classes = self._get_all_movements()
+        training_time = datetime.now().isoformat()
         metadata = {
             'input_shape': input_shape,
-            'num_classes': num_classes,
-            'model_type': 'movement_analysis',
-            'version': '1.0.0',
-            'created_at': datetime.now().isoformat()
+            'output_shape': output_shape,
+            'classes': classes,
+            'training_time': training_time,
+            'model_version': '1.0.0'
         }
         
-        with open('models/movement_analysis_metadata.json', 'w') as f:
-            json.dump(metadata, f, indent=2)
+        with open(model_dir / 'movement_analysis_metadata.json', 'w') as f:
+            json.dump(metadata, f)
 
 if __name__ == '__main__':
-    # Create models directory if it doesn't exist
-    Path('models').mkdir(exist_ok=True)
-    
     # Initialize trainer
     trainer = MovementAnalysisTrainer()
     
     # Train model
-    trainer.train(
-        data_dir='data/movement_videos',
-        epochs=50,
-        batch_size=32
-    ) 
+    trainer.train(data_dir='/app/data/movement_analysis') 

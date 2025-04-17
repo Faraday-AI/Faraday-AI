@@ -13,7 +13,7 @@ class SkillAssessment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
-    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
     skill_type = Column(String, nullable=False)
     assessment_data = Column(JSON, nullable=False)
     score = Column(Float, nullable=False)
@@ -48,7 +48,7 @@ class AssessmentResult(Base):
     id = Column(Integer, primary_key=True, index=True)
     assessment_id = Column(Integer, ForeignKey("skill_assessments.id"), nullable=False)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
-    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
     score = Column(Float, nullable=False)
     criteria_scores = Column(JSON, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -63,7 +63,7 @@ class AssessmentHistory(Base):
     id = Column(Integer, primary_key=True, index=True)
     assessment_id = Column(Integer, ForeignKey("skill_assessments.id"), nullable=False)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
-    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
+    activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
     previous_score = Column(Float, nullable=True)
     new_score = Column(Float, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -76,7 +76,9 @@ class SkillAssessmentModel:
     def __init__(self):
         self.logger = logging.getLogger(__name__)
         self.model = None
-        self.model_path = Path('models/skill_assessment.joblib')
+        self.metadata = None
+        self.model_path = Path('/app/services/physical_education/models/skill_assessment/skill_assessment.joblib')
+        self.metadata_path = Path('/app/services/physical_education/models/skill_assessment/skill_assessment_metadata.json')
         self._load_model()
 
     def _load_model(self):
@@ -120,6 +122,7 @@ class SkillProgress(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     assessment_id = Column(Integer, ForeignKey("skill_assessments.id"), nullable=False)
+    activity_id = Column(String, ForeignKey("activities.id"), nullable=False)
     previous_score = Column(Float, nullable=False)
     current_score = Column(Float, nullable=False)
     progress_metrics = Column(JSON, nullable=False)

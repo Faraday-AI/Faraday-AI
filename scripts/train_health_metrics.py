@@ -151,7 +151,7 @@ class HealthMetricsTrainer:
                 restore_best_weights=True
             ),
             ModelCheckpoint(
-                'models/health_metrics.h5',
+                '/app/models/health_metrics.h5',
                 monitor='val_loss',
                 save_best_only=True
             )
@@ -174,7 +174,8 @@ class HealthMetricsTrainer:
             'test_loss': test_loss,
             'test_mae': test_mae,
             'test_mse': test_mse,
-            'history': history.history
+            'history': history.history,
+            'model_path': '/app/models/health_metrics.h5'
         }
     
     def save_model(self):
@@ -185,10 +186,10 @@ class HealthMetricsTrainer:
         Path('models').mkdir(exist_ok=True)
         
         # Save model
-        self.model.save('models/health_metrics.h5')
+        self.model.save('/app/models/health_metrics.h5')
         
         # Save scaler
-        joblib.dump(self.scaler, 'models/health_metrics_scaler.joblib')
+        joblib.dump(self.scaler, '/app/models/health_metrics_scaler.joblib')
         
         # Save metadata
         metadata = {
@@ -197,7 +198,7 @@ class HealthMetricsTrainer:
             'output_shape': self.model.output_shape
         }
         
-        with open('models/health_metrics_metadata.json', 'w') as f:
+        with open('/app/models/health_metrics_metadata.json', 'w') as f:
             json.dump(metadata, f, indent=4)
         
         logger.info("Model saved successfully")

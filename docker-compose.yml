@@ -3,15 +3,21 @@ services:
   app:
     build: .
     ports:
-      - "8000:8000"
-      - "9091:9090"
-      - "9100:9100"
+      - "${PORT:-8000}:${PORT:-8000}"
+      - "${APP_METRICS_PORT:-9091}:${APP_METRICS_PORT:-9091}"
+      - "${WEBSOCKET_PORT:-9100}:${WEBSOCKET_PORT:-9100}"
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    extra_hosts:
+      - "faraday-ai.postgres.database.azure.com:172.190.200.25"
     environment:
-      - API_PORT=8000
-      - METRICS_PORT=9090
-      - WEBSOCKET_PORT=9100
+      - PORT=${PORT:-8000}
+      - API_PORT=${PORT:-8000}
+      - METRICS_PORT=${APP_METRICS_PORT:-9091}
+      - WEBSOCKET_PORT=${WEBSOCKET_PORT:-9100}
       - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=redis://redis:6379/0
+      - REDIS_URL=redis://redis:${REDIS_PORT:-6379}/0
       - MINIO_URL=minio:9002
       - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
       - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
@@ -21,11 +27,15 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - MODEL_DIR=/app/models
       - LOG_DIR=/app/logs
+      - STATIC_DIR=/app/static
+      - EXPORTS_DIR=/app/exports
       - REDIS_HOST=redis
-      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ENDPOINT=minio:9002
+      - PYTHONPATH=/app
     volumes:
-      - ./static:/app/static
+      - ./app:/app/app
       - ./models:/app/models
+      - ./static:/app/static
       - ./logs:/app/logs
       - ./exports:/app/exports
     depends_on:
@@ -55,68 +65,62 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - LOG_LEVEL=INFO
       - LOG_DIR=/app/logs
+      - PYTHONPATH=/app
     depends_on:
       - redis
     networks:
       - faraday-network
 
-  # Database Service
-  postgres:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-faraday}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - faraday-network
-
-  # Model Training Service
-  train:
-    build:
-      context: .
-      dockerfile: Dockerfile.train
-    environment:
-      - MODEL_DIR=/app/models
-      - LOG_DIR=/app/logs
+  # Physical Education Services
+  pe-movement-analyzer:
+    build: .
+    command: python -m app.services.physical_education.movement_analyzer
     volumes:
       - ./models:/app/models
       - ./logs:/app/logs
-      - ./data:/app/data
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+      - MODEL_DIR=/app/models
+    depends_on:
+      - redis
     networks:
       - faraday-network
 
-  # Shared Cache
+  pe-video-processor:
+    build: .
+    command: python -m app.services.physical_education.video_processor
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    environment:
+      - PYTHONPATH=/app
+      - LOG_LEVEL=INFO
+      - MODEL_DIR=/app/models
+    depends_on:
+      - redis
+    networks:
+      - faraday-network
+
+  # Redis Service
   redis:
-    image: redis:alpine
+    image: redis:7.0-alpine
     ports:
-      - "6380:6379"
+      - "${REDIS_PORT:-6379}:${REDIS_PORT:-6379}"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
     networks:
       - faraday-network
 
-  # Shared File Storage
+  # MinIO Object Storage
   minio:
     image: minio/minio
     ports:
       - "9002:9000"
-      - "9001:9001"
+      - "9003:9001"
     environment:
-      - MINIO_ACCESS_KEY=${MINIO_ACCESS_KEY:-minioadmin}
-      - MINIO_SECRET_KEY=${MINIO_SECRET_KEY:-minioadmin}
+      - MINIO_ROOT_USER=${MINIO_ACCESS_KEY:-minioadmin}
+      - MINIO_ROOT_PASSWORD=${MINIO_SECRET_KEY:-minioadmin}
     volumes:
       - minio_data:/data
     command: server /data --console-address ":9001"
@@ -128,108 +132,29 @@ services:
     networks:
       - faraday-network
 
-  # Monitoring
+  # Monitoring Services
   prometheus:
     image: prom/prometheus
     ports:
-      - "9091:9090"
+      - "${PROMETHEUS_PORT:-9090}:${PROMETHEUS_PORT:-9090}"
     volumes:
-      - prometheus_data:/prometheus
-    command:
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - faraday-network
 
   grafana:
     image: grafana/grafana
     ports:
-      - "3001:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
-      - GF_USERS_ALLOW_SIGN_UP=false
+      - "${GRAFANA_PORT:-3000}:${GRAFANA_PORT:-3000}"
     volumes:
       - grafana_data:/var/lib/grafana
-    depends_on:
-      - prometheus
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - faraday-network
-
-  # PE-Specific Services
-  pe-video-processor:
-    build: 
-      context: .
-      dockerfile: Dockerfile.video
-    environment:
-      - OPENCV_FFMPEG_CAPTURE_OPTIONS=rtsp_transport;tcp
-      - SERVICE_TYPE=pe
-      - LOG_DIR=/app/logs
-    volumes:
-      - media_volume:/app/media
-      - ./logs:/app/logs
-    depends_on:
-      - redis
-      - minio
-    networks:
-      - faraday-network
-
-  pe-movement-analyzer:
-    build:
-      context: .
-      dockerfile: Dockerfile.movement
-    environment:
-      - MODEL_DIR=/app/models
-      - LOG_DIR=/app/logs
-      - SERVICE_TYPE=pe
-    volumes:
-      - media_volume:/app/media
-      - ./models:/app/models
-      - ./logs:/app/logs
-      - ./data:/app/data
-    depends_on:
-      - redis
-      - pe-video-processor
-    networks:
-      - faraday-network
-    command: >
-      sh -c "
-        if [ \"$$TRAIN_MODEL\" = \"true\" ]; then
-          python models/train_movement_analysis.py;
-        else
-          python -m app.services.movement_analyzer;
-        fi
-      "
-
-  # JSON to Video Converter
-  json-to-video:
-    build:
-      context: .
-      dockerfile: Dockerfile.movement
-    volumes:
-      - ./data:/app/data
-      - ./scripts:/app/scripts
-    command: python scripts/json_to_video.py
     networks:
       - faraday-network
 
 volumes:
   redis_data:
   minio_data:
-  prometheus_data:
   grafana_data:
-  media_volume:
-  postgres_data:
 
 networks:
   faraday-network:

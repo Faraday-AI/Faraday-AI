@@ -1,0 +1,31 @@
+{
+    "activity": "ball_tossing",
+    "needs": {
+        "physical": ["poor_hand_eye_coordination"],
+        "cognitive": ["difficulty_tracking_movement"],
+        "sensory": ["visual_tracking_challenges"]
+    },
+    "environment": {
+        "space": "adequate_for_movement",
+        "equipment": "soft_ball",
+        "surface": "clear_and_safe"
+    },
+    "adaptation_level": "beginner",
+    "modifications": {
+        "form": "self_toss_and_catch",
+        "distance": 1,
+        "repetitions": 5,
+        "progression": "self_toss -> partner_toss -> increasing_distance"
+    },
+    "safety_considerations": [
+        "Use soft, lightweight ball",
+        "Start with short distances",
+        "Ensure clear space",
+        "Progress gradually",
+        "Provide visual cues"
+    ],
+    "equipment_adaptations": {
+        "required": ["soft_ball", "visual_markers"],
+        "optional": ["bean_bags", "larger_ball"]
+    }
+} 

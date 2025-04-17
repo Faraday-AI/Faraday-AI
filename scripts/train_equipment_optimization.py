@@ -159,7 +159,7 @@ class EquipmentOptimizationTrainer:
                 restore_best_weights=True
             ),
             ModelCheckpoint(
-                'models/equipment_optimization.h5',
+                '/app/models/equipment_optimization.h5',
                 monitor='val_loss',
                 save_best_only=True
             )
@@ -193,19 +193,20 @@ class EquipmentOptimizationTrainer:
         Path('models').mkdir(exist_ok=True)
         
         # Save model
-        self.model.save('models/equipment_optimization.h5')
+        self.model.save('/app/models/equipment_optimization.h5')
         
         # Save scaler
-        joblib.dump(self.scaler, 'models/equipment_scaler.joblib')
+        joblib.dump(self.scaler, '/app/models/equipment_scaler.joblib')
         
         # Save metadata
         metadata = {
             'model_type': 'equipment_optimization',
             'input_shape': self.model.input_shape,
-            'output_shape': self.model.output_shape
+            'output_shape': self.model.output_shape,
+            'model_path': '/app/models/equipment_optimization.h5'
         }
         
-        with open('models/equipment_optimization_metadata.json', 'w') as f:
+        with open('/app/models/equipment_optimization_metadata.json', 'w') as f:
             json.dump(metadata, f, indent=4)
         
         logger.info("Model saved successfully")

@@ -1,0 +1,31 @@
+{
+    "activity": "single_leg_stand",
+    "needs": {
+        "physical": ["poor_balance", "weak_ankles"],
+        "cognitive": ["difficulty_focusing"],
+        "sensory": ["proprioception_challenges"]
+    },
+    "environment": {
+        "space": "adequate_for_standing",
+        "equipment": "yoga_mat",
+        "surface": "flat_and_stable"
+    },
+    "adaptation_level": "beginner",
+    "modifications": {
+        "form": "single_leg_stand_with_chair_support",
+        "duration": 10,
+        "repetitions": 3,
+        "progression": "chair_support -> wall_support -> independent"
+    },
+    "safety_considerations": [
+        "Keep chair nearby for support",
+        "Maintain proper posture",
+        "Focus on a fixed point",
+        "Progress gradually",
+        "Stop if feeling unsteady"
+    ],
+    "equipment_adaptations": {
+        "required": ["stable_chair", "yoga_mat"],
+        "optional": ["wall_mirror", "balance_pad"]
+    }
+} 

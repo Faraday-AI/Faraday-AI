@@ -17,26 +17,26 @@ class MovementAnalysisModel:
         
         # Get the base directory
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        models_dir = os.path.join(base_dir, 'models')
+        self.models_dir = '/app/services/physical_education/models/movement_analysis'
         
         # Ensure models directory exists
-        os.makedirs(models_dir, exist_ok=True)
+        os.makedirs(self.models_dir, exist_ok=True)
         
         # Movement analysis model
-        model_path = os.path.join(models_dir, 'movement_analysis_model.h5')
+        model_path = os.path.join(self.models_dir, 'movement_analysis_model.h5')
         logger.info(f"Loading movement model from: {model_path}")
         
         try:
             if not os.path.exists(model_path):
                 # Create a simple model if it doesn't exist
-                model = tf.keras.Sequential([
-                    tf.keras.layers.Dense(10, activation='relu', input_shape=(10,)),
-                    tf.keras.layers.Dense(1, activation='sigmoid')
-                ])
-                # Use explicit save_model function
-                tf.keras.models.save_model(model, model_path, save_format='h5')
+                inputs = tf.keras.layers.Input(shape=(10,))
+                x = tf.keras.layers.Dense(10, activation='relu')(inputs)
+                outputs = tf.keras.layers.Dense(1, activation='sigmoid')(x)
+                model = tf.keras.Model(inputs=inputs, outputs=outputs)
+                # Use new Keras format
+                tf.keras.models.save_model(model, model_path.replace('.h5', '.keras'), save_format='keras')
             
-            self.model = tf.keras.models.load_model(model_path)
+            self.model = tf.keras.models.load_model(model_path.replace('.h5', '.keras'))
         except Exception as e:
             print(f"Error loading movement model: {str(e)}")
             raise

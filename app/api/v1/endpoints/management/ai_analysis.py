@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, WebSocket, Header, Body, Request
 from typing import List, Dict, Any, Optional
-from app.services.ai_analytics import get_ai_analytics_service, AIAnalytics
-from app.services.ai_vision import get_ai_vision_service, AIVisionAnalysis
-from app.services.ai_voice import get_ai_voice_service, AIVoiceAnalysis
-from app.services.ai_emotion import get_ai_emotion_service, AIEmotionAnalysis
-from app.services.ai_group import get_ai_group_service, AIGroupAnalysis
+from app.services.ai.ai_analytics import get_ai_analytics_service, AIAnalytics
+from app.services.ai.ai_vision import get_ai_vision_service, AIVisionAnalysis
+from app.services.ai.ai_voice import get_ai_voice_service, AIVoiceAnalysis
+from app.services.ai.ai_emotion import get_ai_emotion_service, AIEmotionAnalysis
+from app.services.ai.ai_group import get_ai_group_service, AIGroupAnalysis
 import json
 import numpy as np
 from pydantic import BaseModel, validator

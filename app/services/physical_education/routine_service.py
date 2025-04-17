@@ -1,10 +1,11 @@
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from app.services.physical_education.models.routine import Routine, RoutineStatus
-from app.services.physical_education.models.routine_activity import RoutineActivity
-from app.services.physical_education.models.activity import Activity
-from app.services.physical_education.models.class_ import Class
+from app.core.database import get_db
+from .models.routine import Routine, RoutineStatus
+from .models.routine_activity import RoutineActivity
+from .models.activity import Activity
+from .models.class_ import Class
 
 class RoutineService:
     """Service for managing physical education routines and related operations."""

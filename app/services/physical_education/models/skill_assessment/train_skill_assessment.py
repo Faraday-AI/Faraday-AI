@@ -1,143 +1,100 @@
 import os
+import json
 import numpy as np
+from pathlib import Path
 from sklearn.ensemble import RandomForestRegressor
 import joblib
-import json
-from typing import List, Dict, Any
-from pathlib import Path
 
 class SkillAssessmentTrainer:
     def __init__(self):
-        # Define skill categories
-        self.skill_categories = {
-            'strength': ['push-ups', 'pull-ups', 'squats', 'lunges'],
-            'endurance': ['running', 'jumping', 'skipping', 'dancing'],
-            'flexibility': ['stretching', 'yoga', 'pilates', 'gymnastics'],
-            'coordination': ['dribbling', 'throwing', 'catching', 'balancing']
-        }
+        self.skill_categories = ['strength', 'flexibility', 'endurance', 'coordination']
+        self.performance_metrics = ['alignment', 'technique', 'control', 'speed', 'accuracy', 'consistency']
+    
+    def prepare_dataset(self, data_dir):
+        """Prepare dataset from JSON files."""
+        features = []
+        labels = []
         
-        # Define assessment criteria
-        self.assessment_criteria = {
-            'form': ['alignment', 'technique', 'control'],
-            'performance': ['speed', 'accuracy', 'consistency'],
-            'progress': ['improvement', 'consistency', 'effort']
-        }
-
-    def prepare_dataset(self, data_dir: str) -> tuple:
-        """Prepare the dataset for training."""
-        X = []
-        y = []
-        
-        # Process each skill in the dataset
-        for category, skills in self.skill_categories.items():
-            for skill in skills:
-                skill_dir = os.path.join(data_dir, category, skill)
-                if not os.path.exists(skill_dir):
+        for category in self.skill_categories:
+            category_dir = Path(data_dir) / category
+            if not category_dir.exists():
+                continue
+                
+            for activity_dir in category_dir.iterdir():
+                if not activity_dir.is_dir():
                     continue
                     
-                for data_file in os.listdir(skill_dir):
-                    if not data_file.endswith('.json'):
-                        continue
-                        
-                    data_path = os.path.join(skill_dir, data_file)
-                    with open(data_path, 'r') as f:
+                for json_file in activity_dir.glob('*.json'):
+                    with open(json_file) as f:
                         data = json.load(f)
                         
-                    features = self._prepare_features(
-                        skill=skill,
-                        performance=data['performance'],
-                        previous=data.get('previous', [])
-                    )
-                    
-                    if features is not None:
-                        X.append(features)
-                        y.append([
-                            data['skill_score'],
-                            data['progress_score']
+                        # Extract features
+                        feature_vector = []
+                        
+                        # Activity category (one-hot encoded)
+                        category_vector = [0] * len(self.skill_categories)
+                        category_vector[self.skill_categories.index(category)] = 1
+                        feature_vector.extend(category_vector)
+                        
+                        # Performance metrics
+                        performance = data['performance']
+                        feature_vector.extend([
+                            performance['alignment'],
+                            performance['technique'],
+                            performance['control'],
+                            performance['speed'],
+                            performance['accuracy'],
+                            performance['consistency']
                         ])
+                        
+                        # Previous performance
+                        if data['previous']:
+                            prev = data['previous'][0]
+                            feature_vector.extend([
+                                prev['improvement'],
+                                prev['consistency'],
+                                prev['effort']
+                            ])
+                        else:
+                            feature_vector.extend([0, 0, 0])
+                        
+                        features.append(feature_vector)
+                        labels.append(data['skill_score'])
         
-        return np.array(X), np.array(y)
-
-    def _prepare_features(self, skill: str, performance: Dict[str, float], previous: List[Dict[str, float]]) -> np.ndarray:
-        """Prepare features for the model."""
-        features = []
-        
-        # Skill category
-        category = self._get_skill_category(skill)
-        features.extend(self._one_hot_encode(category, list(self.skill_categories.keys())))
-        
-        # Skill type
-        features.extend(self._one_hot_encode(skill, self._get_all_skills()))
-        
-        # Current performance
-        for criterion in self.assessment_criteria['form']:
-            features.append(performance.get(criterion, 0.5))
-        for criterion in self.assessment_criteria['performance']:
-            features.append(performance.get(criterion, 0.5))
-            
-        # Historical performance
-        if previous:
-            last_assessment = previous[-1]
-            for criterion in self.assessment_criteria['progress']:
-                features.append(last_assessment.get(criterion, 0.5))
-        else:
-            features.extend([0.5] * len(self.assessment_criteria['progress']))
-            
-        return np.array(features)
-
-    def _get_skill_category(self, skill: str) -> str:
-        """Determine the category of a skill."""
-        for category, skills in self.skill_categories.items():
-            if skill in skills:
-                return category
-        return 'general'
-
-    def _get_all_skills(self) -> List[str]:
-        """Get all skill types."""
-        skills = []
-        for category_skills in self.skill_categories.values():
-            skills.extend(category_skills)
-        return skills
-
-    def _one_hot_encode(self, value: str, categories: List[str]) -> List[int]:
-        """One-hot encode a categorical value."""
-        return [1 if value == cat else 0 for cat in categories]
-
-    def create_model(self) -> RandomForestRegressor:
-        """Create the random forest regressor."""
-        return RandomForestRegressor(
-            n_estimators=100,
-            max_depth=10,
-            random_state=42
-        )
-
-    def train(self, data_dir: str):
-        """Train the skill assessment model."""
+        return np.array(features), np.array(labels)
+    
+    def train(self, data_dir):
+        """Train the model and save it."""
         # Prepare dataset
         X, y = self.prepare_dataset(data_dir)
         
-        # Create and train model
-        model = self.create_model()
+        # Train model
+        model = RandomForestRegressor(n_estimators=100, random_state=42)
         model.fit(X, y)
         
         # Save model
-        joblib.dump(model, 'models/skill_assessment.joblib')
+        model_dir = Path('/app/services/physical_education/models/skill_assessment')
+        model_dir.mkdir(exist_ok=True)
+        joblib.dump(model, model_dir / 'skill_assessment.joblib')
         
-        # Save model metadata
+        # Save metadata
         metadata = {
             'skill_categories': self.skill_categories,
-            'assessment_criteria': self.assessment_criteria
+            'performance_metrics': self.performance_metrics,
+            'feature_names': [
+                'skill_category_' + cat for cat in self.skill_categories
+            ] + [
+                'alignment', 'technique', 'control', 'speed', 'accuracy', 'consistency',
+                'prev_improvement', 'prev_consistency', 'prev_effort'
+            ]
         }
         
-        with open('models/skill_assessment_metadata.json', 'w') as f:
+        with open(model_dir / 'skill_assessment_metadata.json', 'w') as f:
             json.dump(metadata, f)
 
 if __name__ == '__main__':
-    # Create models directory if it doesn't exist
-    Path('models').mkdir(exist_ok=True)
-    
     # Initialize trainer
     trainer = SkillAssessmentTrainer()
     
     # Train model
-    trainer.train(data_dir='data/skill_assessments') 
+    trainer.train(data_dir='/app/data/skill_assessments') 

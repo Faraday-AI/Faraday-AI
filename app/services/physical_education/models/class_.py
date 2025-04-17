@@ -1,9 +1,9 @@
 from datetime import datetime
 from typing import List, Dict, Optional
-from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Boolean, Integer, Enum
+from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Boolean, Float, Integer, Enum
 from sqlalchemy.orm import relationship
 from app.core.database import Base
-from app.services.physical_education.models.class_types import ClassStatus
+from .class_types import ClassStatus
 from pydantic import BaseModel, Field, validator
 
 class Class(Base):
@@ -34,9 +34,9 @@ class ClassStudent(Base):
     """Model for student enrollment in classes."""
     __tablename__ = "class_students"
 
-    id = Column(String, primary_key=True)
-    class_id = Column(String, ForeignKey("classes.id"), nullable=False)
-    student_id = Column(String, ForeignKey("students.id"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    class_id = Column(Integer, ForeignKey("classes.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     enrollment_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     status = Column(String, nullable=False, default="active")
     created_at = Column(DateTime, default=datetime.utcnow)

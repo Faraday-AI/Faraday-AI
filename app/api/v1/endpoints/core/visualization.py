@@ -11,9 +11,9 @@ from app.api.v1.models.visualization import (
     ExportResponse
 )
 from app.api.v1.middleware.auth import oauth2_scheme, get_current_active_user
-from app.services.physical_education.services.activity_manager import ActivityManager
-from app.services.physical_education.services.activity_visualization_manager import ActivityVisualizationManager
-from app.services.physical_education.services.activity_export_manager import ActivityExportManager
+from app.services.physical_education.activity_manager import ActivityManager
+from app.services.physical_education.activity_visualization_manager import ActivityVisualizationManager
+from app.services.physical_education.activity_export_manager import ActivityExportManager
 
 router = APIRouter()
 activity_manager = ActivityManager()

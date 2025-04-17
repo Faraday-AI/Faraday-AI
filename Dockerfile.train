@@ -44,4 +44,4 @@ ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # Command to run the training script
-CMD ["python", "models/train_movement_analysis.py"] 
+CMD ["python", "/app/models/train_movement_analysis.py"] 

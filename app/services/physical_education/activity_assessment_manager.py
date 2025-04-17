@@ -5,17 +5,17 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-from ..models.skill_assessment.skill_assessment_models import (
+from app.services.physical_education.models.skill_assessment.skill_assessment_models import (
     SkillAssessment as ActivityAssessment,
     AssessmentCriteria,
     AssessmentResult,
     AssessmentHistory
 )
-from ..models.activity import Activity
-from ..models.student import Student
+from app.services.physical_education.models.activity import Activity
+from app.services.physical_education.models.student import Student
 from app.core.database import get_db
-from ..models.skill_assessment.skill_assessment_models import SkillAssessmentModel as ActivityAssessmentModel
-from ..config.model_paths import get_model_path, ensure_model_directories
+from app.services.physical_education.models.skill_assessment.skill_assessment_models import SkillAssessmentModel as ActivityAssessmentModel
+from app.services.physical_education.config.model_paths import get_model_path, ensure_model_directories
 
 class ActivityAssessmentManager:
     def __init__(self, db: Session = Depends(get_db)):
