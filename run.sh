@@ -1,13 +1,13 @@
 #!/bin/bash
 
 # Database Configuration
-export DATABASE_URL="postgresql://faraday_admin:CodaMoeLuna31@faraday-ai.postgres.database.azure.com:5432/postgres?sslmode=require&connect_timeout=50&keepalives=1&keepalives_idle=50&keepalives_interval=30&keepalives_count=5&application_name=faraday_ai&target_session_attrs=read-write"
+export DATABASE_URL=
 
 # Redis Configuration
-export REDIS_URL="redis://redis:6379/0"
+export REDIS_URL=
 
 # OpenAI Configuration
-export OPENAI_API_KEY="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"
+export OPENAI_API_KEY=
 
 # MinIO Configuration
 export MINIO_ACCESS_KEY="minioadmin"
