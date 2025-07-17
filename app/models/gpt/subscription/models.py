@@ -124,7 +124,7 @@ class CoreGPTUsageHistory(BaseModel, MetadataMixin):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    subscription_id = Column(Integer, ForeignKey("dashboard_gpt_subscriptions.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("gpt_subscriptions.id"), nullable=False)
     interaction_type = Column(String, nullable=False)  # API call, function call, etc.
     details = Column(JSON)
     timestamp = Column(DateTime, default=datetime.utcnow)
@@ -149,7 +149,7 @@ class GPTSubscriptionUsage(BaseModel, MetadataMixin):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    subscription_id = Column(Integer, ForeignKey("dashboard_gpt_subscriptions.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("gpt_subscriptions.id"), nullable=False)
     billing_period_start = Column(DateTime, nullable=False)
     billing_period_end = Column(DateTime, nullable=False)
     
@@ -205,7 +205,7 @@ class GPTSubscriptionBilling(BaseModel, StatusMixin, MetadataMixin):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    subscription_id = Column(Integer, ForeignKey("dashboard_gpt_subscriptions.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("gpt_subscriptions.id"), nullable=False)
     billing_cycle_start = Column(DateTime, nullable=False)
     billing_cycle_end = Column(DateTime, nullable=False)
     
@@ -264,7 +264,7 @@ class GPTSubscriptionPayment(BaseModel, StatusMixin, MetadataMixin):
 
     id = Column(Integer, primary_key=True)
     billing_cycle_id = Column(Integer, ForeignKey("gpt_subscription_billing.id"), nullable=False)
-    subscription_id = Column(Integer, ForeignKey("dashboard_gpt_subscriptions.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("gpt_subscriptions.id"), nullable=False)
     
     # Payment information
     amount = Column(Float, nullable=False)
@@ -317,7 +317,7 @@ class GPTSubscriptionInvoice(BaseModel, StatusMixin, MetadataMixin):
 
     id = Column(Integer, primary_key=True)
     billing_cycle_id = Column(Integer, ForeignKey("gpt_subscription_billing.id"), nullable=False)
-    subscription_id = Column(Integer, ForeignKey("dashboard_gpt_subscriptions.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("gpt_subscriptions.id"), nullable=False)
     
     # Invoice information
     invoice_number = Column(String, nullable=False, unique=True)
@@ -382,7 +382,7 @@ class GPTSubscriptionRefund(BaseModel, StatusMixin, MetadataMixin):
 
     id = Column(Integer, primary_key=True)
     payment_id = Column(Integer, ForeignKey("gpt_subscription_payments.id"), nullable=False)
-    subscription_id = Column(Integer, ForeignKey("dashboard_gpt_subscriptions.id"), nullable=False)
+    subscription_id = Column(Integer, ForeignKey("gpt_subscriptions.id"), nullable=False)
     
     # Refund information
     refund_amount = Column(Float, nullable=False)

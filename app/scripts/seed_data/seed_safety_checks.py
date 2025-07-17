@@ -15,16 +15,24 @@ from app.models.physical_education.pe_enums.pe_types import (
     SafetyCheckTrigger
 )
 
-async def seed_safety_checks(session: Session) -> None:
+def seed_safety_checks(session: Session) -> None:
     """Seed safety checks data."""
     print("Seeding safety checks...")
     
     # Get all class IDs from the database
-    result = await session.execute(text("SELECT id FROM classes"))
+    result = session.execute(text("SELECT id FROM physical_education_classes"))
     class_ids = [row[0] for row in result.fetchall()]  # Keep as string
     if not class_ids:
         print("No classes found in the database. Skipping safety checks seeding.")
         return
+    
+    # Get a teacher for the checked_by field
+    result = session.execute(text("SELECT id FROM users WHERE role = 'teacher' LIMIT 1"))
+    teacher = result.fetchone()
+    if not teacher:
+        print("Warning: No teacher found for safety checks")
+        return
+    teacher_id = teacher[0]
     
     # Define check types
     check_types = [
@@ -48,7 +56,8 @@ async def seed_safety_checks(session: Session) -> None:
             safety_check = SafetyCheck(
                 class_id=class_id,  # Already a string, no conversion needed
                 check_type=check_type,
-                date=check_date,
+                check_date=check_date,
+                checked_by=teacher_id,
                 results={
                     "items_checked": 5,
                     "issues_found": 0,
@@ -65,6 +74,6 @@ async def seed_safety_checks(session: Session) -> None:
     
     # Add all safety checks to the session
     session.add_all(safety_checks)
-    await session.commit()
+    session.commit()
     
     print(f"Seeded {len(safety_checks)} safety checks.") 

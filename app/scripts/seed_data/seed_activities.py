@@ -64,7 +64,7 @@ def seed_activities(session: Session):
         {
             "name": "Basketball Game",
             "description": "5v5 basketball game",
-            "type": ActivityType.GAME,
+            "type": ActivityType.GAMES,
             "difficulty_level": "INTERMEDIATE",
             "equipment_needed": "Basketball, hoops",
             "duration": 40

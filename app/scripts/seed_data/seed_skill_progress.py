@@ -2,10 +2,9 @@ from datetime import datetime, timedelta
 import random
 from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.activity import Activity
-from app.models.student import Student
-from app.models.assessment import SkillProgress
+from app.models.physical_education.student.models import Student
+from app.models.skill_assessment.assessment.assessment import SkillProgress
 from app.models.physical_education.pe_enums.pe_types import (
     SkillLevel, ProgressType, ProgressStatus
 )
@@ -14,12 +13,12 @@ from app.models.core.core_models import (
     ActivityType, StudentType
 )
 
-async def seed_skill_progress(session):
+def seed_skill_progress(session):
     """Seed the skill_progress table with initial data."""
     print("Seeding skill progress...")
     try:
         # Get the first two students from the database
-        students = (await session.execute(Student.__table__.select().limit(2))).fetchall()
+        students = session.execute(Student.__table__.select().limit(2)).fetchall()
         
         if not students or len(students) < 2:
             print("Not enough students found. Skipping skill progress seeding.")
@@ -29,7 +28,7 @@ async def seed_skill_progress(session):
         student2_id = students[1].id
 
         # Get activities by name
-        activities = (await session.execute(
+        activities = session.execute(
             Activity.__table__.select().where(
                 Activity.__table__.c.name.in_([
                     'Jump Rope Basics',
@@ -38,7 +37,7 @@ async def seed_skill_progress(session):
                     'Dynamic Warm-up'
                 ])
             )
-        )).fetchall()
+        ).fetchall()
 
         if len(activities) < 4:
             print("Not all required activities found. Skipping skill progress seeding.")
@@ -139,10 +138,10 @@ async def seed_skill_progress(session):
             progress = SkillProgress(**progress_data)
             session.add(progress)
 
-        await session.flush()
+        session.flush()
         print("Skill progress seeded successfully!")
         
     except Exception as e:
         print(f"Error seeding skill progress: {e}")
-        await session.rollback()
+        session.rollback()
         raise 

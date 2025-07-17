@@ -2,33 +2,32 @@
 from datetime import datetime, timedelta
 import random
 from typing import List, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
 from sqlalchemy.orm import Session
+from sqlalchemy import select, text
 from app.models.activity import Activity
 from app.models.activity_adaptation.activity.activity_adaptation import ActivityAdaptation
 from app.models.physical_education.activity.models import ActivityProgression
 from app.models.core.core_models import AdaptationType
-from app.models.student import Student
+from app.models.physical_education.student.models import Student
 from app.models.physical_education.pe_enums.pe_types import (
     ActivityType,
     DifficultyLevel,
     ProgressionLevel
 )
 
-async def seed_activity_progressions(session: AsyncSession) -> None:
+def seed_activity_progressions(session: Session) -> None:
     """Seed activity progressions data."""
     print("Seeding activity progressions...")
     
     # Delete existing records
-    await session.execute(text("DELETE FROM activity_progressions"))
-    await session.commit()
+    session.execute(text("DELETE FROM activity_progressions"))
+    session.commit()
     
     # Get all students and activities
-    result = await session.execute(select(Student.id, Student.first_name, Student.last_name))
+    result = session.execute(select(Student.id, Student.first_name, Student.last_name))
     students = {f"{row.first_name} {row.last_name}": row.id for row in result.fetchall()}
     
-    result = await session.execute(select(Activity.id, Activity.name))
+    result = session.execute(select(Activity.id, Activity.name))
     activities = {row.name: row.id for row in result.fetchall()}
     
     if not students or not activities:
@@ -40,30 +39,42 @@ async def seed_activity_progressions(session: AsyncSession) -> None:
         {
             "student_id": students["John Smith"],
             "activity_id": activities["Jump Rope Basics"],
-            "current_level": ProgressionLevel.BEGINNER,
-            "improvement_rate": 0.75,
-            "last_assessment_date": datetime.now() - timedelta(days=7)
+            "level": ProgressionLevel.NOVICE,
+            "current_level": ProgressionLevel.NOVICE,
+            "requirements": "Complete basic jump rope skills",
+            "start_date": datetime.now() - timedelta(days=30),
+            "last_updated": datetime.now() - timedelta(days=7),
+            "progression_metadata": {"attempts": 5, "success_rate": 0.75}
         },
         {
             "student_id": students["Emily Johnson"],
             "activity_id": activities["Basketball Dribbling"],
-            "current_level": ProgressionLevel.INTERMEDIATE,
-            "improvement_rate": 0.85,
-            "last_assessment_date": datetime.now() - timedelta(days=5)
+            "level": ProgressionLevel.DEVELOPING,
+            "current_level": ProgressionLevel.DEVELOPING,
+            "requirements": "Master basic dribbling techniques",
+            "start_date": datetime.now() - timedelta(days=25),
+            "last_updated": datetime.now() - timedelta(days=5),
+            "progression_metadata": {"attempts": 8, "success_rate": 0.85}
         },
         {
             "student_id": students["Michael Brown"],
             "activity_id": activities["Soccer Passing"],
-            "current_level": ProgressionLevel.BEGINNER,
-            "improvement_rate": 0.65,
-            "last_assessment_date": datetime.now() - timedelta(days=3)
+            "level": ProgressionLevel.NOVICE,
+            "current_level": ProgressionLevel.NOVICE,
+            "requirements": "Learn proper passing form",
+            "start_date": datetime.now() - timedelta(days=20),
+            "last_updated": datetime.now() - timedelta(days=3),
+            "progression_metadata": {"attempts": 3, "success_rate": 0.65}
         },
         {
             "student_id": students["Sarah Davis"],
             "activity_id": activities["Advanced Jump Rope"],
+            "level": ProgressionLevel.ADVANCED,
             "current_level": ProgressionLevel.ADVANCED,
-            "improvement_rate": 0.90,
-            "last_assessment_date": datetime.now() - timedelta(days=2)
+            "requirements": "Master advanced jump rope techniques",
+            "start_date": datetime.now() - timedelta(days=45),
+            "last_updated": datetime.now() - timedelta(days=2),
+            "progression_metadata": {"attempts": 12, "success_rate": 0.90}
         }
     ]
     
@@ -71,5 +82,5 @@ async def seed_activity_progressions(session: AsyncSession) -> None:
         progression = ActivityProgression(**progression_data)
         session.add(progression)
     
-    await session.flush()
+    session.flush()
     print("Activity progressions seeded successfully!") 

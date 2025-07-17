@@ -9,7 +9,7 @@ from app.models.student import Student
 
 class HealthFitnessExercise(SharedBase):
     """Model for individual exercises."""
-    __tablename__ = "exercises"
+    __tablename__ = "health_fitness_exercises"
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
@@ -123,7 +123,7 @@ class HealthFitnessWorkoutPlanWorkout(SharedBase):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
-    plan_id = Column(Integer, ForeignKey("workout_plans.id"), nullable=False)
+    plan_id = Column(Integer, ForeignKey("health_fitness_workout_plans.id"), nullable=False)
     workout_id = Column(Integer, ForeignKey("health_fitness_workouts.id"), nullable=False)
     day_of_week = Column(Integer, nullable=False)  # 0 = Monday, 6 = Sunday
     order = Column(Integer, nullable=False)
@@ -144,7 +144,7 @@ class HealthFitnessWorkoutExercise(SharedBase):
 
     id = Column(Integer, primary_key=True, index=True)
     workout_id = Column(Integer, ForeignKey("health_fitness_workouts.id"), nullable=False)
-    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("health_fitness_exercises.id"), nullable=False)
     sets = Column(Integer, nullable=False)
     reps = Column(Integer, nullable=False)
     duration_minutes = Column(Float)

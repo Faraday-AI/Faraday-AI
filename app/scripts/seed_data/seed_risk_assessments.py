@@ -6,6 +6,7 @@ from sqlalchemy import select
 from app.models.physical_education.safety import RiskAssessment
 from app.models.activity import Activity
 from app.models.physical_education.class_ import PhysicalEducationClass
+from app.models.core.user import User
 from app.models.physical_education.pe_enums.pe_types import (
     RiskType,
     RiskLevel,
@@ -34,7 +35,7 @@ def seed_risk_assessments(session):
     classes = {}
     
     for class_id in class_ids:
-        result = session.execute(select(PhysicalEducationClass).where(PhysicalEducationClass.id == class_id))
+        result = session.execute(select(PhysicalEducationClass).where(PhysicalEducationClass.id == class_id)).unique()
         class_ = result.scalar_one_or_none()
         if class_:
             classes[str(class_id)] = class_.id  # Store the actual database ID
@@ -44,13 +45,21 @@ def seed_risk_assessments(session):
     # Create risk assessments
     risk_assessments = []
     
+    # Get a teacher user for the assessed_by field
+    teacher_result = session.execute(select(User).where(User.role == "teacher")).unique()
+    teacher = teacher_result.scalar()
+    if not teacher:
+        print("Warning: No teacher found for risk assessments")
+        return
+    
     if "501" in classes and "Jump Rope Basics" in activities:
         risk_assessments.append({
             "class_id": classes["501"],  # Using the actual database ID
             "activity_id": activities["Jump Rope Basics"],
             "activity_type": "Jump Rope",
             "environment": "indoor",
-            "date": datetime.now() - timedelta(days=1),
+            "assessment_date": datetime.now() - timedelta(days=1),
+            "assessed_by": teacher.id,
             "risk_level": RiskLevel.LOW,
             "environmental_risks": ["floor surface", "space"],
             "student_risks": ["coordination", "fatigue"],
@@ -62,7 +71,9 @@ def seed_risk_assessments(session):
                 "Regular breaks",
                 "Adjust rope length",
                 "Monitor speed"
-            ]
+            ],
+            "mitigation_plan": "Comprehensive safety plan for jump rope activities",
+            "follow_up_date": datetime.now() + timedelta(days=7)
         })
     
     if "601" in classes and "Basketball Dribbling" in activities:
@@ -71,7 +82,8 @@ def seed_risk_assessments(session):
             "activity_id": activities["Basketball Dribbling"],
             "activity_type": "Basketball",
             "environment": "indoor",
-            "date": datetime.now() - timedelta(days=2),
+            "assessment_date": datetime.now() - timedelta(days=2),
+            "assessed_by": teacher.id,
             "risk_level": RiskLevel.LOW,
             "environmental_risks": ["court condition", "lighting"],
             "student_risks": ["ball control", "collisions"],
@@ -83,7 +95,9 @@ def seed_risk_assessments(session):
                 "Maintain spacing",
                 "Check equipment",
                 "Clear instructions"
-            ]
+            ],
+            "mitigation_plan": "Comprehensive safety plan for basketball activities",
+            "follow_up_date": datetime.now() + timedelta(days=7)
         })
     
     if "502" in classes and "Soccer Passing" in activities:
@@ -92,7 +106,8 @@ def seed_risk_assessments(session):
             "activity_id": activities["Soccer Passing"],
             "activity_type": "Soccer Passing",
             "environment": "outdoor",
-            "date": datetime.now() - timedelta(days=3),
+            "assessment_date": datetime.now() - timedelta(days=3),
+            "assessed_by": teacher.id,
             "risk_level": RiskLevel.MEDIUM,
             "environmental_risks": ["field condition", "weather"],
             "student_risks": ["passing technique", "spacing"],
@@ -104,7 +119,9 @@ def seed_risk_assessments(session):
                 "Maintain safe spacing",
                 "Check ball pressure",
                 "Secure goal posts"
-            ]
+            ],
+            "mitigation_plan": "Comprehensive safety plan for soccer activities",
+            "follow_up_date": datetime.now() + timedelta(days=7)
         })
     
     if "602" in classes and "Dynamic Warm-up" in activities:
@@ -113,7 +130,8 @@ def seed_risk_assessments(session):
             "activity_id": activities["Dynamic Warm-up"],
             "activity_type": "Dynamic Warm-up",
             "environment": "indoor",
-            "date": datetime.now() - timedelta(days=4),
+            "assessment_date": datetime.now() - timedelta(days=4),
+            "assessed_by": teacher.id,
             "risk_level": RiskLevel.LOW,
             "environmental_risks": ["floor surface", "room temperature"],
             "student_risks": ["form", "range of motion"],
@@ -125,7 +143,9 @@ def seed_risk_assessments(session):
                 "Monitor range of motion",
                 "Provide mats",
                 "Ensure adequate space"
-            ]
+            ],
+            "mitigation_plan": "Comprehensive safety plan for warm-up activities",
+            "follow_up_date": datetime.now() + timedelta(days=7)
         })
 
     # Add risk assessments to session

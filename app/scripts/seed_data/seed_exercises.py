@@ -9,10 +9,10 @@ from app.models.physical_education.pe_enums.pe_types import (
     ExerciseDifficulty
 )
 
-async def seed_exercises(session):
+def seed_exercises(session):
     """Seed the exercises table with initial data."""
     # Get all activities
-    activities = await session.execute(text("SELECT id, name FROM activities"))
+    activities = session.execute(text("SELECT id, name FROM activities"))
     activity_map = {row.name: row.id for row in activities}
     
     exercises = [
@@ -121,7 +121,7 @@ async def seed_exercises(session):
         {
             "name": "Basketball Game Drills",
             "description": "5v5 basketball game preparation",
-            "exercise_type": ExerciseType.TEAM_SPORTS.value,
+            "exercise_type": ExerciseType.SPORTS.value,
             "difficulty": ExerciseDifficulty.INTERMEDIATE.value,
             "category": "team_sports",
             "equipment_needed": ["Basketball", "court"],
@@ -158,5 +158,5 @@ async def seed_exercises(session):
         exercise = Exercise(**exercise_data)
         session.add(exercise)
 
-    await session.flush()
+    session.flush()
     print("Exercises seeded successfully!") 

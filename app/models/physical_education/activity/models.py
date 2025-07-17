@@ -60,6 +60,7 @@ class Activity(SharedBase):
     safety_incidents = relationship("app.models.physical_education.safety.models.SafetyIncident", back_populates="activity", cascade="all, delete-orphan")
     safety_checklists = relationship("app.models.physical_education.safety.models.SafetyChecklist", back_populates="activity", cascade="all, delete-orphan")
     safety_alerts = relationship("app.models.physical_education.safety.models.SafetyAlert", back_populates="activity", cascade="all, delete-orphan")
+    risk_assessments = relationship("app.models.physical_education.safety.models.RiskAssessment", back_populates="activity", cascade="all, delete-orphan")
     exercises = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="activity", overlaps="activity,exercises", viewonly=True)
     adapted_exercises = relationship("app.models.activity_adaptation.exercise.exercise.AdaptedExercise", overlaps="activity,adapted_exercises", viewonly=True)
     category_associations = relationship("app.models.activity_adaptation.categories.associations.ActivityCategoryAssociation", back_populates="activity", cascade="all, delete-orphan")

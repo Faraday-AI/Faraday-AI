@@ -21,7 +21,7 @@ def seed_lessons(session: Session) -> None:
     print("Seeding lessons...")
     
     # Get existing users and subject categories
-    users = session.execute(text("SELECT id FROM users WHERE is_teacher = true"))
+    users = session.execute(text("SELECT id FROM users WHERE role = 'teacher'"))
     user_ids = [user[0] for user in users.fetchall()]
     
     subject_categories = session.execute(text("SELECT id FROM subject_categories"))
@@ -37,14 +37,12 @@ def seed_lessons(session: Session) -> None:
             "title": "Introduction to Physical Education",
             "content": "Basic principles and importance of physical education",
             "grade_level": "9",
-            "week_number": 1,
+            "week_of": datetime(2024, 1, 8),  # First week of January 2024
             "content_area": "Physical Education",
-            "lesson_data": {
-                "objectives": ["Understand basic PE principles", "Learn safety guidelines"],
-                "materials": ["Cones", "Balls", "Whistle"],
-                "activities": ["Warm-up exercises", "Basic movement patterns"],
-                "assessment": "Observation and participation"
-            },
+            "objectives": ["Understand basic PE principles", "Learn safety guidelines"],
+            "materials": ["Cones", "Balls", "Whistle"],
+            "activities": ["Warm-up exercises", "Basic movement patterns"],
+            "assessment_criteria": "Observation and participation",
             "status": "published",
             "version": 1
         },
@@ -52,14 +50,12 @@ def seed_lessons(session: Session) -> None:
             "title": "Team Sports Fundamentals",
             "content": "Introduction to team sports and cooperation",
             "grade_level": "10",
-            "week_number": 2,
+            "week_of": datetime(2024, 1, 15),  # Second week of January 2024
             "content_area": "Team Sports",
-            "lesson_data": {
-                "objectives": ["Learn team sports basics", "Develop cooperation skills"],
-                "materials": ["Soccer balls", "Basketballs", "Nets"],
-                "activities": ["Passing drills", "Team coordination exercises"],
-                "assessment": "Skill demonstration and teamwork evaluation"
-            },
+            "objectives": ["Learn team sports basics", "Develop cooperation skills"],
+            "materials": ["Soccer balls", "Basketballs", "Nets"],
+            "activities": ["Passing drills", "Team coordination exercises"],
+            "assessment_criteria": "Skill demonstration and teamwork evaluation",
             "status": "published",
             "version": 1
         },
@@ -67,14 +63,12 @@ def seed_lessons(session: Session) -> None:
             "title": "Fitness and Wellness",
             "content": "Understanding fitness components and wellness",
             "grade_level": "11",
-            "week_number": 3,
+            "week_of": datetime(2024, 1, 22),  # Third week of January 2024
             "content_area": "Health and Fitness",
-            "lesson_data": {
-                "objectives": ["Understand fitness components", "Learn wellness principles"],
-                "materials": ["Heart rate monitors", "Fitness trackers"],
-                "activities": ["Cardio exercises", "Strength training basics"],
-                "assessment": "Fitness testing and wellness journal"
-            },
+            "objectives": ["Understand fitness components", "Learn wellness principles"],
+            "materials": ["Heart rate monitors", "Fitness trackers"],
+            "activities": ["Cardio exercises", "Strength training basics"],
+            "assessment_criteria": "Fitness testing and wellness journal",
             "status": "draft",
             "version": 1
         }

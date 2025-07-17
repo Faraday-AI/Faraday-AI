@@ -35,7 +35,7 @@ from app.models.physical_education.safety.models import (
     SafetyAlertResponse
 )
 
-from app.models.skill_assessment.safety.safety import EquipmentCheck
+from app.models.physical_education.safety.models import EquipmentCheck
 
 from app.models.physical_education.pe_enums.pe_types import IncidentType, IncidentSeverity, EquipmentStatus
 

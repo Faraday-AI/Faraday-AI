@@ -10,10 +10,10 @@ from app.models.core.core_models import (
 from app.models.physical_education.pe_enums.pe_types import ClassStatus
 from app.models.physical_education.class_ import PhysicalEducationClass, ClassStudent
 
-async def seed_class_students(session):
+def seed_class_students(session):
     """Seed the class_students table with initial data."""
     # Get all students
-    students = await session.execute(text("SELECT id, first_name, last_name FROM students"))
+    students = session.execute(text("SELECT id, first_name, last_name FROM students"))
     student_map = {f"{row.first_name} {row.last_name}": row.id for row in students}
     
     # Define class-student mappings using student names
@@ -54,5 +54,5 @@ async def seed_class_students(session):
         )
         session.add(class_student)
 
-    await session.flush()
+    session.flush()
     print("Class students seeded successfully!") 

@@ -22,7 +22,7 @@ from app.models.physical_education.teacher.models import PhysicalEducationTeache
 BaseModelMixin = SharedBase
 TimestampMixin = TimestampedMixin
 
-class ExerciseBase(SharedBase, TimestampMixin):
+class ExerciseBaseModel(SharedBase, TimestampMixin):
     """Base class for exercise models."""
     __tablename__ = 'exercise_base'
     __table_args__ = {'extend_existing': True}
@@ -37,7 +37,7 @@ class ExerciseBase(SharedBase, TimestampMixin):
     instructions = Column(Text, nullable=False)
     safety_precautions = Column(Text)
 
-class Exercise(SharedBase):
+class Exercise(SharedBase, TimestampMixin):
     """Model for exercises."""
     __tablename__ = "exercises"
     __table_args__ = {'extend_existing': True}
@@ -90,7 +90,7 @@ class ExerciseVideo(SharedBase, TimestampMixin):
     video_metadata = Column(JSON)
     
     # Relationships
-    exercise = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="exercise_videos")
+    exercise = relationship("Exercise", back_populates="exercise_videos")
 
 class ExerciseRoutine(SharedBase, TimestampMixin):
     """Model for exercise routines."""
@@ -106,7 +106,7 @@ class ExerciseRoutine(SharedBase, TimestampMixin):
     routine_metadata = Column(JSON)  # Renamed from metadata
     
     # Relationships
-    exercise = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="routines")
+    exercise = relationship("Exercise", back_populates="routines")
     routine = relationship("app.models.physical_education.routine.models.Routine", back_populates="exercises")
 
 class ExerciseProgress(SharedBase, TimestampMixin):
@@ -122,7 +122,7 @@ class ExerciseProgress(SharedBase, TimestampMixin):
     
     # Relationships
     student = relationship("app.models.physical_education.student.models.Student", back_populates="exercise_progress")
-    exercise = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="progress")
+    exercise = relationship("Exercise", back_populates="progress")
     metrics = relationship("ExerciseMetric", back_populates="progress")
 
 class ExerciseMetric(SharedBase, TimestampMixin):
@@ -138,7 +138,7 @@ class ExerciseMetric(SharedBase, TimestampMixin):
     metric_metadata = Column(JSON)  # Renamed from metadata
     
     # Relationships
-    progress = relationship("app.models.physical_education.exercise.models.ExerciseProgress", back_populates="metrics")
+    progress = relationship("ExerciseProgress", back_populates="metrics")
 
 class ExerciseCreate(BaseModel):
     """Pydantic model for creating exercises."""
@@ -181,7 +181,7 @@ class ExerciseResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class WorkoutBase(BaseModelMixin, TimestampMixin):
+class WorkoutBaseModel(BaseModelMixin, TimestampMixin):
     """Base class for workout models."""
     
     __tablename__ = 'workoutbase'
@@ -194,7 +194,7 @@ class WorkoutBase(BaseModelMixin, TimestampMixin):
     difficulty = Column(Enum(ExerciseDifficulty, name='workout_difficulty_enum'), nullable=False)
     target_audience = Column(String(100), nullable=False)
 
-class ExerciseWorkout(SharedBase):
+class ExerciseWorkout(SharedBase, TimestampMixin):
     """Model for workout routines."""
     __tablename__ = 'workouts'
     __table_args__ = {'extend_existing': True}
@@ -209,7 +209,7 @@ class ExerciseWorkout(SharedBase):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    exercises = relationship('app.models.physical_education.exercise.models.Exercise', secondary="workout_exercises", back_populates='workouts', overlaps="workout_exercises")
+    exercises = relationship('Exercise', secondary="workout_exercises", back_populates='workouts', overlaps="workout_exercises")
     workout_exercises = relationship('ExerciseWorkoutExercise', back_populates='workout', overlaps="exercises,workouts")
 
 class WorkoutCreate(BaseModel):
@@ -244,7 +244,7 @@ class WorkoutResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class ExerciseWorkoutExercise(SharedBase):
+class ExerciseWorkoutExercise(SharedBase, TimestampMixin):
     """Association object for exercises in workouts."""
     __tablename__ = 'workout_exercises'
     __table_args__ = {'extend_existing': True}
@@ -261,12 +261,12 @@ class ExerciseWorkoutExercise(SharedBase):
 
     # Relationships
     workout = relationship('ExerciseWorkout', back_populates='workout_exercises', overlaps="exercises,workouts")
-    exercise = relationship('app.models.physical_education.exercise.models.Exercise', back_populates='workout_exercises', overlaps="exercises,workouts")
+    exercise = relationship('Exercise', back_populates='workout_exercises', overlaps="exercises,workouts")
 
     def __repr__(self):
         return f"<ExerciseWorkoutExercise id={self.id} workout_id={self.workout_id} exercise_id={self.exercise_id} order={self.order}>"
 
-class ExerciseVariation(SharedBase):
+class ExerciseVariation(SharedBase, TimestampMixin):
     """Model for tracking exercise variations."""
     __tablename__ = "exercise_variations"
     __table_args__ = {'extend_existing': True}
@@ -283,7 +283,7 @@ class ExerciseVariation(SharedBase):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    exercise = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="variations")
+    exercise = relationship("Exercise", back_populates="variations")
 
 class ExercisePerformance(SharedBase, TimestampMixin):
     """Model for tracking exercise performances."""
@@ -302,10 +302,10 @@ class ExercisePerformance(SharedBase, TimestampMixin):
     notes = Column(Text)
     
     # Relationships
-    exercise = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="performances")
+    exercise = relationship("Exercise", back_populates="performances")
     student = relationship("app.models.physical_education.student.models.Student", back_populates="exercise_performances")
 
-class ExerciseProgressNote(SharedBase):
+class ExerciseProgressNote(SharedBase, TimestampMixin):
     """Model for tracking progress notes."""
     __tablename__ = "exercise_progress_notes"
     __table_args__ = {'extend_existing': True}
@@ -320,7 +320,7 @@ class ExerciseProgressNote(SharedBase):
     
     # Relationships
     student = relationship("app.models.physical_education.student.models.Student", back_populates="progress_notes")
-    exercise = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="progress_notes")
+    exercise = relationship("Exercise", back_populates="progress_notes")
 
 class StudentAvatarCustomization(SharedBase):
     """Model for tracking student avatar customizations."""
@@ -339,7 +339,7 @@ class StudentAvatarCustomization(SharedBase):
     student = relationship("app.models.physical_education.student.models.Student", back_populates="avatar_customizations")
     avatar = relationship("Avatar", back_populates="student_customizations")
 
-class ExerciseProgression(SharedBase):
+class ExerciseProgression(SharedBase, TimestampMixin):
     __tablename__ = "exercise_progressions"
     __table_args__ = {'extend_existing': True}
     
@@ -353,10 +353,10 @@ class ExerciseProgression(SharedBase):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    exercise = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="progressions")
+    exercise = relationship("Exercise", back_populates="progressions")
     student = relationship("app.models.physical_education.student.models.Student", back_populates="exercise_progressions")
 
-class StudentExerciseProgress(SharedBase):
+class StudentExerciseProgress(SharedBase, TimestampMixin):
     """Model for tracking student exercise progress."""
     __tablename__ = "student_exercise_progress"
     __table_args__ = {'extend_existing': True}
@@ -373,9 +373,9 @@ class StudentExerciseProgress(SharedBase):
 
     # Relationships
     student = relationship("app.models.physical_education.student.models.Student", back_populates="student_exercise_progress")
-    exercise = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="student_progress")
+    exercise = relationship("Exercise", back_populates="student_progress")
 
-class ExerciseTechnique(SharedBase):
+class ExerciseTechnique(SharedBase, TimestampMixin):
     """Model for exercise techniques."""
     __tablename__ = "exercise_techniques"
     __table_args__ = {'extend_existing': True}
@@ -388,4 +388,4 @@ class ExerciseTechnique(SharedBase):
     technique_metadata = Column(JSON, nullable=True)
 
     # Relationships
-    exercise = relationship("app.models.physical_education.exercise.models.Exercise", back_populates="techniques") 
+    exercise = relationship("Exercise", back_populates="techniques") 

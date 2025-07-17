@@ -10,7 +10,7 @@ from app.models.activity import (
     EquipmentRequirement,
     ActivityCategoryAssociation
 )
-from app.models.student import Student
+from app.models.physical_education.student.models import Student
 from app.models.core.core_models import (
     ActivityType,
     DifficultyLevel,
@@ -23,10 +23,10 @@ from app.models.physical_education.activity.models import (
     StudentActivityPreference
 )
 
-async def seed_student_activity_data(session):
+def seed_student_activity_data(session):
     """Seed the student activity performances and preferences tables with initial data."""
     # First, get the actual student IDs from the database
-    result = await session.execute(select(Student.id))
+    result = session.execute(select(Student.id))
     student_ids = [row[0] for row in result.fetchall()]
     
     if not student_ids:
@@ -34,7 +34,7 @@ async def seed_student_activity_data(session):
         return
 
     # Get the actual activity IDs from the database
-    result = await session.execute(select(Activity.id))
+    result = session.execute(select(Activity.id))
     activity_ids = [row[0] for row in result.fetchall()]
     
     if not activity_ids:
@@ -46,29 +46,33 @@ async def seed_student_activity_data(session):
         {
             "student_id": student_ids[0],  # First student
             "activity_id": activity_ids[0],  # First activity
-            "date": datetime.now() - timedelta(days=1),
+            "performance_level": "EXCELLENT",
             "score": 0.85,
+            "recorded_at": datetime.now() - timedelta(days=1),
             "notes": "Good performance with room for improvement in technique"
         },
         {
             "student_id": student_ids[0],  # First student
             "activity_id": activity_ids[1],  # Second activity
-            "date": datetime.now() - timedelta(days=2),
+            "performance_level": "EXCELLENT",
             "score": 0.90,
+            "recorded_at": datetime.now() - timedelta(days=2),
             "notes": "Excellent performance, showing good progress"
         },
         {
             "student_id": student_ids[1],  # Second student
             "activity_id": activity_ids[0],  # First activity
-            "date": datetime.now() - timedelta(days=1),
+            "performance_level": "SATISFACTORY",
             "score": 0.75,
+            "recorded_at": datetime.now() - timedelta(days=1),
             "notes": "Needs more practice with basic movements"
         },
         {
             "student_id": student_ids[1],  # Second student
             "activity_id": activity_ids[1],  # Second activity
-            "date": datetime.now() - timedelta(days=2),
+            "performance_level": "GOOD",
             "score": 0.80,
+            "recorded_at": datetime.now() - timedelta(days=2),
             "notes": "Showing improvement in coordination"
         }
     ]
@@ -81,25 +85,29 @@ async def seed_student_activity_data(session):
     activity_preferences = [
         {
             "student_id": student_ids[0],  # First student
-            "activity_type": "SKILL_DEVELOPMENT",  # Use string value directly
+            "activity_id": activity_ids[0],  # First activity
+            "preference_level": 4,
             "preference_score": 0.85,
             "last_updated": datetime.now() - timedelta(days=1)
         },
         {
             "student_id": student_ids[0],  # First student
-            "activity_type": "GAME",  # Use string value directly
+            "activity_id": activity_ids[1],  # Second activity
+            "preference_level": 5,
             "preference_score": 0.90,
             "last_updated": datetime.now() - timedelta(days=1)
         },
         {
             "student_id": student_ids[1],  # Second student
-            "activity_type": "FITNESS_TRAINING",  # Use string value directly
+            "activity_id": activity_ids[0],  # First activity
+            "preference_level": 3,
             "preference_score": 0.75,
             "last_updated": datetime.now() - timedelta(days=2)
         },
         {
             "student_id": student_ids[1],  # Second student
-            "activity_type": "WARM_UP",  # Use string value directly
+            "activity_id": activity_ids[1],  # Second activity
+            "preference_level": 4,
             "preference_score": 0.80,
             "last_updated": datetime.now() - timedelta(days=2)
         }
@@ -109,5 +117,5 @@ async def seed_student_activity_data(session):
         preference = StudentActivityPreference(**preference_data)
         session.add(preference)
 
-    await session.flush()
+    session.flush()
     print("Student activity performances and preferences seeded successfully!") 

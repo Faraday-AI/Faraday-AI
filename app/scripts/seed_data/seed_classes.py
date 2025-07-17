@@ -1,22 +1,23 @@
 from datetime import datetime, time, timedelta
-from app.models.physical_education.class_ import PhysicalEducationClass
+from app.models.physical_education.class_ import PhysicalEducationClass, ClassStudent
 from app.models.core.core_models import (
     ClassType,
     StudentType
 )
-from app.models.physical_education.pe_enums.pe_types import ClassStatus
+from app.models.physical_education.pe_enums.pe_types import ClassStatus, ClassType
+from app.models.app_models import GradeLevel
 from sqlalchemy import select, update
 import random
 from typing import List
 from sqlalchemy.orm import Session
 
-async def seed_classes(session):
+def seed_classes(session):
     """Seed the classes table with initial data."""
     # First delete all class_students records
-    await session.execute(ClassStudent.__table__.delete())
+    session.execute(ClassStudent.__table__.delete())
     
     # Then delete all classes
-    await session.execute(Class.__table__.delete())
+    session.execute(PhysicalEducationClass.__table__.delete())
     
     # Set up dates for the school year
     current_year = datetime.now().year
@@ -28,15 +29,16 @@ async def seed_classes(session):
             "id": 501,
             "name": "Grade 5 Physical Education",
             "description": "Physical education class for 5th grade students",
-            "grade_level": "5",
+            "class_type": ClassType.REGULAR,
+            "teacher_id": 1,
+            "grade_level": GradeLevel.FIFTH,
             "max_students": 30,
-            "schedule": {
+            "schedule": str({
                 "monday": {"start": "09:00", "end": "10:00"},
                 "wednesday": {"start": "09:00", "end": "10:00"},
                 "friday": {"start": "09:00", "end": "10:00"}
-            },
+            }),
             "location": "Gymnasium A",
-            "status": ClassStatus.IN_PROGRESS,
             "start_date": start_date,
             "end_date": end_date,
             "created_at": datetime.now(),
@@ -46,14 +48,15 @@ async def seed_classes(session):
             "id": 601,
             "name": "Grade 6 Physical Education",
             "description": "Physical education class for 6th grade students",
-            "grade_level": "6",
+            "class_type": ClassType.REGULAR,
+            "teacher_id": 1,
+            "grade_level": GradeLevel.SIXTH,
             "max_students": 30,
-            "schedule": {
+            "schedule": str({
                 "tuesday": {"start": "10:00", "end": "11:00"},
                 "thursday": {"start": "10:00", "end": "11:00"}
-            },
+            }),
             "location": "Gymnasium B",
-            "status": ClassStatus.IN_PROGRESS,
             "start_date": start_date,
             "end_date": end_date,
             "created_at": datetime.now(),
@@ -63,14 +66,15 @@ async def seed_classes(session):
             "id": 502,
             "name": "Grade 5 Advanced PE",
             "description": "Advanced physical education for 5th grade students",
-            "grade_level": "5",
+            "class_type": ClassType.ADVANCED,
+            "teacher_id": 1,
+            "grade_level": GradeLevel.FIFTH,
             "max_students": 20,
-            "schedule": {
+            "schedule": str({
                 "monday": {"start": "14:00", "end": "15:00"},
                 "wednesday": {"start": "14:00", "end": "15:00"}
-            },
+            }),
             "location": "Gymnasium A",
-            "status": ClassStatus.IN_PROGRESS,
             "start_date": start_date,
             "end_date": end_date,
             "created_at": datetime.now(),
@@ -80,14 +84,15 @@ async def seed_classes(session):
             "id": 602,
             "name": "Grade 6 Advanced PE",
             "description": "Advanced physical education for 6th grade students",
-            "grade_level": "6",
+            "class_type": ClassType.ADVANCED,
+            "teacher_id": 1,
+            "grade_level": GradeLevel.SIXTH,
             "max_students": 20,
-            "schedule": {
+            "schedule": str({
                 "tuesday": {"start": "14:00", "end": "15:00"},
                 "thursday": {"start": "14:00", "end": "15:00"}
-            },
+            }),
             "location": "Gymnasium B",
-            "status": ClassStatus.IN_PROGRESS,
             "start_date": start_date,
             "end_date": end_date,
             "created_at": datetime.now(),
@@ -100,5 +105,5 @@ async def seed_classes(session):
         new_class = PhysicalEducationClass(**class_data)
         session.add(new_class)
     
-    await session.flush()
+    session.flush()
     print("Classes seeded successfully!") 

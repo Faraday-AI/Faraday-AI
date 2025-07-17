@@ -1,12 +1,11 @@
 """Seed assessment criteria data."""
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from app.models.physical_education.skill_assessment.skill_assessment_models import AssessmentCriteria
 from datetime import datetime, timedelta
 import random
 from typing import List
-from sqlalchemy.orm import Session
 from sqlalchemy import text
-from app.models.assessment import AssessmentCriteria as NewAssessmentCriteria
+from app.models.skill_assessment.assessment.assessment import AssessmentCriteria
 from app.models.physical_education.pe_enums.pe_types import (
     AssessmentType,
     AssessmentLevel,
@@ -19,7 +18,7 @@ from app.models.core.core_models import (
 )
 from app.models.physical_education.pe_enums.pe_types import SkillLevel
 
-async def seed_assessment_criteria(session: AsyncSession) -> None:
+def seed_assessment_criteria(session: Session) -> None:
     """Seed assessment criteria data."""
     print("Seeding assessment criteria...")
 
@@ -157,8 +156,8 @@ async def seed_assessment_criteria(session: AsyncSession) -> None:
     ]
 
     for data in criteria_data:
-        criteria = NewAssessmentCriteria(**data)
+        criteria = AssessmentCriteria(**data)
         session.add(criteria)
 
-    await session.flush()
+    session.flush()
     print("Assessment criteria seeded successfully!") 
