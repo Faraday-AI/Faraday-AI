@@ -5,12 +5,12 @@ This module exports exercise-related models.
 """
 
 from app.models.physical_education.exercise.models import (
-    ExerciseBase,
+    ExerciseBaseModel,
     Exercise,
     ExerciseCreate,
     ExerciseUpdate,
     ExerciseResponse,
-    WorkoutBase,
+    WorkoutBaseModel,
     ExerciseWorkout,
     WorkoutCreate,
     WorkoutUpdate,
@@ -19,12 +19,12 @@ from app.models.physical_education.exercise.models import (
 )
 
 __all__ = [
-    'ExerciseBase',
+    'ExerciseBaseModel',
     'Exercise',
     'ExerciseCreate',
     'ExerciseUpdate',
     'ExerciseResponse',
-    'WorkoutBase',
+    'WorkoutBaseModel',
     'ExerciseWorkout',
     'WorkoutCreate',
     'WorkoutUpdate',

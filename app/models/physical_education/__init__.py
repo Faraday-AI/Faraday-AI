@@ -102,7 +102,7 @@ from app.models.physical_education.safety import (
 
 from app.models.physical_education.exercise import (
     Exercise,
-    ExerciseBase,
+    ExerciseBaseModel,
     ExerciseCreate,
     ExerciseUpdate,
     ExerciseResponse,
@@ -250,7 +250,7 @@ __all__ = [
     
     # Exercise models
     'Exercise',
-    'ExerciseBase',
+    'ExerciseBaseModel',
     'ExerciseCreate',
     'ExerciseUpdate',
     'ExerciseResponse',

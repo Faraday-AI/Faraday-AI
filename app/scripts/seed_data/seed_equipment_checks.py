@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 import random
 from typing import List, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.models.physical_education.safety import EquipmentCheck
 from app.models.physical_education.pe_enums.pe_types import (
     SafetyType,
@@ -11,12 +10,12 @@ from app.models.physical_education.pe_enums.pe_types import (
     EquipmentType
 )
 
-async def seed_equipment_checks(session: AsyncSession):
+def seed_equipment_checks(session: Session):
     """Seed equipment checks data."""
     print("Seeding equipment checks...")
     
     # Get all class IDs
-    result = await session.execute(text("SELECT id FROM classes"))
+    result = session.execute(text("SELECT id FROM physical_education_classes"))
     class_ids = [row[0] for row in result.fetchall()]
     
     if not class_ids:
@@ -66,6 +65,6 @@ async def seed_equipment_checks(session: AsyncSession):
     
     # Add all equipment checks to the session
     session.add_all(equipment_checks)
-    await session.flush()
+    session.flush()
     
     print(f"Seeded {len(equipment_checks)} equipment checks.") 

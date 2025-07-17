@@ -2,22 +2,22 @@
 from datetime import datetime, timedelta
 import random
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
 from app.models.skill_assessment.assessment.assessment import (
     SkillAssessment, AssessmentResult, AssessmentHistory, SkillProgress, AssessmentCriteria
 )
-from app.models.student import Student
+from app.models.physical_education.student.models import Student
 from app.models.activity import Activity
 
-async def seed_skill_assessments(session: AsyncSession) -> None:
+def seed_skill_assessments(session: Session) -> None:
     """Seed skill assessment data."""
     print("Seeding skill assessments...")
 
     # Get students, activities, and criteria
-    students = (await session.execute(select(Student))).scalars().all()
-    activities = (await session.execute(select(Activity))).scalars().all()
-    criteria = (await session.execute(select(AssessmentCriteria))).scalars().all()
+    students = session.execute(select(Student)).scalars().all()
+    activities = session.execute(select(Activity)).scalars().all()
+    criteria = session.execute(select(AssessmentCriteria)).scalars().all()
 
     # Create assessments for each student-activity pair
     for student in students[:5]:  # Limit to first 5 students
@@ -37,7 +37,7 @@ async def seed_skill_assessments(session: AsyncSession) -> None:
                 }
             )
             session.add(assessment)
-            await session.flush()
+            session.flush()
 
             # Calculate overall score from criteria scores
             total_weighted_score = 0
@@ -99,5 +99,5 @@ async def seed_skill_assessments(session: AsyncSession) -> None:
             )
             session.add(progress)
 
-    await session.flush()
+    session.flush()
     print("Skill assessments seeded successfully!") 

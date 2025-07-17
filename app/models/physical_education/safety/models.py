@@ -30,6 +30,13 @@ class SafetyIncident(SharedBase):
     incident_date = Column(DateTime, nullable=False)
     incident_type = Column(String(50), nullable=False)
     severity = Column(String(20), nullable=False)
+    description = Column(Text, nullable=True)  # Description of the incident
+    location = Column(String(100), nullable=True)  # Location where incident occurred
+    teacher_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Teacher who reported the incident
+    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=True)  # Equipment involved if any
+    action_taken = Column(Text, nullable=True)  # Action taken in response to the incident
+    follow_up_required = Column(Boolean, default=False)  # Whether follow-up is required
+    follow_up_notes = Column(Text, nullable=True)  # Notes for follow-up actions
     incident_metadata = Column(JSON)  # Renamed from metadata
     
     # Relationships
@@ -38,6 +45,8 @@ class SafetyIncident(SharedBase):
     protocol = relationship("SafetyProtocol", back_populates="incidents")
     measures = relationship("SafetyMeasure", back_populates="incident")
     risk_assessments = relationship("app.models.physical_education.safety.models.RiskAssessment", back_populates="incident", lazy="joined")
+    teacher = relationship("User", back_populates="safety_incidents", foreign_keys=[teacher_id])
+    equipment = relationship("Equipment", back_populates="pe_safety_incidents", foreign_keys=[equipment_id])
 
 class SafetyMeasure(SharedBase):
     """Model for safety measures."""
@@ -183,6 +192,7 @@ class Equipment(EquipmentBase):
     
     # Relationships
     safety_incidents = relationship("SafetyIncidentBase", back_populates="equipment", lazy="joined")
+    pe_safety_incidents = relationship("app.models.physical_education.safety.models.SafetyIncident", back_populates="equipment", foreign_keys="[app.models.physical_education.safety.models.SafetyIncident.equipment_id]", lazy="joined")
     safety_checks = relationship("SafetyCheck", back_populates="equipment", lazy="joined")
     safety_alerts = relationship("SafetyAlert", back_populates="equipment", lazy="joined")
     maintenance_records = relationship("EquipmentMaintenance", back_populates="equipment", lazy="joined")
@@ -261,16 +271,26 @@ class RiskAssessment(SharedBase):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    incident_id = Column(Integer, ForeignKey("safety_incidents.id"), nullable=False)
+    incident_id = Column(Integer, ForeignKey("safety_incidents.id"), nullable=True)  # Made optional for standalone assessments
+    class_id = Column(Integer, ForeignKey("physical_education_classes.id"), nullable=True)
+    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=True)
+    activity_type = Column(String(100), nullable=True)
+    environment = Column(String(50), nullable=True)  # indoor, outdoor, etc.
     risk_level = Column(String(20), default="LOW")
     assessment_date = Column(DateTime, nullable=False)
     assessed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    environmental_risks = Column(JSON, nullable=True)  # List of environmental risk factors
+    student_risks = Column(JSON, nullable=True)  # List of student-related risk factors
+    activity_risks = Column(JSON, nullable=True)  # List of activity-specific risk factors
     mitigation_plan = Column(Text)
+    mitigation_strategies = Column(JSON, nullable=True)  # List of mitigation strategies
     follow_up_date = Column(DateTime)
     
     # Relationships
     incident = relationship("SafetyIncident", back_populates="risk_assessments")
     assessor = relationship("User", back_populates="conducted_risk_assessments")
+    class_ = relationship("PhysicalEducationClass", back_populates="risk_assessments")
+    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="risk_assessments")
 
 class RiskAssessmentCreate(BaseModel):
     """Pydantic model for creating risk assessments."""
@@ -322,15 +342,20 @@ class SafetyCheck(SharedBase):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=False)
+    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=True)  # Made optional for class-based checks
+    class_id = Column(Integer, ForeignKey("physical_education_classes.id"), nullable=True)  # For class-based checks
+    check_type = Column(String(50), nullable=True)  # Type of safety check
     check_date = Column(DateTime, nullable=False)
     checked_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     performed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     status = Column(String(20), default="PASS")
     notes = Column(Text)
+    results = Column(JSON, nullable=True)  # Results of the safety check
+    check_metadata = Column(JSON, nullable=True)  # Additional metadata about the check
     
     # Relationships
     equipment = relationship("Equipment", back_populates="safety_checks")
+    class_ = relationship("PhysicalEducationClass", back_populates="safety_checks")
     checker = relationship("User", back_populates="conducted_checks", foreign_keys="[SafetyCheck.checked_by]")
     performer = relationship("User", back_populates="performed_checks", foreign_keys="[SafetyCheck.performed_by]")
 
@@ -529,4 +554,27 @@ class SafetyAlertResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(from_attributes=True) 
+    model_config = ConfigDict(from_attributes=True)
+
+class EquipmentCheck(SharedBase):
+    """Model for equipment checks and inventory tracking."""
+    __tablename__ = "equipment_checks"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, index=True)
+    class_id = Column(Integer, ForeignKey("physical_education_classes.id"), nullable=False)
+    equipment_id = Column(String(100), nullable=False)  # Equipment identifier (not foreign key)
+    check_date = Column(DateTime, nullable=False)
+    maintenance_status = Column(Boolean, nullable=False)  # True if maintenance is up to date
+    damage_status = Column(Boolean, nullable=False)  # True if equipment is damaged
+    age_status = Column(Boolean, nullable=False)  # True if equipment age is acceptable
+    last_maintenance = Column(DateTime, nullable=True)
+    purchase_date = Column(DateTime, nullable=True)
+    max_age_years = Column(Float, nullable=True)
+    equipment_metadata = Column(JSON, nullable=True)  # Additional equipment information
+    
+    # Relationships
+    class_ = relationship("PhysicalEducationClass", back_populates="equipment_checks")
+    
+    def __repr__(self):
+        return f"<EquipmentCheck {self.equipment_id} - Class {self.class_id}>" 

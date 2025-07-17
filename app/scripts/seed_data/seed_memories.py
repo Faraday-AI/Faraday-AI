@@ -1,17 +1,17 @@
 """Seed user memories and memory interactions data."""
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from app.models.core.memory import UserMemory, MemoryInteraction
 from app.models.core.user import User
 from app.models.core.assistant import AssistantProfile
 from datetime import datetime, timedelta
 
-async def seed_memories(session: AsyncSession) -> None:
+def seed_memories(session: Session) -> None:
     """Seed user memories and their interactions."""
     print("Seeding user memories...")
     try:
         # Get users and assistant profiles
-        users = (await session.execute(User.__table__.select())).fetchall()
-        profiles = (await session.execute(AssistantProfile.__table__.select())).fetchall()
+        users = session.execute(User.__table__.select()).fetchall()
+        profiles = session.execute(AssistantProfile.__table__.select()).fetchall()
         
         if not users or not profiles:
             print("No users or assistant profiles found. Skipping memory seeding.")
@@ -65,7 +65,7 @@ async def seed_memories(session: AsyncSession) -> None:
         
         # Add memories
         session.add_all(memories)
-        await session.commit()
+        session.commit()
         print("User memories seeded successfully!")
         
         # Create memory interactions
@@ -73,7 +73,7 @@ async def seed_memories(session: AsyncSession) -> None:
         interactions = []
         
         # Get the created memories
-        db_memories = (await session.execute(UserMemory.__table__.select())).fetchall()
+        db_memories = session.execute(UserMemory.__table__.select()).fetchall()
         
         for memory in db_memories:
             # Create a read interaction
@@ -100,10 +100,10 @@ async def seed_memories(session: AsyncSession) -> None:
         
         # Add interactions
         session.add_all(interactions)
-        await session.commit()
+        session.commit()
         print("Memory interactions seeded successfully!")
         
     except Exception as e:
         print(f"Error seeding memories and interactions: {e}")
-        await session.rollback()
+        session.rollback()
         raise 

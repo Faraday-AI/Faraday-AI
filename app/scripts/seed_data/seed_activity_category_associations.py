@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 import random
 from typing import List, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 from app.models.activity import Activity
@@ -13,19 +13,19 @@ from app.models.physical_education.pe_enums.pe_types import (
     ActivityCategoryType
 )
 
-async def seed_activity_category_associations(session: AsyncSession) -> None:
+def seed_activity_category_associations(session: Session) -> None:
     """Seed activity category associations data."""
     print("Seeding activity category associations...")
     
     # Delete existing records
-    await session.execute(text("DELETE FROM activity_category_associations"))
-    await session.commit()
+    session.execute(text("DELETE FROM activity_category_associations"))
+    session.commit()
     
     # Get all activities and categories
-    result = await session.execute(select(Activity.id, Activity.name))
+    result = session.execute(select(Activity.id, Activity.name))
     activities = {row.name: row.id for row in result.fetchall()}
     
-    result = await session.execute(select(ActivityCategory.id, ActivityCategory.name))
+    result = session.execute(select(ActivityCategory.id, ActivityCategory.name))
     categories = {row.name: row.id for row in result.fetchall()}
     
     if not activities or not categories:
@@ -58,5 +58,5 @@ async def seed_activity_category_associations(session: AsyncSession) -> None:
                     )
                     session.add(assoc)
     
-    await session.flush()
+    session.flush()
     print("Activity category associations seeded successfully!") 

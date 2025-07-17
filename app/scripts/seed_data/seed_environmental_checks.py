@@ -2,25 +2,24 @@
 from datetime import datetime, timedelta
 import random
 from typing import List, Dict, Any
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.models.physical_education.safety import EnvironmentalCheck
 from app.models.physical_education.pe_enums.pe_types import (
     SafetyType,
     CheckType
 )
 
-async def seed_environmental_checks(session: AsyncSession) -> None:
+def seed_environmental_checks(session: Session) -> None:
     """Seed environmental checks data."""
     print("Seeding environmental checks...")
     
     # Delete existing records
-    await session.execute(text("DELETE FROM environmental_checks"))
-    await session.commit()
+    session.execute(text("DELETE FROM physical_education_environmental_checks"))
+    session.commit()
     
     # Get all class IDs from the database
-    result = await session.execute(text("SELECT id FROM classes"))
+    result = session.execute(text("SELECT id FROM physical_education_classes"))
     class_ids = [row[0] for row in result.fetchall()]
     
     if not class_ids:
@@ -34,35 +33,27 @@ async def seed_environmental_checks(session: AsyncSession) -> None:
         for days_ago in [1, 3, 7]:
             check_date = datetime.now() - timedelta(days=days_ago)
             
+            # Get a teacher for the checked_by field
+            teacher_result = session.execute(text("SELECT id FROM users LIMIT 1"))
+            teacher_id = teacher_result.fetchone()[0]
+            
             environmental_check = EnvironmentalCheck(
                 class_id=class_id,
                 check_date=check_date,
+                checked_by=teacher_id,
                 temperature=21.5,  # Celsius
                 humidity=45.0,  # Percentage
-                air_quality=95.0,  # AQI
-                surface_conditions={
-                    "floor_type": "hardwood",
-                    "cleanliness": "good",
-                    "hazards": [],
-                    "maintenance_needed": False
-                },
-                lighting=800.0,  # Lux
-                equipment_condition={
-                    "storage": "organized",
-                    "maintenance": "up-to-date",
-                    "issues": []
-                },
-                environmental_metadata={
-                    "checked_by": "Environmental Officer",
-                    "location": "Main Gymnasium",
-                    "weather": "indoor",
-                    "ventilation": "operational"
-                }
+                air_quality="good",  # String value
+                lighting_conditions="adequate",  # String value
+                surface_condition="good",  # String value
+                weather_conditions="indoor",  # String value
+                status="PASS",
+                notes="Regular environmental check completed"
             )
             environmental_checks.append(environmental_check)
     
     # Add all environmental checks to the session
     session.add_all(environmental_checks)
-    await session.flush()
+    session.flush()
     
     print(f"Seeded {len(environmental_checks)} environmental checks.") 

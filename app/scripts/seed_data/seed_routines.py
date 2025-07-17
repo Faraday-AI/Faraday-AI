@@ -2,8 +2,9 @@ from datetime import datetime, timedelta
 import random
 from typing import List
 from sqlalchemy.orm import Session
-from app.models.activity import Activity
-from app.models.routine import Routine, RoutineActivity
+from sqlalchemy import select, text
+from app.models.physical_education.activity.models import Activity
+from app.models.physical_education.routine.models import Routine, RoutineActivity
 from app.models.physical_education.pe_enums.pe_types import (
     ActivityType,
     RoutineType,
@@ -13,54 +14,55 @@ from app.models.physical_education.pe_enums.pe_types import (
     RoutineTrigger
 )
 
-async def seed_routines(session):
+def seed_routines(session):
     """Seed the routines table with initial data."""
     # First delete all routine activities
-    await session.execute(RoutineActivity.__table__.delete())
+    session.execute(RoutineActivity.__table__.delete())
     
     # Then delete all routines
-    await session.execute(Routine.__table__.delete())
+    session.execute(Routine.__table__.delete())
+    
+    # Get a teacher and class for the routines
+    teacher_result = session.execute(text("SELECT id FROM users LIMIT 1"))
+    teacher_id = teacher_result.fetchone()[0]
+    
+    class_result = session.execute(text("SELECT id FROM physical_education_classes LIMIT 1"))
+    class_id = class_result.fetchone()[0]
     
     # Create sample routines
     routines = [
         {
             "name": "Morning Warm-up",
             "description": "A gentle warm-up routine to start the day",
-            "routine_type": RoutineType.WARM_UP,
-            "status": RoutineStatus.ACTIVE,
-            "duration_minutes": 15,
-            "difficulty_level": RoutineLevel.BEGINNER,
             "equipment_needed": {"equipment": ["yoga mat"]},
+            "target_skills": ["core", "legs", "arms"],
             "instructions": "Follow each exercise in sequence",
-            "target_muscle_groups": ["core", "legs", "arms"],
-            "prerequisites": {"fitness_level": "any"},
-            "safety_notes": "Maintain proper form throughout"
+            "duration": 15,
+            "difficulty": DifficultyLevel.BEGINNER,
+            "created_by": teacher_id,
+            "class_id": class_id
         },
         {
             "name": "Cardio Circuit",
             "description": "High-intensity cardio workout",
-            "routine_type": RoutineType.CARDIO,
-            "status": RoutineStatus.ACTIVE,
-            "duration_minutes": 30,
-            "difficulty_level": RoutineLevel.INTERMEDIATE,
             "equipment_needed": {"equipment": ["jump rope", "cones"]},
+            "target_skills": ["legs", "core", "cardiovascular"],
             "instructions": "Perform each exercise for 1 minute",
-            "target_muscle_groups": ["legs", "core", "cardiovascular"],
-            "prerequisites": {"fitness_level": "intermediate"},
-            "safety_notes": "Take breaks as needed"
+            "duration": 30,
+            "difficulty": DifficultyLevel.INTERMEDIATE,
+            "created_by": teacher_id,
+            "class_id": class_id
         },
         {
             "name": "Strength Training",
             "description": "Full body strength workout",
-            "routine_type": RoutineType.STRENGTH,
-            "status": RoutineStatus.ACTIVE,
-            "duration_minutes": 45,
-            "difficulty_level": RoutineLevel.ADVANCED,
             "equipment_needed": {"equipment": ["dumbbells", "resistance bands"]},
+            "target_skills": ["chest", "back", "legs", "arms"],
             "instructions": "Complete 3 sets of each exercise",
-            "target_muscle_groups": ["chest", "back", "legs", "arms"],
-            "prerequisites": {"fitness_level": "advanced"},
-            "safety_notes": "Use proper lifting technique"
+            "duration": 45,
+            "difficulty": DifficultyLevel.ADVANCED,
+            "created_by": teacher_id,
+            "class_id": class_id
         }
     ]
 
@@ -70,10 +72,10 @@ async def seed_routines(session):
         session.add(routine)
         created_routines.append(routine)
     
-    await session.commit()
+    session.commit()
 
     # Get all activities to associate with routines
-    result = await session.execute(select(Activity))
+    result = session.execute(select(Activity))
     activities = result.scalars().all()
 
     # Create routine-activity associations
@@ -86,15 +88,10 @@ async def seed_routines(session):
             routine_activity = RoutineActivity(
                 routine_id=routine.id,
                 activity_id=activity.id,
-                order=i,
+                sequence_order=i,
                 duration_minutes=random.randint(5, 15),
-                sets=random.randint(2, 4),
-                reps=random.randint(8, 15),
-                rest_time_seconds=random.randint(30, 90),
-                intensity_level="medium",
-                notes=f"Activity {i} in routine",
-                modifications={"optional": "reduce reps if needed"}
+                notes=f"Activity {i} in routine"
             )
             session.add(routine_activity)
     
-    await session.commit() 
+    session.commit() 

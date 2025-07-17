@@ -3,7 +3,7 @@ import random
 from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-from app.models.routine import RoutinePerformance
+from app.models.physical_education.routine.routine_performance_models import RoutinePerformanceMetrics, RoutinePerformanceMetric
 from app.models.physical_education.pe_enums.pe_types import (
     MetricType,
     MetricLevel,
@@ -13,29 +13,47 @@ from app.models.physical_education.pe_enums.pe_types import (
 
 def seed_performance_metrics(session):
     """Seed the performance_metrics table with initial data."""
-    # First, get the actual performance IDs from the database
-    result = session.execute(select(RoutinePerformance.id))
-    performance_ids = [row[0] for row in result.fetchall()]
+    # First, get some routines and students to create performance metrics
+    from app.models.physical_education.routine.models import Routine
+    from app.models.physical_education.student.models import Student
     
-    if not performance_ids:
-        print("No routine performances found in the database. Please seed routine performances first.")
+    routines_result = session.execute(select(Routine.id))
+    routine_ids = [row[0] for row in routines_result.fetchall()]
+    
+    students_result = session.execute(select(Student.id))
+    student_ids = [row[0] for row in students_result.fetchall()]
+    
+    if not routine_ids or not student_ids:
+        print("No routines or students found in the database. Please seed routines and students first.")
         return
-
-    # Create a simple PerformanceMetrics model for seeding
-    from sqlalchemy import Column, Integer, String, Float, JSON, ForeignKey, DateTime
-    from app.models.shared_base import SharedBase
     
-    class SeedPerformanceMetrics(SharedBase):
-        """Model for seeding performance metrics."""
-        __tablename__ = "seed_performance_metrics"
-        __table_args__ = {'extend_existing': True}
+    # Create some performance metrics records first
+    performance_metrics_records = []
+    for i in range(min(3, len(routine_ids))):
+        for j in range(min(2, len(student_ids))):
+            performance_record = RoutinePerformanceMetrics(
+                routine_id=routine_ids[i],
+                student_id=student_ids[j],
+                performance_data={
+                    "completion_rate": random.uniform(0.7, 1.0),
+                    "energy_level": random.randint(1, 10),
+                    "difficulty_rating": random.randint(1, 10)
+                },
+                completion_time=random.uniform(15.0, 45.0),
+                accuracy_score=random.uniform(0.6, 1.0),
+                effort_score=random.uniform(0.7, 1.0),
+                notes=f"Performance record {i+1}-{j+1}",
+                is_completed=random.choice([True, False])
+            )
+            session.add(performance_record)
+            performance_metrics_records.append(performance_record)
+    
+    session.flush()
+    
+    # Get the IDs of the created performance records
+    performance_ids = [record.id for record in performance_metrics_records]
 
-        id = Column(Integer, primary_key=True, index=True)
-        performance_id = Column(Integer, ForeignKey("routine_performances.id", ondelete='CASCADE'), nullable=False)
-        metric_type = Column(String(50), nullable=False)
-        metric_value = Column(Float, nullable=False)
-        metric_data = Column(JSON, nullable=True)
-        created_at = Column(DateTime, default=datetime.utcnow)
+    # Use the existing RoutinePerformanceMetric model
 
     performance_metrics = [
         {
@@ -101,7 +119,7 @@ def seed_performance_metrics(session):
     ]
 
     for metric_data in performance_metrics:
-        metric = SeedPerformanceMetrics(**metric_data)
+        metric = RoutinePerformanceMetric(**metric_data)
         session.add(metric)
 
     session.flush()
