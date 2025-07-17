@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Share Template</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/activity-design/activity-templates/customization/customization.html" class="back-button" aria-label="Back to Customization">
+                <span class="back-arrow">←</span> Back to Customization
+            </a>
+            <h1>Share Template</h1>
+            <p class="service-description">Share your templates with other teachers</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <form id="shareForm">
+                <div class="form-group">
+                    <label for="templateName">Template Name</label>
+                    <input type="text" id="templateName" name="templateName" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="shareMethod">Share Method</label>
+                    <select id="shareMethod" name="shareMethod" required>
+                        <option value="">Select a sharing method</option>
+                        <option value="email">Email</option>
+                        <option value="link">Generate Link</option>
+                        <option value="social">Social Media</option>
+                    </select>
+                </div>
+
+                <!-- Email Sharing Section (Initially Hidden) -->
+                <div class="sharing-section" id="emailSection" style="display: none;">
+                    <div class="form-group">
+                        <label for="recipientEmail">Recipient Email</label>
+                        <input type="email" id="recipientEmail" name="recipientEmail" placeholder="Enter email address">
+                    </div>
+                    <div class="form-group">
+                        <label for="emailMessage">Message</label>
+                        <textarea id="emailMessage" name="emailMessage" rows="4" placeholder="Add a personal message"></textarea>
+                    </div>
+                </div>
+
+                <!-- Link Sharing Section (Initially Hidden) -->
+                <div class="sharing-section" id="linkSection" style="display: none;">
+                    <div class="form-group">
+                        <label for="linkExpiration">Link Expiration</label>
+                        <select id="linkExpiration" name="linkExpiration">
+                            <option value="1">1 Day</option>
+                            <option value="7">1 Week</option>
+                            <option value="30">1 Month</option>
+                            <option value="0">Never</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="linkPassword">Password Protection</label>
+                        <input type="password" id="linkPassword" name="linkPassword" placeholder="Optional password">
+                    </div>
+                </div>
+
+                <!-- Social Media Section (Initially Hidden) -->
+                <div class="sharing-section" id="socialSection" style="display: none;">
+                    <div class="form-group">
+                        <label>Social Media Platforms</label>
+                        <div class="social-platforms">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="platform" value="twitter"> Twitter
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="platform" value="facebook"> Facebook
+                            </label>
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="platform" value="linkedin"> LinkedIn
+                            </label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="socialMessage">Message</label>
+                        <textarea id="socialMessage" name="socialMessage" rows="4" placeholder="Add a message for social media"></textarea>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="primary-button">Share Template</button>
+                    <button type="button" class="secondary-button" id="cancelButton">Cancel</button>
+                </div>
+            </form>
+
+            <!-- Success Message (Initially Hidden) -->
+            <div class="success-message" id="successMessage" style="display: none;">
+                <h2>Template Shared Successfully!</h2>
+                <p>Your template has been shared successfully.</p>
+                <div class="button-group">
+                    <a href="/static/services/services_subpages/phys-ed-teacher/activity-design/activity-templates/customization/customization.html" class="primary-button">Return to Customization</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const shareForm = document.getElementById('shareForm');
+            const shareMethod = document.getElementById('shareMethod');
+            const emailSection = document.getElementById('emailSection');
+            const linkSection = document.getElementById('linkSection');
+            const socialSection = document.getElementById('socialSection');
+            const successMessage = document.getElementById('successMessage');
+            const cancelButton = document.getElementById('cancelButton');
+
+            shareMethod.addEventListener('change', function() {
+                // Hide all sections
+                emailSection.style.display = 'none';
+                linkSection.style.display = 'none';
+                socialSection.style.display = 'none';
+
+                // Show selected section
+                switch(this.value) {
+                    case 'email':
+                        emailSection.style.display = 'block';
+                        break;
+                    case 'link':
+                        linkSection.style.display = 'block';
+                        break;
+                    case 'social':
+                        socialSection.style.display = 'block';
+                        break;
+                }
+            });
+
+            shareForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                shareForm.style.display = 'none';
+                successMessage.style.display = 'block';
+            });
+
+            cancelButton.addEventListener('click', function() {
+                window.location.href = '/static/services/services_subpages/phys-ed-teacher/activity-design/activity-templates/customization/customization.html';
+            });
+        });
+    </script>
+</body>
+</html> 

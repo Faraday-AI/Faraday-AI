@@ -1,7 +1,7 @@
 # Faraday AI Database Documentation
 
 ## Overview
-The Faraday AI platform uses a PostgreSQL database with SQLAlchemy ORM for data management. The database is designed to support educational content, user management, and AI assistant interactions.
+The Faraday AI platform uses a PostgreSQL database with SQLAlchemy ORM for data management. The database is designed to support educational content, user management, AI assistant interactions, and real-time analytics.
 
 ## Database Architecture
 
@@ -16,10 +16,62 @@ The Faraday AI platform uses a PostgreSQL database with SQLAlchemy ORM for data 
      - Active status
      - Created/Last login timestamps
      - ChatGPT integration fields
-     - Teacher-specific fields (school, department, subjects, grade levels)
-     - Memory recall fields (conversation history, preferences, custom instructions)
+     - Teacher-specific fields
+     - Memory recall fields
+     - Dashboard preferences
+     - Analytics settings
+     - Security preferences
 
-2. **User Preferences** (`user_preferences`)
+2. **Dashboard** (`dashboard`)
+   - Primary key: UUID
+   - Foreign key: user_id
+   - Fields:
+     - Layout configuration
+     - Widget settings
+     - Theme preferences
+     - Real-time settings
+     - Analytics configuration
+     - Performance metrics
+     - Integration settings
+
+3. **Analytics** (`analytics`)
+   - Primary key: UUID
+   - Foreign key: user_id
+   - Fields:
+     - Metric type
+     - Metric value
+     - Timestamp
+     - Context
+     - Tags
+     - Source
+     - Aggregation rules
+     - Alert thresholds
+
+4. **Performance** (`performance`)
+   - Primary key: UUID
+   - Foreign key: user_id
+   - Fields:
+     - Metric name
+     - Value
+     - Timestamp
+     - Resource type
+     - Context
+     - Alert status
+     - Optimization suggestions
+
+5. **Educational** (`educational`)
+   - Primary key: UUID
+   - Foreign key: user_id
+   - Fields:
+     - Content type
+     - Grade level
+     - Subject area
+     - Materials
+     - Assessments
+     - Progress tracking
+     - Parent access
+
+6. **User Preferences** (`user_preferences`)
    - Foreign key: user_id (UUID)
    - Fields:
      - Theme
@@ -27,7 +79,7 @@ The Faraday AI platform uses a PostgreSQL database with SQLAlchemy ORM for data 
      - Language
      - Timezone
 
-3. **Lessons** (`lessons`)
+7. **Lessons** (`lessons`)
    - Primary key: Integer
    - Foreign keys: user_id, subject_category_id, assistant_profile_id
    - Fields:
@@ -45,14 +97,14 @@ The Faraday AI platform uses a PostgreSQL database with SQLAlchemy ORM for data 
      - Tags (JSON)
      - Related lessons (JSON)
 
-4. **Subject Categories** (`subject_categories`)
+8. **Subject Categories** (`subject_categories`)
    - Primary key: Integer
    - Fields:
      - Name (unique)
      - Description
      - Relationships with assistants and lessons
 
-5. **Assistant Profiles** (`assistant_profiles`)
+9. **Assistant Profiles** (`assistant_profiles`)
    - Primary key: Integer
    - Fields:
      - Name (unique)
@@ -60,35 +112,86 @@ The Faraday AI platform uses a PostgreSQL database with SQLAlchemy ORM for data 
      - Model version
      - Relationships with subjects, lessons, capabilities, and memories
 
-6. **Assistant Capabilities** (`assistant_capabilities`)
-   - Primary key: Integer
-   - Foreign key: assistant_profile_id
-   - Fields:
-     - Name
-     - Description
+10. **Assistant Capabilities** (`assistant_capabilities`)
+    - Primary key: Integer
+    - Foreign key: assistant_profile_id
+    - Fields:
+      - Name
+      - Description
 
-7. **User Memories** (`user_memories`)
-   - Primary key: Integer
-   - Foreign keys: user_id, assistant_profile_id
-   - Fields:
-     - Content
-     - Context (JSON)
-     - Importance score
-     - Last accessed timestamp
-     - Category
-     - Tags (JSON)
-     - Source
-     - Confidence
-     - Version
+11. **User Memories** (`user_memories`)
+    - Primary key: Integer
+    - Foreign keys: user_id, assistant_profile_id
+    - Fields:
+      - Content
+      - Context (JSON)
+      - Importance score
+      - Last accessed timestamp
+      - Category
+      - Tags (JSON)
+      - Source
+      - Confidence
+      - Version
 
-8. **Memory Interactions** (`memory_interactions`)
-   - Primary key: Integer
-   - Foreign keys: memory_id, user_id
-   - Fields:
-     - Interaction type
-     - Timestamp
-     - Context (JSON)
-     - Feedback (JSON)
+12. **Memory Interactions** (`memory_interactions`)
+    - Primary key: Integer
+    - Foreign keys: memory_id, user_id
+    - Fields:
+      - Interaction type
+      - Timestamp
+      - Context (JSON)
+      - Feedback (JSON)
+
+13. **Exercise** (`exercises`)
+    - Primary key: Integer
+    - Foreign key: activity_id
+    - Fields:
+      - Name (required)
+      - Description (required)
+      - Duration minutes (required)
+      - Difficulty level (required)
+      - Instructions (JSON, required)
+      - Sets (required)
+      - Reps (required)
+      - Rest time seconds (required)
+      - Technique notes (required)
+      - Equipment needed (optional)
+      - Intensity (required)
+      - Progression steps (JSON, optional)
+      - Regression steps (JSON, optional)
+      - Created/Updated timestamps
+
+14. **Activity Categories** (`activity_categories`)
+    - Primary key: Integer
+    - Fields:
+      - Name (required)
+      - Description
+      - Category metadata (JSON)
+      - Created/Updated timestamps
+
+15. **Activity Category Associations** (`activity_category_associations`)
+    - Primary key: Integer
+    - Foreign keys: activity_id, category_id
+    - Fields:
+      - Primary category flag
+      - Created/Updated timestamps
+
+### Movement Analysis
+The movement analysis system uses two main tables to track and analyze student movements:
+
+1. **Movement Analysis** (`movement_analysis`)
+   - Stores detailed movement data and analysis results
+   - Tracks student performance metrics
+   - Includes confidence scores and recommendations
+   - See [Movement Analysis Schema](movement_analysis_schema.md) for details
+
+2. **Movement Patterns** (`movement_patterns`)
+   - Records specific movement patterns identified during analysis
+   - Stores pattern-specific metrics and scores
+   - Includes temporal and quality measurements
+   - See [Movement Analysis Schema](movement_analysis_schema.md) for details
+
+For detailed schema information, including table definitions, indexes, and constraints, refer to the [Movement Analysis Schema](movement_analysis_schema.md) documentation.
 
 ## Data Collection Strategy
 
@@ -128,10 +231,14 @@ The Faraday AI platform uses a PostgreSQL database with SQLAlchemy ORM for data 
   - Keepalive settings configured
   - Connection recycling: 900 seconds
 - Azure-specific parameters:
-  - SSL mode required
-  - Keepalive settings optimized
+  - sslmode=require
   - Application name tracking
   - Connection health monitoring
+
+### Example Connection String
+```python
+DATABASE_URL = "postgresql://faraday_admin:CodaMoeLuna31@faraday-ai-db.postgres.database.azure.com:5432/postgres?sslmode=require"
+```
 
 ### Security
 - Data encryption at rest
@@ -881,2625 +988,61 @@ CREATE INDEX idx_memory_interactions_timestamp ON memory_interactions(timestamp 
 CREATE INDEX idx_memory_interactions_context ON memory_interactions USING GIN (context);
 ```
 
-## Advanced Database Features
-
-### Full-Text Search Configuration
+### Exercise Table
 ```sql
--- Create text search configuration
-CREATE TEXT SEARCH CONFIGURATION english_optimized (COPY = english);
-
--- Add custom dictionary for educational terms
-CREATE TEXT SEARCH DICTIONARY educational_terms (
-    TEMPLATE = pg_catalog.simple,
-    STOPWORDS = educational
-);
-
--- Add educational terms to configuration
-ALTER TEXT SEARCH CONFIGURATION english_optimized
-    ALTER MAPPING FOR asciiword, asciihword, hword_asciipart, word, hword, hword_part
-    WITH educational_terms, english_stem;
-```
-
-### Advanced Partitioning
-```sql
--- Partition lessons by both date and subject
-CREATE TABLE lessons (
-    -- ... existing columns ...
-) PARTITION BY LIST (subject_category_id) SUBPARTITION BY RANGE (week_of);
-
--- Create partitions for each subject
-CREATE TABLE lessons_math PARTITION OF lessons
-    FOR VALUES IN (1) PARTITION BY RANGE (week_of);
-
-CREATE TABLE lessons_science PARTITION OF lessons
-    FOR VALUES IN (2) PARTITION BY RANGE (week_of);
-
--- Create subpartitions by date
-CREATE TABLE lessons_math_2024_q1 PARTITION OF lessons_math
-    FOR VALUES FROM ('2024-01-01') TO ('2024-04-01');
-
-CREATE TABLE lessons_science_2024_q1 PARTITION OF lessons_science
-    FOR VALUES FROM ('2024-01-01') TO ('2024-04-01');
-```
-
-### Advanced Security Features
-
-#### Column-Level Encryption
-```sql
--- Create encryption key table
-CREATE TABLE encryption_keys (
+CREATE TABLE exercises (
     id SERIAL PRIMARY KEY,
-    key_id VARCHAR(100) UNIQUE NOT NULL,
-    key_data BYTEA NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP WITH TIME ZONE,
-    is_active BOOLEAN DEFAULT true
-);
-
--- Secure function for key rotation
-CREATE OR REPLACE FUNCTION rotate_encryption_key()
-RETURNS TRIGGER AS $$
-DECLARE
-    new_key_id VARCHAR(100);
-BEGIN
-    -- Generate new key
-    new_key_id := gen_random_uuid()::text;
-    
-    -- Insert new key
-    INSERT INTO encryption_keys (key_id, key_data)
-    VALUES (new_key_id, gen_random_bytes(32));
-    
-    -- Mark old key as inactive
-    UPDATE encryption_keys
-    SET is_active = false
-    WHERE key_id = OLD.key_id;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-#### Advanced Audit Logging
-```sql
--- Create audit log table
-CREATE TABLE audit_log (
-    id BIGSERIAL PRIMARY KEY,
-    table_name VARCHAR(100) NOT NULL,
-    operation VARCHAR(10) NOT NULL,
-    user_id UUID REFERENCES users(id),
-    old_data JSONB,
-    new_data JSONB,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    ip_address INET,
-    user_agent TEXT,
-    transaction_id BIGINT,
-    application_name TEXT
-) PARTITION BY RANGE (timestamp);
-
--- Create partitions for audit log
-CREATE TABLE audit_log_2024_q1 PARTITION OF audit_log
-    FOR VALUES FROM ('2024-01-01') TO ('2024-04-01');
-
--- Create audit trigger function
-CREATE OR REPLACE FUNCTION audit_trigger()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF (TG_OP = 'DELETE') THEN
-        INSERT INTO audit_log (
-            table_name,
-            operation,
-            user_id,
-            old_data,
-            transaction_id
-        ) VALUES (
-            TG_TABLE_NAME,
-            TG_OP,
-            current_user_id(),
-            to_jsonb(OLD),
-            txid_current()
-        );
-    ELSIF (TG_OP = 'UPDATE') THEN
-        INSERT INTO audit_log (
-            table_name,
-            operation,
-            user_id,
-            old_data,
-            new_data,
-            transaction_id
-        ) VALUES (
-            TG_TABLE_NAME,
-            TG_OP,
-            current_user_id(),
-            to_jsonb(OLD),
-            to_jsonb(NEW),
-            txid_current()
-        );
-    ELSIF (TG_OP = 'INSERT') THEN
-        INSERT INTO audit_log (
-            table_name,
-            operation,
-            user_id,
-            new_data,
-            transaction_id
-        ) VALUES (
-            TG_TABLE_NAME,
-            TG_OP,
-            current_user_id(),
-            to_jsonb(NEW),
-            txid_current()
-        );
-    END IF;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### Advanced Performance Features
-
-#### Query Plan Management
-```sql
--- Create plan management table
-CREATE TABLE query_plans (
-    id SERIAL PRIMARY KEY,
-    query_hash BIGINT UNIQUE NOT NULL,
-    plan_hash BIGINT NOT NULL,
-    query_text TEXT NOT NULL,
-    execution_plan JSONB NOT NULL,
-    average_execution_time FLOAT,
-    total_executions BIGINT DEFAULT 0,
-    last_execution TIMESTAMP WITH TIME ZONE,
-    is_approved BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create function to capture and analyze query plans
-CREATE OR REPLACE FUNCTION capture_query_plan()
-RETURNS TRIGGER AS $$
-DECLARE
-    query_hash BIGINT;
-    plan_hash BIGINT;
-    execution_plan JSONB;
-BEGIN
-    -- Calculate hashes
-    query_hash := hashtext(current_query());
-    plan_hash := hashtext(EXPLAIN (FORMAT JSON) current_query());
-    
-    -- Get execution plan
-    execution_plan := (EXPLAIN (FORMAT JSON) current_query())::jsonb;
-    
-    -- Update or insert plan
-    INSERT INTO query_plans (
-        query_hash,
-        plan_hash,
-        query_text,
-        execution_plan,
-        average_execution_time,
-        total_executions,
-        last_execution
-    ) VALUES (
-        query_hash,
-        plan_hash,
-        current_query(),
-        execution_plan,
-        EXTRACT(EPOCH FROM (clock_timestamp() - statement_timestamp())),
-        1,
-        CURRENT_TIMESTAMP
-    ) ON CONFLICT (query_hash) DO UPDATE SET
-        total_executions = query_plans.total_executions + 1,
-        average_execution_time = (query_plans.average_execution_time * query_plans.total_executions + 
-            EXTRACT(EPOCH FROM (clock_timestamp() - statement_timestamp()))) / 
-            (query_plans.total_executions + 1),
-        last_execution = CURRENT_TIMESTAMP;
-    
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-#### Advanced Caching Strategy
-```sql
--- Create cache management table
-CREATE TABLE cache_management (
-    id SERIAL PRIMARY KEY,
-    cache_key VARCHAR(255) UNIQUE NOT NULL,
-    cache_value JSONB NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP WITH TIME ZONE,
-    last_accessed TIMESTAMP WITH TIME ZONE,
-    access_count INTEGER DEFAULT 0,
-    size_bytes INTEGER,
-    priority INTEGER DEFAULT 0,
-    tags TEXT[],
-    metadata JSONB
-) PARTITION BY RANGE (created_at);
-
--- Create cache invalidation function
-CREATE OR REPLACE FUNCTION invalidate_cache(
-    p_cache_key VARCHAR(255) DEFAULT NULL,
-    p_tag TEXT DEFAULT NULL,
-    p_older_than INTERVAL DEFAULT NULL
-)
-RETURNS INTEGER AS $$
-DECLARE
-    v_count INTEGER;
-BEGIN
-    IF p_cache_key IS NOT NULL THEN
-        DELETE FROM cache_management
-        WHERE cache_key = p_cache_key;
-        GET DIAGNOSTICS v_count = ROW_COUNT;
-    ELSIF p_tag IS NOT NULL THEN
-        DELETE FROM cache_management
-        WHERE p_tag = ANY(tags);
-        GET DIAGNOSTICS v_count = ROW_COUNT;
-    ELSIF p_older_than IS NOT NULL THEN
-        DELETE FROM cache_management
-        WHERE created_at < CURRENT_TIMESTAMP - p_older_than;
-        GET DIAGNOSTICS v_count = ROW_COUNT;
-    END IF;
-    
-    RETURN v_count;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### Advanced Monitoring and Maintenance
-
-#### Performance Metrics Collection
-```sql
--- Create detailed metrics table
-CREATE TABLE performance_metrics_detail (
-    id BIGSERIAL PRIMARY KEY,
-    metric_type VARCHAR(50) NOT NULL,
-    metric_name VARCHAR(100) NOT NULL,
-    metric_value NUMERIC,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    context JSONB,
-    tags TEXT[],
-    source VARCHAR(100),
-    hostname VARCHAR(255),
-    process_id INTEGER,
-    transaction_id BIGINT
-) PARTITION BY RANGE (timestamp);
-
--- Create metrics collection function
-CREATE OR REPLACE FUNCTION collect_detailed_metrics()
-RETURNS void AS $$
-BEGIN
-    -- Connection metrics
-    INSERT INTO performance_metrics_detail (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'connection',
-        'active_connections',
-        count(*),
-        jsonb_build_object(
-            'state', state,
-            'wait_event_type', wait_event_type,
-            'wait_event', wait_event
-        ),
-        ARRAY['connections', 'active']
-    FROM pg_stat_activity
-    GROUP BY state, wait_event_type, wait_event;
-
-    -- Cache metrics
-    INSERT INTO performance_metrics_detail (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'cache',
-        'hit_ratio',
-        (sum(heap_blks_hit) / nullif(sum(heap_blks_hit + heap_blks_read), 0)) * 100,
-        jsonb_build_object(
-            'table', schemaname || '.' || relname,
-            'index_hits', sum(idx_blks_hit),
-            'index_reads', sum(idx_blks_read)
-        ),
-        ARRAY['cache', 'performance']
-    FROM pg_statio_user_tables
-    GROUP BY schemaname, relname;
-
-    -- Query performance metrics
-    INSERT INTO performance_metrics_detail (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'query',
-        'execution_time',
-        mean_exec_time,
-        jsonb_build_object(
-            'query', query,
-            'calls', calls,
-            'rows', rows,
-            'shared_blks_hit', shared_blks_hit,
-            'shared_blks_read', shared_blks_read
-        ),
-        ARRAY['queries', 'performance']
-    FROM pg_stat_statements
-    WHERE mean_exec_time > 1000; -- Only log slow queries
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-#### Advanced Maintenance Procedures
-```sql
--- Create maintenance tasks table
-CREATE TABLE maintenance_tasks (
-    id SERIAL PRIMARY KEY,
-    task_name VARCHAR(100) NOT NULL,
-    schedule VARCHAR(100) NOT NULL,
-    last_run TIMESTAMP WITH TIME ZONE,
-    next_run TIMESTAMP WITH TIME ZONE,
-    status VARCHAR(20),
-    error_message TEXT,
-    duration INTERVAL,
-    parameters JSONB,
+    activity_id INTEGER REFERENCES activities(id),
+    name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    duration_minutes INTEGER NOT NULL,
+    difficulty_level VARCHAR(50) NOT NULL,
+    instructions JSONB NOT NULL,
+    sets INTEGER NOT NULL,
+    reps INTEGER NOT NULL,
+    rest_time_seconds INTEGER NOT NULL,
+    technique_notes TEXT NOT NULL,
+    equipment_needed TEXT,
+    intensity VARCHAR(50) NOT NULL,
+    progression_steps JSONB,
+    regression_steps JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create maintenance function
-CREATE OR REPLACE FUNCTION run_maintenance_tasks()
-RETURNS void AS $$
-DECLARE
-    task RECORD;
-BEGIN
-    FOR task IN 
-        SELECT * FROM maintenance_tasks 
-        WHERE next_run <= CURRENT_TIMESTAMP 
-        AND status != 'running'
-    LOOP
-        BEGIN
-            -- Update task status
-            UPDATE maintenance_tasks
-            SET status = 'running',
-                last_run = CURRENT_TIMESTAMP
-            WHERE id = task.id;
-            
-            -- Execute task based on type
-            CASE task.task_name
-                WHEN 'vacuum' THEN
-                    PERFORM pg_catalog.pg_stat_reset();
-                    VACUUM ANALYZE;
-                WHEN 'reindex' THEN
-                    REINDEX DATABASE current_database();
-                WHEN 'statistics' THEN
-                    ANALYZE;
-                WHEN 'cache_invalidation' THEN
-                    PERFORM invalidate_cache(p_older_than => '1 day'::interval);
-            END CASE;
-            
-            -- Update task status
-            UPDATE maintenance_tasks
-            SET status = 'completed',
-                next_run = CURRENT_TIMESTAMP + task.schedule::interval,
-                duration = CURRENT_TIMESTAMP - last_run
-            WHERE id = task.id;
-            
-        EXCEPTION WHEN OTHERS THEN
-            UPDATE maintenance_tasks
-            SET status = 'failed',
-                error_message = SQLERRM,
-                next_run = CURRENT_TIMESTAMP + '1 hour'::interval
-            WHERE id = task.id;
-        END;
-    END LOOP;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- Indexes
+CREATE INDEX idx_exercises_activity_id ON exercises(activity_id);
 ```
 
-## Advanced Data Types and Extensions
-
-### Custom Data Types
+### Activity Categories Table
 ```sql
--- Create custom types for educational content
-CREATE TYPE lesson_status AS ENUM ('draft', 'review', 'published', 'archived');
-CREATE TYPE grade_level AS ENUM ('K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12');
-CREATE TYPE content_type AS ENUM ('lesson', 'activity', 'assessment', 'resource');
-CREATE TYPE difficulty_level AS ENUM ('beginner', 'intermediate', 'advanced');
-CREATE TYPE memory_type AS ENUM ('short_term', 'long_term', 'contextual', 'procedural');
-```
-
-### Required Extensions
-```sql
--- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- For encryption
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;  -- For query monitoring
-CREATE EXTENSION IF NOT EXISTS uuid-ossp;  -- For UUID generation
-CREATE EXTENSION IF NOT EXISTS ltree;  -- For hierarchical data
-CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- For fuzzy text search
-CREATE EXTENSION IF NOT EXISTS btree_gin;  -- For GIN indexes on scalar types
-CREATE EXTENSION IF NOT EXISTS hstore;  -- For key-value storage
-CREATE EXTENSION IF NOT EXISTS pg_partman;  -- For partition management
-CREATE EXTENSION IF NOT EXISTS pg_repack;  -- For table maintenance
-CREATE EXTENSION IF NOT EXISTS pg_qualstats;  -- For query optimization
-CREATE EXTENSION IF NOT EXISTS pg_stat_kcache;  -- For CPU and I/O statistics
-```
-
-## Advanced Schema Design
-
-### Hierarchical Data Management
-```sql
--- Create hierarchical tables
-CREATE TABLE content_hierarchy (
+CREATE TABLE activity_categories (
     id SERIAL PRIMARY KEY,
-    content_id INTEGER NOT NULL,
-    content_type content_type NOT NULL,
-    parent_id INTEGER,
-    path LTREE,
-    level INTEGER,
-    position INTEGER,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT valid_hierarchy CHECK (level >= 0 AND level <= 10)
-);
-
--- Create indexes for hierarchical queries
-CREATE INDEX idx_content_hierarchy_path ON content_hierarchy USING GIST (path);
-CREATE INDEX idx_content_hierarchy_parent ON content_hierarchy(parent_id);
-CREATE INDEX idx_content_hierarchy_content ON content_hierarchy(content_id, content_type);
-
--- Create function for path maintenance
-CREATE OR REPLACE FUNCTION update_content_path()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        IF NEW.parent_id IS NULL THEN
-            NEW.path := NEW.id::text::ltree;
-            NEW.level := 0;
-        ELSE
-            SELECT path, level + 1
-            INTO NEW.path, NEW.level
-            FROM content_hierarchy
-            WHERE id = NEW.parent_id;
-            NEW.path := NEW.path || NEW.id::text;
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create trigger for path maintenance
-CREATE TRIGGER tr_content_hierarchy_path
-BEFORE INSERT ON content_hierarchy
-FOR EACH ROW EXECUTE FUNCTION update_content_path();
-```
-
-### Advanced JSON Schema Validation
-```sql
--- Create JSON schema validation function
-CREATE OR REPLACE FUNCTION validate_json_schema(
-    p_schema JSONB,
-    p_data JSONB
-) RETURNS BOOLEAN AS $$
-DECLARE
-    v_result BOOLEAN;
-BEGIN
-    -- Implement JSON Schema validation logic
-    -- This is a simplified example
-    IF p_schema->>'type' = 'object' THEN
-        -- Validate required properties
-        IF p_schema ? 'required' THEN
-            FOR i IN 0..jsonb_array_length(p_schema->'required')-1 LOOP
-                IF NOT p_data ? (p_schema->'required'->i)::text THEN
-                    RETURN FALSE;
-                END IF;
-            END LOOP;
-        END IF;
-        
-        -- Validate property types
-        IF p_schema ? 'properties' THEN
-            FOR key, value IN SELECT * FROM jsonb_each(p_schema->'properties') LOOP
-                IF p_data ? key THEN
-                    IF value->>'type' = 'string' AND jsonb_typeof(p_data->key) != 'string' THEN
-                        RETURN FALSE;
-                    ELSIF value->>'type' = 'number' AND jsonb_typeof(p_data->key) != 'number' THEN
-                        RETURN FALSE;
-                    ELSIF value->>'type' = 'boolean' AND jsonb_typeof(p_data->key) != 'boolean' THEN
-                        RETURN FALSE;
-                    END IF;
-                END IF;
-            END LOOP;
-        END IF;
-    END IF;
-    
-    RETURN TRUE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create trigger for JSON validation
-CREATE OR REPLACE FUNCTION validate_lesson_data()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_schema JSONB;
-BEGIN
-    -- Define schema for lesson data
-    v_schema := '{
-        "type": "object",
-        "required": ["title", "objectives", "materials"],
-        "properties": {
-            "title": {"type": "string"},
-            "objectives": {"type": "array"},
-            "materials": {"type": "array"},
-            "duration": {"type": "number"},
-            "difficulty": {"type": "string"}
-        }
-    }'::jsonb;
-    
-    IF NOT validate_json_schema(v_schema, NEW.lesson_data) THEN
-        RAISE EXCEPTION 'Invalid lesson data structure';
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER tr_validate_lesson_data
-BEFORE INSERT OR UPDATE ON lessons
-FOR EACH ROW EXECUTE FUNCTION validate_lesson_data();
-```
-
-## Advanced Query Optimization
-
-### Materialized Views for Common Queries
-```sql
--- Create materialized view for lesson statistics
-CREATE MATERIALIZED VIEW lesson_statistics AS
-SELECT 
-    l.id,
-    l.title,
-    l.grade_level,
-    l.status,
-    l.week_of,
-    sc.name as subject_name,
-    ap.name as assistant_name,
-    jsonb_array_length(l.activities) as activity_count,
-    jsonb_array_length(l.materials) as material_count,
-    jsonb_array_length(l.assessment_criteria) as assessment_count,
-    (SELECT count(*) FROM content_hierarchy WHERE content_id = l.id AND content_type = 'lesson') as related_content_count,
-    (SELECT avg(importance) FROM user_memories WHERE context->>'lesson_id' = l.id::text) as average_importance,
-    (SELECT count(*) FROM memory_interactions WHERE context->>'lesson_id' = l.id::text) as interaction_count
-FROM lessons l
-JOIN subject_categories sc ON l.subject_category_id = sc.id
-JOIN assistant_profiles ap ON l.assistant_profile_id = ap.id
-WHERE l.status = 'published';
-
--- Create indexes on materialized view
-CREATE UNIQUE INDEX idx_lesson_statistics_id ON lesson_statistics(id);
-CREATE INDEX idx_lesson_statistics_subject ON lesson_statistics(subject_name);
-CREATE INDEX idx_lesson_statistics_grade ON lesson_statistics(grade_level);
-CREATE INDEX idx_lesson_statistics_week ON lesson_statistics(week_of);
-
--- Create refresh function
-CREATE OR REPLACE FUNCTION refresh_lesson_statistics()
-RETURNS TRIGGER AS $$
-BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY lesson_statistics;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create triggers for automatic refresh
-CREATE TRIGGER tr_refresh_lesson_statistics
-AFTER INSERT OR UPDATE OR DELETE ON lessons
-FOR EACH STATEMENT EXECUTE FUNCTION refresh_lesson_statistics();
-```
-
-### Advanced Query Rewriting
-```sql
--- Create query rewrite rules
-CREATE OR REPLACE RULE rewrite_lesson_queries AS
-ON SELECT TO lessons
-WHERE status = 'published'
-DO INSTEAD
-SELECT * FROM lesson_statistics
-WHERE status = 'published';
-
--- Create function for dynamic query optimization
-CREATE OR REPLACE FUNCTION optimize_lesson_query(
-    p_user_id UUID,
-    p_subject_id INTEGER DEFAULT NULL,
-    p_grade_level VARCHAR(20) DEFAULT NULL,
-    p_date_range DATERANGE DEFAULT NULL
-) RETURNS SETOF lessons AS $$
-DECLARE
-    v_query TEXT;
-    v_params TEXT[];
-    v_param_count INTEGER := 0;
-BEGIN
-    v_query := 'SELECT * FROM lessons WHERE user_id = $1';
-    v_params := ARRAY[p_user_id::text];
-    v_param_count := 1;
-    
-    IF p_subject_id IS NOT NULL THEN
-        v_param_count := v_param_count + 1;
-        v_query := v_query || ' AND subject_category_id = $' || v_param_count;
-        v_params := array_append(v_params, p_subject_id::text);
-    END IF;
-    
-    IF p_grade_level IS NOT NULL THEN
-        v_param_count := v_param_count + 1;
-        v_query := v_query || ' AND grade_level = $' || v_param_count;
-        v_params := array_append(v_params, p_grade_level);
-    END IF;
-    
-    IF p_date_range IS NOT NULL THEN
-        v_param_count := v_param_count + 1;
-        v_query := v_query || ' AND week_of <@ $' || v_param_count;
-        v_params := array_append(v_params, p_date_range::text);
-    END IF;
-    
-    RETURN QUERY EXECUTE v_query USING v_params;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Security Implementation
-
-### Row-Level Security Policies
-```sql
--- Enable RLS on all tables
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_memories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE memory_interactions ENABLE ROW LEVEL SECURITY;
-
--- Create security policies
-CREATE POLICY user_data_policy ON users
-    USING (id = current_user_id());
-
-CREATE POLICY lesson_access_policy ON lessons
-    USING (
-        user_id = current_user_id() OR
-        status = 'published' OR
-        EXISTS (
-            SELECT 1 FROM user_permissions
-            WHERE user_id = current_user_id()
-            AND permission_type = 'view'
-            AND resource_type = 'lesson'
-            AND resource_id = lessons.id
-        )
-    );
-
-CREATE POLICY memory_access_policy ON user_memories
-    USING (
-        user_id = current_user_id() OR
-        EXISTS (
-            SELECT 1 FROM user_permissions
-            WHERE user_id = current_user_id()
-            AND permission_type = 'view'
-            AND resource_type = 'memory'
-            AND resource_id = user_memories.id
-        )
-    );
-```
-
-### Advanced Encryption Implementation
-```sql
--- Create encryption functions
-CREATE OR REPLACE FUNCTION encrypt_sensitive_data(
-    p_data TEXT,
-    p_key_id VARCHAR(100)
-) RETURNS BYTEA AS $$
-DECLARE
-    v_key BYTEA;
-BEGIN
-    -- Get encryption key
-    SELECT key_data INTO v_key
-    FROM encryption_keys
-    WHERE key_id = p_key_id
-    AND is_active = true
-    AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP);
-    
-    IF v_key IS NULL THEN
-        RAISE EXCEPTION 'Invalid or expired encryption key';
-    END IF;
-    
-    -- Encrypt data
-    RETURN pgp_sym_encrypt(
-        p_data,
-        encode(v_key, 'base64')
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create decryption function
-CREATE OR REPLACE FUNCTION decrypt_sensitive_data(
-    p_encrypted_data BYTEA,
-    p_key_id VARCHAR(100)
-) RETURNS TEXT AS $$
-DECLARE
-    v_key BYTEA;
-BEGIN
-    -- Get encryption key
-    SELECT key_data INTO v_key
-    FROM encryption_keys
-    WHERE key_id = p_key_id
-    AND is_active = true
-    AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP);
-    
-    IF v_key IS NULL THEN
-        RAISE EXCEPTION 'Invalid or expired encryption key';
-    END IF;
-    
-    -- Decrypt data
-    RETURN pgp_sym_decrypt(
-        p_encrypted_data,
-        encode(v_key, 'base64')
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Monitoring and Analytics
-
-### Real-time Performance Monitoring
-```sql
--- Create performance monitoring table
-CREATE TABLE real_time_metrics (
-    id BIGSERIAL PRIMARY KEY,
-    metric_type VARCHAR(50) NOT NULL,
-    metric_name VARCHAR(100) NOT NULL,
-    metric_value NUMERIC,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    context JSONB,
-    tags TEXT[],
-    source VARCHAR(100),
-    hostname VARCHAR(255),
-    process_id INTEGER,
-    transaction_id BIGINT
-) PARTITION BY RANGE (timestamp);
-
--- Create partitions for real-time metrics
-CREATE TABLE real_time_metrics_current PARTITION OF real_time_metrics
-    FOR VALUES FROM (CURRENT_TIMESTAMP - INTERVAL '1 hour') TO (CURRENT_TIMESTAMP + INTERVAL '1 hour');
-
--- Create function for metric collection
-CREATE OR REPLACE FUNCTION collect_real_time_metrics()
-RETURNS void AS $$
-BEGIN
-    -- System metrics
-    INSERT INTO real_time_metrics (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'system',
-        'cpu_usage',
-        (SELECT sum(cpu_usage) FROM pg_stat_kcache),
-        jsonb_build_object(
-            'process_count', count(*),
-            'total_memory', sum(memory_usage)
-        ),
-        ARRAY['system', 'performance']
-    FROM pg_stat_activity
-    WHERE state = 'active';
-
-    -- Query metrics
-    INSERT INTO real_time_metrics (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'query',
-        'execution_time',
-        mean_exec_time,
-        jsonb_build_object(
-            'query', query,
-            'calls', calls,
-            'rows', rows,
-            'shared_blks_hit', shared_blks_hit,
-            'shared_blks_read', shared_blks_read
-        ),
-        ARRAY['queries', 'performance']
-    FROM pg_stat_statements
-    WHERE mean_exec_time > 1000;
-
-    -- Cache metrics
-    INSERT INTO real_time_metrics (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'cache',
-        'hit_ratio',
-        (sum(heap_blks_hit) / nullif(sum(heap_blks_hit + heap_blks_read), 0)) * 100,
-        jsonb_build_object(
-            'table', schemaname || '.' || relname,
-            'index_hits', sum(idx_blks_hit),
-            'index_reads', sum(idx_blks_read)
-        ),
-        ARRAY['cache', 'performance']
-    FROM pg_statio_user_tables
-    GROUP BY schemaname, relname;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### Advanced Analytics Functions
-```sql
--- Create analytics functions
-CREATE OR REPLACE FUNCTION analyze_user_engagement(
-    p_user_id UUID,
-    p_start_date TIMESTAMP WITH TIME ZONE,
-    p_end_date TIMESTAMP WITH TIME ZONE
-) RETURNS TABLE (
-    metric_name VARCHAR(100),
-    metric_value NUMERIC,
-    trend NUMERIC,
-    context JSONB
-) AS $$
-BEGIN
-    RETURN QUERY
-    WITH user_metrics AS (
-        SELECT 
-            'lesson_views' as metric_name,
-            count(*) as metric_value,
-            jsonb_build_object(
-                'total_lessons', count(DISTINCT lesson_id),
-                'average_time_spent', avg(duration),
-                'most_viewed_lesson', (
-                    SELECT lesson_id
-                    FROM memory_interactions
-                    WHERE user_id = p_user_id
-                    AND interaction_type = 'view'
-                    AND timestamp BETWEEN p_start_date AND p_end_date
-                    GROUP BY lesson_id
-                    ORDER BY count(*) DESC
-                    LIMIT 1
-                )
-            ) as context
-        FROM memory_interactions
-        WHERE user_id = p_user_id
-        AND interaction_type = 'view'
-        AND timestamp BETWEEN p_start_date AND p_end_date
-        
-        UNION ALL
-        
-        SELECT 
-            'memory_recall' as metric_name,
-            count(*) as metric_value,
-            jsonb_build_object(
-                'total_memories', count(DISTINCT memory_id),
-                'recall_accuracy', avg(
-                    CASE 
-                        WHEN feedback->>'accuracy' IS NOT NULL 
-                        THEN (feedback->>'accuracy')::numeric 
-                        ELSE 0 
-                    END
-                ),
-                'most_recalled_memory', (
-                    SELECT memory_id
-                    FROM memory_interactions
-                    WHERE user_id = p_user_id
-                    AND interaction_type = 'recall'
-                    AND timestamp BETWEEN p_start_date AND p_end_date
-                    GROUP BY memory_id
-                    ORDER BY count(*) DESC
-                    LIMIT 1
-                )
-            ) as context
-        FROM memory_interactions
-        WHERE user_id = p_user_id
-        AND interaction_type = 'recall'
-        AND timestamp BETWEEN p_start_date AND p_end_date
-    )
-    SELECT 
-        m.metric_name,
-        m.metric_value,
-        CASE 
-            WHEN LAG(m.metric_value) OVER (PARTITION BY m.metric_name ORDER BY p_start_date) IS NOT NULL
-            THEN (m.metric_value - LAG(m.metric_value) OVER (PARTITION BY m.metric_name ORDER BY p_start_date)) / 
-                 LAG(m.metric_value) OVER (PARTITION BY m.metric_name ORDER BY p_start_date) * 100
-            ELSE 0
-        END as trend,
-        m.context
-    FROM user_metrics m;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Backup and Recovery
-
-### Point-in-Time Recovery Configuration
-```sql
--- Configure WAL archiving
-ALTER SYSTEM SET wal_level = 'replica';
-ALTER SYSTEM SET archive_mode = 'on';
-ALTER SYSTEM SET archive_command = 'cp %p /path/to/archive/%f';
-ALTER SYSTEM SET max_wal_senders = 10;
-ALTER SYSTEM SET max_replication_slots = 10;
-ALTER SYSTEM SET wal_keep_segments = 1000;
-ALTER SYSTEM SET hot_standby = 'on';
-
--- Create replication slots
-SELECT * FROM pg_create_physical_replication_slot('faraday_ai_slot');
-```
-
-### Advanced Backup Procedures
-```sql
--- Create backup management table
-CREATE TABLE backup_history (
-    id SERIAL PRIMARY KEY,
-    backup_type VARCHAR(50) NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_time TIMESTAMP WITH TIME ZONE,
-    status VARCHAR(20) NOT NULL,
-    size_bytes BIGINT,
-    location TEXT,
-    checksum TEXT,
-    error_message TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create backup function
-CREATE OR REPLACE FUNCTION perform_backup(
-    p_backup_type VARCHAR(50),
-    p_location TEXT
-) RETURNS INTEGER AS $$
-DECLARE
-    v_backup_id INTEGER;
-    v_start_time TIMESTAMP WITH TIME ZONE;
-    v_command TEXT;
-BEGIN
-    -- Record backup start
-    INSERT INTO backup_history (
-        backup_type,
-        start_time,
-        status
-    ) VALUES (
-        p_backup_type,
-        CURRENT_TIMESTAMP,
-        'in_progress'
-    ) RETURNING id INTO v_backup_id;
-    
-    v_start_time := CURRENT_TIMESTAMP;
-    
-    -- Execute backup based on type
-    CASE p_backup_type
-        WHEN 'full' THEN
-            v_command := format(
-                'pg_dump -Fc -f %s/full_%s.dump faraday_ai',
-                p_location,
-                to_char(CURRENT_TIMESTAMP, 'YYYYMMDD_HH24MISS')
-            );
-        WHEN 'incremental' THEN
-            v_command := format(
-                'pg_basebackup -D %s/incremental_%s -X stream -P',
-                p_location,
-                to_char(CURRENT_TIMESTAMP, 'YYYYMMDD_HH24MISS')
-            );
-        WHEN 'wal' THEN
-            v_command := format(
-                'cp %s/* %s/wal_%s/',
-                current_setting('archive_command'),
-                p_location,
-                to_char(CURRENT_TIMESTAMP, 'YYYYMMDD_HH24MISS')
-            );
-    END CASE;
-    
-    -- Execute backup command
-    PERFORM dblink_exec('dbname=faraday_ai', v_command);
-    
-    -- Update backup record
-    UPDATE backup_history
-    SET 
-        end_time = CURRENT_TIMESTAMP,
-        status = 'completed',
-        size_bytes = pg_size_directory(p_location),
-        location = p_location
-    WHERE id = v_backup_id;
-    
-    RETURN v_backup_id;
-    
-EXCEPTION WHEN OTHERS THEN
-    UPDATE backup_history
-    SET 
-        end_time = CURRENT_TIMESTAMP,
-        status = 'failed',
-        error_message = SQLERRM
-    WHERE id = v_backup_id;
-    
-    RAISE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Data Migration
-
-### Zero-Downtime Schema Migration
-```sql
--- Create migration management table
-CREATE TABLE schema_migrations (
-    id SERIAL PRIMARY KEY,
-    version VARCHAR(50) NOT NULL,
+    name VARCHAR(255) NOT NULL,
     description TEXT,
-    status VARCHAR(20) NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE,
-    end_time TIMESTAMP WITH TIME ZONE,
-    error_message TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create migration function
-CREATE OR REPLACE FUNCTION execute_schema_migration(
-    p_version VARCHAR(50),
-    p_description TEXT
-) RETURNS INTEGER AS $$
-DECLARE
-    v_migration_id INTEGER;
-BEGIN
-    -- Record migration start
-    INSERT INTO schema_migrations (
-        version,
-        description,
-        status,
-        start_time
-    ) VALUES (
-        p_version,
-        p_description,
-        'in_progress',
-        CURRENT_TIMESTAMP
-    ) RETURNING id INTO v_migration_id;
-    
-    BEGIN
-        -- Example migration steps
-        -- 1. Create new table
-        CREATE TABLE lessons_new (LIKE lessons INCLUDING ALL);
-        
-        -- 2. Add new columns
-        ALTER TABLE lessons_new 
-        ADD COLUMN new_feature JSONB;
-        
-        -- 3. Copy data in batches
-        INSERT INTO lessons_new 
-        SELECT *, '{}'::JSONB as new_feature 
-        FROM lessons 
-        WHERE id BETWEEN 1 AND 1000;
-        
-        -- 4. Create indexes
-        CREATE INDEX idx_lessons_new_feature ON lessons_new USING GIN (new_feature);
-        
-        -- 5. Switch tables
-        BEGIN;
-        ALTER TABLE lessons RENAME TO lessons_old;
-        ALTER TABLE lessons_new RENAME TO lessons;
-        COMMIT;
-        
-        -- Update migration record
-        UPDATE schema_migrations
-        SET 
-            status = 'completed',
-            end_time = CURRENT_TIMESTAMP
-        WHERE id = v_migration_id;
-        
-        RETURN v_migration_id;
-        
-    EXCEPTION WHEN OTHERS THEN
-        UPDATE schema_migrations
-        SET 
-            status = 'failed',
-            end_time = CURRENT_TIMESTAMP,
-            error_message = SQLERRM
-        WHERE id = v_migration_id;
-        
-        RAISE;
-    END;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Integration Patterns
-
-### Event-Driven Architecture Implementation
-```sql
--- Create event queue table
-CREATE TABLE event_queue (
-    id BIGSERIAL PRIMARY KEY,
-    event_type VARCHAR(100) NOT NULL,
-    event_data JSONB NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
-    priority INTEGER DEFAULT 0,
-    retry_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    processed_at TIMESTAMP WITH TIME ZONE,
-    error_message TEXT
-);
-
--- Create event processing function
-CREATE OR REPLACE FUNCTION process_event_queue()
-RETURNS void AS $$
-DECLARE
-    v_event RECORD;
-BEGIN
-    FOR v_event IN 
-        SELECT * FROM event_queue
-        WHERE status = 'pending'
-        ORDER BY priority DESC, created_at ASC
-        LIMIT 100
-    LOOP
-        BEGIN
-            -- Update event status
-            UPDATE event_queue
-            SET status = 'processing'
-            WHERE id = v_event.id;
-            
-            -- Process event based on type
-            CASE v_event.event_type
-                WHEN 'lesson_created' THEN
-                    PERFORM handle_lesson_created(v_event.event_data);
-                WHEN 'memory_updated' THEN
-                    PERFORM handle_memory_updated(v_event.event_data);
-                WHEN 'user_interaction' THEN
-                    PERFORM handle_user_interaction(v_event.event_data);
-            END CASE;
-            
-            -- Update event status
-            UPDATE event_queue
-            SET 
-                status = 'completed',
-                processed_at = CURRENT_TIMESTAMP
-            WHERE id = v_event.id;
-            
-        EXCEPTION WHEN OTHERS THEN
-            UPDATE event_queue
-            SET 
-                status = CASE 
-                    WHEN retry_count >= 3 THEN 'failed'
-                    ELSE 'pending'
-                END,
-                retry_count = retry_count + 1,
-                error_message = SQLERRM
-            WHERE id = v_event.id;
-        END;
-    END LOOP;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### Advanced Caching Implementation
-```sql
--- Create cache management functions
-CREATE OR REPLACE FUNCTION get_cached_data(
-    p_cache_key VARCHAR(255),
-    p_ttl INTERVAL DEFAULT '1 hour'::interval
-) RETURNS JSONB AS $$
-DECLARE
-    v_data JSONB;
-BEGIN
-    -- Check cache
-    SELECT cache_value INTO v_data
-    FROM cache_management
-    WHERE cache_key = p_cache_key
-    AND created_at > CURRENT_TIMESTAMP - p_ttl
-    AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP);
-    
-    IF v_data IS NOT NULL THEN
-        -- Update access count and timestamp
-        UPDATE cache_management
-        SET 
-            access_count = access_count + 1,
-            last_accessed = CURRENT_TIMESTAMP
-        WHERE cache_key = p_cache_key;
-        
-        RETURN v_data;
-    END IF;
-    
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create cache update function
-CREATE OR REPLACE FUNCTION update_cache(
-    p_cache_key VARCHAR(255),
-    p_cache_value JSONB,
-    p_ttl INTERVAL DEFAULT '1 hour'::interval,
-    p_tags TEXT[] DEFAULT NULL,
-    p_priority INTEGER DEFAULT 0
-) RETURNS void AS $$
-BEGIN
-    INSERT INTO cache_management (
-        cache_key,
-        cache_value,
-        expires_at,
-        tags,
-        priority,
-        size_bytes
-    ) VALUES (
-        p_cache_key,
-        p_cache_value,
-        CURRENT_TIMESTAMP + p_ttl,
-        p_tags,
-        p_priority,
-        octet_length(p_cache_value::text)
-    ) ON CONFLICT (cache_key) DO UPDATE SET
-        cache_value = EXCLUDED.cache_value,
-        expires_at = EXCLUDED.expires_at,
-        tags = EXCLUDED.tags,
-        priority = EXCLUDED.priority,
-        size_bytes = EXCLUDED.size_bytes,
-        last_accessed = CURRENT_TIMESTAMP;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### Advanced Monitoring and Maintenance
-
-#### Performance Metrics Collection
-```sql
--- Create detailed metrics table
-CREATE TABLE performance_metrics_detail (
-    id BIGSERIAL PRIMARY KEY,
-    metric_type VARCHAR(50) NOT NULL,
-    metric_name VARCHAR(100) NOT NULL,
-    metric_value NUMERIC,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    context JSONB,
-    tags TEXT[],
-    source VARCHAR(100),
-    hostname VARCHAR(255),
-    process_id INTEGER,
-    transaction_id BIGINT
-) PARTITION BY RANGE (timestamp);
-
--- Create metrics collection function
-CREATE OR REPLACE FUNCTION collect_detailed_metrics()
-RETURNS void AS $$
-BEGIN
-    -- Connection metrics
-    INSERT INTO performance_metrics_detail (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'connection',
-        'active_connections',
-        count(*),
-        jsonb_build_object(
-            'state', state,
-            'wait_event_type', wait_event_type,
-            'wait_event', wait_event
-        ),
-        ARRAY['connections', 'active']
-    FROM pg_stat_activity
-    GROUP BY state, wait_event_type, wait_event;
-
-    -- Cache metrics
-    INSERT INTO performance_metrics_detail (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'cache',
-        'hit_ratio',
-        (sum(heap_blks_hit) / nullif(sum(heap_blks_hit + heap_blks_read), 0)) * 100,
-        jsonb_build_object(
-            'table', schemaname || '.' || relname,
-            'index_hits', sum(idx_blks_hit),
-            'index_reads', sum(idx_blks_read)
-        ),
-        ARRAY['cache', 'performance']
-    FROM pg_statio_user_tables
-    GROUP BY schemaname, relname;
-
-    -- Query performance metrics
-    INSERT INTO performance_metrics_detail (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'query',
-        'execution_time',
-        mean_exec_time,
-        jsonb_build_object(
-            'query', query,
-            'calls', calls,
-            'rows', rows,
-            'shared_blks_hit', shared_blks_hit,
-            'shared_blks_read', shared_blks_read
-        ),
-        ARRAY['queries', 'performance']
-    FROM pg_stat_statements
-    WHERE mean_exec_time > 1000; -- Only log slow queries
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-#### Advanced Maintenance Procedures
-```sql
--- Create maintenance tasks table
-CREATE TABLE maintenance_tasks (
-    id SERIAL PRIMARY KEY,
-    task_name VARCHAR(100) NOT NULL,
-    schedule VARCHAR(100) NOT NULL,
-    last_run TIMESTAMP WITH TIME ZONE,
-    next_run TIMESTAMP WITH TIME ZONE,
-    status VARCHAR(20),
-    error_message TEXT,
-    duration INTERVAL,
-    parameters JSONB,
+    category_metadata JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create maintenance function
-CREATE OR REPLACE FUNCTION run_maintenance_tasks()
-RETURNS void AS $$
-DECLARE
-    task RECORD;
-BEGIN
-    FOR task IN 
-        SELECT * FROM maintenance_tasks 
-        WHERE next_run <= CURRENT_TIMESTAMP 
-        AND status != 'running'
-    LOOP
-        BEGIN
-            -- Update task status
-            UPDATE maintenance_tasks
-            SET status = 'running',
-                last_run = CURRENT_TIMESTAMP
-            WHERE id = task.id;
-            
-            -- Execute task based on type
-            CASE task.task_name
-                WHEN 'vacuum' THEN
-                    PERFORM pg_catalog.pg_stat_reset();
-                    VACUUM ANALYZE;
-                WHEN 'reindex' THEN
-                    REINDEX DATABASE current_database();
-                WHEN 'statistics' THEN
-                    ANALYZE;
-                WHEN 'cache_invalidation' THEN
-                    PERFORM invalidate_cache(p_older_than => '1 day'::interval);
-            END CASE;
-            
-            -- Update task status
-            UPDATE maintenance_tasks
-            SET status = 'completed',
-                next_run = CURRENT_TIMESTAMP + task.schedule::interval,
-                duration = CURRENT_TIMESTAMP - last_run
-            WHERE id = task.id;
-            
-        EXCEPTION WHEN OTHERS THEN
-            UPDATE maintenance_tasks
-            SET status = 'failed',
-                error_message = SQLERRM,
-                next_run = CURRENT_TIMESTAMP + '1 hour'::interval
-            WHERE id = task.id;
-        END;
-    END LOOP;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-- Indexes
+CREATE INDEX idx_activity_categories_name ON activity_categories(name);
 ```
 
-## Advanced Data Types and Extensions
-
-### Custom Data Types
+### Activity Category Associations Table
 ```sql
--- Create custom types for educational content
-CREATE TYPE lesson_status AS ENUM ('draft', 'review', 'published', 'archived');
-CREATE TYPE grade_level AS ENUM ('K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12');
-CREATE TYPE content_type AS ENUM ('lesson', 'activity', 'assessment', 'resource');
-CREATE TYPE difficulty_level AS ENUM ('beginner', 'intermediate', 'advanced');
-CREATE TYPE memory_type AS ENUM ('short_term', 'long_term', 'contextual', 'procedural');
-```
-
-### Required Extensions
-```sql
--- Enable required extensions
-CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- For encryption
-CREATE EXTENSION IF NOT EXISTS pg_stat_statements;  -- For query monitoring
-CREATE EXTENSION IF NOT EXISTS uuid-ossp;  -- For UUID generation
-CREATE EXTENSION IF NOT EXISTS ltree;  -- For hierarchical data
-CREATE EXTENSION IF NOT EXISTS pg_trgm;  -- For fuzzy text search
-CREATE EXTENSION IF NOT EXISTS btree_gin;  -- For GIN indexes on scalar types
-CREATE EXTENSION IF NOT EXISTS hstore;  -- For key-value storage
-CREATE EXTENSION IF NOT EXISTS pg_partman;  -- For partition management
-CREATE EXTENSION IF NOT EXISTS pg_repack;  -- For table maintenance
-CREATE EXTENSION IF NOT EXISTS pg_qualstats;  -- For query optimization
-CREATE EXTENSION IF NOT EXISTS pg_stat_kcache;  -- For CPU and I/O statistics
-```
-
-## Advanced Schema Design
-
-### Hierarchical Data Management
-```sql
--- Create hierarchical tables
-CREATE TABLE content_hierarchy (
+CREATE TABLE activity_category_associations (
     id SERIAL PRIMARY KEY,
-    content_id INTEGER NOT NULL,
-    content_type content_type NOT NULL,
-    parent_id INTEGER,
-    path LTREE,
-    level INTEGER,
-    position INTEGER,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT valid_hierarchy CHECK (level >= 0 AND level <= 10)
-);
-
--- Create indexes for hierarchical queries
-CREATE INDEX idx_content_hierarchy_path ON content_hierarchy USING GIST (path);
-CREATE INDEX idx_content_hierarchy_parent ON content_hierarchy(parent_id);
-CREATE INDEX idx_content_hierarchy_content ON content_hierarchy(content_id, content_type);
-
--- Create function for path maintenance
-CREATE OR REPLACE FUNCTION update_content_path()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        IF NEW.parent_id IS NULL THEN
-            NEW.path := NEW.id::text::ltree;
-            NEW.level := 0;
-        ELSE
-            SELECT path, level + 1
-            INTO NEW.path, NEW.level
-            FROM content_hierarchy
-            WHERE id = NEW.parent_id;
-            NEW.path := NEW.path || NEW.id::text;
-        END IF;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create trigger for path maintenance
-CREATE TRIGGER tr_content_hierarchy_path
-BEFORE INSERT ON content_hierarchy
-FOR EACH ROW EXECUTE FUNCTION update_content_path();
-```
-
-### Advanced JSON Schema Validation
-```sql
--- Create JSON schema validation function
-CREATE OR REPLACE FUNCTION validate_json_schema(
-    p_schema JSONB,
-    p_data JSONB
-) RETURNS BOOLEAN AS $$
-DECLARE
-    v_result BOOLEAN;
-BEGIN
-    -- Implement JSON Schema validation logic
-    -- This is a simplified example
-    IF p_schema->>'type' = 'object' THEN
-        -- Validate required properties
-        IF p_schema ? 'required' THEN
-            FOR i IN 0..jsonb_array_length(p_schema->'required')-1 LOOP
-                IF NOT p_data ? (p_schema->'required'->i)::text THEN
-                    RETURN FALSE;
-                END IF;
-            END LOOP;
-        END IF;
-        
-        -- Validate property types
-        IF p_schema ? 'properties' THEN
-            FOR key, value IN SELECT * FROM jsonb_each(p_schema->'properties') LOOP
-                IF p_data ? key THEN
-                    IF value->>'type' = 'string' AND jsonb_typeof(p_data->key) != 'string' THEN
-                        RETURN FALSE;
-                    ELSIF value->>'type' = 'number' AND jsonb_typeof(p_data->key) != 'number' THEN
-                        RETURN FALSE;
-                    ELSIF value->>'type' = 'boolean' AND jsonb_typeof(p_data->key) != 'boolean' THEN
-                        RETURN FALSE;
-                    END IF;
-                END IF;
-            END LOOP;
-        END IF;
-    END IF;
-    
-    RETURN TRUE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create trigger for JSON validation
-CREATE OR REPLACE FUNCTION validate_lesson_data()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_schema JSONB;
-BEGIN
-    -- Define schema for lesson data
-    v_schema := '{
-        "type": "object",
-        "required": ["title", "objectives", "materials"],
-        "properties": {
-            "title": {"type": "string"},
-            "objectives": {"type": "array"},
-            "materials": {"type": "array"},
-            "duration": {"type": "number"},
-            "difficulty": {"type": "string"}
-        }
-    }'::jsonb;
-    
-    IF NOT validate_json_schema(v_schema, NEW.lesson_data) THEN
-        RAISE EXCEPTION 'Invalid lesson data structure';
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER tr_validate_lesson_data
-BEFORE INSERT OR UPDATE ON lessons
-FOR EACH ROW EXECUTE FUNCTION validate_lesson_data();
-```
-
-## Advanced Query Optimization
-
-### Materialized Views for Common Queries
-```sql
--- Create materialized view for lesson statistics
-CREATE MATERIALIZED VIEW lesson_statistics AS
-SELECT 
-    l.id,
-    l.title,
-    l.grade_level,
-    l.status,
-    l.week_of,
-    sc.name as subject_name,
-    ap.name as assistant_name,
-    jsonb_array_length(l.activities) as activity_count,
-    jsonb_array_length(l.materials) as material_count,
-    jsonb_array_length(l.assessment_criteria) as assessment_count,
-    (SELECT count(*) FROM content_hierarchy WHERE content_id = l.id AND content_type = 'lesson') as related_content_count,
-    (SELECT avg(importance) FROM user_memories WHERE context->>'lesson_id' = l.id::text) as average_importance,
-    (SELECT count(*) FROM memory_interactions WHERE context->>'lesson_id' = l.id::text) as interaction_count
-FROM lessons l
-JOIN subject_categories sc ON l.subject_category_id = sc.id
-JOIN assistant_profiles ap ON l.assistant_profile_id = ap.id
-WHERE l.status = 'published';
-
--- Create indexes on materialized view
-CREATE UNIQUE INDEX idx_lesson_statistics_id ON lesson_statistics(id);
-CREATE INDEX idx_lesson_statistics_subject ON lesson_statistics(subject_name);
-CREATE INDEX idx_lesson_statistics_grade ON lesson_statistics(grade_level);
-CREATE INDEX idx_lesson_statistics_week ON lesson_statistics(week_of);
-
--- Create refresh function
-CREATE OR REPLACE FUNCTION refresh_lesson_statistics()
-RETURNS TRIGGER AS $$
-BEGIN
-    REFRESH MATERIALIZED VIEW CONCURRENTLY lesson_statistics;
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-
--- Create triggers for automatic refresh
-CREATE TRIGGER tr_refresh_lesson_statistics
-AFTER INSERT OR UPDATE OR DELETE ON lessons
-FOR EACH STATEMENT EXECUTE FUNCTION refresh_lesson_statistics();
-```
-
-### Advanced Query Rewriting
-```sql
--- Create query rewrite rules
-CREATE OR REPLACE RULE rewrite_lesson_queries AS
-ON SELECT TO lessons
-WHERE status = 'published'
-DO INSTEAD
-SELECT * FROM lesson_statistics
-WHERE status = 'published';
-
--- Create function for dynamic query optimization
-CREATE OR REPLACE FUNCTION optimize_lesson_query(
-    p_user_id UUID,
-    p_subject_id INTEGER DEFAULT NULL,
-    p_grade_level VARCHAR(20) DEFAULT NULL,
-    p_date_range DATERANGE DEFAULT NULL
-) RETURNS SETOF lessons AS $$
-DECLARE
-    v_query TEXT;
-    v_params TEXT[];
-    v_param_count INTEGER := 0;
-BEGIN
-    v_query := 'SELECT * FROM lessons WHERE user_id = $1';
-    v_params := ARRAY[p_user_id::text];
-    v_param_count := 1;
-    
-    IF p_subject_id IS NOT NULL THEN
-        v_param_count := v_param_count + 1;
-        v_query := v_query || ' AND subject_category_id = $' || v_param_count;
-        v_params := array_append(v_params, p_subject_id::text);
-    END IF;
-    
-    IF p_grade_level IS NOT NULL THEN
-        v_param_count := v_param_count + 1;
-        v_query := v_query || ' AND grade_level = $' || v_param_count;
-        v_params := array_append(v_params, p_grade_level);
-    END IF;
-    
-    IF p_date_range IS NOT NULL THEN
-        v_param_count := v_param_count + 1;
-        v_query := v_query || ' AND week_of <@ $' || v_param_count;
-        v_params := array_append(v_params, p_date_range::text);
-    END IF;
-    
-    RETURN QUERY EXECUTE v_query USING v_params;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Security Implementation
-
-### Row-Level Security Policies
-```sql
--- Enable RLS on all tables
-ALTER TABLE users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE lessons ENABLE ROW LEVEL SECURITY;
-ALTER TABLE user_memories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE memory_interactions ENABLE ROW LEVEL SECURITY;
-
--- Create security policies
-CREATE POLICY user_data_policy ON users
-    USING (id = current_user_id());
-
-CREATE POLICY lesson_access_policy ON lessons
-    USING (
-        user_id = current_user_id() OR
-        status = 'published' OR
-        EXISTS (
-            SELECT 1 FROM user_permissions
-            WHERE user_id = current_user_id()
-            AND permission_type = 'view'
-            AND resource_type = 'lesson'
-            AND resource_id = lessons.id
-        )
-    );
-
-CREATE POLICY memory_access_policy ON user_memories
-    USING (
-        user_id = current_user_id() OR
-        EXISTS (
-            SELECT 1 FROM user_permissions
-            WHERE user_id = current_user_id()
-            AND permission_type = 'view'
-            AND resource_type = 'memory'
-            AND resource_id = user_memories.id
-        )
-    );
-```
-
-### Advanced Encryption Implementation
-```sql
--- Create encryption functions
-CREATE OR REPLACE FUNCTION encrypt_sensitive_data(
-    p_data TEXT,
-    p_key_id VARCHAR(100)
-) RETURNS BYTEA AS $$
-DECLARE
-    v_key BYTEA;
-BEGIN
-    -- Get encryption key
-    SELECT key_data INTO v_key
-    FROM encryption_keys
-    WHERE key_id = p_key_id
-    AND is_active = true
-    AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP);
-    
-    IF v_key IS NULL THEN
-        RAISE EXCEPTION 'Invalid or expired encryption key';
-    END IF;
-    
-    -- Encrypt data
-    RETURN pgp_sym_encrypt(
-        p_data,
-        encode(v_key, 'base64')
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create decryption function
-CREATE OR REPLACE FUNCTION decrypt_sensitive_data(
-    p_encrypted_data BYTEA,
-    p_key_id VARCHAR(100)
-) RETURNS TEXT AS $$
-DECLARE
-    v_key BYTEA;
-BEGIN
-    -- Get encryption key
-    SELECT key_data INTO v_key
-    FROM encryption_keys
-    WHERE key_id = p_key_id
-    AND is_active = true
-    AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP);
-    
-    IF v_key IS NULL THEN
-        RAISE EXCEPTION 'Invalid or expired encryption key';
-    END IF;
-    
-    -- Decrypt data
-    RETURN pgp_sym_decrypt(
-        p_encrypted_data,
-        encode(v_key, 'base64')
-    );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Monitoring and Analytics
-
-### Real-time Performance Monitoring
-```sql
--- Create performance monitoring table
-CREATE TABLE real_time_metrics (
-    id BIGSERIAL PRIMARY KEY,
-    metric_type VARCHAR(50) NOT NULL,
-    metric_name VARCHAR(100) NOT NULL,
-    metric_value NUMERIC,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    context JSONB,
-    tags TEXT[],
-    source VARCHAR(100),
-    hostname VARCHAR(255),
-    process_id INTEGER,
-    transaction_id BIGINT
-) PARTITION BY RANGE (timestamp);
-
--- Create partitions for real-time metrics
-CREATE TABLE real_time_metrics_current PARTITION OF real_time_metrics
-    FOR VALUES FROM (CURRENT_TIMESTAMP - INTERVAL '1 hour') TO (CURRENT_TIMESTAMP + INTERVAL '1 hour');
-
--- Create function for metric collection
-CREATE OR REPLACE FUNCTION collect_real_time_metrics()
-RETURNS void AS $$
-BEGIN
-    -- System metrics
-    INSERT INTO real_time_metrics (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'system',
-        'cpu_usage',
-        (SELECT sum(cpu_usage) FROM pg_stat_kcache),
-        jsonb_build_object(
-            'process_count', count(*),
-            'total_memory', sum(memory_usage)
-        ),
-        ARRAY['system', 'performance']
-    FROM pg_stat_activity
-    WHERE state = 'active';
-
-    -- Query metrics
-    INSERT INTO real_time_metrics (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'query',
-        'execution_time',
-        mean_exec_time,
-        jsonb_build_object(
-            'query', query,
-            'calls', calls,
-            'rows', rows,
-            'shared_blks_hit', shared_blks_hit,
-            'shared_blks_read', shared_blks_read
-        ),
-        ARRAY['queries', 'performance']
-    FROM pg_stat_statements
-    WHERE mean_exec_time > 1000;
-
-    -- Cache metrics
-    INSERT INTO real_time_metrics (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'cache',
-        'hit_ratio',
-        (sum(heap_blks_hit) / nullif(sum(heap_blks_hit + heap_blks_read), 0)) * 100,
-        jsonb_build_object(
-            'table', schemaname || '.' || relname,
-            'index_hits', sum(idx_blks_hit),
-            'index_reads', sum(idx_blks_read)
-        ),
-        ARRAY['cache', 'performance']
-    FROM pg_statio_user_tables
-    GROUP BY schemaname, relname;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### Advanced Analytics Functions
-```sql
--- Create analytics functions
-CREATE OR REPLACE FUNCTION analyze_user_engagement(
-    p_user_id UUID,
-    p_start_date TIMESTAMP WITH TIME ZONE,
-    p_end_date TIMESTAMP WITH TIME ZONE
-) RETURNS TABLE (
-    metric_name VARCHAR(100),
-    metric_value NUMERIC,
-    trend NUMERIC,
-    context JSONB
-) AS $$
-BEGIN
-    RETURN QUERY
-    WITH user_metrics AS (
-        SELECT 
-            'lesson_views' as metric_name,
-            count(*) as metric_value,
-            jsonb_build_object(
-                'total_lessons', count(DISTINCT lesson_id),
-                'average_time_spent', avg(duration),
-                'most_viewed_lesson', (
-                    SELECT lesson_id
-                    FROM memory_interactions
-                    WHERE user_id = p_user_id
-                    AND interaction_type = 'view'
-                    AND timestamp BETWEEN p_start_date AND p_end_date
-                    GROUP BY lesson_id
-                    ORDER BY count(*) DESC
-                    LIMIT 1
-                )
-            ) as context
-        FROM memory_interactions
-        WHERE user_id = p_user_id
-        AND interaction_type = 'view'
-        AND timestamp BETWEEN p_start_date AND p_end_date
-        
-        UNION ALL
-        
-        SELECT 
-            'memory_recall' as metric_name,
-            count(*) as metric_value,
-            jsonb_build_object(
-                'total_memories', count(DISTINCT memory_id),
-                'recall_accuracy', avg(
-                    CASE 
-                        WHEN feedback->>'accuracy' IS NOT NULL 
-                        THEN (feedback->>'accuracy')::numeric 
-                        ELSE 0 
-                    END
-                ),
-                'most_recalled_memory', (
-                    SELECT memory_id
-                    FROM memory_interactions
-                    WHERE user_id = p_user_id
-                    AND interaction_type = 'recall'
-                    AND timestamp BETWEEN p_start_date AND p_end_date
-                    GROUP BY memory_id
-                    ORDER BY count(*) DESC
-                    LIMIT 1
-                )
-            ) as context
-        FROM memory_interactions
-        WHERE user_id = p_user_id
-        AND interaction_type = 'recall'
-        AND timestamp BETWEEN p_start_date AND p_end_date
-    )
-    SELECT 
-        m.metric_name,
-        m.metric_value,
-        CASE 
-            WHEN LAG(m.metric_value) OVER (PARTITION BY m.metric_name ORDER BY p_start_date) IS NOT NULL
-            THEN (m.metric_value - LAG(m.metric_value) OVER (PARTITION BY m.metric_name ORDER BY p_start_date)) / 
-                 LAG(m.metric_value) OVER (PARTITION BY m.metric_name ORDER BY p_start_date) * 100
-            ELSE 0
-        END as trend,
-        m.context
-    FROM user_metrics m;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Backup and Recovery
-
-### Point-in-Time Recovery Configuration
-```sql
--- Configure WAL archiving
-ALTER SYSTEM SET wal_level = 'replica';
-ALTER SYSTEM SET archive_mode = 'on';
-ALTER SYSTEM SET archive_command = 'cp %p /path/to/archive/%f';
-ALTER SYSTEM SET max_wal_senders = 10;
-ALTER SYSTEM SET max_replication_slots = 10;
-ALTER SYSTEM SET wal_keep_segments = 1000;
-ALTER SYSTEM SET hot_standby = 'on';
-
--- Create replication slots
-SELECT * FROM pg_create_physical_replication_slot('faraday_ai_slot');
-```
-
-### Advanced Backup Procedures
-```sql
--- Create backup management table
-CREATE TABLE backup_history (
-    id SERIAL PRIMARY KEY,
-    backup_type VARCHAR(50) NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE NOT NULL,
-    end_time TIMESTAMP WITH TIME ZONE,
-    status VARCHAR(20) NOT NULL,
-    size_bytes BIGINT,
-    location TEXT,
-    checksum TEXT,
-    error_message TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create backup function
-CREATE OR REPLACE FUNCTION perform_backup(
-    p_backup_type VARCHAR(50),
-    p_location TEXT
-) RETURNS INTEGER AS $$
-DECLARE
-    v_backup_id INTEGER;
-    v_start_time TIMESTAMP WITH TIME ZONE;
-    v_command TEXT;
-BEGIN
-    -- Record backup start
-    INSERT INTO backup_history (
-        backup_type,
-        start_time,
-        status
-    ) VALUES (
-        p_backup_type,
-        CURRENT_TIMESTAMP,
-        'in_progress'
-    ) RETURNING id INTO v_backup_id;
-    
-    v_start_time := CURRENT_TIMESTAMP;
-    
-    -- Execute backup based on type
-    CASE p_backup_type
-        WHEN 'full' THEN
-            v_command := format(
-                'pg_dump -Fc -f %s/full_%s.dump faraday_ai',
-                p_location,
-                to_char(CURRENT_TIMESTAMP, 'YYYYMMDD_HH24MISS')
-            );
-        WHEN 'incremental' THEN
-            v_command := format(
-                'pg_basebackup -D %s/incremental_%s -X stream -P',
-                p_location,
-                to_char(CURRENT_TIMESTAMP, 'YYYYMMDD_HH24MISS')
-            );
-        WHEN 'wal' THEN
-            v_command := format(
-                'cp %s/* %s/wal_%s/',
-                current_setting('archive_command'),
-                p_location,
-                to_char(CURRENT_TIMESTAMP, 'YYYYMMDD_HH24MISS')
-            );
-    END CASE;
-    
-    -- Execute backup command
-    PERFORM dblink_exec('dbname=faraday_ai', v_command);
-    
-    -- Update backup record
-    UPDATE backup_history
-    SET 
-        end_time = CURRENT_TIMESTAMP,
-        status = 'completed',
-        size_bytes = pg_size_directory(p_location),
-        location = p_location
-    WHERE id = v_backup_id;
-    
-    RETURN v_backup_id;
-    
-EXCEPTION WHEN OTHERS THEN
-    UPDATE backup_history
-    SET 
-        end_time = CURRENT_TIMESTAMP,
-        status = 'failed',
-        error_message = SQLERRM
-    WHERE id = v_backup_id;
-    
-    RAISE;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Data Migration
-
-### Zero-Downtime Schema Migration
-```sql
--- Create migration management table
-CREATE TABLE schema_migrations (
-    id SERIAL PRIMARY KEY,
-    version VARCHAR(50) NOT NULL,
-    description TEXT,
-    status VARCHAR(20) NOT NULL,
-    start_time TIMESTAMP WITH TIME ZONE,
-    end_time TIMESTAMP WITH TIME ZONE,
-    error_message TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create migration function
-CREATE OR REPLACE FUNCTION execute_schema_migration(
-    p_version VARCHAR(50),
-    p_description TEXT
-) RETURNS INTEGER AS $$
-DECLARE
-    v_migration_id INTEGER;
-BEGIN
-    -- Record migration start
-    INSERT INTO schema_migrations (
-        version,
-        description,
-        status,
-        start_time
-    ) VALUES (
-        p_version,
-        p_description,
-        'in_progress',
-        CURRENT_TIMESTAMP
-    ) RETURNING id INTO v_migration_id;
-    
-    BEGIN
-        -- Example migration steps
-        -- 1. Create new table
-        CREATE TABLE lessons_new (LIKE lessons INCLUDING ALL);
-        
-        -- 2. Add new columns
-        ALTER TABLE lessons_new 
-        ADD COLUMN new_feature JSONB;
-        
-        -- 3. Copy data in batches
-        INSERT INTO lessons_new 
-        SELECT *, '{}'::JSONB as new_feature 
-        FROM lessons 
-        WHERE id BETWEEN 1 AND 1000;
-        
-        -- 4. Create indexes
-        CREATE INDEX idx_lessons_new_feature ON lessons_new USING GIN (new_feature);
-        
-        -- 5. Switch tables
-        BEGIN;
-        ALTER TABLE lessons RENAME TO lessons_old;
-        ALTER TABLE lessons_new RENAME TO lessons;
-        COMMIT;
-        
-        -- Update migration record
-        UPDATE schema_migrations
-        SET 
-            status = 'completed',
-            end_time = CURRENT_TIMESTAMP
-        WHERE id = v_migration_id;
-        
-        RETURN v_migration_id;
-        
-    EXCEPTION WHEN OTHERS THEN
-        UPDATE schema_migrations
-        SET 
-            status = 'failed',
-            end_time = CURRENT_TIMESTAMP,
-            error_message = SQLERRM
-        WHERE id = v_migration_id;
-        
-        RAISE;
-    END;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Advanced Integration Patterns
-
-### Event-Driven Architecture Implementation
-```sql
--- Create event queue table
-CREATE TABLE event_queue (
-    id BIGSERIAL PRIMARY KEY,
-    event_type VARCHAR(100) NOT NULL,
-    event_data JSONB NOT NULL,
-    status VARCHAR(20) DEFAULT 'pending',
-    priority INTEGER DEFAULT 0,
-    retry_count INTEGER DEFAULT 0,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    processed_at TIMESTAMP WITH TIME ZONE,
-    error_message TEXT
-);
-
--- Create event processing function
-CREATE OR REPLACE FUNCTION process_event_queue()
-RETURNS void AS $$
-DECLARE
-    v_event RECORD;
-BEGIN
-    FOR v_event IN 
-        SELECT * FROM event_queue
-        WHERE status = 'pending'
-        ORDER BY priority DESC, created_at ASC
-        LIMIT 100
-    LOOP
-        BEGIN
-            -- Update event status
-            UPDATE event_queue
-            SET status = 'processing'
-            WHERE id = v_event.id;
-            
-            -- Process event based on type
-            CASE v_event.event_type
-                WHEN 'lesson_created' THEN
-                    PERFORM handle_lesson_created(v_event.event_data);
-                WHEN 'memory_updated' THEN
-                    PERFORM handle_memory_updated(v_event.event_data);
-                WHEN 'user_interaction' THEN
-                    PERFORM handle_user_interaction(v_event.event_data);
-            END CASE;
-            
-            -- Update event status
-            UPDATE event_queue
-            SET 
-                status = 'completed',
-                processed_at = CURRENT_TIMESTAMP
-            WHERE id = v_event.id;
-            
-        EXCEPTION WHEN OTHERS THEN
-            UPDATE event_queue
-            SET 
-                status = CASE 
-                    WHEN retry_count >= 3 THEN 'failed'
-                    ELSE 'pending'
-                END,
-                retry_count = retry_count + 1,
-                error_message = SQLERRM
-            WHERE id = v_event.id;
-        END;
-    END LOOP;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### Advanced Caching Implementation
-```sql
--- Create cache management functions
-CREATE OR REPLACE FUNCTION get_cached_data(
-    p_cache_key VARCHAR(255),
-    p_ttl INTERVAL DEFAULT '1 hour'::interval
-) RETURNS JSONB AS $$
-DECLARE
-    v_data JSONB;
-BEGIN
-    -- Check cache
-    SELECT cache_value INTO v_data
-    FROM cache_management
-    WHERE cache_key = p_cache_key
-    AND created_at > CURRENT_TIMESTAMP - p_ttl
-    AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP);
-    
-    IF v_data IS NOT NULL THEN
-        -- Update access count and timestamp
-        UPDATE cache_management
-        SET 
-            access_count = access_count + 1,
-            last_accessed = CURRENT_TIMESTAMP
-        WHERE cache_key = p_cache_key;
-        
-        RETURN v_data;
-    END IF;
-    
-    RETURN NULL;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Create cache update function
-CREATE OR REPLACE FUNCTION update_cache(
-    p_cache_key VARCHAR(255),
-    p_cache_value JSONB,
-    p_ttl INTERVAL DEFAULT '1 hour'::interval,
-    p_tags TEXT[] DEFAULT NULL,
-    p_priority INTEGER DEFAULT 0
-) RETURNS void AS $$
-BEGIN
-    INSERT INTO cache_management (
-        cache_key,
-        cache_value,
-        expires_at,
-        tags,
-        priority,
-        size_bytes
-    ) VALUES (
-        p_cache_key,
-        p_cache_value,
-        CURRENT_TIMESTAMP + p_ttl,
-        p_tags,
-        p_priority,
-        octet_length(p_cache_value::text)
-    ) ON CONFLICT (cache_key) DO UPDATE SET
-        cache_value = EXCLUDED.cache_value,
-        expires_at = EXCLUDED.expires_at,
-        tags = EXCLUDED.tags,
-        priority = EXCLUDED.priority,
-        size_bytes = EXCLUDED.size_bytes,
-        last_accessed = CURRENT_TIMESTAMP;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-### Advanced Monitoring and Maintenance
-
-#### Performance Metrics Collection
-```sql
--- Create detailed metrics table
-CREATE TABLE performance_metrics_detail (
-    id BIGSERIAL PRIMARY KEY,
-    metric_type VARCHAR(50) NOT NULL,
-    metric_name VARCHAR(100) NOT NULL,
-    metric_value NUMERIC,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    context JSONB,
-    tags TEXT[],
-    source VARCHAR(100),
-    hostname VARCHAR(255),
-    process_id INTEGER,
-    transaction_id BIGINT
-) PARTITION BY RANGE (timestamp);
-
--- Create metrics collection function
-CREATE OR REPLACE FUNCTION collect_detailed_metrics()
-RETURNS void AS $$
-BEGIN
-    -- Connection metrics
-    INSERT INTO performance_metrics_detail (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'connection',
-        'active_connections',
-        count(*),
-        jsonb_build_object(
-            'state', state,
-            'wait_event_type', wait_event_type,
-            'wait_event', wait_event
-        ),
-        ARRAY['connections', 'active']
-    FROM pg_stat_activity
-    GROUP BY state, wait_event_type, wait_event;
-
-    -- Cache metrics
-    INSERT INTO performance_metrics_detail (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'cache',
-        'hit_ratio',
-        (sum(heap_blks_hit) / nullif(sum(heap_blks_hit + heap_blks_read), 0)) * 100,
-        jsonb_build_object(
-            'table', schemaname || '.' || relname,
-            'index_hits', sum(idx_blks_hit),
-            'index_reads', sum(idx_blks_read)
-        ),
-        ARRAY['cache', 'performance']
-    FROM pg_statio_user_tables
-    GROUP BY schemaname, relname;
-
-    -- Query performance metrics
-    INSERT INTO performance_metrics_detail (
-        metric_type,
-        metric_name,
-        metric_value,
-        context,
-        tags
-    )
-    SELECT 
-        'query',
-        'execution_time',
-        mean_exec_time,
-        jsonb_build_object(
-            'query', query,
-            'calls', calls,
-            'rows', rows,
-            'shared_blks_hit', shared_blks_hit,
-            'shared_blks_read', shared_blks_read
-        ),
-        ARRAY['queries', 'performance']
-    FROM pg_stat_statements
-    WHERE mean_exec_time > 1000; -- Only log slow queries
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-#### Advanced Maintenance Procedures
-```sql
--- Create maintenance tasks table
-CREATE TABLE maintenance_tasks (
-    id SERIAL PRIMARY KEY,
-    task_name VARCHAR(100) NOT NULL,
-    schedule VARCHAR(100) NOT NULL,
-    last_run TIMESTAMP WITH TIME ZONE,
-    next_run TIMESTAMP WITH TIME ZONE,
-    status VARCHAR(20),
-    error_message TEXT,
-    duration INTERVAL,
-    parameters JSONB,
+    activity_id INTEGER REFERENCES activities(id),
+    category_id INTEGER REFERENCES activity_categories(id),
+    primary_category BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create maintenance function
-CREATE OR REPLACE FUNCTION run_maintenance_tasks()
-RETURNS void AS $$
-DECLARE
-    task RECORD;
-BEGIN
-    FOR task IN 
-        SELECT * FROM maintenance_tasks 
-        WHERE next_run <= CURRENT_TIMESTAMP 
-        AND status != 'running'
-    LOOP
-        BEGIN
-            -- Update task status
-            UPDATE maintenance_tasks
-            SET status = 'running',
-                last_run = CURRENT_TIMESTAMP
-            WHERE id = task.id;
-            
-            -- Execute task based on type
-            CASE task.task_name
-                WHEN 'vacuum' THEN
-                    PERFORM pg_catalog.pg_stat_reset();
-                    VACUUM ANALYZE;
-                WHEN 'reindex' THEN
-                    REINDEX DATABASE current_database();
-                WHEN 'statistics' THEN
-                    ANALYZE;
-                WHEN 'cache_invalidation' THEN
-                    PERFORM invalidate_cache(p_older_than => '1 day'::interval);
-            END CASE;
-            
-            -- Update task status
-            UPDATE maintenance_tasks
-            SET status = 'completed',
-                next_run = CURRENT_TIMESTAMP + task.schedule::interval,
-                duration = CURRENT_TIMESTAMP - last_run
-            WHERE id = task.id;
-            
-        EXCEPTION WHEN OTHERS THEN
-            UPDATE maintenance_tasks
-            SET status = 'failed',
-                error_message = SQLERRM,
-                next_run = CURRENT_TIMESTAMP + '1 hour'::interval
-            WHERE id = task.id;
-        END;
-    END LOOP;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
-## Azure Database Configuration
-
-### Connection Settings
-- Host: `faraday-ai-db.postgres.database.azure.com`
-- Port: `5432`
-- Database: `postgres`
-- User: `josephmartuccijr@live.com`
-- SSL Mode: `require`
-- Connection Parameters:
-  - `connect_timeout=120`
-  - `keepalives=1`
-  - `keepalives_idle=60`
-  - `keepalives_interval=30`
-  - `keepalives_count=10`
-  - `application_name=faraday_ai`
-
-### Azure-Specific Features
-1. **High Availability**
-   - Zone-redundant configuration
-   - Automatic failover
-   - Point-in-time restore capability
-   - Geo-redundant backups
-
-2. **Performance Optimization**
-   - Azure-specific connection pooling
-   - Query performance insights
-   - Automatic tuning recommendations
-   - Resource scaling capabilities
-
-3. **Security Features**
-   - Azure Active Directory integration
-   - Network isolation
-   - Private endpoint support
-   - Advanced threat protection
-   - Data encryption at rest and in transit
-
-4. **Monitoring and Maintenance**
-   - Azure Monitor integration
-   - Query Performance Insight
-   - Automatic performance recommendations
-   - Resource utilization metrics
-   - Alert configuration
-
-### Azure Integration Points
-1. **Azure Services**
-   - Azure Monitor for metrics
-   - Azure Log Analytics for logging
-   - Azure Backup for disaster recovery
-   - Azure Key Vault for secrets management
-
-2. **Connection Management**
-   - Azure Private Link support
-   - VNet integration
-   - IP firewall rules
-   - SSL/TLS enforcement
-
-### Azure Backup and Recovery
-1. **Backup Configuration**
-   - Automated backups
-   - Point-in-time restore
-   - Geo-redundant backup storage
-   - Long-term retention policies
-
-2. **Recovery Options**
-   - Geo-restore capability
-   - Cross-region restore
-   - Automated failover groups
-   - Read replicas for high availability
-
-## Detailed Database Schema
-
-### Subject Categories Table
-```sql
-CREATE TABLE subject_categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    metadata JSONB,
-    is_active BOOLEAN DEFAULT true,
-    parent_id INTEGER REFERENCES subject_categories(id),
-    level INTEGER DEFAULT 1,
-    path LTREE,
-    CONSTRAINT valid_level CHECK (level >= 1 AND level <= 5)
-);
-
 -- Indexes
-CREATE INDEX idx_subject_categories_name ON subject_categories(name);
-CREATE INDEX idx_subject_categories_parent ON subject_categories(parent_id);
-CREATE INDEX idx_subject_categories_path ON subject_categories USING GIST (path);
-CREATE INDEX idx_subject_categories_active ON subject_categories(is_active) WHERE is_active = true;
-```
-
-### Assistant Profiles Table
-```sql
-CREATE TABLE assistant_profiles (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) UNIQUE NOT NULL,
-    description TEXT,
-    model_version VARCHAR(50) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    configuration JSONB,
-    is_active BOOLEAN DEFAULT true,
-    max_context_length INTEGER DEFAULT 4096,
-    temperature FLOAT DEFAULT 0.7,
-    top_p FLOAT DEFAULT 1.0,
-    frequency_penalty FLOAT DEFAULT 0.0,
-    presence_penalty FLOAT DEFAULT 0.0,
-    stop_sequences TEXT[],
-    metadata JSONB
-);
-
--- Indexes
-CREATE INDEX idx_assistant_profiles_name ON assistant_profiles(name);
-CREATE INDEX idx_assistant_profiles_active ON assistant_profiles(is_active) WHERE is_active = true;
-CREATE INDEX idx_assistant_profiles_config ON assistant_profiles USING GIN (configuration);
-```
-
-### Assistant Capabilities Table
-```sql
-CREATE TABLE assistant_capabilities (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    description TEXT,
-    assistant_profile_id INTEGER REFERENCES assistant_profiles(id) ON DELETE CASCADE,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    parameters JSONB,
-    is_enabled BOOLEAN DEFAULT true,
-    priority INTEGER DEFAULT 0,
-    version VARCHAR(20),
-    metadata JSONB,
-    UNIQUE(name, assistant_profile_id)
-);
-
--- Indexes
-CREATE INDEX idx_assistant_capabilities_profile ON assistant_capabilities(assistant_profile_id);
-CREATE INDEX idx_assistant_capabilities_enabled ON assistant_capabilities(is_enabled) WHERE is_enabled = true;
-CREATE INDEX idx_assistant_capabilities_params ON assistant_capabilities USING GIN (parameters);
-```
-
-### User Memories Table
-```sql
-CREATE TABLE user_memories (
-    id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    assistant_profile_id INTEGER REFERENCES assistant_profiles(id),
-    content TEXT NOT NULL,
-    context JSONB,
-    importance FLOAT DEFAULT 1.0 CHECK (importance >= 0.0 AND importance <= 1.0),
-    last_accessed TIMESTAMP WITH TIME ZONE,
-    category VARCHAR(100) NOT NULL,
-    tags TEXT[],
-    source VARCHAR(100),
-    confidence FLOAT CHECK (confidence >= 0.0 AND confidence <= 1.0),
-    version VARCHAR(50),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP WITH TIME ZONE,
-    metadata JSONB
-);
-
--- Indexes
-CREATE INDEX idx_user_memories_user ON user_memories(user_id);
-CREATE INDEX idx_user_memories_assistant ON user_memories(assistant_profile_id);
-CREATE INDEX idx_user_memories_category ON user_memories(category);
-CREATE INDEX idx_user_memories_tags ON user_memories USING GIN (tags);
-CREATE INDEX idx_user_memories_context ON user_memories USING GIN (context);
-CREATE INDEX idx_user_memories_importance ON user_memories(importance DESC);
-CREATE INDEX idx_user_memories_expires ON user_memories(expires_at) WHERE expires_at IS NOT NULL;
-```
-
-### Memory Interactions Table
-```sql
-CREATE TABLE memory_interactions (
-    id SERIAL PRIMARY KEY,
-    memory_id INTEGER REFERENCES user_memories(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-    interaction_type VARCHAR(50) NOT NULL,
-    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    context JSONB,
-    feedback JSONB,
-    duration INTEGER, -- in milliseconds
-    success BOOLEAN,
-    error_message TEXT,
-    metadata JSONB
-);
-
--- Indexes
-CREATE INDEX idx_memory_interactions_memory ON memory_interactions(memory_id);
-CREATE INDEX idx_memory_interactions_user ON memory_interactions(user_id);
-CREATE INDEX idx_memory_interactions_type ON memory_interactions(interaction_type);
-CREATE INDEX idx_memory_interactions_timestamp ON memory_interactions(timestamp DESC);
-CREATE INDEX idx_memory_interactions_context ON memory_interactions USING GIN (context);
+CREATE INDEX idx_activity_category_associations_activity_id ON activity_category_associations(activity_id);
+CREATE INDEX idx_activity_category_associations_category_id ON activity_category_associations(category_id);
 ```
 
 ## Advanced Database Features
@@ -4920,6 +2463,32 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 ```
 
+## Recent Schema Updates
+
+### Skill Assessment Implementation
+- Added skill assessment tables with proper structure
+- Implemented assessment criteria and results tracking
+- Added skill progress monitoring
+- Added proper JSON fields for assessment metadata
+- Implemented proper validation and relationships
+
+### Exercise Model Enhancements
+- Added proper JSON fields for instructions
+- Added progression and regression steps as JSON
+- Added required fields for exercise tracking
+- Implemented proper validation
+
+### Activity Categories Improvements
+- Renamed metadata column to category_metadata
+- Fixed association table naming
+- Added proper foreign key constraints
+
+### Data Validation
+- Added JSON schema validation for exercise instructions
+- Implemented proper relationship mappings
+- Added required field constraints
+- Added validation for assessment data
+
 ## Conclusion
 
 This documentation provides a comprehensive guide to the Faraday AI database architecture, configuration, and management. The system is designed to be scalable, secure, and performant, with a focus on educational content management and AI assistant interactions.
@@ -4969,3 +2538,70 @@ This documentation provides a comprehensive guide to the Faraday AI database arc
 - Azure Database Documentation
 - SQLAlchemy Documentation
 - FastAPI Documentation
+
+## Related Documentation
+
+### Core Documentation
+- [Database Seed Data Content](/docs/context/database_seed_data_content.md)
+  - Seeding process
+  - Data content
+  - Implementation status
+  - Table structure
+
+- [Activity System](/docs/activity_system.md)
+  - Activity data models
+  - System functionality
+  - Data requirements
+  - Implementation details
+
+### Implementation Details
+- [Dashboard Integration Context](/docs/context/dashboard-ai-integration-context.md)
+  - Data integration
+  - System architecture
+  - Implementation status
+  - Database usage
+
+- [User System Implementation](/docs/handoff/user_system_implementation.md)
+  - User data models
+  - Database schema
+  - Security features
+  - Implementation details
+
+### Development Resources
+- [Educational Features Implementation](/docs/guides/educational-features-implementation.md)
+  - Database requirements
+  - Implementation details
+  - Data structures
+  - Best practices
+
+- [New Features Implementation Guide](/docs/guides/new-features-implementation-guide.md)
+  - Database schema
+  - Implementation strategy
+  - Data models
+  - Best practices
+
+### Beta Program Documentation
+- [Beta Documentation](/docs/beta/beta_documentation.md)
+  - Technical details
+  - Data structures
+  - API references
+  - Database usage
+
+- [Monitoring Setup](/docs/beta/monitoring_feedback_setup.md)
+  - Data collection
+  - Performance tracking
+  - Database monitoring
+  - Alert systems
+
+### Additional Resources
+- [Activity Visualization Manager](/docs/activity_visualization_manager.md)
+  - Data visualization
+  - Database queries
+  - Performance tracking
+  - Reporting features
+
+- [Movement Analysis Schema](/docs/context/movement_analysis_schema.md)
+  - Data structures
+  - Database schema
+  - Analysis methods
+  - Implementation details

@@ -1,1171 +1,826 @@
-from typing import Dict, List, Optional, Union
-import pandas as pd
+"""Activity visualization manager for physical education."""
+
+import logging
+from typing import Dict, Any, Optional, List
+from datetime import datetime
 import plotly.graph_objects as go
 import plotly.express as px
-import matplotlib.pyplot as plt
-import seaborn as sns
-from datetime import datetime
-import os
-from io import BytesIO
-import base64
-import json
-from pathlib import Path
-import imageio
-try:
-    import moviepy.editor as mpe
-    MOVIEPY_AVAILABLE = True
-except ImportError:
-    MOVIEPY_AVAILABLE = False
-    mpe = None
-from plotly.subplots import make_subplots
+import pandas as pd
+import numpy as np
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+
+# Import models
+from app.models.activity import (
+    Activity
+)
+from app.models.activity_adaptation.categories.activity_categories import ActivityCategoryAssociation
+from app.models.student import Student
+from app.models.physical_education.pe_enums.pe_types import (
+    ActivityType,
+    DifficultyLevel,
+    EquipmentRequirement,
+    ChartType,
+    ColorScheme,
+    InteractionMode,
+    VisualizationType,
+    VisualizationLevel,
+    VisualizationStatus,
+    VisualizationTrigger
+)
+from app.models.physical_education.activity.models import (
+    StudentActivityPerformance,
+    StudentActivityPreference
+)
 
 class ActivityVisualizationManager:
+    """Service for generating visualizations of physical education activities."""
+    
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(ActivityVisualizationManager, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
-        self.visualization_types = [
-            'performance_trend',
-            'category_heatmap',
-            'activity_distribution',
-            'improvement_trends',
-            'skill_analysis',
-            'sankey_diagram',
-            'treemap',
-            'sunburst_chart',
-            'violin_plot'
-        ]
+        self.logger = logging.getLogger("activity_visualization_manager")
+        self.db = None
         
-        # Configure visualization settings
-        self.visualization_config = {
-            'style': 'seaborn',
-            'color_palette': 'viridis',
-            'font_size': 12,
-            'figure_size': (12, 8),
-            'accessibility': {
-                'high_contrast': False,
-                'screen_reader': True,
-                'alt_text': True
+        # Visualization settings
+        self.settings = {
+            "default_theme": "plotly_white",
+            "color_schemes": {
+                "default": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd"],
+                "pastel": ["#fbb4ae", "#b3cde3", "#ccebc5", "#decbe4", "#fed9a6"],
+                "contrast": ["#e41a1c", "#377eb8", "#4daf4a", "#984ea3", "#ff7f00"]
             },
-            'themes': {
-                'default': {
-                    'background': 'white',
-                    'text': 'black',
-                    'grid': 'lightgray'
-                },
-                'dark': {
-                    'background': '#1f1f1f',
-                    'text': 'white',
-                    'grid': '#2f2f2f'
-                },
-                'high_contrast': {
-                    'background': 'white',
-                    'text': 'black',
-                    'grid': '#000000'
-                }
+            "chart_types": {
+                "performance": "line",
+                "comparison": "bar",
+                "distribution": "histogram",
+                "correlation": "scatter",
+                "progress": "area"
             },
-            'current_theme': 'default'
+            "default_dimensions": {
+                "width": 800,
+                "height": 500
+            },
+            "animation_settings": {
+                "enabled": True,
+                "duration": 500,
+                "easing": "cubic-in-out"
+            },
+            "accessibility": {
+                "high_contrast": False,
+                "screen_reader": False,
+                "keyboard_navigation": False
+            }
         }
         
-        # Set up export directory
-        self.export_dir = "exports/visualizations"
-        os.makedirs(self.export_dir, exist_ok=True)
+        # Visualization components
+        self.visualization_history = []
+        self.chart_templates = {}
+        self.custom_layouts = {}
+        self.interaction_handlers = {}
+        self.export_formats = {}
         
-        # Initialize drill-down state
-        self.drill_down_state = {}
-        
-        # Apply initial theme
-        self._apply_theme()
-
-    def set_theme(self, theme_name: str) -> None:
-        """Set the visualization theme."""
-        if theme_name in self.visualization_config['themes']:
-            self.visualization_config['current_theme'] = theme_name
-            self._apply_theme()
-
-    def set_accessibility(self, high_contrast: bool = False, 
-                        screen_reader: bool = True,
-                        alt_text: bool = True) -> None:
-        """Configure accessibility settings."""
-        self.visualization_config['accessibility'].update({
-            'high_contrast': high_contrast,
-            'screen_reader': screen_reader,
-            'alt_text': alt_text
-        })
-
-    def _apply_theme(self) -> None:
-        """Apply the current theme settings."""
-        theme = self.visualization_config['themes'][self.visualization_config['current_theme']]
-        plt.style.use('default')  # Use default style instead of seaborn
-        plt.rcParams.update({
-            'figure.facecolor': theme['background'],
-            'axes.facecolor': theme['background'],
-            'text.color': theme['text'],
-            'axes.labelcolor': theme['text'],
-            'xtick.color': theme['text'],
-            'ytick.color': theme['text'],
-            'grid.color': theme['grid']
-        })
-
-    def generate_visualizations(self, data: pd.DataFrame, student_id: str, 
-                             visualization_types: Optional[List[str]] = None,
-                             interactive: bool = True,
-                             drill_down: bool = False) -> Dict[str, Union[str, Dict]]:
-        """Generate multiple visualizations for a student with enhanced features."""
-        if visualization_types is None:
-            visualization_types = self.visualization_types
+        # Caching and optimization
+        self.visualization_cache = {}
+        self.template_cache = {}
+    
+    async def initialize(self):
+        """Initialize the visualization manager."""
+        try:
+            self.db = next(get_db())
             
-        visualizations = {}
-        
+            # Load chart templates
+            await self.load_chart_templates()
+            
+            # Initialize visualization components
+            self.initialize_visualization_components()
+            
+            self.logger.info("Activity Visualization Manager initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing Activity Visualization Manager: {str(e)}")
+            raise
+    
+    async def cleanup(self):
+        """Cleanup the visualization manager."""
+        try:
+            # Clear all data
+            self.visualization_history.clear()
+            self.chart_templates.clear()
+            self.custom_layouts.clear()
+            self.interaction_handlers.clear()
+            self.export_formats.clear()
+            self.visualization_cache.clear()
+            self.template_cache.clear()
+            
+            # Reset service references
+            self.db = None
+            
+            self.logger.info("Activity Visualization Manager cleaned up successfully")
+        except Exception as e:
+            self.logger.error(f"Error cleaning up Activity Visualization Manager: {str(e)}")
+            raise
+
+    async def load_chart_templates(self):
+        """Load chart templates for different visualization types."""
+        try:
+            self.chart_templates = {
+                "performance": {
+                    "layout": {
+                        "title": "Performance Over Time",
+                        "xaxis_title": "Date",
+                        "yaxis_title": "Performance Score",
+                        "showlegend": True,
+                        "hovermode": "x unified"
+                    },
+                    "traces": {
+                        "score": {
+                            "type": "scatter",
+                            "mode": "lines+markers",
+                            "line": {"width": 2},
+                            "marker": {"size": 6}
+                        },
+                        "trend": {
+                            "type": "scatter",
+                            "mode": "lines",
+                            "line": {"dash": "dash", "width": 1}
+                        }
+                    }
+                },
+                "comparison": {
+                    "layout": {
+                        "title": "Performance Comparison",
+                        "barmode": "group",
+                        "xaxis_title": "Category",
+                        "yaxis_title": "Score",
+                        "showlegend": True
+                    },
+                    "traces": {
+                        "bars": {
+                            "type": "bar",
+                            "marker": {"opacity": 0.8}
+                        }
+                    }
+                },
+                "distribution": {
+                    "layout": {
+                        "title": "Score Distribution",
+                        "xaxis_title": "Score",
+                        "yaxis_title": "Count",
+                        "bargap": 0.1
+                    },
+                    "traces": {
+                        "histogram": {
+                            "type": "histogram",
+                            "marker": {"opacity": 0.7}
+                        }
+                    }
+                }
+            }
+            
+            self.logger.info("Chart templates loaded successfully")
+        except Exception as e:
+            self.logger.error(f"Error loading chart templates: {str(e)}")
+            raise
+
+    def initialize_visualization_components(self):
+        """Initialize visualization components."""
+        try:
+            # Initialize custom layouts
+            self.custom_layouts = {
+                "dashboard": {
+                    "grid": {"rows": 2, "columns": 2, "pattern": "independent"},
+                    "spacing": {"vertical": 0.1, "horizontal": 0.1},
+                    "dimensions": {"width": 1200, "height": 800}
+                },
+                "report": {
+                    "grid": {"rows": 3, "columns": 1, "pattern": "vertical"},
+                    "spacing": {"vertical": 0.2, "horizontal": 0},
+                    "dimensions": {"width": 800, "height": 1200}
+                }
+            }
+            
+            # Initialize interaction handlers
+            self.interaction_handlers = {
+                "zoom": self._handle_zoom,
+                "pan": self._handle_pan,
+                "select": self._handle_select,
+                "hover": self._handle_hover
+            }
+            
+            # Initialize export formats
+            self.export_formats = {
+                "png": {"dpi": 300, "scale": 2},
+                "svg": {"include_plotlyjs": False, "include_mathjax": False},
+                "html": {"include_plotlyjs": True, "full_html": True},
+                "json": {"pretty_print": True}
+            }
+            
+            self.logger.info("Visualization components initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing visualization components: {str(e)}")
+            raise
+
+    async def generate_performance_visualization(
+        self,
+        student_id: str,
+        activity_type: Optional[str] = None,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        interactive: bool = True
+    ) -> Dict[str, Any]:
+        """Generate performance visualization for a student."""
+        try:
+            # Get performance data
+            performance_data = await self._get_performance_data(
+                student_id, activity_type, start_date, end_date
+            )
+            
+            if interactive:
+                # Create interactive visualization using plotly
+                fig = self._create_interactive_performance_plot(performance_data)
+                
+                return {
+                    'html': fig.to_html(full_html=False),
+                    'data': performance_data.to_dict('records')
+                }
+            else:
+                # Create static visualization
+                fig = self._create_static_performance_plot(performance_data)
+                
+                # Convert to base64
+                return self._convert_figure_to_base64(fig)
+            
+        except Exception as e:
+            self.logger.error(f"Error generating performance visualization: {str(e)}")
+            raise
+
+    async def generate_comparison_visualization(
+        self,
+        student_ids: List[str],
+        activity_type: Optional[str] = None,
+        metric: str = "average_score",
+        interactive: bool = True
+    ) -> Dict[str, Any]:
+        """Generate comparison visualization for multiple students."""
+        try:
+            # Get comparison data
+            comparison_data = await self._get_comparison_data(
+                student_ids, activity_type, metric
+            )
+            
+            if interactive:
+                # Create interactive visualization using plotly
+                fig = self._create_interactive_comparison_plot(comparison_data)
+                
+                return {
+                    'html': fig.to_html(full_html=False),
+                    'data': comparison_data.to_dict('records')
+                }
+            else:
+                # Create static visualization
+                fig = self._create_static_comparison_plot(comparison_data)
+                
+                # Convert to base64
+                return self._convert_figure_to_base64(fig)
+            
+        except Exception as e:
+            self.logger.error(f"Error generating comparison visualization: {str(e)}")
+            raise
+
+    async def generate_progress_visualization(
+        self,
+        student_id: str,
+        metrics: List[str],
+        time_range: str = "1M",
+        interactive: bool = True
+    ) -> Dict[str, Any]:
+        """Generate progress visualization showing multiple metrics."""
+        try:
+            # Get progress data
+            progress_data = await self._get_progress_data(
+                student_id, metrics, time_range
+            )
+            
+            if interactive:
+                # Create interactive visualization using plotly
+                fig = self._create_interactive_progress_plot(progress_data)
+                
+                return {
+                    'html': fig.to_html(full_html=False),
+                    'data': progress_data.to_dict('records')
+                }
+            else:
+                # Create static visualization
+                fig = self._create_static_progress_plot(progress_data)
+                
+                # Convert to base64
+                return self._convert_figure_to_base64(fig)
+            
+        except Exception as e:
+            self.logger.error(f"Error generating progress visualization: {str(e)}")
+            raise
+
+    async def generate_distribution_visualization(
+        self,
+        metric: str,
+        group_by: Optional[str] = None,
+        filters: Optional[Dict[str, Any]] = None,
+        interactive: bool = True
+    ) -> Dict[str, Any]:
+        """Generate distribution visualization for a metric."""
+        try:
+            # Get distribution data
+            distribution_data = await self._get_distribution_data(
+                metric, group_by, filters
+            )
+            
+            if interactive:
+                # Create interactive visualization using plotly
+                fig = self._create_interactive_distribution_plot(distribution_data)
+                
+                return {
+                    'html': fig.to_html(full_html=False),
+                    'data': distribution_data.to_dict('records')
+                }
+            else:
+                # Create static visualization
+                fig = self._create_static_distribution_plot(distribution_data)
+                
+                # Convert to base64
+                return self._convert_figure_to_base64(fig)
+            
+        except Exception as e:
+            self.logger.error(f"Error generating distribution visualization: {str(e)}")
+            raise
+
+    def _create_interactive_performance_plot(self, data: pd.DataFrame) -> go.Figure:
+        """Create interactive performance plot using plotly."""
+        try:
+            template = self.chart_templates["performance"]
+            
+            fig = go.Figure()
+            
+            # Add score trace
+            fig.add_trace(
+                go.Scatter(
+                    x=data['date'],
+                    y=data['score'],
+                    name='Performance Score',
+                    **template['traces']['score']
+                )
+            )
+            
+            # Add trend line
+            trend_data = self._calculate_trend_line(data)
+            fig.add_trace(
+                go.Scatter(
+                    x=trend_data['date'],
+                    y=trend_data['trend'],
+                    name='Trend',
+                    **template['traces']['trend']
+                )
+            )
+            
+            # Update layout
+            fig.update_layout(**template['layout'])
+            
+            return fig
+            
+        except Exception as e:
+            self.logger.error(f"Error creating interactive performance plot: {str(e)}")
+            raise
+
+    def _create_interactive_comparison_plot(self, data: pd.DataFrame) -> go.Figure:
+        """Create interactive comparison plot using plotly."""
+        try:
+            template = self.chart_templates["comparison"]
+            
+            fig = go.Figure()
+            
+            # Add bar traces for each category
+            for category in data['category'].unique():
+                category_data = data[data['category'] == category]
+                fig.add_trace(
+                    go.Bar(
+                        x=category_data['student_id'],
+                        y=category_data['score'],
+                        name=category,
+                        **template['traces']['bars']
+                    )
+                )
+            
+            # Update layout
+            fig.update_layout(**template['layout'])
+            
+            return fig
+            
+        except Exception as e:
+            self.logger.error(f"Error creating interactive comparison plot: {str(e)}")
+            raise
+
+    def _create_interactive_progress_plot(self, data: pd.DataFrame) -> go.Figure:
+        """Create interactive progress plot using plotly."""
+        try:
+            fig = go.Figure()
+            
+            # Add line for each metric
+            for metric in data.columns:
+                if metric != 'date':
+                    fig.add_trace(
+                        go.Scatter(
+                            x=data['date'],
+                            y=data[metric],
+                            name=metric,
+                            mode='lines+markers'
+                        )
+                    )
+            
+            # Update layout
+            fig.update_layout(
+                title="Progress Over Time",
+                xaxis_title="Date",
+                yaxis_title="Score",
+                showlegend=True,
+                hovermode='x unified'
+            )
+            
+            return fig
+            
+        except Exception as e:
+            self.logger.error(f"Error creating interactive progress plot: {str(e)}")
+            raise
+
+    def _create_interactive_distribution_plot(self, data: pd.DataFrame) -> go.Figure:
+        """Create interactive distribution plot using plotly."""
+        try:
+            template = self.chart_templates["distribution"]
+            
+            fig = go.Figure()
+            
+            # Add histogram trace
+            fig.add_trace(
+                go.Histogram(
+                    x=data['value'],
+                    **template['traces']['histogram']
+                )
+            )
+            
+            # Update layout
+            fig.update_layout(**template['layout'])
+            
+            return fig
+            
+        except Exception as e:
+            self.logger.error(f"Error creating interactive distribution plot: {str(e)}")
+            raise
+
+    def _calculate_trend_line(self, data: pd.DataFrame) -> pd.DataFrame:
+        """Calculate trend line for performance data."""
+        try:
+            # Fit linear regression
+            x = np.arange(len(data))
+            y = data['score'].values
+            z = np.polyfit(x, y, 1)
+            p = np.poly1d(z)
+            
+            return pd.DataFrame({
+                'date': data['date'],
+                'trend': p(x)
+            })
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating trend line: {str(e)}")
+            raise
+
+    def _convert_figure_to_base64(self, fig: Any) -> str:
+        """Convert matplotlib figure to base64 string."""
+        try:
+            import io
+            import base64
+            
+            # Save figure to bytes buffer
+            buf = io.BytesIO()
+            fig.savefig(buf, format='png', dpi=300, bbox_inches='tight')
+            buf.seek(0)
+            
+            # Convert to base64
+            image_base64 = base64.b64encode(buf.getvalue()).decode('utf-8')
+            
+            return f"data:image/png;base64,{image_base64}"
+            
+        except Exception as e:
+            self.logger.error(f"Error converting figure to base64: {str(e)}")
+            raise
+
+    def _handle_zoom(self, event_data: Dict[str, Any]) -> None:
+        """Handle zoom interaction events."""
+        pass  # To be implemented
+
+    def _handle_pan(self, event_data: Dict[str, Any]) -> None:
+        """Handle pan interaction events."""
+        pass  # To be implemented
+
+    def _handle_select(self, event_data: Dict[str, Any]) -> None:
+        """Handle selection interaction events."""
+        pass  # To be implemented
+
+    def _handle_hover(self, event_data: Dict[str, Any]) -> None:
+        """Handle hover interaction events."""
+        pass  # To be implemented
+
+    def generate_visualizations(
+        self,
+        student_id: str,
+        performance_data: pd.DataFrame,
+        skill_data: pd.DataFrame,
+        visualization_types: List[str],
+        interactive: bool = True,
+        drill_down: bool = False
+    ) -> List[Dict[str, Any]]:
+        """Generate multiple visualizations based on the specified types."""
+        visualizations = []
         for viz_type in visualization_types:
-            try:
-                if viz_type == 'performance_trend':
-                    fig = self._generate_performance_trend_plot(data, interactive, drill_down)
-                elif viz_type == 'category_heatmap':
-                    fig = self._generate_category_heatmap(data, interactive, drill_down)
-                elif viz_type == 'activity_distribution':
-                    fig = self._generate_activity_distribution_plot(data, interactive, drill_down)
-                elif viz_type == 'improvement_trends':
-                    fig = self._generate_improvement_trends_plot(data, interactive, drill_down)
-                elif viz_type == 'skill_analysis':
-                    fig = self._generate_skill_analysis_plot(data, interactive, drill_down)
-                elif viz_type == 'sankey_diagram':
-                    fig = self._generate_sankey_diagram(data, interactive, drill_down)
-                elif viz_type == 'treemap':
-                    fig = self._generate_treemap(data, interactive, drill_down)
-                elif viz_type == 'sunburst_chart':
-                    fig = self._generate_sunburst_chart(data, interactive, drill_down)
-                elif viz_type == 'violin_plot':
-                    fig = self._generate_violin_plot(data, interactive, drill_down)
-                else:
-                    continue
-                
-                # Add accessibility features
-                if self.visualization_config['accessibility']['alt_text']:
-                    self._add_accessibility_features(fig, viz_type)
-                
-                # Save visualization in multiple formats
-                output_paths = self._save_visualization(fig, student_id, viz_type)
-                visualizations[viz_type] = output_paths
-                
-            except Exception as e:
-                print(f"Error generating {viz_type} visualization: {str(e)}")
-                continue
-                
+            if viz_type == 'performance_trend':
+                fig = self._generate_performance_trend_plot(performance_data, interactive, drill_down)
+            elif viz_type == 'category_heatmap':
+                fig = self._generate_category_heatmap(performance_data, interactive, drill_down)
+            elif viz_type == 'activity_distribution':
+                fig = self._generate_activity_distribution_plot(performance_data, interactive, drill_down)
+            elif viz_type == 'improvement_trends':
+                fig = self._generate_improvement_trends_plot(performance_data, interactive, drill_down)
+            elif viz_type == 'skill_analysis':
+                fig = self._generate_skill_analysis_plot(skill_data, interactive, drill_down)
+            elif viz_type == 'sankey_diagram':
+                fig = self._generate_sankey_diagram(performance_data, interactive, drill_down)
+            elif viz_type == 'treemap':
+                fig = self._generate_treemap(performance_data, interactive, drill_down)
+            elif viz_type == 'sunburst_chart':
+                fig = self._generate_sunburst_chart(performance_data, interactive, drill_down)
+            elif viz_type == 'violin_plot':
+                fig = self._generate_violin_plot(performance_data, interactive, drill_down)
+            else:
+                raise ValueError(f"Unsupported visualization type: {viz_type}")
+            
+            visualizations.append({
+                'type': viz_type,
+                'data': fig,
+                'metadata': {
+                    'student_id': student_id,
+                    'interactive': interactive,
+                    'drill_down': drill_down
+                }
+            })
+        
         return visualizations
 
-    def _generate_performance_trend_plot(self, data: pd.DataFrame, 
-                                       interactive: bool,
-                                       drill_down: bool) -> go.Figure:
-        """Generate performance trend plot with drill-down capability."""
-        if interactive:
-            fig = px.line(data, x='date', y='score', 
-                         color='activity_type',
-                         title='Performance Trends Over Time',
-                         labels={'score': 'Performance Score', 'date': 'Date'},
-                         template='plotly_white')
-            
-            if drill_down:
-                # Add drill-down buttons
-                fig.update_layout(
-                    updatemenus=[
-                        dict(
-                            type="buttons",
-                            direction="right",
-                            active=0,
-                            x=0.57,
-                            y=1.2,
-                            buttons=list([
-                                dict(
-                                    label="All",
-                                    method="update",
-                                    args=[{"visible": [True] * len(data['activity_type'].unique())}]
-                                ),
-                                dict(
-                                    label="By Category",
-                                    method="update",
-                                    args=[{"visible": [True if cat == data['category'].iloc[0] else False 
-                                                     for cat in data['category']]}]
-                                )
-                            ]),
-                        )
-                    ]
-                )
-                
-                # Add hover information
-                fig.update_traces(
-                    hovertemplate="<br>".join([
-                        "Date: %{x}",
-                        "Score: %{y}",
-                        "Activity Type: %{text}",
-                        "Category: %{customdata}"
-                    ]),
-                    customdata=data['category'],
-                    text=data['activity_type']
-                )
-                
-                # Add range slider
-                fig.update_layout(
-                    xaxis=dict(
-                        rangeselector=dict(
-                            buttons=list([
-                                dict(count=1, label="1m", step="month", stepmode="backward"),
-                                dict(count=6, label="6m", step="month", stepmode="backward"),
-                                dict(count=1, label="YTD", step="year", stepmode="todate"),
-                                dict(count=1, label="1y", step="year", stepmode="backward"),
-                                dict(step="all")
-                            ])
-                        ),
-                        rangeslider=dict(visible=True),
-                        type="date"
-                    )
-                )
-        else:
-            plt.figure(figsize=self.visualization_config['figure_size'])
-            sns.lineplot(data=data, x='date', y='score', hue='activity_type')
-            plt.title('Performance Trends Over Time')
-            plt.xlabel('Date')
-            plt.ylabel('Performance Score')
-            fig = plt.gcf()
-            
-        return fig
-
-    def _generate_category_heatmap(self, data: pd.DataFrame, 
-                                 interactive: bool,
-                                 drill_down: bool) -> go.Figure:
-        """Generate category performance heatmap with drill-down capability."""
-        pivot_data = data.pivot_table(
-            values='score',
-            index='category',
-            columns='date',
-            aggfunc='mean'
+    def _generate_performance_trend_plot(
+        self,
+        data: pd.DataFrame,
+        interactive: bool = True,
+        drill_down: bool = False,
+        theme: Optional[str] = None
+    ) -> go.Figure:
+        """Generate performance trend plot."""
+        fig = px.line(
+            data,
+            x='date',
+            y='score',
+            color='category',
+            title='Performance Trend',
+            template=theme or self.settings['default_theme']
         )
         
-        if interactive:
-            fig = px.imshow(pivot_data,
-                          title='Category Performance Heatmap',
-                          labels=dict(x='Date', y='Category', color='Score'),
-                          template='plotly_white')
-            
-            if drill_down:
-                # Add drill-down buttons
-                fig.update_layout(
-                    updatemenus=[
-                        dict(
-                            type="buttons",
-                            direction="right",
-                            active=0,
-                            x=0.57,
-                            y=1.2,
-                            buttons=list([
-                                dict(
-                                    label="All Categories",
-                                    method="update",
-                                    args=[{"visible": [True] * len(pivot_data.index)}]
-                                ),
-                                dict(
-                                    label="By Activity Type",
-                                    method="update",
-                                    args=[{"visible": [True if act == data['activity_type'].iloc[0] else False 
-                                                     for act in data['activity_type']]}]
-                                )
-                            ]),
-                        )
-                    ]
-                )
-                
-                # Add hover information
-                fig.update_traces(
-                    hovertemplate="<br>".join([
-                        "Date: %{x}",
-                        "Category: %{y}",
-                        "Score: %{z}",
-                        "Activity Type: %{customdata}"
-                    ]),
-                    customdata=data['activity_type']
-                )
-                
-                # Add color scale selector
-                fig.update_layout(
-                    coloraxis=dict(
-                        colorscale=[
-                            [0, 'rgb(255,255,255)'],
-                            [0.5, 'rgb(255,255,0)'],
-                            [1, 'rgb(255,0,0)']
-                        ],
-                        colorbar=dict(
-                            title='Score',
-                            titleside='right',
-                            ticks='outside'
-                        )
-                    )
-                )
-                
-                # Add annotations for significant changes
-                for i, row in enumerate(pivot_data.index):
-                    for j, col in enumerate(pivot_data.columns):
-                        if j > 0:
-                            prev_score = pivot_data.iloc[i, j-1]
-                            curr_score = pivot_data.iloc[i, j]
-                            if abs(curr_score - prev_score) > 10:  # Significant change threshold
-                                fig.add_annotation(
-                                    x=col,
-                                    y=row,
-                                    text=f"{'+' if curr_score > prev_score else ''}{curr_score - prev_score:.1f}",
-                                    showarrow=False,
-                                    font=dict(
-                                        size=10,
-                                        color='black'
-                                    )
-                                )
-        else:
-            plt.figure(figsize=self.visualization_config['figure_size'])
-            sns.heatmap(pivot_data, annot=True, cmap='viridis')
-            plt.title('Category Performance Heatmap')
-            fig = plt.gcf()
-            
-        return fig
-
-    def _generate_activity_distribution_plot(self, data: pd.DataFrame, 
-                                           interactive: bool,
-                                           drill_down: bool) -> go.Figure:
-        """Generate activity type distribution plot with drill-down capability."""
-        if interactive:
-            fig = px.pie(data, names='activity_type', values='count',
-                        title='Activity Type Distribution',
-                        template='plotly_white')
-            
-            if drill_down:
-                # Add drill-down buttons
-                fig.update_layout(
-                    updatemenus=[
-                        dict(
-                            type="buttons",
-                            direction="right",
-                            active=0,
-                            x=0.57,
-                            y=1.2,
-                            buttons=list([
-                                dict(
-                                    label="All Activities",
-                                    method="update",
-                                    args=[{"visible": [True] * len(data['activity_type'].unique())}]
-                                ),
-                                dict(
-                                    label="By Category",
-                                    method="update",
-                                    args=[{"visible": [True if cat == data['category'].iloc[0] else False 
-                                                     for cat in data['category']]}]
-                                )
-                            ]),
-                        )
-                    ]
-                )
-                
-                # Add hover information
-                fig.update_traces(
-                    hovertemplate="<br>".join([
-                        "Activity Type: %{label}",
-                        "Count: %{value}",
-                        "Percentage: %{percent}",
-                        "Category: %{customdata}"
-                    ]),
-                    customdata=data['category'],
-                    textinfo='label+percent',
-                    textposition='inside'
-                )
-                
-                # Add pull effect for emphasis
-                pull_values = [0.1 if count == max(data['count']) else 0 
-                             for count in data['count']]
-                fig.update_traces(pull=pull_values)
-                
-                # Add annotations for total count
-                fig.add_annotation(
-                    text=f"Total Activities: {sum(data['count'])}",
-                    x=0.5,
-                    y=0.5,
-                    showarrow=False,
-                    font=dict(
-                        size=14,
-                        color='black'
-                    )
-                )
-        else:
-            plt.figure(figsize=self.visualization_config['figure_size'])
-            data['activity_type'].value_counts().plot(kind='pie', autopct='%1.1f%%')
-            plt.title('Activity Type Distribution')
-            fig = plt.gcf()
-            
-        return fig
-
-    def _generate_improvement_trends_plot(self, data: pd.DataFrame, 
-                                        interactive: bool,
-                                        drill_down: bool) -> go.Figure:
-        """Generate improvement trends plot with drill-down capability."""
-        if interactive:
-            fig = px.bar(data, x='category', y='improvement',
-                        color='activity_type',
-                        title='Improvement Trends by Category',
-                        labels={'improvement': 'Improvement Score', 'category': 'Category'},
-                        template='plotly_white')
-            
-            if drill_down:
-                # Add drill-down buttons
-                fig.update_layout(
-                    updatemenus=[
-                        dict(
-                            type="buttons",
-                            direction="right",
-                            active=0,
-                            x=0.57,
-                            y=1.2,
-                            buttons=list([
-                                dict(
-                                    label="All Categories",
-                                    method="update",
-                                    args=[{"visible": [True] * len(data['category'].unique())}]
-                                ),
-                                dict(
-                                    label="By Activity Type",
-                                    method="update",
-                                    args=[{"visible": [True if act == data['activity_type'].iloc[0] else False 
-                                                     for act in data['activity_type']]}]
-                                )
-                            ]),
-                        )
-                    ]
-                )
-                
-                # Add hover information
-                fig.update_traces(
-                    hovertemplate="<br>".join([
-                        "Category: %{x}",
-                        "Improvement: %{y}",
-                        "Activity Type: %{text}",
-                        "Baseline: %{customdata[0]}",
-                        "Current: %{customdata[1]}"
-                    ]),
-                    text=data['activity_type'],
-                    customdata=data[['baseline_score', 'current_score']].values
-                )
-                
-                # Add reference line for average improvement
-                avg_improvement = data['improvement'].mean()
-                fig.add_hline(
-                    y=avg_improvement,
-                    line_dash="dash",
-                    line_color="red",
-                    annotation_text=f"Average Improvement: {avg_improvement:.1f}",
-                    annotation_position="top right"
-                )
-                
-                # Add trend line
-                fig.add_trace(
-                    go.Scatter(
-                        x=data['category'],
-                        y=data['improvement'].rolling(window=3).mean(),
-                        mode='lines',
-                        name='Trend',
-                        line=dict(color='black', width=2, dash='dot')
-                    )
-                )
-                
-                # Add annotations for significant improvements
-                for i, row in data.iterrows():
-                    if row['improvement'] > avg_improvement * 1.5:  # 50% above average
-                        fig.add_annotation(
-                            x=row['category'],
-                            y=row['improvement'],
-                            text="↑",
-                            showarrow=False,
-                            font=dict(
-                                size=14,
-                                color='green'
+        if drill_down:
+            fig.update_layout(
+                updatemenus=[
+                    dict(
+                        type="buttons",
+                        direction="right",
+                        x=0.7,
+                        y=1.2,
+                        showactive=True,
+                        buttons=list([
+                            dict(
+                                args=[{"visible": [True, False]}],
+                                label="All",
+                                method="update"
+                            ),
+                            dict(
+                                args=[{"visible": [False, True]}],
+                                label="By Category",
+                                method="update"
                             )
-                        )
-        else:
-            plt.figure(figsize=self.visualization_config['figure_size'])
-            sns.barplot(data=data, x='category', y='improvement', hue='activity_type')
-            plt.title('Improvement Trends by Category')
-            plt.xlabel('Category')
-            plt.ylabel('Improvement Score')
-            fig = plt.gcf()
-            
-        return fig
-
-    def _generate_skill_analysis_plot(self, data: pd.DataFrame, 
-                                    interactive: bool,
-                                    drill_down: bool) -> go.Figure:
-        """Generate skill analysis plot with drill-down capability."""
-        if interactive:
-            fig = px.bar(data, x='score', y='skill',
-                        color='category',
-                        title='Skill Analysis',
-                        labels={'score': 'Score', 'skill': 'Skill'},
-                        template='plotly_white',
-                        orientation='h')
-            
-            if drill_down:
-                # Add drill-down buttons
-                fig.update_layout(
-                    updatemenus=[
-                        dict(
-                            type="buttons",
-                            direction="right",
-                            active=0,
-                            x=0.57,
-                            y=1.2,
-                            buttons=list([
-                                dict(
-                                    label="All Skills",
-                                    method="update",
-                                    args=[{"visible": [True] * len(data['skill'].unique())}]
-                                ),
-                                dict(
-                                    label="By Category",
-                                    method="update",
-                                    args=[{"visible": [True if cat == data['category'].iloc[0] else False 
-                                                     for cat in data['category']]}]
-                                )
-                            ]),
-                        )
-                    ]
-                )
-                
-                # Add hover information
-                fig.update_traces(
-                    hovertemplate="<br>".join([
-                        "Skill: %{y}",
-                        "Score: %{x}",
-                        "Category: %{text}",
-                        "Progress: %{customdata[0]}%",
-                        "Target: %{customdata[1]}"
-                    ]),
-                    text=data['category'],
-                    customdata=data[['progress', 'target_score']].values
-                )
-                
-                # Add target line
-                fig.add_vline(
-                    x=data['target_score'].mean(),
-                    line_dash="dash",
-                    line_color="red",
-                    annotation_text="Average Target",
-                    annotation_position="top right"
-                )
-                
-                # Add progress indicators
-                for i, row in data.iterrows():
-                    if row['progress'] >= 100:  # Skill mastered
-                        fig.add_annotation(
-                            x=row['score'],
-                            y=row['skill'],
-                            text="✓",
-                            showarrow=False,
-                            font=dict(
-                                size=14,
-                                color='green'
-                            )
-                        )
-                    elif row['progress'] < 50:  # Needs attention
-                        fig.add_annotation(
-                            x=row['score'],
-                            y=row['skill'],
-                            text="!",
-                            showarrow=False,
-                            font=dict(
-                                size=14,
-                                color='red'
-                            )
-                        )
-                
-                # Add skill grouping
-                fig.update_layout(
-                    yaxis=dict(
-                        categoryorder='array',
-                        categoryarray=data.sort_values('category')['skill'].unique()
+                        ])
                     )
-                )
-        else:
-            plt.figure(figsize=self.visualization_config['figure_size'])
-            sns.barplot(data=data, x='score', y='skill', hue='category')
-            plt.title('Skill Analysis')
-            plt.xlabel('Score')
-            plt.ylabel('Skill')
-            fig = plt.gcf()
-            
-        return fig
-
-    def _generate_sankey_diagram(self, data: pd.DataFrame, 
-                               interactive: bool,
-                               drill_down: bool) -> go.Figure:
-        """Generate Sankey diagram with drill-down capability."""
-        nodes = list(set(data['source'].unique()) | set(data['target'].unique()))
-        node_indices = {node: i for i, node in enumerate(nodes)}
+                ]
+            )
         
+        return fig
+
+    def _generate_category_heatmap(
+        self,
+        data: pd.DataFrame,
+        interactive: bool = True,
+        drill_down: bool = False,
+        theme: Optional[str] = None
+    ) -> go.Figure:
+        """Generate category heatmap."""
+        fig = px.density_heatmap(
+            data,
+            x='category',
+            y='activity_type',
+            z='score',
+            title='Category Heatmap',
+            template=theme or self.settings['default_theme']
+        )
+        return fig
+
+    def _generate_activity_distribution_plot(
+        self,
+        data: pd.DataFrame,
+        interactive: bool = True,
+        drill_down: bool = False,
+        theme: Optional[str] = None
+    ) -> go.Figure:
+        """Generate activity distribution plot."""
+        fig = px.histogram(
+            data,
+            x='score',
+            color='category',
+            title='Activity Distribution',
+            template=theme or self.settings['default_theme']
+        )
+        return fig
+
+    def _generate_improvement_trends_plot(
+        self,
+        data: pd.DataFrame,
+        interactive: bool = True,
+        drill_down: bool = False,
+        theme: Optional[str] = None
+    ) -> go.Figure:
+        """Generate improvement trends plot."""
+        fig = px.scatter(
+            data,
+            x='date',
+            y='score',
+            color='category',
+            title='Improvement Trends',
+            template=theme or self.settings['default_theme']
+        )
+        return fig
+
+    def _generate_skill_analysis_plot(
+        self,
+        data: pd.DataFrame,
+        interactive: bool = True,
+        drill_down: bool = False,
+        theme: Optional[str] = None
+    ) -> go.Figure:
+        """Generate skill analysis plot."""
+        fig = px.scatter(
+            data,
+            x='score',
+            y='target_score',
+            color='category',
+            title='Skill Analysis',
+            template=theme or self.settings['default_theme']
+        )
+        return fig
+
+    def _generate_sankey_diagram(
+        self,
+        data: pd.DataFrame,
+        interactive: bool = True,
+        drill_down: bool = False,
+        theme: Optional[str] = None
+    ) -> go.Figure:
+        """Generate Sankey diagram."""
         fig = go.Figure(data=[go.Sankey(
             node=dict(
                 pad=15,
                 thickness=20,
                 line=dict(color="black", width=0.5),
-                label=nodes,
+                label=["Category", "Activity Type", "Score Range"],
                 color="blue"
             ),
             link=dict(
-                source=[node_indices[src] for src in data['source']],
-                target=[node_indices[tgt] for tgt in data['target']],
-                value=data['value']
+                source=[0, 0, 1, 1],
+                target=[1, 1, 2, 2],
+                value=[8, 4, 2, 8]
             )
         )])
         
-        if drill_down:
-            # Add drill-down buttons
-            fig.update_layout(
-                updatemenus=[
-                    dict(
-                        type="buttons",
-                        direction="right",
-                        active=0,
-                        x=0.57,
-                        y=1.2,
-                        buttons=list([
-                            dict(
-                                label="All Flows",
-                                method="update",
-                                args=[{"visible": [True] * len(data['source'].unique())}]
-                            ),
-                            dict(
-                                label="By Category",
-                                method="update",
-                                args=[{"visible": [True if cat == data['category'].iloc[0] else False 
-                                                 for cat in data['category']]}]
-                            )
-                        ]),
-                    )
-                ]
-            )
-            
-            # Add hover information
-            fig.update_traces(
-                hovertemplate="<br>".join([
-                    "Source: %{source.label}",
-                    "Target: %{target.label}",
-                    "Value: %{value}",
-                    "Category: %{customdata}"
-                ]),
-                customdata=data['category']
-            )
-            
-            # Add node grouping
-            node_colors = {}
-            for node in nodes:
-                if node in data['source'].values:
-                    node_colors[node] = 'blue'
-                elif node in data['target'].values:
-                    node_colors[node] = 'green'
-                else:
-                    node_colors[node] = 'gray'
-            
-            fig.update_traces(
-                node=dict(
-                    color=[node_colors[node] for node in nodes]
-                )
-            )
-            
-            # Add flow annotations
-            for i, row in data.iterrows():
-                if row['value'] > data['value'].mean() * 1.5:  # Significant flow
-                    fig.add_annotation(
-                        x=0.5,
-                        y=0.5,
-                        text=f"Major Flow: {row['source']} → {row['target']}",
-                        showarrow=False,
-                        font=dict(
-                            size=12,
-                            color='black'
-                        )
-                    )
-            
-            # Add flow direction indicators
-            fig.update_layout(
-                annotations=[
-                    dict(
-                        x=0.1,
-                        y=0.5,
-                        text="← Flow Direction →",
-                        showarrow=False,
-                        font=dict(
-                            size=12,
-                            color='black'
-                        )
-                    )
-                ]
-            )
-        
-        fig.update_layout(title_text="Activity Flow Analysis", font_size=10)
-        return fig
-
-    def _generate_treemap(self, data: pd.DataFrame, 
-                         interactive: bool,
-                         drill_down: bool) -> go.Figure:
-        """Generate treemap with drill-down capability."""
-        fig = go.Figure(go.Treemap(
-            labels=data['label'],
-            parents=data['parent'],
-            values=data['value'],
-            marker=dict(
-                colors=data['color'],
-                colorscale='Viridis'
-            )
-        ))
-        
-        if drill_down:
-            # Add drill-down buttons
-            fig.update_layout(
-                updatemenus=[
-                    dict(
-                        type="buttons",
-                        direction="right",
-                        active=0,
-                        x=0.57,
-                        y=1.2,
-                        buttons=list([
-                            dict(
-                                label="All Levels",
-                                method="update",
-                                args=[{"visible": [True] * len(data['label'].unique())}]
-                            ),
-                            dict(
-                                label="By Category",
-                                method="update",
-                                args=[{"visible": [True if cat == data['category'].iloc[0] else False 
-                                                 for cat in data['category']]}]
-                            )
-                        ]),
-                    )
-                ]
-            )
-            
-            # Add hover information
-            fig.update_traces(
-                hovertemplate="<br>".join([
-                    "Label: %{label}",
-                    "Value: %{value}",
-                    "Parent: %{parent}",
-                    "Category: %{customdata}"
-                ]),
-                customdata=data['category']
-            )
-            
-            # Add color scale selector
-            fig.update_layout(
-                coloraxis=dict(
-                    colorscale=[
-                        [0, 'rgb(255,255,255)'],
-                        [0.5, 'rgb(255,255,0)'],
-                        [1, 'rgb(255,0,0)']
-                    ],
-                    colorbar=dict(
-                        title='Value',
-                        titleside='right',
-                        ticks='outside'
-                    )
-                )
-            )
-            
-            # Add annotations for significant values
-            for i, row in data.iterrows():
-                if row['value'] > data['value'].mean() * 2:  # Significant value
-                    fig.add_annotation(
-                        x=0.5,
-                        y=0.5,
-                        text=f"High Value: {row['label']}",
-                        showarrow=False,
-                        font=dict(
-                            size=12,
-                            color='black'
-                        )
-                    )
-            
-            # Add value percentage labels
-            fig.update_traces(
-                textinfo="label+value+percent parent+percent entry",
-                textposition="middle center"
-            )
-            
-            # Add custom hover text for parent nodes
-            parent_nodes = data[data['parent'] == '']['label'].unique()
-            for parent in parent_nodes:
-                parent_value = data[data['label'] == parent]['value'].sum()
-                fig.add_annotation(
-                    x=0.5,
-                    y=0.5,
-                    text=f"Total: {parent_value}",
-                    showarrow=False,
-                    font=dict(
-                        size=14,
-                        color='black'
-                    )
-                )
-        
         fig.update_layout(
-            title="Activity Hierarchy",
-            margin=dict(t=50, l=25, r=25, b=25)
+            title_text="Activity Flow",
+            template=theme or self.settings['default_theme']
         )
-        
         return fig
 
-    def _generate_sunburst_chart(self, data: pd.DataFrame, 
-                               interactive: bool,
-                               drill_down: bool) -> go.Figure:
-        """Generate sunburst chart with drill-down capability."""
-        fig = go.Figure(go.Sunburst(
-            labels=data['label'],
-            parents=data['parent'],
-            values=data['value'],
-            marker=dict(
-                colors=data['color'],
-                colorscale='Viridis'
-            )
-        ))
-        
-        if drill_down:
-            # Add drill-down buttons
-            fig.update_layout(
-                updatemenus=[
-                    dict(
-                        type="buttons",
-                        direction="right",
-                        active=0,
-                        x=0.57,
-                        y=1.2,
-                        buttons=list([
-                            dict(
-                                label="All Levels",
-                                method="update",
-                                args=[{"visible": [True] * len(data['label'].unique())}]
-                            ),
-                            dict(
-                                label="By Category",
-                                method="update",
-                                args=[{"visible": [True if cat == data['category'].iloc[0] else False 
-                                                 for cat in data['category']]}]
-                            )
-                        ]),
-                    )
-                ]
-            )
-            
-            # Add hover information
-            fig.update_traces(
-                hovertemplate="<br>".join([
-                    "Label: %{label}",
-                    "Value: %{value}",
-                    "Parent: %{parent}",
-                    "Category: %{customdata}"
-                ]),
-                customdata=data['category']
-            )
-            
-            # Add color scale selector
-            fig.update_layout(
-                coloraxis=dict(
-                    colorscale=[
-                        [0, 'rgb(255,255,255)'],
-                        [0.5, 'rgb(255,255,0)'],
-                        [1, 'rgb(255,0,0)']
-                    ],
-                    colorbar=dict(
-                        title='Value',
-                        titleside='right',
-                        ticks='outside'
-                    )
-                )
-            )
-            
-            # Add annotations for significant values
-            for i, row in data.iterrows():
-                if row['value'] > data['value'].mean() * 2:  # Significant value
-                    fig.add_annotation(
-                        x=0.5,
-                        y=0.5,
-                        text=f"High Value: {row['label']}",
-                        showarrow=False,
-                        font=dict(
-                            size=12,
-                            color='black'
-                        )
-                    )
-            
-            # Add value percentage labels
-            fig.update_traces(
-                textinfo="label+value+percent parent+percent entry",
-                textposition="middle center"
-            )
-            
-            # Add custom hover text for parent nodes
-            parent_nodes = data[data['parent'] == '']['label'].unique()
-            for parent in parent_nodes:
-                parent_value = data[data['label'] == parent]['value'].sum()
-                fig.add_annotation(
-                    x=0.5,
-                    y=0.5,
-                    text=f"Total: {parent_value}",
-                    showarrow=False,
-                    font=dict(
-                        size=14,
-                        color='black'
-                    )
-                )
-            
-            # Add radial labels
-            fig.update_layout(
-                polar=dict(
-                    radialaxis=dict(
-                        visible=True,
-                        range=[0, 100]
-                    )
-                )
-            )
-        
+    def _generate_treemap(
+        self,
+        data: pd.DataFrame,
+        interactive: bool = True,
+        drill_down: bool = False,
+        theme: Optional[str] = None
+    ) -> go.Figure:
+        """Generate treemap."""
+        fig = px.treemap(
+            data,
+            path=['category', 'activity_type'],
+            values='score',
+            title='Activity Treemap',
+            template=theme or self.settings['default_theme']
+        )
+        return fig
+
+    def _generate_sunburst_chart(
+        self,
+        data: pd.DataFrame,
+        interactive: bool = True,
+        drill_down: bool = False,
+        theme: Optional[str] = None
+    ) -> go.Figure:
+        """Generate sunburst chart."""
+        fig = px.sunburst(
+            data,
+            path=['category', 'activity_type'],
+            values='score',
+            title='Activity Sunburst',
+            template=theme or self.settings['default_theme']
+        )
+        return fig
+
+    def _generate_violin_plot(
+        self,
+        data: pd.DataFrame,
+        interactive: bool = True,
+        drill_down: bool = False,
+        theme: Optional[str] = None
+    ) -> go.Figure:
+        """Generate violin plot."""
+        fig = px.violin(
+            data,
+            x='category',
+            y='score',
+            title='Score Distribution by Category',
+            template=theme or self.settings['default_theme']
+        )
+        return fig
+
+    def save_visualization(self, fig: go.Figure, output_path: str, fmt: str = 'png') -> None:
+        """Save visualization to file."""
+        if fmt == 'png':
+            fig.write_image(output_path)
+        elif fmt == 'html':
+            fig.write_html(output_path)
+        elif fmt == 'json':
+            fig.write_json(output_path)
+        else:
+            raise ValueError(f"Unsupported format: {fmt}")
+
+    def set_theme(self, theme: str) -> None:
+        """Set the visualization theme."""
+        if theme not in ['light', 'dark', 'custom']:
+            raise ValueError(f"Unsupported theme: {theme}")
+        self.settings['default_theme'] = theme
+
+    def set_accessibility(self, options: Dict[str, bool]) -> None:
+        """Set accessibility options."""
+        for key, value in options.items():
+            if key not in self.settings['accessibility']:
+                raise ValueError(f"Unsupported accessibility option: {key}")
+            self.settings['accessibility'][key] = value
+
+    def _add_accessibility_features(self, fig: go.Figure) -> None:
+        """Add accessibility features to the figure."""
         fig.update_layout(
-            title="Activity Relationships",
-            margin=dict(t=50, l=25, r=25, b=25)
-        )
-        
-        return fig
-
-    def _generate_violin_plot(self, data: pd.DataFrame, 
-                            interactive: bool,
-                            drill_down: bool) -> go.Figure:
-        """Generate violin plot with drill-down capability."""
-        fig = go.Figure()
-        
-        for category in data['category'].unique():
-            category_data = data[data['category'] == category]
-            fig.add_trace(go.Violin(
-                y=category_data['score'],
-                name=category,
-                box_visible=True,
-                meanline_visible=True
-            ))
-        
-        if drill_down:
-            # Add drill-down buttons
-            fig.update_layout(
-                updatemenus=[
-                    dict(
-                        type="buttons",
-                        direction="right",
-                        active=0,
-                        x=0.57,
-                        y=1.2,
-                        buttons=list([
-                            dict(
-                                label="All Categories",
-                                method="update",
-                                args=[{"visible": [True] * len(data['category'].unique())}]
-                            ),
-                            dict(
-                                label="By Activity Type",
-                                method="update",
-                                args=[{"visible": [True if act == data['activity_type'].iloc[0] else False 
-                                                 for act in data['activity_type']]}]
-                            )
-                        ]),
-                    )
-                ]
-            )
-            
-            # Add hover information
-            fig.update_traces(
-                hovertemplate="<br>".join([
-                    "Category: %{name}",
-                    "Score: %{y}",
-                    "Activity Type: %{customdata}",
-                    "Count: %{count}"
-                ]),
-                customdata=data['activity_type']
-            )
-            
-            # Add reference lines
-            mean_score = data['score'].mean()
-            std_score = data['score'].std()
-            
-            fig.add_hline(
-                y=mean_score,
-                line_dash="dash",
-                line_color="red",
-                annotation_text="Mean Score",
-                annotation_position="top right"
-            )
-            
-            fig.add_hline(
-                y=mean_score + std_score,
-                line_dash="dot",
-                line_color="blue",
-                annotation_text="+1 SD",
-                annotation_position="top right"
-            )
-            
-            fig.add_hline(
-                y=mean_score - std_score,
-                line_dash="dot",
-                line_color="blue",
-                annotation_text="-1 SD",
-                annotation_position="bottom right"
-            )
-            
-            # Add annotations for outliers
-            for category in data['category'].unique():
-                category_data = data[data['category'] == category]
-                q1 = category_data['score'].quantile(0.25)
-                q3 = category_data['score'].quantile(0.75)
-                iqr = q3 - q1
-                outliers = category_data[
-                    (category_data['score'] < q1 - 1.5 * iqr) |
-                    (category_data['score'] > q3 + 1.5 * iqr)
-                ]
-                
-                for _, outlier in outliers.iterrows():
-                    fig.add_annotation(
-                        x=category,
-                        y=outlier['score'],
-                        text="!",
-                        showarrow=False,
-                        font=dict(
-                            size=14,
-                            color='red'
-                        )
-                    )
-            
-            # Add distribution statistics
-            for category in data['category'].unique():
-                category_data = data[data['category'] == category]
-                stats = {
-                    'mean': category_data['score'].mean(),
-                    'median': category_data['score'].median(),
-                    'std': category_data['score'].std()
-                }
-                
-                fig.add_annotation(
-                    x=category,
-                    y=stats['mean'],
-                    text=f"μ={stats['mean']:.1f}\nσ={stats['std']:.1f}",
-                    showarrow=False,
-                    font=dict(
-                        size=10,
-                        color='black'
-                    )
+            title=dict(
+                text="Interactive Visualization",
+                font=dict(size=16)
+            ),
+            xaxis=dict(
+                title=dict(
+                    text="X Axis",
+                    font=dict(size=14)
                 )
-        
-        fig.update_layout(
-            title="Performance Distribution by Category",
-            yaxis_title="Score",
-            showlegend=True
-        )
-        
-        return fig
-
-    def _add_accessibility_features(self, fig: go.Figure, viz_type: str) -> None:
-        """Add accessibility features to the visualization."""
-        if self.visualization_config['accessibility']['screen_reader']:
-            fig.update_layout(
-                title_text=f"{viz_type.replace('_', ' ').title()} - Screen Reader Friendly",
-                title_x=0.5
+            ),
+            yaxis=dict(
+                title=dict(
+                    text="Y Axis",
+                    font=dict(size=14)
+                )
+            ),
+            showlegend=True,
+            hovermode='closest',
+            font=dict(
+                family="Arial, sans-serif",
+                size=12,
+                color="black"
             )
-            
-        if self.visualization_config['accessibility']['high_contrast']:
-            fig.update_layout(
-                paper_bgcolor='white',
-                plot_bgcolor='white',
-                font=dict(color='black')
-            )
-
-    def _save_visualization(self, fig: Union[go.Figure, plt.Figure], 
-                          student_id: str, 
-                          viz_type: str) -> Dict[str, str]:
-        """Save visualization in multiple formats."""
-        student_dir = os.path.join(self.export_dir, student_id)
-        os.makedirs(student_dir, exist_ok=True)
-        
-        output_paths = {}
-        
-        # Save as HTML for interactive visualizations
-        if isinstance(fig, go.Figure):
-            html_path = os.path.join(student_dir, f"{viz_type}.html")
-            fig.write_html(html_path)
-            output_paths['html'] = html_path
-            
-            # Save as PNG
-            png_path = os.path.join(student_dir, f"{viz_type}.png")
-            fig.write_image(png_path)
-            output_paths['png'] = png_path
-            
-            # Save as SVG
-            svg_path = os.path.join(student_dir, f"{viz_type}.svg")
-            fig.write_image(svg_path)
-            output_paths['svg'] = svg_path
-            
-            # Save as PDF
-            pdf_path = os.path.join(student_dir, f"{viz_type}.pdf")
-            fig.write_image(pdf_path)
-            output_paths['pdf'] = pdf_path
-            
-            # Save as GIF (for animated visualizations)
-            if hasattr(fig, 'frames') and fig.frames:
-                gif_path = os.path.join(student_dir, f"{viz_type}.gif")
-                self._save_animation(fig, gif_path)
-                output_paths['gif'] = gif_path
-                
-                # Save as MP4
-                mp4_path = os.path.join(student_dir, f"{viz_type}.mp4")
-                self._save_video(fig, mp4_path)
-                output_paths['mp4'] = mp4_path
-                
-        else:  # Matplotlib figure
-            # Save as PNG
-            png_path = os.path.join(student_dir, f"{viz_type}.png")
-            fig.savefig(png_path, dpi=300, bbox_inches='tight')
-            output_paths['png'] = png_path
-            
-            # Save as PDF
-            pdf_path = os.path.join(student_dir, f"{viz_type}.pdf")
-            fig.savefig(pdf_path, bbox_inches='tight')
-            output_paths['pdf'] = pdf_path
-            
-            # Save as SVG
-            svg_path = os.path.join(student_dir, f"{viz_type}.svg")
-            fig.savefig(svg_path, bbox_inches='tight')
-            output_paths['svg'] = svg_path
-            
-        return output_paths
-
-    def _save_animation(self, fig: go.Figure, output_path: str) -> None:
-        """Save animation as GIF."""
-        frames = []
-        for frame in fig.frames:
-            # Convert frame to image
-            frame_fig = go.Figure(data=frame.data, layout=fig.layout)
-            frame_img = frame_fig.to_image(format="png")
-            frames.append(imageio.imread(BytesIO(frame_img)))
-            
-        imageio.mimsave(output_path, frames, duration=0.5)
-
-    def _save_video(self, fig: go.Figure, output_path: str) -> None:
-        """Save visualization as a video with fallback for when moviepy is not available."""
-        if not MOVIEPY_AVAILABLE:
-            # Fallback: Save as static image
-            fig.write_image(output_path.replace('.mp4', '.png'))
-            return
-            
-        try:
-            # Convert figure to video using moviepy
-            frames = []
-            for frame in fig.frames:
-                img = frame.data[0].image
-                frames.append(img)
-            
-            clip = mpe.ImageSequenceClip(frames, fps=24)
-            clip.write_videofile(output_path)
-        except Exception as e:
-            # Fallback to static image if video creation fails
-            fig.write_image(output_path.replace('.mp4', '.png')) 
+        ) 

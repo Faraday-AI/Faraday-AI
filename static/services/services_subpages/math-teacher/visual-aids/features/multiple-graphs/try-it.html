@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Multiple Graphs - Math Teacher Assistant</title>
+    <link rel="stylesheet" href="../../../../../../css/styles.css">
+    <link rel="stylesheet" href="../../../../../../css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="multiple-graphs.html" class="back-button" aria-label="Back to Multiple Graphs">
+                <span class="back-arrow">←</span> Back to Multiple Graphs
+            </a>
+            <h1>Try Multiple Graphs</h1>
+            <p class="service-description">Compare and analyze multiple functions simultaneously</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Interactive Demo -->
+            <section class="interactive-demo">
+                <h2>Interactive Demo</h2>
+                <div class="demo-container">
+                    <div class="demo-controls">
+                        <div class="control-group">
+                            <label for="function1">Function 1:</label>
+                            <select id="function1">
+                                <option value="linear">Linear</option>
+                                <option value="quadratic">Quadratic</option>
+                                <option value="exponential">Exponential</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="function2">Function 2:</label>
+                            <select id="function2">
+                                <option value="linear">Linear</option>
+                                <option value="quadratic">Quadratic</option>
+                                <option value="exponential">Exponential</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="demo-graph">
+                        <div class="graph-container">
+                            <div class="graph-axis">
+                                <div class="x-axis"></div>
+                                <div class="y-axis"></div>
+                            </div>
+                            <div class="graph-line line1"></div>
+                            <div class="graph-line line2"></div>
+                        </div>
+                        <div class="equation-display">
+                            <div class="equation">y₁ = <span id="equation1">x</span></div>
+                            <div class="equation">y₂ = <span id="equation2">x²</span></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Instructions -->
+            <section class="instructions">
+                <h2>How to Use</h2>
+                <div class="instructions-content">
+                    <ol>
+                        <li>Select different function types from the dropdown menus</li>
+                        <li>Compare the graphs of different functions</li>
+                        <li>Look for points of intersection and relative positions</li>
+                    </ol>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="../../../../../../js/services.js"></script>
+    <script>
+        // Multiple graphs functionality
+        const function1Select = document.getElementById('function1');
+        const function2Select = document.getElementById('function2');
+        const equation1Display = document.getElementById('equation1');
+        const equation2Display = document.getElementById('equation2');
+        const line1 = document.querySelector('.line1');
+        const line2 = document.querySelector('.line2');
+
+        function updateGraphs() {
+            const type1 = function1Select.value;
+            const type2 = function2Select.value;
+            
+            // Update equations
+            equation1Display.textContent = getEquation(type1);
+            equation2Display.textContent = getEquation(type2);
+            
+            // Update graph styles
+            line1.className = `graph-line line1 ${type1}`;
+            line2.className = `graph-line line2 ${type2}`;
+        }
+
+        function getEquation(type) {
+            switch(type) {
+                case 'linear': return 'x';
+                case 'quadratic': return 'x²';
+                case 'exponential': return '2ˣ';
+                default: return 'x';
+            }
+        }
+
+        function1Select.addEventListener('change', updateGraphs);
+        function2Select.addEventListener('change', updateGraphs);
+    </script>
+</body>
+</html> 

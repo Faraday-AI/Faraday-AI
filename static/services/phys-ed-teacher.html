@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Physical Education Teacher Assistant</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="AI-powered Physical Education Teacher Assistant to enhance your teaching experience">
+    <style>
+        :root {
+            --accent-color: #e74c3c;
+            --background-color: #000000;
+            --border-radius: 8px;
+            --card-background: #1a1a1a;
+            --card-hover: #2a2a2a;
+            --primary-color: #3498db;
+            --secondary-color: #ffd700;
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --spacing-unit: 1rem;
+            --text-color: #ffffff;
+            --text-light: #bdc3c7;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .service-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .service-header {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4) 0;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+        }
+
+        .service-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        .service-tagline {
+            font-size: 1.25rem;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 500;
+        }
+
+        .service-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .service-section h2 {
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .service-section p {
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card {
+            background-color: #2980b9;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            background-color: #1c6ea4;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card h3 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            font-weight: 500;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--card-background);
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+        }
+
+        .benefit-icon {
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+        }
+
+        .benefit-item h3 {
+            font-weight: 600;
+            margin-bottom: 0.1rem;
+        }
+
+        .benefit-item p {
+            font-weight: 500;
+            margin-bottom: 0;
+        }
+
+        .cta-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .service-footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+        }
+
+        .footer-links a:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .footer-text {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .service-section ul li {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .service-nav {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 0 var(--spacing-unit);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+
+        .back-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .back-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .getting-started-section {
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .benefits-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .benefits-list li {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .benefits-list li:last-child {
+            border-bottom: none;
+        }
+
+        .benefits-list h3 {
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .benefits-list p {
+            color: var(--text-light);
+            line-height: 1.6;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <header class="service-header">
+            <nav class="service-nav">
+                <a href="/static/services/teacher-admin.html#features" class="back-button">← Back to Teacher & Admin Assistants</a>
+            </nav>
+            <div class="service-hero">
+                <h1>Physical Education Teacher Assistant</h1>
+                <p class="service-tagline">Your AI-powered partner for creating engaging and effective physical education programs</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <section class="service-section">
+                <h2>Overview</h2>
+                <p>Our Physical Education Teacher Assistant GPT is designed to revolutionize how you teach physical education. It combines advanced AI capabilities with educational expertise to provide comprehensive support for your teaching needs.</p>
+                
+                <p>This innovative tool is specifically crafted to help you:</p>
+                <ul>
+                    <li>Create engaging, standards-aligned lesson plans that promote physical fitness and healthy lifestyles</li>
+                    <li>Develop comprehensive fitness assessments and skill development activities</li>
+                    <li>Provide personalized feedback on student performance and progress</li>
+                    <li>Access a vast library of physical education resources, games, and teaching strategies</li>
+                    <li>Integrate technology and innovative teaching methods into your PE curriculum</li>
+                    <li>Track student progress and identify areas for improvement in physical skills and fitness</li>
+                </ul>
+
+                <p>With our AI-powered assistant, you'll have a dedicated partner that understands the complexities of physical education and helps you deliver exceptional instruction to your students.</p>
+                
+                <div class="features-grid">
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/phys-ed/curriculum-aligned.html'">
+                        <h3>Curriculum-Aligned Content</h3>
+                        <p>Access standards-aligned lesson plans and materials</p>
+                    </div>
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/phys-ed/fitness-assessment.html'">
+                        <h3>Fitness Assessment</h3>
+                        <p>Track and analyze student fitness levels and progress</p>
+                    </div>
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/phys-ed/skill-development.html'">
+                        <h3>Skill Development</h3>
+                        <p>Create engaging activities for skill improvement</p>
+                    </div>
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/phys-ed/lesson-planning.html'">
+                        <h3>Lesson Planning</h3>
+                        <p>Design effective and engaging PE lessons</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="service-section">
+                <h2>Key Benefits</h2>
+                <ul class="benefits-list">
+                    <li>
+                        <h3>Physical Fitness</h3>
+                        <p>Enhance students' physical fitness with AI-powered tools that provide personalized workout plans, track progress, and offer a wide range of physical activities.</p>
+                    </li>
+                    <li>
+                        <h3>Skill Development</h3>
+                        <p>Develop students' physical skills through guided exercises, drills, and interactive activities that encourage improvement and mastery.</p>
+                    </li>
+                    <li>
+                        <h3>Health Education</h3>
+                        <p>Foster health education in students with access to a wide range of resources, lessons, and activities that promote healthy living and wellness.</p>
+                    </li>
+                    <li>
+                        <h3>Teamwork and Collaboration</h3>
+                        <p>Encourage teamwork and collaboration in students with group activities, team sports, and cooperative games that build social skills and camaraderie.</p>
+                    </li>
+                    <li>
+                        <h3>Multidisciplinary Connections</h3>
+                        <p>Integrate physical education with other subjects such as science, health, and nutrition to create a comprehensive understanding of physical well-being.</p>
+                    </li>
+                    <li>
+                        <h3>Professional Growth</h3>
+                        <p>Receive AI-powered feedback and suggestions to enhance your teaching methods, with personalized professional development resources that support continuous improvement.</p>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="service-section">
+                <h2>Integration with Additional Services</h2>
+                <p>Our Physical Education Teacher Assistant can be enhanced with a wide range of specialized GPTs available in our Additional Services. These complementary tools can help you create a comprehensive teaching ecosystem tailored to your specific needs.</p>
+                <p>From specialized subject assistants to administrative tools, our Additional Services can help you:</p>
+                <ul>
+                    <li>Create cross-curricular projects that combine physical education with other subjects</li>
+                    <li>Streamline administrative tasks and classroom management</li>
+                    <li>Provide specialized support for diverse learning needs</li>
+                    <li>Enhance communication with students and parents</li>
+                </ul>
+                <p>Explore our full range of additional services to find the perfect complement to your Physical Education Teacher Assistant.</p>
+                <a href="/static/services/additional-services.html" class="cta-button">View Additional Services</a>
+            </section>
+
+            <section class="getting-started-section">
+                <h2>Getting Started</h2>
+                <p>Ready to transform your physical education teaching experience?</p>
+                <a href="/static/services/teacher-admin.html#features" class="back-button" style="margin-right: 1rem;">← Back to Teacher & Admin Assistants</a>
+                <button class="cta-button" onclick="showComingSoon()">Get Started</button>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer" role="contentinfo">
+            <div class="footer-content">
+                <div class="footer-text">
+                    FARADAY-AI, LLC 2025
+                </div>
+                <div class="social-links">
+                    <a href="https://github.com/faradayai" target="_blank" rel="noopener noreferrer" aria-label="Follow us on GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function showComingSoon() {
+            alert('This feature is coming soon! Stay tuned for updates.');
+        }
+    </script>
+</body>
+</html> 

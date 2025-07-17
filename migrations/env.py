@@ -1,19 +1,31 @@
+import asyncio
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from sqlalchemy.engine import Connection
+from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
 import os
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app'))
 
+from app.core.config import settings
 from app.core.database import Base
-from app.services.physical_education.models.activity import Activity, Exercise, Routine, RoutineActivity, StudentActivityPerformance
-from app.services.physical_education.models.student import Student
-from app.services.physical_education.models.class_ import Class, ClassStudent
-from app.services.physical_education.models.safety import SafetyIncident, RiskAssessment
+from app.models.core.user import User
+from app.models.organization.base.organization_management import (
+    Organization,
+    OrganizationRole,
+    OrganizationSettings,
+    Department,
+    OrganizationMember,
+    DepartmentMember,
+    OrganizationResource,
+    OrganizationCollaboration
+)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

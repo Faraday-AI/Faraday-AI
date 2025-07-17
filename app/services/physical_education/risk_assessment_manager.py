@@ -3,9 +3,11 @@ from datetime import datetime
 import logging
 from sqlalchemy.orm import Session
 from fastapi import Depends
+from sqlalchemy import and_, or_
 
-from app.services.physical_education.models.safety import RiskAssessment
+from app.models.physical_education.safety import RiskAssessment
 from app.core.database import get_db
+from app.core.monitoring import track_metrics
 
 class RiskAssessmentManager:
     def __init__(self):

@@ -1,23 +1,52 @@
 from typing import List, Dict, Any, Optional
 from functools import lru_cache
 import openai
-from app.models.lesson_plan import LessonPlan
+from app.services.core.base_service import BaseService
+from app.models.educational.curriculum.lesson_plan import LessonPlan
 from app.core.config import get_settings
 from google.cloud import translate_v2 as translate
 from google.cloud import texttospeech
 import logging
+from app.models.core.types import Subject
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
 
-class AILessonEnhancement:
+class AILessonEnhancement(BaseService):
+    """AI service for enhancing lesson plans."""
+    
     def __init__(self):
+        super().__init__("ai_lesson_enhancement")
         self.openai_client = openai.Client(api_key=settings.OPENAI_API_KEY)
         self.translate_client = translate.Client()
         self.tts_client = texttospeech.TextToSpeechClient()
+        self.model = "gpt-4"  # Using GPT-4 for better lesson planning
 
-    async def enhance_lesson_plan(self, lesson_plan: LessonPlan) -> Dict[str, Any]:
-        """Enhance lesson plan with AI-generated content and resources."""
+    async def initialize(self):
+        """Initialize service-specific resources."""
+        pass
+
+    async def cleanup(self):
+        """Cleanup service-specific resources."""
+        pass
+
+    async def process_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process the actual request."""
+        lesson_plan = request_data.get("lesson_plan")
+        subject = request_data.get("subject")
+        if not lesson_plan or not subject:
+            raise ValueError("lesson_plan and subject are required")
+        return await self.enhance_lesson_plan(lesson_plan, subject)
+
+    async def get_service_metrics(self) -> Dict[str, Any]:
+        """Get service-specific metrics."""
+        return {
+            "model": self.model,
+            "status": "operational"
+        }
+
+    async def enhance_lesson_plan(self, lesson_plan: LessonPlan, subject: Subject) -> Dict[str, Any]:
+        """Enhance a lesson plan with AI-generated content."""
         enhancements = {
             "personalized_content": await self._generate_personalized_content(lesson_plan),
             "differentiation_strategies": await self._enhance_differentiation(lesson_plan),
@@ -231,5 +260,5 @@ class AILessonEnhancement:
 
 @lru_cache()
 def get_ai_enhancement_service() -> AILessonEnhancement:
-    """Get cached AI enhancement service instance."""
+    """Get the AI lesson enhancement service."""
     return AILessonEnhancement() 

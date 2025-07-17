@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Measurement Tools - Math Teacher Assistant</title>
+    <link rel="stylesheet" href="../../../../../../css/styles.css">
+    <link rel="stylesheet" href="../../../../../../css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="measurement-tools.html" class="back-button" aria-label="Back to Measurement Tools">
+                <span class="back-arrow">←</span> Back to Measurement Tools
+            </a>
+            <h1>Try Measurement Tools</h1>
+            <p class="service-description">Precise measurement tools for geometric shapes and mathematical objects</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Interactive Demo -->
+            <section class="interactive-demo">
+                <h2>Interactive Demo</h2>
+                <div class="demo-container">
+                    <div class="demo-controls">
+                        <div class="control-group">
+                            <label for="measurement-type">Measurement Type:</label>
+                            <select id="measurement-type">
+                                <option value="length">Length</option>
+                                <option value="angle">Angle</option>
+                                <option value="area">Area</option>
+                            </select>
+                        </div>
+                        <div class="control-group">
+                            <label for="unit">Unit:</label>
+                            <select id="unit">
+                                <option value="cm">Centimeters</option>
+                                <option value="in">Inches</option>
+                                <option value="deg">Degrees</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="demo-area">
+                        <div class="measurement-container">
+                            <div class="shape-to-measure">
+                                <div class="measurement-points">
+                                    <div class="point start"></div>
+                                    <div class="point end"></div>
+                                </div>
+                                <div class="measurement-line"></div>
+                                <div class="measurement-value">0 cm</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Instructions -->
+            <section class="instructions">
+                <h2>How to Use</h2>
+                <div class="instructions-content">
+                    <ol>
+                        <li>Select the type of measurement you want to make</li>
+                        <li>Choose your preferred unit of measurement</li>
+                        <li>Click and drag the measurement points to take measurements</li>
+                    </ol>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="../../../../../../js/services.js"></script>
+    <script>
+        // Measurement tools functionality
+        const measurementType = document.getElementById('measurement-type');
+        const unitSelect = document.getElementById('unit');
+        const measurementValue = document.querySelector('.measurement-value');
+        const measurementLine = document.querySelector('.measurement-line');
+        const startPoint = document.querySelector('.point.start');
+        const endPoint = document.querySelector('.point.end');
+
+        function updateMeasurement() {
+            const type = measurementType.value;
+            const unit = unitSelect.value;
+            
+            // Update measurement display
+            measurementValue.textContent = `0 ${unit}`;
+            
+            // Update measurement line style
+            measurementLine.className = `measurement-line ${type}`;
+        }
+
+        measurementType.addEventListener('change', updateMeasurement);
+        unitSelect.addEventListener('change', updateMeasurement);
+
+        // Add drag functionality to points
+        startPoint.addEventListener('mousedown', startDragging);
+        endPoint.addEventListener('mousedown', startDragging);
+
+        function startDragging(e) {
+            const point = e.target;
+            const container = point.parentElement.parentElement;
+            
+            function movePoint(e) {
+                const rect = container.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                
+                point.style.left = `${x}px`;
+                point.style.top = `${y}px`;
+                
+                updateMeasurementLine();
+            }
+            
+            function stopDragging() {
+                document.removeEventListener('mousemove', movePoint);
+                document.removeEventListener('mouseup', stopDragging);
+            }
+            
+            document.addEventListener('mousemove', movePoint);
+            document.addEventListener('mouseup', stopDragging);
+        }
+
+        function updateMeasurementLine() {
+            const startRect = startPoint.getBoundingClientRect();
+            const endRect = endPoint.getBoundingClientRect();
+            
+            const length = Math.sqrt(
+                Math.pow(endRect.left - startRect.left, 2) +
+                Math.pow(endRect.top - startRect.top, 2)
+            );
+            
+            measurementValue.textContent = `${Math.round(length)} ${unitSelect.value}`;
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Assessment Criteria - Objective Setting</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/activity-design/objective-setting/assessment-criteria.html" class="back-button" aria-label="Back to Assessment Criteria">
+                <span class="back-arrow">←</span> Back to Assessment Criteria
+            </a>
+            <h1>Try Assessment Criteria</h1>
+            <p class="service-description">Create clear rubrics and assessment tools for your physical education class</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <div class="try-it-content">
+                <form id="assessmentForm">
+                    <div class="form-group">
+                        <label for="skillName">Skill Name</label>
+                        <input type="text" id="skillName" name="skillName" required placeholder="Enter the skill to assess">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gradeLevel">Grade Level</label>
+                        <select id="gradeLevel" name="gradeLevel" required>
+                            <option value="">Select grade level</option>
+                            <option value="k-2">K-2</option>
+                            <option value="3-5">3-5</option>
+                            <option value="6-8">6-8</option>
+                            <option value="9-12">9-12</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assessmentType">Assessment Type</label>
+                        <select id="assessmentType" name="assessmentType" required>
+                            <option value="">Select assessment type</option>
+                            <option value="rubric">Rubric</option>
+                            <option value="performance">Performance Test</option>
+                            <option value="observation">Observation</option>
+                            <option value="self-assessment">Self-Assessment</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="criteria">Assessment Criteria</label>
+                        <textarea id="criteria" name="criteria" required placeholder="Enter your assessment criteria"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="scoring">Scoring Method</label>
+                        <textarea id="scoring" name="scoring" required placeholder="Describe how to score the assessment"></textarea>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" class="primary-button">Generate Assessment</button>
+                    </div>
+                </form>
+
+                <!-- Preview Section -->
+                <div class="preview-section" id="previewSection" style="display: none;">
+                    <h3>Your Assessment Criteria</h3>
+                    <div id="assessmentPreview"></div>
+                    <div class="button-group">
+                        <button class="secondary-button" id="editButton">Edit</button>
+                        <button class="primary-button" id="saveButton">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('assessmentForm');
+            const previewSection = document.getElementById('previewSection');
+            const editButton = document.getElementById('editButton');
+            const saveButton = document.getElementById('saveButton');
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                form.style.display = 'none';
+                previewSection.style.display = 'block';
+                
+                const preview = document.getElementById('assessmentPreview');
+                preview.innerHTML = `
+                    <div class="preview-content">
+                        <h4>Skill: ${document.getElementById('skillName').value}</h4>
+                        <h4>Grade Level: ${document.getElementById('gradeLevel').value}</h4>
+                        <h4>Assessment Type: ${document.getElementById('assessmentType').value}</h4>
+                        <h4>Assessment Criteria:</h4>
+                        <p>${document.getElementById('criteria').value}</p>
+                        <h4>Scoring Method:</h4>
+                        <p>${document.getElementById('scoring').value}</p>
+                    </div>
+                `;
+            });
+
+            editButton.addEventListener('click', function() {
+                previewSection.style.display = 'none';
+                form.style.display = 'block';
+            });
+
+            saveButton.addEventListener('click', function() {
+                alert('Assessment criteria saved successfully!');
+            });
+        });
+    </script>
+</body>
+</html> 

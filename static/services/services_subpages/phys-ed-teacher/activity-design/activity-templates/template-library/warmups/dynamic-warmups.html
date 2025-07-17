@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Warmup Templates</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/activity-design/activity-templates/template-library/warmups.html" class="back-button" aria-label="Back to Warmup Templates">
+                <span class="back-arrow">←</span> Back to Warmup Templates
+            </a>
+            <h1>Dynamic Warmup Templates</h1>
+            <p class="service-description">Browse and customize our collection of dynamic warmup templates</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Template List -->
+            <section class="template-list">
+                <div class="template-card">
+                    <h3>Full Body Dynamic Warmup</h3>
+                    <p>A comprehensive warmup targeting all major muscle groups</p>
+                    <div class="template-details">
+                        <span class="detail">Duration: 10-15 minutes</span>
+                        <span class="detail">Equipment: None</span>
+                        <span class="detail">Level: All</span>
+                    </div>
+                    <button class="use-template-btn" data-template="full-body">Use Template</button>
+                </div>
+
+                <div class="template-card">
+                    <h3>Lower Body Focus</h3>
+                    <p>Dynamic movements targeting legs and core</p>
+                    <div class="template-details">
+                        <span class="detail">Duration: 8-12 minutes</span>
+                        <span class="detail">Equipment: None</span>
+                        <span class="detail">Level: All</span>
+                    </div>
+                    <button class="use-template-btn" data-template="lower-body">Use Template</button>
+                </div>
+
+                <div class="template-card">
+                    <h3>Upper Body Focus</h3>
+                    <p>Dynamic movements targeting arms, shoulders, and core</p>
+                    <div class="template-details">
+                        <span class="detail">Duration: 8-12 minutes</span>
+                        <span class="detail">Equipment: None</span>
+                        <span class="detail">Level: All</span>
+                    </div>
+                    <button class="use-template-btn" data-template="upper-body">Use Template</button>
+                </div>
+            </section>
+
+            <!-- Customization Form (Initially Hidden) -->
+            <section class="customization-form" id="customizationForm" style="display: none;">
+                <h2>Customize Your Dynamic Warmup</h2>
+                <form id="warmupForm">
+                    <div class="form-group">
+                        <label for="warmupName">Warmup Name</label>
+                        <input type="text" id="warmupName" name="warmupName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="focusArea">Focus Area</label>
+                        <select id="focusArea" name="focusArea" required>
+                            <option value="full-body">Full Body</option>
+                            <option value="lower-body">Lower Body</option>
+                            <option value="upper-body">Upper Body</option>
+                            <option value="core">Core</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="duration">Duration (minutes)</label>
+                        <input type="number" id="duration" name="duration" min="5" max="30" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="equipment">Equipment Needed</label>
+                        <input type="text" id="equipment" name="equipment" placeholder="e.g., Mats, Resistance bands">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="intensity">Intensity Level</label>
+                        <select id="intensity" name="intensity" required>
+                            <option value="low">Low</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modifications">Special Modifications</label>
+                        <textarea id="modifications" name="modifications" placeholder="Any specific modifications or adaptations needed"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="primary-button">Generate Custom Warmup</button>
+                </form>
+            </section>
+
+            <!-- Preview Section (Initially Hidden) -->
+            <section class="preview-section" id="previewSection" style="display: none;">
+                <h2>Your Custom Dynamic Warmup</h2>
+                <div id="warmupPreview"></div>
+                <button class="secondary-button" id="editButton">Edit</button>
+                <button class="primary-button" id="saveButton">Save</button>
+            </section>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const templateButtons = document.querySelectorAll('.use-template-btn');
+            const customizationForm = document.getElementById('customizationForm');
+            const previewSection = document.getElementById('previewSection');
+            const warmupForm = document.getElementById('warmupForm');
+            const editButton = document.getElementById('editButton');
+            const saveButton = document.getElementById('saveButton');
+
+            templateButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const template = this.getAttribute('data-template');
+                    customizationForm.style.display = 'block';
+                    // Pre-fill form based on template
+                    document.getElementById('warmupName').value = this.parentElement.querySelector('h3').textContent;
+                    document.getElementById('focusArea').value = template;
+                });
+            });
+
+            warmupForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                customizationForm.style.display = 'none';
+                previewSection.style.display = 'block';
+                // Generate preview content
+                const preview = document.getElementById('warmupPreview');
+                preview.innerHTML = `
+                    <h3>${document.getElementById('warmupName').value}</h3>
+                    <p>Focus Area: ${document.getElementById('focusArea').value}</p>
+                    <p>Duration: ${document.getElementById('duration').value} minutes</p>
+                    <p>Equipment: ${document.getElementById('equipment').value || 'None'}</p>
+                    <p>Intensity: ${document.getElementById('intensity').value}</p>
+                    <p>Modifications: ${document.getElementById('modifications').value || 'None'}</p>
+                `;
+            });
+
+            editButton.addEventListener('click', function() {
+                previewSection.style.display = 'none';
+                customizationForm.style.display = 'block';
+            });
+
+            saveButton.addEventListener('click', function() {
+                // Implement save functionality
+                alert('Warmup saved successfully!');
+            });
+        });
+    </script>
+</body>
+</html> 

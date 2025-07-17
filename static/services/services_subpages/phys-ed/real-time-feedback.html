@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Real-time Feedback</title>
+    <link rel="stylesheet" href="/static/css/features.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="AI-powered real-time feedback for physical education">
+</head>
+<body>
+    <div class="feature-container">
+        <!-- Header Section -->
+        <header class="feature-header">
+            <nav class="feature-nav">
+                <a href="/services/phys-ed" class="back-button">← Back to Physical Education</a>
+                <div class="auth-section">
+                    <button class="auth-button" onclick="showAuthForm()">Login / Register</button>
+                </div>
+            </nav>
+            <div class="feature-hero">
+                <h1>Real-time Feedback</h1>
+                <p class="feature-tagline">Instant AI-powered feedback to enhance physical education</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <section class="feature-overview">
+                <h2>Overview</h2>
+                <p>Our Real-time Feedback system provides immediate insights and suggestions to improve student performance during physical activities. Utilizing AI, it offers precise feedback that helps educators adjust their teaching strategies on the fly.</p>
+                
+                <div class="feature-image">
+                    <div class="placeholder-content">
+                        <span class="placeholder-icon">🔄</span>
+                        <p>Real-time Feedback Interface</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-benefits">
+                <h2>Benefits for Educators</h2>
+                <ul class="benefits-list">
+                    <li>
+                        <h3>Immediate Insights</h3>
+                        <p>Receive instant feedback on student performance to make real-time adjustments</p>
+                    </li>
+                    <li>
+                        <h3>Enhanced Engagement</h3>
+                        <p>Keep students engaged with interactive and responsive feedback</p>
+                    </li>
+                    <li>
+                        <h3>Data-Driven Decisions</h3>
+                        <p>Utilize data to inform teaching strategies and improve outcomes</p>
+                    </li>
+                    <li>
+                        <h3>Personalized Learning</h3>
+                        <p>Tailor feedback to individual student needs for more effective learning</p>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="feature-details">
+                <h2>Technical Details</h2>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <h3>AI Algorithms</h3>
+                        <p>Leverages advanced AI to analyze movements and provide feedback</p>
+                    </div>
+                    <div class="detail-item">
+                        <h3>Real-time Processing</h3>
+                        <p>Processes data instantly to deliver feedback without delay</p>
+                    </div>
+                    <div class="detail-item">
+                        <h3>Customizable Metrics</h3>
+                        <p>Allows educators to set specific metrics for feedback</p>
+                    </div>
+                    <div class="detail-item">
+                        <h3>Integration Capabilities</h3>
+                        <p>Seamlessly integrates with existing educational tools and platforms</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-demo">
+                <h2>See It In Action</h2>
+                <div class="demo-container">
+                    <div class="video-container">
+                        <div class="placeholder-content demo-placeholder">
+                            <span class="placeholder-icon">▶️</span>
+                            <p>Video Demo Coming Soon</p>
+                        </div>
+                    </div>
+                    <p class="demo-caption">Watch how our real-time feedback system enhances student performance in a live setting.</p>
+                </div>
+            </section>
+
+            <section class="feature-testimonials">
+                <h2>What Educators Say</h2>
+                <div class="testimonials-container">
+                    <div class="testimonial">
+                        <p>"The real-time feedback tool has revolutionized my teaching approach. I can now provide immediate, actionable insights to my students, which has significantly improved their performance."</p>
+                        <div class="testimonial-author">
+                            <span class="name">Coach Alex Johnson</span>
+                            <span class="title">High School PE Teacher</span>
+                        </div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"This tool has made my classes more interactive and engaging. Students love receiving instant feedback and are more motivated to improve."</p>
+                        <div class="testimonial-author">
+                            <span class="name">Sarah Lee</span>
+                            <span class="title">Middle School PE Instructor</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-cta">
+                <h2>Ready to Enhance Your PE Classes?</h2>
+                <p>Start using AI-powered real-time feedback in your physical education classes today.</p>
+                <button class="cta-button" onclick="showAuthForm()">Start Using Real-time Feedback</button>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="feature-footer">
+            <div class="footer-links">
+                <a href="/services/phys-ed">Back to Physical Education</a>
+                <a href="/features/phys-ed/feedback">Explore Real-time Feedback</a>
+                <a href="/pricing">Pricing Options</a>
+            </div>
+            <div class="footer-text">
+                © 2025 Faraday AI. All rights reserved.
+            </div>
+        </footer>
+    </div>
+
+    <!-- Auth Form Container -->
+    <div id="auth-container" class="auth-container">
+        <!-- Auth form will be injected here -->
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script>
+        // Show auth form when clicking CTA button
+        function showAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Load auth form content
+            fetch('/static/auth-form.html')
+                .then(response => response.text())
+                .then(html => {
+                    authContainer.innerHTML = html;
+                    initializeAuthForm();
+                })
+                .catch(error => console.error('Error loading auth form:', error));
+        }
+
+        // Close auth form
+        function closeAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize auth form functionality
+        function initializeAuthForm() {
+            const closeButton = document.querySelector('.auth-close-button');
+            if (closeButton) {
+                closeButton.onclick = closeAuthForm;
+            }
+
+            // Add click outside to close
+            document.addEventListener('click', (e) => {
+                const authContainer = document.getElementById('auth-container');
+                if (e.target === authContainer) {
+                    closeAuthForm();
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

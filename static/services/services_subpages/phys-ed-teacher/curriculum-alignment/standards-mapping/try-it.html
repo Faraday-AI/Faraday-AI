@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Standards Mapping - Phys Ed Teacher Assistant</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/curriculum-alignment/curriculum-alignment.html" class="back-button" aria-label="Back to Curriculum Alignment">
+                <span class="back-arrow">←</span> Back to Curriculum Alignment
+            </a>
+            <h1>Try Standards Mapping</h1>
+            <p class="service-description">Map your physical education activities to educational standards</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <form id="standardsForm" class="widget-form">
+                <div class="form-group">
+                    <label for="activityType">Activity Type</label>
+                    <select id="activityType" name="activityType" required>
+                        <option value="">Select Activity Type</option>
+                        <option value="game">Game</option>
+                        <option value="drill">Drill</option>
+                        <option value="warmup">Warmup</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="activityName">Activity Name</label>
+                    <input type="text" id="activityName" name="activityName" required placeholder="Enter activity name">
+                </div>
+
+                <div class="form-group">
+                    <label for="gradeLevel">Grade Level</label>
+                    <select id="gradeLevel" name="gradeLevel" required>
+                        <option value="">Select Grade Level</option>
+                        <option value="k-2">K-2</option>
+                        <option value="3-5">3-5</option>
+                        <option value="6-8">6-8</option>
+                        <option value="9-12">9-12</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="standards">Select Standards</label>
+                    <select id="standards" name="standards" multiple required>
+                        <option value="shapes">SHAPE America Standards</option>
+                        <option value="state">State Standards</option>
+                        <option value="common">Common Core Standards</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="activityDescription">Activity Description</label>
+                    <textarea id="activityDescription" name="activityDescription" required placeholder="Describe the activity"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="learningObjectives">Learning Objectives</label>
+                    <textarea id="learningObjectives" name="learningObjectives" required placeholder="Enter learning objectives"></textarea>
+                </div>
+
+                <button type="submit" class="submit-button">
+                    <span class="button-icon">📋</span>
+                    <span class="button-text">Generate Standards Mapping</span>
+                </button>
+            </form>
+
+            <div id="preview" class="preview-section" style="display: none;">
+                <h2>Standards Mapping Preview</h2>
+                <div class="preview-content">
+                    <!-- Preview content will be generated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.getElementById('standardsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form values
+            const activityType = document.getElementById('activityType').value;
+            const activityName = document.getElementById('activityName').value;
+            const gradeLevel = document.getElementById('gradeLevel').value;
+            const standards = Array.from(document.getElementById('standards').selectedOptions).map(option => option.value);
+            const activityDescription = document.getElementById('activityDescription').value;
+            const learningObjectives = document.getElementById('learningObjectives').value;
+
+            // Generate preview content
+            const previewContent = `
+                <h3>${activityName}</h3>
+                <p><strong>Activity Type:</strong> ${activityType}</p>
+                <p><strong>Grade Level:</strong> ${gradeLevel}</p>
+                <p><strong>Standards:</strong> ${standards.join(', ')}</p>
+                <p><strong>Description:</strong> ${activityDescription}</p>
+                <p><strong>Learning Objectives:</strong> ${learningObjectives}</p>
+            `;
+
+            // Display preview
+            document.querySelector('.preview-content').innerHTML = previewContent;
+            document.getElementById('preview').style.display = 'block';
+        });
+    </script>
+</body>
+</html> 

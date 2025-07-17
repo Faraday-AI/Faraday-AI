@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        .digest-header {
+            background-color: #2196F3;
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .severity-section {
+            margin-bottom: 30px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .severity-header {
+            padding: 10px 20px;
+            color: white;
+        }
+        .severity-urgent { background-color: #ff4444; }
+        .severity-high { background-color: #ff8800; }
+        .severity-normal { background-color: #00C851; }
+        .severity-low { background-color: #33b5e5; }
+        .notification {
+            padding: 15px 20px;
+            border-bottom: 1px solid #eee;
+            background-color: #fff;
+        }
+        .notification:last-child {
+            border-bottom: none;
+        }
+        .details {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+        .recommendations {
+            background-color: #e3f2fd;
+            padding: 10px;
+            border-radius: 3px;
+            margin: 10px 0;
+        }
+        .summary {
+            background-color: #f5f5f5;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 30px;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .summary-item {
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="digest-header">
+        <h1>Daily Notification Digest</h1>
+        <p>Time Period: {{ start_time }} to {{ end_time }}</p>
+        <p>Total Notifications: {{ notifications|length }}</p>
+    </div>
+
+    {% for severity in ['urgent', 'high', 'normal', 'low'] %}
+    {% set severity_notifications = notifications|selectattr('severity', 'equalto', severity)|list %}
+    {% if severity_notifications %}
+    <div class="severity-section">
+        <div class="severity-header severity-{{ severity }}">
+            {{ severity|upper }} Priority Notifications ({{ severity_notifications|length }})
+        </div>
+        {% for notification in severity_notifications %}
+        <div class="notification">
+            <h3>{{ notification.message }}</h3>
+            <p><strong>Type:</strong> {{ notification.alert_type }}</p>
+            <p><strong>Time:</strong> {{ notification.timestamp }}</p>
+            
+            {% if notification.details %}
+            <div class="details">
+                <h4>Details:</h4>
+                <pre>{{ notification.details|tojson(indent=2) }}</pre>
+            </div>
+            {% endif %}
+            
+            {% if notification.recommendations %}
+            <div class="recommendations">
+                <h4>Recommendations:</h4>
+                <ul>
+                {% for rec in notification.recommendations %}
+                    <li>{{ rec }}</li>
+                {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <div class="summary">
+        <h2>Summary by Type</h2>
+        <div class="summary-grid">
+        {% for type, count in notification_counts.items() %}
+            <div class="summary-item">
+                <h3>{{ type }}</h3>
+                <p>{{ count }} notifications</p>
+            </div>
+        {% endfor %}
+        </div>
+    </div>
+</body>
+</html> 

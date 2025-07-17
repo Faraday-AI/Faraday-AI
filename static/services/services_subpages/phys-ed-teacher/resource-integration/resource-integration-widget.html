@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Resource Integration - Phys Ed Teacher Assistant</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="../lesson-planning.html" class="back-button" aria-label="Back to Lesson Planning">
+                <span class="back-arrow">←</span> Back to Lesson Planning
+            </a>
+            <h1>Try Resource Integration</h1>
+            <p class="service-description">Experience how easy it is to integrate resources into your lesson plans</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Try It Widget -->
+            <section class="try-it-widget">
+                <div class="widget-content">
+                    <div class="widget-form">
+                        <div class="form-group">
+                            <label for="resource-type">Resource Type</label>
+                            <select id="resource-type">
+                                <option value="video">Video</option>
+                                <option value="document">Document</option>
+                                <option value="link">External Link</option>
+                                <option value="image">Image</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="resource-title">Resource Title</label>
+                            <input type="text" id="resource-title" placeholder="Enter resource title">
+                        </div>
+                        <div class="form-group">
+                            <label for="resource-url">Resource URL</label>
+                            <input type="url" id="resource-url" placeholder="Enter resource URL">
+                        </div>
+                        <div class="form-group">
+                            <label for="resource-description">Description</label>
+                            <textarea id="resource-description" placeholder="Describe the resource"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="resource-tags">Tags</label>
+                            <input type="text" id="resource-tags" placeholder="Add tags (comma separated)">
+                        </div>
+                        <button class="cta-button primary">Add Resource</button>
+                    </div>
+                    <div class="widget-preview">
+                        <h3>Preview</h3>
+                        <div class="preview-content">
+                            <p>Your resource preview will appear here</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        // Initialize navigation when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setupNavigation();
+        });
+    </script>
+</body>
+</html> 

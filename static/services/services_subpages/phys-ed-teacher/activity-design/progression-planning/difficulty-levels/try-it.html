@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Difficulty Levels - Faraday AI</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="stylesheet" href="/static/css/phys-ed.css">
+</head>
+<body>
+    <header class="service-header">
+        <a href="difficulty-levels.html" class="back-button" aria-label="Back to Difficulty Levels">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 12H5M12 19l-7-7 7-7"></path>
+            </svg>
+            <span>Back to Difficulty Levels</span>
+        </a>
+        <h1>Try Difficulty Levels</h1>
+        <p>Design appropriate challenges for your physical education activities</p>
+    </header>
+
+    <main class="service-content">
+        <form id="difficultyLevelForm" class="service-form">
+            <div class="form-group">
+                <label for="activityName">Activity Name</label>
+                <input type="text" id="activityName" name="activityName" required placeholder="Enter activity name">
+            </div>
+
+            <div class="form-group">
+                <label for="gradeLevel">Grade Level</label>
+                <select id="gradeLevel" name="gradeLevel" required>
+                    <option value="">Select grade level</option>
+                    <option value="K-2">K-2</option>
+                    <option value="3-5">3-5</option>
+                    <option value="6-8">6-8</option>
+                    <option value="9-12">9-12</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="baseActivity">Base Activity Description</label>
+                <textarea id="baseActivity" name="baseActivity" required placeholder="Describe the base activity"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="beginnerLevel">Beginner Level Modifications</label>
+                <textarea id="beginnerLevel" name="beginnerLevel" required placeholder="Enter modifications for beginners"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="intermediateLevel">Intermediate Level Modifications</label>
+                <textarea id="intermediateLevel" name="intermediateLevel" required placeholder="Enter modifications for intermediate students"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="advancedLevel">Advanced Level Modifications</label>
+                <textarea id="advancedLevel" name="advancedLevel" required placeholder="Enter modifications for advanced students"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="assessmentCriteria">Assessment Criteria</label>
+                <textarea id="assessmentCriteria" name="assessmentCriteria" placeholder="Enter assessment criteria for each level"></textarea>
+            </div>
+
+            <button type="submit" class="cta-button primary">
+                <span class="button-text">Generate Difficulty Levels</span>
+                <span class="button-icon">→</span>
+            </button>
+        </form>
+
+        <section id="previewSection" class="preview-section" style="display: none;">
+            <h2>Generated Difficulty Levels</h2>
+            <div id="difficultyPreview" class="preview-content"></div>
+        </section>
+    </main>
+
+    <script>
+        document.getElementById('difficultyLevelForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('previewSection').style.display = 'block';
+            document.getElementById('previewSection').scrollIntoView({ behavior: 'smooth' });
+        });
+    </script>
+</body>
+</html> 

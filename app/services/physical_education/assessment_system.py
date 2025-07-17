@@ -1,15 +1,36 @@
+"""Assessment system for physical education."""
+
+
 import logging
 from typing import Dict, Any, List, Optional, Tuple
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 from app.core.monitoring import track_metrics
-from app.services.physical_education.movement_analyzer import MovementAnalyzer
-from app.services.physical_education.activity_manager import ActivityManager
+from app.services.physical_education import service_integration
 from collections import deque
 import asyncio
 from dataclasses import dataclass
 from enum import Enum
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+
+# Import models
+from app.models.assessment import (
+    SkillAssessment,
+    AssessmentCriteria,
+    AssessmentResult,
+    AssessmentHistory,
+    SkillProgress
+)
+from app.models.activity import Activity
+from app.models.student import Student
+from app.models.physical_education.pe_enums.pe_types import (
+    AssessmentType,
+    AssessmentStatus,
+    SkillLevel,
+    ProgressionLevel
+)
 
 class AssessmentState(Enum):
     INITIALIZING = "initializing"
@@ -28,12 +49,20 @@ class RealTimeMetrics:
     last_update: datetime
 
 class AssessmentSystem:
-    """Service for managing student assessments and generating feedback."""
+    """Service for managing skill assessments and progress tracking."""
+    
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(AssessmentSystem, cls).__new__(cls)
+        return cls._instance
     
     def __init__(self):
         self.logger = logging.getLogger("assessment_system")
-        self.movement_analyzer = MovementAnalyzer()
-        self.activity_manager = ActivityManager()
+        self.db = None
+        self.movement_analyzer = None
+        self.activity_manager = None
         
         # Enhanced assessment settings
         self.settings = {
@@ -197,11 +226,28 @@ class AssessmentSystem:
         self.skill_correlations = {}
         self.prediction_models = {}
 
+        # Assessment components
+        self.assessment_history = []
+        self.skill_benchmarks = {}
+        self.progress_tracking = {}
+        self.feedback_history = {}
+        
+        # Assessment metrics
+        self.performance_metrics = {}
+        self.skill_metrics = {}
+        self.progress_metrics = {}
+        self.adaptation_metrics = {}
+        
+        # Caching and optimization
+        self.assessment_cache = {}
+        self.batch_cache = {}
+
     async def initialize(self):
         """Initialize the assessment system."""
         try:
-            # Initialize movement analyzer
-            await self.movement_analyzer.initialize()
+            self.db = next(get_db())
+            self.movement_analyzer = service_integration.get_service('movement_analyzer')
+            self.activity_manager = service_integration.get_service('activity_manager')
             
             # Load assessment templates
             self.load_assessment_templates()
@@ -215,6 +261,9 @@ class AssessmentSystem:
             # Initialize analytics
             self.initialize_analytics()
             
+            # Load skill benchmarks
+            await self.load_skill_benchmarks()
+            
             self.assessment_state = AssessmentState.READY
             self.logger.info("Assessment system initialized successfully")
         except Exception as e:
@@ -225,11 +274,24 @@ class AssessmentSystem:
     async def cleanup(self):
         """Cleanup assessment system resources."""
         try:
-            # Cleanup movement analyzer
-            await self.movement_analyzer.cleanup()
+            self.db = None
+            self.movement_analyzer = None
+            self.activity_manager = None
             
             # Save student data
             self.save_student_data()
+            
+            # Clear all data
+            self.assessment_history.clear()
+            self.skill_benchmarks.clear()
+            self.progress_tracking.clear()
+            self.feedback_history.clear()
+            self.performance_metrics.clear()
+            self.skill_metrics.clear()
+            self.progress_metrics.clear()
+            self.adaptation_metrics.clear()
+            self.assessment_cache.clear()
+            self.batch_cache.clear()
             
             self.logger.info("Assessment system cleaned up successfully")
         except Exception as e:
@@ -1258,6 +1320,460 @@ class AssessmentSystem:
         except Exception as e:
             self.logger.error(f"Error calculating improvement: {str(e)}")
             return {category: 0.0 for category in current_scores.keys()}
+
+    def update_assessment_history(self, student_id: str, skill: str, scores: Dict[str, float]):
+        """Update assessment history with new results."""
+        try:
+            # Add to recent assessments
+            self.assessment_history["recent_assessments"].append({
+                "student_id": student_id,
+                "skill": skill,
+                "scores": scores,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # Keep only last 100 assessments
+            if len(self.assessment_history["recent_assessments"]) > 100:
+                self.assessment_history["recent_assessments"] = self.assessment_history["recent_assessments"][-100:]
+            
+            # Update trends
+            if student_id not in self.assessment_history["trends"]:
+                self.assessment_history["trends"][student_id] = {}
+            
+            if skill not in self.assessment_history["trends"][student_id]:
+                self.assessment_history["trends"][student_id][skill] = []
+            
+            self.assessment_history["trends"][student_id][skill].append({
+                "scores": scores,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # Update statistics
+            self.update_statistics(student_id, skill, scores)
+            
+        except Exception as e:
+            self.logger.error(f"Error updating assessment history: {str(e)}")
+            raise
+
+    def update_statistics(self, student_id: str, skill: str, scores: Dict[str, float]):
+        """Update assessment statistics."""
+        try:
+            if student_id not in self.assessment_history["statistics"]:
+                self.assessment_history["statistics"][student_id] = {}
+            
+            if skill not in self.assessment_history["statistics"][student_id]:
+                self.assessment_history["statistics"][student_id][skill] = {
+                    "total_assessments": 0,
+                    "average_scores": {},
+                    "best_scores": {},
+                    "improvement_rates": {}
+                }
+            
+            stats = self.assessment_history["statistics"][student_id][skill]
+            stats["total_assessments"] += 1
+            
+            # Update average scores
+            for category, score in scores.items():
+                if category not in stats["average_scores"]:
+                    stats["average_scores"][category] = score
+                else:
+                    stats["average_scores"][category] = (
+                        (stats["average_scores"][category] * (stats["total_assessments"] - 1) + score) /
+                        stats["total_assessments"]
+                    )
+                
+                # Update best scores
+                if category not in stats["best_scores"] or score > stats["best_scores"][category]:
+                    stats["best_scores"][category] = score
+            
+            # Calculate improvement rates
+            if stats["total_assessments"] > 1:
+                for category in scores.keys():
+                    if category in stats["average_scores"]:
+                        improvement = (scores[category] - stats["average_scores"][category]) / stats["total_assessments"]
+                        stats["improvement_rates"][category] = improvement
+            
+        except Exception as e:
+            self.logger.error(f"Error updating statistics: {str(e)}")
+            raise
+
+    def save_student_data(self):
+        """Save student data to persistent storage."""
+        try:
+            # TODO: Implement data persistence
+            self.logger.info("Student data saved successfully")
+        except Exception as e:
+            self.logger.error(f"Error saving student data: {str(e)}")
+            raise
+
+    async def load_skill_benchmarks(self):
+        """Load skill benchmarks from persistent storage."""
+        try:
+            # TODO: Implement data loading
+            self.logger.info("Skill benchmarks loaded successfully")
+        except Exception as e:
+            self.logger.error(f"Error loading skill benchmarks: {str(e)}")
+            raise
+
+    def determine_age_group(self, student_id: str) -> str:
+        """Determine age group based on student data."""
+        try:
+            # TODO: Implement age group determination logic
+            return "middle"  # Placeholder return
+        except Exception as e:
+            self.logger.error(f"Error determining age group: {str(e)}")
+            return "middle"
+
+    def update_enhanced_student_data(self, student_id: str, skill: str, scores: Dict[str, float], feedback: Dict[str, str], age_group: str):
+        """Update student data with enhanced tracking."""
+        try:
+            # TODO: Implement enhanced student data update logic
+            self.logger.info(f"Student data updated for {student_id}")
+        except Exception as e:
+            self.logger.error(f"Error updating enhanced student data: {str(e)}")
+            raise
+
+    def calculate_technique_score(self, analysis_results: Dict[str, Any], skill: str) -> float:
+        """Calculate technique score based on movement analysis."""
+        try:
+            # Get technique criteria for the skill
+            criteria = self.assessment_criteria[skill]["technique"]
+            
+            # Calculate score for each criterion
+            scores = []
+            for criterion in criteria:
+                if criterion in analysis_results["technique_analysis"]:
+                    scores.append(analysis_results["technique_analysis"][criterion])
+            
+            # Return average score
+            return np.mean(scores) if scores else 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating technique score: {str(e)}")
+            return 0.0
+
+    def calculate_performance_score(self, analysis_results: Dict[str, Any], skill: str) -> float:
+        """Calculate performance score based on movement analysis."""
+        try:
+            # Get performance criteria for the skill
+            criteria = self.assessment_criteria[skill]["performance"]
+            
+            # Calculate score for each criterion
+            scores = []
+            for criterion in criteria:
+                if criterion in analysis_results["performance_metrics"]:
+                    scores.append(analysis_results["performance_metrics"][criterion])
+            
+            # Return average score
+            return np.mean(scores) if scores else 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating performance score: {str(e)}")
+            return 0.0
+
+    def calculate_safety_score(self, analysis_results: Dict[str, Any], skill: str) -> float:
+        """Calculate safety score based on movement analysis."""
+        try:
+            # Get safety criteria for the skill
+            criteria = self.assessment_criteria[skill]["safety"]
+            
+            # Calculate score for each criterion
+            scores = []
+            for criterion in criteria:
+                if criterion in analysis_results["safety_analysis"]:
+                    scores.append(analysis_results["safety_analysis"][criterion])
+            
+            # Return average score
+            return np.mean(scores) if scores else 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating safety score: {str(e)}")
+            return 0.0
+
+    def calculate_consistency_score(self, analysis_results: Dict[str, Any], skill: str) -> float:
+        """Calculate consistency score based on movement analysis."""
+        try:
+            # Get consistency metrics
+            consistency_metrics = analysis_results.get("consistency_metrics", {})
+            
+            # Calculate score based on consistency metrics
+            if consistency_metrics:
+                return np.mean(list(consistency_metrics.values()))
+            
+            return 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating consistency score: {str(e)}")
+            return 0.0
+
+    def calculate_improvement_score(self, analysis_results: Dict[str, Any], skill: str) -> float:
+        """Calculate improvement score based on movement analysis."""
+        try:
+            # Get improvement metrics
+            improvement_metrics = analysis_results.get("improvement_metrics", {})
+            
+            # Calculate score based on improvement metrics
+            if improvement_metrics:
+                return np.mean(list(improvement_metrics.values()))
+            
+            return 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating improvement score: {str(e)}")
+            return 0.0
+
+    def calculate_adaptability_score(self, analysis_results: Dict[str, Any], skill: str) -> float:
+        """Calculate adaptability score based on movement analysis."""
+        try:
+            # Get adaptability criteria
+            criteria = self.assessment_criteria[skill].get("adaptability", [])
+            
+            if not criteria:
+                return 0.0
+            
+            # Calculate score for each criterion
+            scores = []
+            for criterion in criteria:
+                if criterion in analysis_results["adaptability_metrics"]:
+                    scores.append(analysis_results["adaptability_metrics"][criterion])
+            
+            return np.mean(scores) if scores else 0.0
+            
+        except Exception as e:
+            self.logger.error(f"Error calculating adaptability score: {str(e)}")
+            return 0.0
+
+    def generate_comprehensive_feedback(self, scores: Dict[str, float], skill: str, age_group: str) -> Dict[str, str]:
+        """Generate comprehensive feedback with specific recommendations."""
+        try:
+            feedback = {}
+            
+            # Generate feedback for each category
+            for category, score in scores.items():
+                if category == "overall":
+                    continue
+                    
+                level = self.determine_skill_level(score)
+                template_type = "positive" if score >= 0.8 else "constructive"
+                
+                # Get specific aspects to focus on
+                aspects = self.get_focus_aspects(category, skill, score)
+                
+                # Generate recommendations
+                recommendations = self.generate_recommendations(category, skill, score, age_group)
+                
+                # Generate feedback text
+                feedback[category] = self.settings["feedback_templates"][template_type][0].format(
+                    skill=skill,
+                    aspect=aspects[0],
+                    recommendation=recommendations[0] if recommendations else ""
+                )
+            
+            # Add progression feedback if applicable
+            if scores["overall"] >= 0.9:
+                next_steps = self.get_next_steps(skill, age_group)
+                feedback["progression"] = self.settings["feedback_templates"]["progression"][0].format(
+                    skill=skill,
+                    next_step=next_steps[0] if next_steps else ""
+                )
+            
+            return feedback
+            
+        except Exception as e:
+            self.logger.error(f"Error generating comprehensive feedback: {str(e)}")
+            raise
+
+    def get_focus_aspects(self, category: str, skill: str, score: float) -> List[str]:
+        """Get specific aspects to focus on for improvement."""
+        try:
+            criteria = self.assessment_criteria[skill][category]
+            return [criterion for criterion in criteria if score < 0.8]
+            
+        except Exception as e:
+            self.logger.error(f"Error getting focus aspects: {str(e)}")
+            return []
+
+    def generate_recommendations(self, category: str, skill: str, score: float, age_group: str) -> List[str]:
+        """Generate specific recommendations for improvement."""
+        try:
+            recommendations = []
+            
+            # Get appropriate exercises based on category and skill level
+            exercises = self.activity_manager.get_exercises_for_skill(
+                skill=skill,
+                category=category,
+                difficulty=self.determine_skill_level(score),
+                age_group=age_group
+            )
+            
+            for exercise in exercises:
+                recommendations.append(f"Practice {exercise['name']}: {exercise['description']}")
+            
+            return recommendations
+            
+        except Exception as e:
+            self.logger.error(f"Error generating recommendations: {str(e)}")
+            return []
+
+    def get_next_steps(self, skill: str, age_group: str) -> List[str]:
+        """Get next steps for skill progression."""
+        try:
+            next_steps = []
+            
+            # Get advanced variations of the skill
+            variations = self.activity_manager.get_skill_variations(
+                skill=skill,
+                difficulty="advanced",
+                age_group=age_group
+            )
+            
+            for variation in variations:
+                next_steps.append(f"Try {variation['name']}: {variation['description']}")
+            
+            return next_steps
+            
+        except Exception as e:
+            self.logger.error(f"Error getting next steps: {str(e)}")
+            return []
+
+    def check_milestones(self, student_id: str, skill: str, scores: Dict[str, float]) -> List[Dict[str, Any]]:
+        """Check for achieved milestones."""
+        try:
+            milestones = []
+            
+            # Check overall score milestone
+            if scores["overall"] >= 0.9:
+                milestones.append({
+                    "type": "skill_mastery",
+                    "skill": skill,
+                    "score": scores["overall"],
+                    "timestamp": datetime.now().isoformat()
+                })
+            
+            # Check category milestones
+            for category, score in scores.items():
+                if category != "overall" and score >= 0.9:
+                    milestones.append({
+                        "type": f"{category}_mastery",
+                        "skill": skill,
+                        "category": category,
+                        "score": score,
+                        "timestamp": datetime.now().isoformat()
+                    })
+            
+            return milestones
+            
+        except Exception as e:
+            self.logger.error(f"Error checking milestones: {str(e)}")
+            return []
+
+    def check_achievements(self, student_id: str, skill: str, scores: Dict[str, float]) -> List[Dict[str, Any]]:
+        """Check for achieved achievements."""
+        try:
+            achievements = []
+            
+            # Check for perfect scores
+            if all(score >= 0.95 for score in scores.values() if score != "overall"):
+                achievements.append({
+                    "type": "perfect_performance",
+                    "skill": skill,
+                    "timestamp": datetime.now().isoformat()
+                })
+            
+            # Check for rapid improvement
+            if self.check_rapid_improvement(student_id, skill, scores):
+                achievements.append({
+                    "type": "rapid_improvement",
+                    "skill": skill,
+                    "timestamp": datetime.now().isoformat()
+                })
+            
+            return achievements
+            
+        except Exception as e:
+            self.logger.error(f"Error checking achievements: {str(e)}")
+            return []
+
+    def check_rapid_improvement(self, student_id: str, skill: str, current_scores: Dict[str, float]) -> bool:
+        """Check if student has shown rapid improvement."""
+        try:
+            if student_id not in self.student_data["assessments"]:
+                return False
+            
+            previous_assessments = [
+                assessment for assessment in self.student_data["assessments"][student_id]
+                if assessment["skill"] == skill
+            ]
+            
+            if len(previous_assessments) < 2:
+                return False
+            
+            # Get scores from last two assessments
+            last_scores = previous_assessments[-1]["scores"]
+            previous_scores = previous_assessments[-2]["scores"]
+            
+            # Calculate improvement
+            improvement = {
+                category: current_scores[category] - last_scores[category]
+                for category in current_scores
+                if category in last_scores
+            }
+            
+            # Check if improvement is significant
+            return all(imp >= 0.2 for imp in improvement.values())
+            
+        except Exception as e:
+            self.logger.error(f"Error checking rapid improvement: {str(e)}")
+            return False
+
+    def generate_peer_comparison(self, student_id: str, skill: str, scores: Dict[str, float], age_group: str) -> Dict[str, Any]:
+        """Generate peer comparison metrics."""
+        try:
+            # Get all students in the same age group
+            peers = [
+                student for student in self.student_data["profiles"].values()
+                if student.get("age_group") == age_group
+            ]
+            
+            if not peers:
+                return {}
+            
+            # Calculate peer statistics
+            peer_scores = []
+            for peer in peers:
+                if peer["id"] in self.student_data["assessments"]:
+                    peer_assessments = [
+                        assessment for assessment in self.student_data["assessments"][peer["id"]]
+                        if assessment["skill"] == skill
+                    ]
+                    if peer_assessments:
+                        peer_scores.append(peer_assessments[-1]["scores"]["overall"])
+            
+            if not peer_scores:
+                return {}
+            
+            # Calculate comparison metrics
+            percentile = np.percentile(peer_scores, scores["overall"] * 100)
+            
+            return {
+                "percentile": percentile,
+                "average_peer_score": np.mean(peer_scores),
+                "top_peer_score": max(peer_scores),
+                "peer_count": len(peer_scores)
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error generating peer comparison: {str(e)}")
+            return {}
+
+    def update_enhanced_student_data(self, student_id: str, skill: str, scores: Dict[str, float], feedback: Dict[str, str], age_group: str):
+        """Update student data with enhanced tracking."""
+        try:
+            # TODO: Implement enhanced student data update logic
+            self.logger.info(f"Student data updated for {student_id}")
+        except Exception as e:
+            self.logger.error(f"Error updating enhanced student data: {str(e)}")
+            raise
 
     def update_assessment_history(self, student_id: str, skill: str, scores: Dict[str, float]):
         """Update assessment history with new results."""

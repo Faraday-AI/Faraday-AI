@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Administrative Assistant</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="AI-powered Administrative Assistant to enhance your school management experience">
+    <style>
+        :root {
+            --accent-color: #e74c3c;
+            --background-color: #000000;
+            --border-radius: 8px;
+            --card-background: #1a1a1a;
+            --card-hover: #2a2a2a;
+            --primary-color: #3498db;
+            --secondary-color: #ffd700;
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --spacing-unit: 1rem;
+            --text-color: #ffffff;
+            --text-light: #bdc3c7;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .service-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .service-header {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4) 0;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+        }
+
+        .service-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        .service-tagline {
+            font-size: 1.25rem;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 500;
+        }
+
+        .service-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .service-section h2 {
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .service-section p {
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card {
+            background-color: #2980b9;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            background-color: #1c6ea4;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card h3 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            font-weight: 500;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--card-background);
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+        }
+
+        .benefit-icon {
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+        }
+
+        .benefit-item h3 {
+            font-weight: 600;
+            margin-bottom: 0.1rem;
+        }
+
+        .benefit-item p {
+            font-weight: 500;
+            margin-bottom: 0;
+        }
+
+        .cta-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+            margin-top: 1rem;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .service-footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-links a {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+        }
+
+        .footer-links a:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .footer-text {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        .service-nav {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 0 var(--spacing-unit);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+
+        .back-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .back-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .getting-started-section {
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .benefits-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .benefits-list li {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .benefits-list li:last-child {
+            border-bottom: none;
+        }
+
+        .benefits-list h3 {
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .benefits-list p {
+            color: var(--text-light);
+            line-height: 1.6;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <header class="service-header">
+            <nav class="service-nav">
+                <a href="/static/services/teacher-admin.html#features" class="back-button">← Back to Teacher & Admin Assistants</a>
+            </nav>
+            <div class="service-hero">
+                <h1>Administrative Assistant</h1>
+                <p class="service-tagline">Your AI-powered partner for efficient school administration and management</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <section class="service-section">
+                <h2>Overview</h2>
+                <p>Our Administrative Assistant GPT is designed to revolutionize how you manage your school. It combines advanced AI capabilities with educational expertise to provide comprehensive support for your administrative needs.</p>
+                
+                <p>This innovative tool is specifically crafted to help you:</p>
+                <ul>
+                    <li>Streamline administrative processes and improve operational efficiency</li>
+                    <li>Manage student records, attendance, and academic progress</li>
+                    <li>Coordinate staff schedules and professional development</li>
+                    <li>Generate comprehensive reports and analytics</li>
+                    <li>Facilitate communication between staff, students, and parents</li>
+                    <li>Ensure compliance with educational standards and regulations</li>
+                </ul>
+
+                <p>With our AI-powered assistant, you'll have a dedicated partner that understands the complexities of school administration and helps you maintain an efficient and effective educational environment.</p>
+                
+                <div class="features-grid">
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/admin/student-management.html'">
+                        <h3>Student Management</h3>
+                        <p>Efficiently manage student records and academic progress</p>
+                    </div>
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/admin/staff-coordination.html'">
+                        <h3>Staff Coordination</h3>
+                        <p>Streamline staff scheduling and professional development</p>
+                    </div>
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/admin/reporting.html'">
+                        <h3>Reporting & Analytics</h3>
+                        <p>Generate comprehensive reports and insights</p>
+                    </div>
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/admin/communication.html'">
+                        <h3>Communication Tools</h3>
+                        <p>Facilitate effective communication across the school community</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="service-section">
+                <h2>Key Benefits</h2>
+                <ul class="benefits-list">
+                    <li>
+                        <h3>Efficient Operations</h3>
+                        <p>Streamline administrative tasks with AI-powered tools that automate scheduling, resource allocation, and data management.</p>
+                    </li>
+                    <li>
+                        <h3>Enhanced Communication</h3>
+                        <p>Improve communication with staff, students, and parents through integrated messaging platforms and real-time updates.</p>
+                    </li>
+                    <li>
+                        <h3>Data-Driven Decisions</h3>
+                        <p>Leverage analytics and reporting tools to make informed decisions that enhance school performance and student outcomes.</p>
+                    </li>
+                    <li>
+                        <h3>Policy Compliance</h3>
+                        <p>Ensure compliance with educational policies and regulations through automated monitoring and reporting systems.</p>
+                    </li>
+                    <li>
+                        <h3>Resource Optimization</h3>
+                        <p>Optimize the use of school resources with tools that track inventory, manage budgets, and allocate resources efficiently.</p>
+                    </li>
+                    <li>
+                        <h3>Professional Growth</h3>
+                        <p>Receive AI-powered feedback and suggestions to enhance your administrative practices, with personalized professional development resources that support continuous improvement.</p>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="service-section">
+                <h2>Integration with Additional Services</h2>
+                <p>Our Administrative Assistant can be enhanced with a wide range of specialized GPTs available in our Additional Services. These complementary tools can help you create a comprehensive administrative ecosystem tailored to your specific needs.</p>
+                <p>From specialized management tools to communication platforms, our Additional Services can help you:</p>
+                <ul>
+                    <li>Integrate with existing school management systems</li>
+                    <li>Enhance security and data protection measures</li>
+                    <li>Implement advanced analytics and reporting tools</li>
+                    <li>Streamline parent-teacher communication</li>
+                </ul>
+                <p>Explore our full range of additional services to find the perfect complement to your Administrative Assistant.</p>
+                <a href="/static/services/additional-services.html" class="cta-button">View Additional Services</a>
+            </section>
+
+            <section class="getting-started-section">
+                <h2>Getting Started</h2>
+                <p>Ready to transform your school administration experience?</p>
+                <a href="/static/services/teacher-admin.html#features" class="back-button" style="margin-right: 1rem;">← Back to Teacher & Admin Assistants</a>
+                <button class="cta-button" onclick="showComingSoon()">Get Started</button>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer" role="contentinfo">
+            <div class="footer-content">
+                <div class="footer-text">
+                    FARADAY-AI, LLC 2025
+                </div>
+                <div class="social-links">
+                    <a href="https://github.com/faradayai" target="_blank" rel="noopener noreferrer" aria-label="Follow us on GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function showComingSoon() {
+            alert('This feature is coming soon! Stay tuned for updates.');
+        }
+    </script>
+</body>
+</html> 

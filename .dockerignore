@@ -61,13 +61,6 @@ docs/
 *.md
 !README.md
 
-# Models and data
-models/
-!models/movement_models.json
-!services/physical_education/models/movement_analysis/movement_models.json
-data/
-exports/
-
 # Static files
 static/
 !static/index.html
@@ -85,10 +78,10 @@ static/
 Thumbs.db
 
 # Project specific
-/app/models/*.pth
-/app/models/*.h5
-/app/models/*.ckpt
-/app/models/*.pb
+*.pth
+*.h5
+*.ckpt
+*.pb
 static/uploads/
 static/generated/
 grafana/
@@ -105,17 +98,12 @@ grafana/
 *.mpg
 *.mpeg
 *.mp3
-*.wav
-*.ogg
-*.flac
 
-# Database
-*.sqlite
-*.sql
-
-# Temporary files
-*.tmp
-*.temp
-*.bak
-*.swp
-*.swo 
+# Allow critical directories
+!app/
+!app/services/
+!app/services/physical_education/
+!app/services/physical_education/models/
+!app/services/physical_education/models/movement_analysis/
+!app/data/
+!app/models/ 

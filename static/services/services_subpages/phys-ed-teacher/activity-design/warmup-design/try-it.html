@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Warmup Design - Activity Design</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/activity-design/warmup-design/warmup-design.html" class="back-button" aria-label="Back to Warmup Design">
+                <span class="back-arrow">←</span> Back to Warmup Design
+            </a>
+            <h1>Try Warmup Design</h1>
+            <p class="service-description">Design a warmup activity for your physical education class</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Try It Widget -->
+            <section class="try-it-widget">
+                <form id="warmupDesignForm" class="widget-form">
+                    <div class="form-group">
+                        <label for="warmupType">Warmup Type</label>
+                        <select id="warmupType" name="warmupType" required>
+                            <option value="">Select a warmup type</option>
+                            <option value="dynamic">Dynamic Warmup</option>
+                            <option value="skill_based">Skill-Based Warmup</option>
+                            <option value="game_based">Game-Based Warmup</option>
+                            <option value="fitness">Fitness Warmup</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="warmupName">Warmup Name</label>
+                        <input type="text" id="warmupName" name="warmupName" placeholder="Enter warmup name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="duration">Duration (minutes)</label>
+                        <input type="number" id="duration" name="duration" min="5" max="20" placeholder="Enter duration" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="equipment">Equipment Needed</label>
+                        <input type="text" id="equipment" name="equipment" placeholder="List equipment needed" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="setup">Setup Instructions</label>
+                        <textarea id="setup" name="setup" placeholder="Enter setup instructions" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="activities">Warmup Activities</label>
+                        <textarea id="activities" name="activities" placeholder="Enter warmup activities" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="progression">Intensity Progression</label>
+                        <textarea id="progression" name="progression" placeholder="Describe how intensity increases" required></textarea>
+                    </div>
+
+                    <button type="submit" class="cta-button primary">
+                        <span class="button-icon">🔥</span>
+                        <span class="button-text">Generate Warmup</span>
+                    </button>
+                </form>
+
+                <div id="warmupPreview" class="widget-preview" style="display: none;">
+                    <h3>Your Warmup Design</h3>
+                    <div class="preview-content">
+                        <!-- Preview content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.getElementById('warmupDesignForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // TODO: Add warmup generation logic
+            document.getElementById('warmupPreview').style.display = 'block';
+        });
+    </script>
+</body>
+</html> 

@@ -1,214 +1,254 @@
 import pytest
-import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
+from typing import Dict, Any, List
 from unittest.mock import Mock, patch
-from app.services.physical_education.services.safety_manager import SafetyManager
+from sqlalchemy.orm import Session
+from app.services.physical_education.safety_manager import SafetyManager
+from app.models.physical_education.safety import (
+    RiskAssessment,
+    SafetyIncident,
+    EquipmentCheck,
+    EnvironmentalCheck,
+    SafetyCheck,
+    SafetyProtocol,
+    SafetyAlert,
+    Safety
+)
+from app.models.physical_education.safety import (
+    IncidentSeverity,
+    RiskLevel,
+    CheckType,
+    AlertType
+)
 
 @pytest.fixture
-def safety_manager():
-    manager = SafetyManager()
-    yield manager
+def db_session():
+    """Create a mock database session."""
+    return Mock()
 
 @pytest.fixture
-def mock_activity_data():
-    dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
-    return pd.DataFrame({
-        'date': dates,
-        'activity_id': [f'act_{i}' for i in range(30)],
-        'student_id': ['student1'] * 30,
-        'activity_type': np.random.choice(['running', 'jumping', 'throwing'], 30),
-        'category': np.random.choice(['cardio', 'strength', 'flexibility'], 30),
-        'score': np.random.uniform(0, 100, 30),
-        'duration': np.random.randint(5, 60, 30),
-        'calories_burned': np.random.uniform(50, 500, 30),
-        'heart_rate': np.random.randint(60, 180, 30),
-        'notes': [f'Note {i}' for i in range(30)]
-    })
+def safety_manager(db_session):
+    """Create a SafetyManager instance with a mock database session."""
+    return SafetyManager(db_session)
 
 @pytest.fixture
-def mock_student_data():
+def mock_activity():
+    """Create mock activity data."""
     return {
-        'student_id': 'student1',
-        'name': 'John Doe',
-        'age': 15,
-        'grade': '9',
-        'fitness_level': 'intermediate',
-        'medical_conditions': ['asthma'],
-        'goals': ['improve endurance', 'increase strength']
+        "id": 1,
+        "name": "Running",
+        "type": "cardio",
+        "intensity": "high"
+    }
+
+@pytest.fixture
+def mock_student():
+    """Create mock student data."""
+    return {
+        "id": 1,
+        "name": "John Doe",
+        "grade": 10,
+        "medical_conditions": ["asthma"]
     }
 
 @pytest.fixture
 def mock_incident_data():
+    """Create mock incident data."""
     return {
-        'incident_id': 'inc1',
-        'student_id': 'student1',
-        'activity_id': 'act1',
-        'date': datetime.now(),
-        'type': 'injury',
-        'severity': 'minor',
-        'description': 'Sprained ankle during running',
-        'action_taken': 'Applied ice and rest',
-        'follow_up_required': True
+        "activity_id": 1,
+        "student_id": 1,
+        "incident_type": IncidentType.INJURY,
+        "severity": IncidentSeverity.MEDIUM,
+        "description": "Sprained ankle during running",
+        "response_taken": "Applied ice and elevated foot",
+        "reported_by": 1,
+        "location": "Track field",
+        "equipment_involved": ["running shoes"],
+        "witnesses": ["Coach Smith"],
+        "follow_up_required": ["Physical therapy"]
     }
 
-def test_initialization(safety_manager):
-    """Test proper initialization of SafetyManager."""
-    assert safety_manager.safety_config is not None
-    assert isinstance(safety_manager.safety_config, dict)
-    assert 'safety_protocols' in safety_manager.safety_config
-    assert 'risk_thresholds' in safety_manager.safety_config
-    assert 'emergency_procedures' in safety_manager.safety_config
+@pytest.fixture
+def mock_risk_assessment_data():
+    """Create mock risk assessment data."""
+    return {
+        "activity_id": 1,
+        "risk_level": RiskLevel.MEDIUM,
+        "factors": ["Uneven terrain", "Wet conditions"],
+        "mitigation_measures": ["Mark hazards", "Reduce speed"],
+        "environmental_conditions": {
+            "humidity": 60,
+            "temperature": 22
+        },
+        "equipment_status": {
+            "shoes": "good",
+            "track": "wet"
+        },
+        "student_health_considerations": ["asthma"],
+        "weather_conditions": {
+            "precipitation": "light rain",
+            "wind_speed": 10
+        }
+    }
 
-def test_assess_activity_safety(safety_manager, mock_activity_data, mock_student_data):
-    """Test activity safety assessment."""
-    assessment = safety_manager.assess_activity_safety(mock_activity_data, mock_student_data)
-    assert 'safety_score' in assessment
-    assert 'risk_factors' in assessment
-    assert 'recommendations' in assessment
-    assert 'emergency_procedures' in assessment
+@pytest.fixture
+def mock_alert_data():
+    """Create mock alert data."""
+    return {
+        "activity_id": 1,
+        "alert_type": AlertType.RISK_THRESHOLD,
+        "severity": IncidentSeverity.HIGH,
+        "message": "High risk of injury detected",
+        "recipients": [1, 2]
+    }
 
-def test_monitor_activity_safety(safety_manager, mock_activity_data):
-    """Test activity safety monitoring."""
-    monitoring = safety_manager.monitor_activity_safety(mock_activity_data)
-    assert 'safety_status' in monitoring
-    assert 'alerts' in monitoring
-    assert 'metrics' in monitoring
-    assert 'trends' in monitoring
+@pytest.fixture
+def mock_protocol_data():
+    """Create mock protocol data."""
+    return {
+        "name": "Running Safety Protocol",
+        "description": "Safety procedures for running activities",
+        "protocol_type": "pre_activity",
+        "steps": [
+            "Check weather conditions",
+            "Inspect running surface",
+            "Verify equipment",
+            "Review emergency procedures"
+        ],
+        "activity_type": "running",
+        "required_equipment": ["Running shoes", "Water bottle"],
+        "emergency_contacts": [
+            {"name": "Dr. Smith", "phone": "123-456-7890"},
+            {"name": "Nurse Johnson", "phone": "987-654-3210"}
+        ]
+    }
 
-def test_generate_safety_report(safety_manager, mock_activity_data):
-    """Test safety report generation."""
-    report = safety_manager.generate_safety_report(mock_activity_data)
-    assert 'summary' in report
-    assert 'risk_analysis' in report
-    assert 'incident_history' in report
-    assert 'recommendations' in report
+@pytest.mark.asyncio
+async def test_create_risk_assessment(safety_manager, mock_risk_assessment_data):
+    """Test creating a risk assessment."""
+    assessment = await safety_manager.create_risk_assessment(**mock_risk_assessment_data)
+    assert assessment is not None
+    assert assessment.activity_id == mock_risk_assessment_data['activity_id']
+    assert assessment.risk_level == mock_risk_assessment_data['risk_level']
+    assert assessment.factors == mock_risk_assessment_data['factors']
+    assert assessment.mitigation_measures == mock_risk_assessment_data['mitigation_measures']
 
-def test_handle_safety_incident(safety_manager, mock_incident_data):
-    """Test safety incident handling."""
-    incident = safety_manager.handle_safety_incident(mock_incident_data)
+@pytest.mark.asyncio
+async def test_get_risk_assessment(safety_manager, mock_risk_assessment_data):
+    """Test retrieving a risk assessment."""
+    assessment = await safety_manager.get_risk_assessment(mock_risk_assessment_data['activity_id'])
+    assert assessment is not None
+    assert assessment.activity_id == mock_risk_assessment_data['activity_id']
+
+@pytest.mark.asyncio
+async def test_report_incident(safety_manager, mock_incident_data):
+    """Test reporting a safety incident."""
+    incident = await safety_manager.report_incident(**mock_incident_data)
     assert incident is not None
-    assert incident['incident_id'] == mock_incident_data['incident_id']
-    assert incident['status'] == 'handled'
-    assert 'resolution' in incident
+    assert incident.activity_id == mock_incident_data['activity_id']
+    assert incident.incident_type == mock_incident_data['incident_type']
+    assert incident.severity == mock_incident_data['severity']
 
-def test_analyze_safety_trends(safety_manager, mock_activity_data):
-    """Test safety trend analysis."""
-    trends = safety_manager.analyze_safety_trends(mock_activity_data)
-    assert 'incident_trends' in trends
-    assert 'risk_patterns' in trends
-    assert 'improvement_areas' in trends
-    assert 'predictions' in trends
+@pytest.mark.asyncio
+async def test_get_incident(safety_manager, mock_incident_data):
+    """Test retrieving a safety incident."""
+    incident = await safety_manager.get_incident(1)  # Assuming incident_id 1
+    assert incident is not None
+    assert isinstance(incident, SafetyIncident)
 
-def test_validate_equipment_safety(safety_manager):
-    """Test equipment safety validation."""
-    equipment = {
-        'equipment_id': 'eq1',
-        'type': 'treadmill',
-        'last_inspection': datetime.now() - timedelta(days=30),
-        'condition': 'good'
-    }
-    
-    validation = safety_manager.validate_equipment_safety(equipment)
-    assert 'safety_status' in validation
-    assert 'inspection_needed' in validation
-    assert 'maintenance_required' in validation
+@pytest.mark.asyncio
+async def test_get_activity_incidents(safety_manager, mock_incident_data):
+    """Test retrieving incidents for an activity."""
+    incidents = await safety_manager.get_activity_incidents(mock_incident_data['activity_id'])
+    assert isinstance(incidents, list)
+    assert all(isinstance(incident, SafetyIncident) for incident in incidents)
 
-def test_check_environmental_safety(safety_manager):
-    """Test environmental safety checking."""
-    environment = {
-        'location': 'gymnasium',
-        'temperature': 22,
-        'humidity': 50,
-        'lighting': 'good',
-        'floor_condition': 'dry'
-    }
-    
-    safety_check = safety_manager.check_environmental_safety(environment)
-    assert 'safety_status' in safety_check
-    assert 'hazards' in safety_check
-    assert 'recommendations' in safety_check
+@pytest.mark.asyncio
+async def test_create_alert(safety_manager, mock_alert_data):
+    """Test creating a safety alert."""
+    alert = await safety_manager.create_alert(**mock_alert_data)
+    assert alert is not None
+    assert alert.alert_type == mock_alert_data['alert_type']
+    assert alert.severity == mock_alert_data['severity']
+    assert alert.message == mock_alert_data['message']
 
-def test_manage_emergency_procedures(safety_manager):
-    """Test emergency procedure management."""
-    emergency = {
-        'type': 'medical_emergency',
-        'severity': 'high',
-        'location': 'gymnasium',
-        'affected_students': ['student1']
-    }
-    
-    procedures = safety_manager.manage_emergency_procedures(emergency)
-    assert 'action_steps' in procedures
-    assert 'contact_list' in procedures
-    assert 'evacuation_plan' in procedures
-    assert 'follow_up_actions' in procedures
+@pytest.mark.asyncio
+async def test_resolve_alert(safety_manager, mock_alert_data):
+    """Test resolving a safety alert."""
+    alert = await safety_manager.resolve_alert(1, "Issue resolved")  # Assuming alert_id 1
+    assert alert is not None
+    assert alert.resolved_at is not None
+    assert alert.resolution_notes == "Issue resolved"
 
-def test_track_safety_compliance(safety_manager, mock_activity_data):
-    """Test safety compliance tracking."""
-    compliance = safety_manager.track_safety_compliance(mock_activity_data)
-    assert 'compliance_score' in compliance
-    assert 'violations' in compliance
-    assert 'improvement_areas' in compliance
-    assert 'action_items' in compliance
+@pytest.mark.asyncio
+async def test_get_active_alerts(safety_manager):
+    """Test retrieving active alerts."""
+    alerts = await safety_manager.get_active_alerts()
+    assert isinstance(alerts, list)
+    assert all(isinstance(alert, SafetyAlert) for alert in alerts)
 
-def test_error_handling(safety_manager):
+@pytest.mark.asyncio
+async def test_create_safety_protocol(safety_manager, mock_protocol_data):
+    """Test creating a safety protocol."""
+    protocol = await safety_manager.create_safety_protocol(**mock_protocol_data)
+    assert protocol is not None
+    assert protocol.name == mock_protocol_data['name']
+    assert protocol.description == mock_protocol_data['description']
+    assert protocol.steps == mock_protocol_data['steps']
+
+@pytest.mark.asyncio
+async def test_get_protocol(safety_manager, mock_protocol_data):
+    """Test retrieving a safety protocol."""
+    protocol = await safety_manager.get_protocol(1)  # Assuming protocol_id 1
+    assert protocol is not None
+    assert isinstance(protocol, SafetyProtocol)
+
+@pytest.mark.asyncio
+async def test_get_activity_protocols(safety_manager, mock_protocol_data):
+    """Test retrieving protocols for an activity type."""
+    protocols = await safety_manager.get_activity_protocols(mock_protocol_data['activity_type'])
+    assert isinstance(protocols, list)
+    assert all(isinstance(protocol, SafetyProtocol) for protocol in protocols)
+
+@pytest.mark.asyncio
+async def test_update_protocol_review(safety_manager):
+    """Test updating protocol review dates."""
+    protocol = await safety_manager.update_protocol_review(1)  # Assuming protocol_id 1
+    assert protocol is not None
+    assert protocol.last_reviewed is not None
+    assert protocol.next_review is not None
+
+@pytest.mark.asyncio
+async def test_error_handling(safety_manager):
     """Test error handling in safety operations."""
     with pytest.raises(Exception):
-        safety_manager.assess_activity_safety(None, None)
+        await safety_manager.create_risk_assessment(None, None, None, None)
     
     with pytest.raises(Exception):
-        safety_manager.handle_safety_incident(None)
-    
-    with pytest.raises(Exception):
-        safety_manager.validate_equipment_safety(None)
+        await safety_manager.report_incident(None, None, None, None, None, None)
 
-def test_safety_configuration(safety_manager):
-    """Test safety configuration functionality."""
-    safety_manager.configure_safety(
-        safety_protocols=['equipment_check', 'environment_check', 'emergency_drill'],
-        risk_thresholds={
-            'heart_rate': 180,
-            'temperature': 30,
-            'humidity': 80
-        },
-        emergency_procedures={
-            'medical_emergency': ['call_911', 'administer_first_aid', 'notify_parents'],
-            'fire': ['activate_alarm', 'evacuate', 'call_fire_department']
-        }
+@pytest.mark.asyncio
+async def test_database_interaction(safety_manager, db_session):
+    """Test database interaction patterns."""
+    # Test session management
+    assert safety_manager.db == db_session
+    
+    # Test commit is called after operations
+    await safety_manager.create_risk_assessment(
+        activity_id=1,
+        risk_level=RiskLevel.MEDIUM,
+        factors=['test'],
+        mitigation_measures=['test']
     )
+    db_session.commit.assert_called_once()
     
-    assert 'equipment_check' in safety_manager.safety_config['safety_protocols']
-    assert safety_manager.safety_config['risk_thresholds']['heart_rate'] == 180
-    assert 'medical_emergency' in safety_manager.safety_config['emergency_procedures']
-
-def test_safety_validation(safety_manager):
-    """Test safety data validation."""
-    valid_data = {
-        'activity_id': 'act1',
-        'student_id': 'student1',
-        'heart_rate': 120,
-        'temperature': 22
-    }
-    
-    assert safety_manager._validate_safety_data(valid_data) is True
-    
-    invalid_data = valid_data.copy()
-    invalid_data['heart_rate'] = 200  # Above threshold
-    assert safety_manager._validate_safety_data(invalid_data) is False
-
-def test_safety_notification(safety_manager, mock_activity_data):
-    """Test safety notification functionality."""
-    with patch('app.services.notification_service.send_notification') as mock_send:
-        safety_manager.send_safety_notification(
-            'High heart rate detected',
-            'warning',
-            mock_activity_data
+    # Test rollback on error
+    db_session.commit.side_effect = Exception("Test error")
+    with pytest.raises(Exception):
+        await safety_manager.create_risk_assessment(
+            activity_id=1,
+            risk_level=RiskLevel.MEDIUM,
+            factors=['test'],
+            mitigation_measures=['test']
         )
-        mock_send.assert_called_once()
-
-def test_safety_documentation(safety_manager, mock_incident_data):
-    """Test safety documentation functionality."""
-    with patch('reportlab.pdfgen.canvas.Canvas') as mock_canvas:
-        safety_manager.document_safety_incident(mock_incident_data, 'incident_report.pdf')
-        mock_canvas.assert_called_once() 
+    db_session.rollback.assert_called_once() 

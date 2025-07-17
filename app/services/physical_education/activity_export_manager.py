@@ -1,237 +1,602 @@
-from typing import Dict, List, Optional, Union
-import os
-import json
-import pandas as pd
+"""Activity export manager for physical education."""
+
+import logging
+from typing import Dict, Any, Optional, List
 from datetime import datetime
-from pptx import Presentation
-from pptx.util import Inches
-from docx import Document
-import csv
-import openpyxl
-from io import BytesIO
-import base64
+import pandas as pd
+import numpy as np
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+
+# Import models
+from app.models.activity import (
+    Activity,
+    ActivityCategoryAssociation
+)
+from app.models.student import Student
+from app.models.physical_education.activity.models import (
+    StudentActivityPerformance,
+    StudentActivityPreference
+)
+from app.models.cache import (
+    CachePolicy,
+    CacheEntry,
+    CacheMetrics,
+    CacheStatus
+)
+from app.models.physical_education.pe_enums.pe_types import (
+    ActivityType,
+    DifficultyLevel,
+    EquipmentRequirement,
+    ActivityCategoryType,
+    ExportFormat,
+    FileType,
+    CompressionType,
+    DataFormat
+)
 
 class ActivityExportManager:
+    """Service for exporting physical education activity data."""
+    
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(ActivityExportManager, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
-        self.export_formats = [
-            'png', 'svg', 'pdf', 'html', 'json',
-            'pptx', 'docx', 'xlsx', 'csv', 'latex', 'md'
-        ]
+        self.logger = logging.getLogger("activity_export_manager")
+        self.db = None
         
-        # Configure export settings
-        self.export_settings = {
-            'default_format': 'png',
-            'image_quality': 300,
-            'compression_level': 9,
-            'max_file_size': 10 * 1024 * 1024  # 10MB
+        # Export settings
+        self.settings = {
+            "default_format": "csv",
+            "compression": {
+                "enabled": True,
+                "type": "gzip",
+                "level": 6
+            },
+            "file_types": {
+                "csv": {
+                    "delimiter": ",",
+                    "encoding": "utf-8",
+                    "date_format": "%Y-%m-%d %H:%M:%S"
+                },
+                "excel": {
+                    "engine": "openpyxl",
+                    "sheet_name": "Activity Data",
+                    "date_format": "YYYY-MM-DD HH:MM:SS"
+                },
+                "json": {
+                    "indent": 2,
+                    "date_format": "iso"
+                }
+            },
+            "batch_size": 1000,
+            "max_rows": 1000000
         }
         
-        # Set up export directories
-        self.export_dirs = {
-            'visualizations': 'exports/visualizations',
-            'reports': 'exports/reports',
-            'data': 'exports/data'
-        }
+        # Export components
+        self.export_history = []
+        self.export_templates = {}
+        self.data_transformers = {}
+        self.validation_rules = {}
         
-        for dir_path in self.export_dirs.values():
-            os.makedirs(dir_path, exist_ok=True)
-
-    async def export_visualization(self, visualization: Dict, format: str, 
-                                 student_id: str, **kwargs) -> str:
-        """Export visualization in various formats."""
-        if format not in self.export_formats:
-            raise ValueError(f"Unsupported export format: {format}")
+        # Caching and optimization
+        self.export_cache = {}
+        self.template_cache = {}
+    
+    async def initialize(self):
+        """Initialize the export manager."""
+        try:
+            self.db = next(get_db())
             
-        if format == 'pptx':
-            return await self._export_to_pptx(visualization, student_id, **kwargs)
-        elif format == 'docx':
-            return await self._export_to_docx(visualization, student_id, **kwargs)
-        elif format == 'xlsx':
-            return await self._export_to_excel(visualization, student_id, **kwargs)
-        elif format == 'csv':
-            return await self._export_to_csv(visualization, student_id, **kwargs)
-        elif format == 'latex':
-            return await self._export_to_latex(visualization, student_id, **kwargs)
-        elif format == 'md':
-            return await self._export_to_markdown(visualization, student_id, **kwargs)
-        else:
-            return await self._export_to_image(visualization, format, student_id, **kwargs)
+            # Load export templates
+            await self.load_export_templates()
+            
+            # Initialize export components
+            self.initialize_export_components()
+            
+            self.logger.info("Activity Export Manager initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing Activity Export Manager: {str(e)}")
+            raise
+    
+    async def cleanup(self):
+        """Cleanup the export manager."""
+        try:
+            # Clear all data
+            self.export_history.clear()
+            self.export_templates.clear()
+            self.data_transformers.clear()
+            self.validation_rules.clear()
+            self.export_cache.clear()
+            self.template_cache.clear()
+            
+            # Reset service references
+            self.db = None
+            
+            self.logger.info("Activity Export Manager cleaned up successfully")
+        except Exception as e:
+            self.logger.error(f"Error cleaning up Activity Export Manager: {str(e)}")
+            raise
 
-    async def _export_to_pptx(self, visualization: Dict, student_id: str, **kwargs) -> str:
-        """Export visualization to PowerPoint format."""
-        prs = Presentation()
-        slide = prs.slides.add_slide(prs.slide_layouts[1])
-        
-        # Add title
-        title = slide.shapes.title
-        title.text = f"Performance Analysis for {student_id}"
-        
-        # Add content
-        content = slide.placeholders[1]
-        content.text = visualization.get('description', '')
-        
-        # Add visualization
-        if 'image_path' in visualization:
-            slide.shapes.add_picture(
-                visualization['image_path'],
-                left=Inches(1),
-                top=Inches(2),
-                width=Inches(8)
+    async def load_export_templates(self):
+        """Load export templates for different data types."""
+        try:
+            self.export_templates = {
+                "performance": {
+                    "fields": [
+                        "student_id",
+                        "activity_id",
+                        "score",
+                        "date",
+                        "notes"
+                    ],
+                    "transformers": {
+                        "date": "to_datetime",
+                        "score": "to_float",
+                        "notes": "clean_text"
+                    },
+                    "validators": {
+                        "score": "validate_score",
+                        "date": "validate_date"
+                    }
+                },
+                "activity": {
+                    "fields": [
+                        "id",
+                        "name",
+                        "description",
+                        "type",
+                        "difficulty",
+                        "equipment_required"
+                    ],
+                    "transformers": {
+                        "type": "to_enum",
+                        "difficulty": "to_enum",
+                        "equipment_required": "to_list"
+                    },
+                    "validators": {
+                        "type": "validate_type",
+                        "difficulty": "validate_difficulty"
+                    }
+                }
+            }
+            
+            self.logger.info("Export templates loaded successfully")
+        except Exception as e:
+            self.logger.error(f"Error loading export templates: {str(e)}")
+            raise
+
+    def initialize_export_components(self):
+        """Initialize export components."""
+        try:
+            # Initialize data transformers
+            self.data_transformers = {
+                "to_datetime": self._transform_to_datetime,
+                "to_float": self._transform_to_float,
+                "clean_text": self._clean_text,
+                "to_enum": self._transform_to_enum,
+                "to_list": self._transform_to_list
+            }
+            
+            # Initialize validation rules
+            self.validation_rules = {
+                "validate_score": self._validate_score,
+                "validate_date": self._validate_date,
+                "validate_type": self._validate_type,
+                "validate_difficulty": self._validate_difficulty
+            }
+            
+            self.logger.info("Export components initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing export components: {str(e)}")
+            raise
+
+    async def export_performance_data(
+        self,
+        student_id: str,
+        start_date: Optional[datetime] = None,
+        end_date: Optional[datetime] = None,
+        format: str = "csv",
+        include_metadata: bool = True
+    ) -> Dict[str, Any]:
+        """Export student performance data."""
+        try:
+            # Get performance data
+            data = await self._get_performance_data(
+                student_id, start_date, end_date
             )
-        
-        # Save presentation
-        output_path = os.path.join(self.export_dirs['reports'], 
-                                 f"{student_id}/presentation.pptx")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        prs.save(output_path)
-        
-        return output_path
-
-    async def _export_to_docx(self, visualization: Dict, student_id: str, **kwargs) -> str:
-        """Export visualization to Word format."""
-        doc = Document()
-        
-        # Add title
-        doc.add_heading(f"Performance Analysis for {student_id}", 0)
-        
-        # Add description
-        doc.add_paragraph(visualization.get('description', ''))
-        
-        # Add metrics
-        if 'metrics' in visualization:
-            doc.add_heading('Performance Metrics', level=1)
-            for metric, value in visualization['metrics'].items():
-                doc.add_paragraph(f"{metric}: {value}")
-        
-        # Add visualization
-        if 'image_path' in visualization:
-            doc.add_picture(
-                visualization['image_path'],
-                width=Inches(6)
+            
+            # Apply template transformations
+            transformed_data = self._apply_template_transformations(
+                data, "performance"
             )
-        
-        # Save document
-        output_path = os.path.join(self.export_dirs['reports'],
-                                 f"{student_id}/report.docx")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        doc.save(output_path)
-        
-        return output_path
-
-    async def _export_to_excel(self, visualization: Dict, student_id: str, **kwargs) -> str:
-        """Export visualization data to Excel format."""
-        wb = openpyxl.Workbook()
-        ws = wb.active
-        ws.title = "Performance Data"
-        
-        # Add metadata
-        ws['A1'] = f"Performance Analysis for {student_id}"
-        ws['A2'] = f"Generated on: {datetime.now().isoformat()}"
-        
-        # Add data
-        if 'data' in visualization:
-            df = pd.DataFrame(visualization['data'])
-            for r_idx, row in enumerate(df.itertuples(), start=4):
-                for c_idx, value in enumerate(row[1:], start=1):
-                    ws.cell(row=r_idx, column=c_idx, value=value)
-        
-        # Save workbook
-        output_path = os.path.join(self.export_dirs['data'],
-                                 f"{student_id}/data.xlsx")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        wb.save(output_path)
-        
-        return output_path
-
-    async def _export_to_csv(self, visualization: Dict, student_id: str, **kwargs) -> str:
-        """Export visualization data to CSV format."""
-        if 'data' not in visualization:
-            raise ValueError("No data available for CSV export")
             
-        output_path = os.path.join(self.export_dirs['data'],
-                                 f"{student_id}/data.csv")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        df = pd.DataFrame(visualization['data'])
-        df.to_csv(output_path, index=False)
-        
-        return output_path
-
-    async def _export_to_latex(self, visualization: Dict, student_id: str, **kwargs) -> str:
-        """Export visualization to LaTeX format."""
-        latex_content = [
-            "\\documentclass{article}",
-            "\\usepackage{graphicx}",
-            "\\begin{document}",
-            f"\\title{{Performance Analysis for {student_id}}}",
-            "\\maketitle",
-            f"\\section{{Description}}\n{visualization.get('description', '')}",
-        ]
-        
-        if 'metrics' in visualization:
-            latex_content.append("\\section{Metrics}")
-            latex_content.append("\\begin{itemize}")
-            for metric, value in visualization['metrics'].items():
-                latex_content.append(f"\\item {metric}: {value}")
-            latex_content.append("\\end{itemize}")
-        
-        if 'image_path' in visualization:
-            latex_content.append("\\section{Visualization}")
-            latex_content.append(f"\\includegraphics[width=\\textwidth]{{{visualization['image_path']}}}")
-        
-        latex_content.append("\\end{document}")
-        
-        output_path = os.path.join(self.export_dirs['reports'],
-                                 f"{student_id}/report.tex")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        with open(output_path, 'w') as f:
-            f.write('\n'.join(latex_content))
+            # Validate data
+            self._validate_data(transformed_data, "performance")
             
-        return output_path
-
-    async def _export_to_markdown(self, visualization: Dict, student_id: str, **kwargs) -> str:
-        """Export visualization to Markdown format."""
-        markdown_content = [
-            f"# Performance Analysis for {student_id}",
-            f"*Generated on: {datetime.now().isoformat()}*",
-            "",
-            "## Description",
-            visualization.get('description', ''),
-            ""
-        ]
-        
-        if 'metrics' in visualization:
-            markdown_content.append("## Metrics")
-            for metric, value in visualization['metrics'].items():
-                markdown_content.append(f"- **{metric}**: {value}")
-            markdown_content.append("")
-        
-        if 'image_path' in visualization:
-            markdown_content.append("## Visualization")
-            markdown_content.append(f"![Performance Visualization]({visualization['image_path']})")
-        
-        output_path = os.path.join(self.export_dirs['reports'],
-                                 f"{student_id}/report.md")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        with open(output_path, 'w') as f:
-            f.write('\n'.join(markdown_content))
+            # Export data
+            export_result = await self._export_data(
+                transformed_data,
+                format,
+                include_metadata
+            )
             
-        return output_path
-
-    async def _export_to_image(self, visualization: Dict, format: str, 
-                             student_id: str, **kwargs) -> str:
-        """Export visualization to image format."""
-        if 'image_path' not in visualization:
-            raise ValueError("No image available for export")
+            # Update export history
+            self._update_export_history(
+                student_id,
+                "performance",
+                format,
+                export_result
+            )
             
-        output_path = os.path.join(self.export_dirs['visualizations'],
-                                 f"{student_id}/visualization.{format}")
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        
-        # Convert image to specified format
-        # Implementation depends on the image processing library used
-        # This is a placeholder for the actual conversion logic
-        
-        return output_path 
+            return export_result
+            
+        except Exception as e:
+            self.logger.error(f"Error exporting performance data: {str(e)}")
+            raise
+
+    async def export_activity_data(
+        self,
+        activity_type: Optional[str] = None,
+        format: str = "csv",
+        include_metadata: bool = True
+    ) -> Dict[str, Any]:
+        """Export activity data."""
+        try:
+            # Get activity data
+            data = await self._get_activity_data(activity_type)
+            
+            # Apply template transformations
+            transformed_data = self._apply_template_transformations(
+                data, "activity"
+            )
+            
+            # Validate data
+            self._validate_data(transformed_data, "activity")
+            
+            # Export data
+            export_result = await self._export_data(
+                transformed_data,
+                format,
+                include_metadata
+            )
+            
+            # Update export history
+            self._update_export_history(
+                None,
+                "activity",
+                format,
+                export_result
+            )
+            
+            return export_result
+            
+        except Exception as e:
+            self.logger.error(f"Error exporting activity data: {str(e)}")
+            raise
+
+    def _apply_template_transformations(
+        self,
+        data: pd.DataFrame,
+        template_type: str
+    ) -> pd.DataFrame:
+        """Apply template transformations to data."""
+        try:
+            template = self.export_templates[template_type]
+            transformed_data = data.copy()
+            
+            # Apply field transformations
+            for field, transformer in template["transformers"].items():
+                if field in transformed_data.columns:
+                    transform_func = self.data_transformers[transformer]
+                    transformed_data[field] = transformed_data[field].apply(transform_func)
+            
+            return transformed_data
+            
+        except Exception as e:
+            self.logger.error(f"Error applying template transformations: {str(e)}")
+            raise
+
+    def _validate_data(self, data: pd.DataFrame, template_type: str) -> None:
+        """Validate data against template rules."""
+        try:
+            template = self.export_templates[template_type]
+            
+            # Apply validation rules
+            for field, validator in template["validators"].items():
+                if field in data.columns:
+                    validate_func = self.validation_rules[validator]
+                    invalid_rows = ~data[field].apply(validate_func)
+                    if invalid_rows.any():
+                        raise ValueError(f"Invalid values in {field} column")
+            
+        except Exception as e:
+            self.logger.error(f"Error validating data: {str(e)}")
+            raise
+
+    async def _export_data(
+        self,
+        data: pd.DataFrame,
+        format: str,
+        include_metadata: bool
+    ) -> Dict[str, Any]:
+        """Export data to specified format."""
+        try:
+            if format not in self.settings["file_types"]:
+                raise ValueError(f"Unsupported format: {format}")
+            
+            # Get format settings
+            format_settings = self.settings["file_types"][format]
+            
+            # Prepare export data
+            export_data = data.copy()
+            
+            if include_metadata:
+                metadata = self._generate_metadata(export_data)
+                
+            # Export based on format
+            if format == "csv":
+                result = self._export_to_csv(export_data, format_settings)
+            elif format == "excel":
+                result = self._export_to_excel(export_data, format_settings)
+            elif format == "json":
+                result = self._export_to_json(export_data, format_settings)
+            else:
+                raise ValueError(f"Unsupported format: {format}")
+            
+            if include_metadata:
+                result["metadata"] = metadata
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Error exporting data: {str(e)}")
+            raise
+
+    def _export_to_csv(
+        self,
+        data: pd.DataFrame,
+        settings: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Export data to CSV format."""
+        try:
+            # Export to CSV
+            csv_data = data.to_csv(
+                index=False,
+                sep=settings["delimiter"],
+                encoding=settings["encoding"],
+                date_format=settings["date_format"]
+            )
+            
+            # Apply compression if enabled
+            if self.settings["compression"]["enabled"]:
+                csv_data = self._compress_data(csv_data)
+            
+            return {
+                "format": "csv",
+                "data": csv_data,
+                "rows": len(data),
+                "columns": len(data.columns),
+                "compressed": self.settings["compression"]["enabled"]
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error exporting to CSV: {str(e)}")
+            raise
+
+    def _export_to_excel(
+        self,
+        data: pd.DataFrame,
+        settings: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Export data to Excel format."""
+        try:
+            # Export to Excel
+            excel_data = data.to_excel(
+                None,
+                sheet_name=settings["sheet_name"],
+                index=False,
+                engine=settings["engine"]
+            )
+            
+            # Apply compression if enabled
+            if self.settings["compression"]["enabled"]:
+                excel_data = self._compress_data(excel_data)
+            
+            return {
+                "format": "excel",
+                "data": excel_data,
+                "rows": len(data),
+                "columns": len(data.columns),
+                "compressed": self.settings["compression"]["enabled"]
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error exporting to Excel: {str(e)}")
+            raise
+
+    def _export_to_json(
+        self,
+        data: pd.DataFrame,
+        settings: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Export data to JSON format."""
+        try:
+            # Export to JSON
+            json_data = data.to_json(
+                orient="records",
+                date_format=settings["date_format"],
+                indent=settings["indent"]
+            )
+            
+            # Apply compression if enabled
+            if self.settings["compression"]["enabled"]:
+                json_data = self._compress_data(json_data)
+            
+            return {
+                "format": "json",
+                "data": json_data,
+                "rows": len(data),
+                "columns": len(data.columns),
+                "compressed": self.settings["compression"]["enabled"]
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error exporting to JSON: {str(e)}")
+            raise
+
+    def _compress_data(self, data: Any) -> bytes:
+        """Compress data using configured compression settings."""
+        try:
+            import gzip
+            import zlib
+            
+            if self.settings["compression"]["type"] == "gzip":
+                return gzip.compress(
+                    data.encode() if isinstance(data, str) else data,
+                    compresslevel=self.settings["compression"]["level"]
+                )
+            elif self.settings["compression"]["type"] == "zlib":
+                return zlib.compress(
+                    data.encode() if isinstance(data, str) else data,
+                    level=self.settings["compression"]["level"]
+                )
+            else:
+                raise ValueError(f"Unsupported compression type: {self.settings['compression']['type']}")
+            
+        except Exception as e:
+            self.logger.error(f"Error compressing data: {str(e)}")
+            raise
+
+    def _generate_metadata(self, data: pd.DataFrame) -> Dict[str, Any]:
+        """Generate metadata for exported data."""
+        try:
+            return {
+                "timestamp": datetime.now().isoformat(),
+                "rows": len(data),
+                "columns": len(data.columns),
+                "column_types": data.dtypes.to_dict(),
+                "missing_values": data.isnull().sum().to_dict(),
+                "memory_usage": data.memory_usage(deep=True).sum()
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Error generating metadata: {str(e)}")
+            raise
+
+    def _update_export_history(
+        self,
+        student_id: Optional[str],
+        export_type: str,
+        format: str,
+        result: Dict[str, Any]
+    ) -> None:
+        """Update export history."""
+        try:
+            self.export_history.append({
+                "timestamp": datetime.now().isoformat(),
+                "student_id": student_id,
+                "type": export_type,
+                "format": format,
+                "rows": result["rows"],
+                "columns": result["columns"],
+                "compressed": result.get("compressed", False)
+            })
+            
+        except Exception as e:
+            self.logger.error(f"Error updating export history: {str(e)}")
+            raise
+
+    # Data transformation methods
+    def _transform_to_datetime(self, value: Any) -> datetime:
+        """Transform value to datetime."""
+        try:
+            return pd.to_datetime(value)
+        except Exception as e:
+            self.logger.error(f"Error transforming to datetime: {str(e)}")
+            return None
+
+    def _transform_to_float(self, value: Any) -> float:
+        """Transform value to float."""
+        try:
+            return float(value)
+        except Exception as e:
+            self.logger.error(f"Error transforming to float: {str(e)}")
+            return None
+
+    def _clean_text(self, value: Any) -> str:
+        """Clean text value."""
+        try:
+            if pd.isna(value):
+                return ""
+            return str(value).strip()
+        except Exception as e:
+            self.logger.error(f"Error cleaning text: {str(e)}")
+            return ""
+
+    def _transform_to_enum(self, value: Any) -> str:
+        """Transform value to enum string."""
+        try:
+            if pd.isna(value):
+                return None
+            return str(value).upper()
+        except Exception as e:
+            self.logger.error(f"Error transforming to enum: {str(e)}")
+            return None
+
+    def _transform_to_list(self, value: Any) -> List[str]:
+        """Transform value to list."""
+        try:
+            if pd.isna(value):
+                return []
+            if isinstance(value, str):
+                return [item.strip() for item in value.split(",")]
+            if isinstance(value, list):
+                return value
+            return [str(value)]
+        except Exception as e:
+            self.logger.error(f"Error transforming to list: {str(e)}")
+            return []
+
+    # Validation methods
+    def _validate_score(self, value: Any) -> bool:
+        """Validate score value."""
+        try:
+            if pd.isna(value):
+                return False
+            score = float(value)
+            return 0 <= score <= 100
+        except Exception:
+            return False
+
+    def _validate_date(self, value: Any) -> bool:
+        """Validate date value."""
+        try:
+            if pd.isna(value):
+                return False
+            pd.to_datetime(value)
+            return True
+        except Exception:
+            return False
+
+    def _validate_type(self, value: Any) -> bool:
+        """Validate type value."""
+        try:
+            if pd.isna(value):
+                return False
+            return str(value).upper() in [t.value for t in ActivityType]
+        except Exception:
+            return False
+
+    def _validate_difficulty(self, value: Any) -> bool:
+        """Validate difficulty value."""
+        try:
+            if pd.isna(value):
+                return False
+            return str(value).upper() in [d.value for d in DifficultyLevel]
+        except Exception:
+            return False 

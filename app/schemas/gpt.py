@@ -19,7 +19,7 @@ class GPTRoleInDB(GPTRoleBase):
     last_accessed: Optional[datetime] = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class GPTInteractionBase(BaseModel):
     gpt_name: str
@@ -36,7 +36,7 @@ class GPTInteractionInDB(GPTInteractionBase):
     created_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 class MemoryShare(BaseModel):
     memory_id: int

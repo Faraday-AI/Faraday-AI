@@ -1,0 +1,18 @@
+*{{ message }}*
+*Severity:* {{ severity }}
+*Type:* {{ alert_type }}
+*Time:* {{ timestamp }}
+
+*Details:*
+```
+{% for key, value in details.items() %}
+{{ key }}: {{ value }}
+{% endfor %}
+```
+
+{% if recommendations %}
+*Recommendations:*
+{% for rec in recommendations %}
+• {{ rec }}
+{% endfor %}
+{% endif %} 

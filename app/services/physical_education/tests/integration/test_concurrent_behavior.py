@@ -9,7 +9,7 @@ from functools import wraps
 from datetime import datetime
 
 from app.services.physical_education.services.movement_analysis_service import MovementAnalysisService
-from app.services.physical_education.models.movement_analysis.movement_models import MovementAnalysis
+from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis
 
 def mock_track_metrics(endpoint: str = None):
     """Mock decorator factory that matches the actual implementation."""

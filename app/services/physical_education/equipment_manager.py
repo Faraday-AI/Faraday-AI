@@ -4,12 +4,29 @@ import logging
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-from app.services.physical_education.models.safety import EquipmentCheck
+from app.models.physical_education.safety import SafetyCheck
+from app.models.physical_education.equipment import Equipment, EquipmentType
 from app.core.database import get_db
+from app.core.monitoring import track_metrics
+from app.services.physical_education import service_integration
 
 class EquipmentManager:
+    """Service for managing equipment checks, maintenance, and safety."""
+    
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(EquipmentManager, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
         self.logger = logging.getLogger(__name__)
+        self.db = None
+        self.safety_manager = None
+        self.activity_manager = None
+        
+        # Equipment statuses
         self.maintenance_statuses = [
             "good", "needs_inspection", "needs_repair",
             "needs_replacement", "out_of_service"
@@ -22,6 +39,45 @@ class EquipmentManager:
             "new", "good", "fair", "poor",
             "needs_replacement"
         ]
+        
+        # Equipment tracking
+        self.equipment_checks = {}
+        self.maintenance_history = {}
+        self.damage_reports = {}
+        self.age_tracking = {}
+        self.equipment_metrics = {}
+    
+    async def initialize(self):
+        """Initialize the equipment manager."""
+        try:
+            self.db = next(get_db())
+            self.safety_manager = service_integration.get_service("safety_manager")
+            self.activity_manager = service_integration.get_service("activity_manager")
+            
+            self.logger.info("Equipment Manager initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing Equipment Manager: {str(e)}")
+            raise
+    
+    async def cleanup(self):
+        """Cleanup the equipment manager."""
+        try:
+            # Clear all data
+            self.equipment_checks.clear()
+            self.maintenance_history.clear()
+            self.damage_reports.clear()
+            self.age_tracking.clear()
+            self.equipment_metrics.clear()
+            
+            # Reset service references
+            self.db = None
+            self.safety_manager = None
+            self.activity_manager = None
+            
+            self.logger.info("Equipment Manager cleaned up successfully")
+        except Exception as e:
+            self.logger.error(f"Error cleaning up Equipment Manager: {str(e)}")
+            raise
 
     async def create_equipment_check(
         self,
@@ -50,7 +106,7 @@ class EquipmentManager:
             if age_status not in self.age_statuses:
                 raise ValueError(f"Invalid age status. Must be one of: {self.age_statuses}")
             
-            check = EquipmentCheck(
+            check = SafetyCheck(
                 class_id=class_id,
                 equipment_id=equipment_id,
                 check_date=datetime.utcnow(),
@@ -86,10 +142,10 @@ class EquipmentManager:
         self,
         check_id: str,
         db: Session = Depends(get_db)
-    ) -> Optional[EquipmentCheck]:
+    ) -> Optional[SafetyCheck]:
         """Retrieve a specific equipment check by ID."""
         try:
-            return db.query(EquipmentCheck).filter(EquipmentCheck.id == check_id).first()
+            return db.query(SafetyCheck).filter(SafetyCheck.id == check_id).first()
         except Exception as e:
             self.logger.error(f"Error retrieving equipment check: {str(e)}")
             return None
@@ -104,25 +160,25 @@ class EquipmentManager:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         db: Session = Depends(get_db)
-    ) -> List[EquipmentCheck]:
+    ) -> List[SafetyCheck]:
         """Retrieve equipment checks with optional filters."""
         try:
-            query = db.query(EquipmentCheck)
+            query = db.query(SafetyCheck)
             
             if class_id:
-                query = query.filter(EquipmentCheck.class_id == class_id)
+                query = query.filter(SafetyCheck.class_id == class_id)
             if equipment_id:
-                query = query.filter(EquipmentCheck.equipment_id == equipment_id)
+                query = query.filter(SafetyCheck.equipment_id == equipment_id)
             if maintenance_status:
-                query = query.filter(EquipmentCheck.maintenance_status == maintenance_status)
+                query = query.filter(SafetyCheck.maintenance_status == maintenance_status)
             if damage_status:
-                query = query.filter(EquipmentCheck.damage_status == damage_status)
+                query = query.filter(SafetyCheck.damage_status == damage_status)
             if age_status:
-                query = query.filter(EquipmentCheck.age_status == age_status)
+                query = query.filter(SafetyCheck.age_status == age_status)
             if start_date:
-                query = query.filter(EquipmentCheck.check_date >= start_date)
+                query = query.filter(SafetyCheck.check_date >= start_date)
             if end_date:
-                query = query.filter(EquipmentCheck.check_date <= end_date)
+                query = query.filter(SafetyCheck.check_date <= end_date)
             
             return query.all()
             
@@ -138,7 +194,7 @@ class EquipmentManager:
     ) -> Dict[str, Any]:
         """Update an existing equipment check."""
         try:
-            check = db.query(EquipmentCheck).filter(EquipmentCheck.id == check_id).first()
+            check = db.query(SafetyCheck).filter(SafetyCheck.id == check_id).first()
             if not check:
                 return {
                     "success": False,
@@ -180,7 +236,7 @@ class EquipmentManager:
     ) -> Dict[str, Any]:
         """Delete an equipment check."""
         try:
-            check = db.query(EquipmentCheck).filter(EquipmentCheck.id == check_id).first()
+            check = db.query(SafetyCheck).filter(SafetyCheck.id == check_id).first()
             if not check:
                 return {
                     "success": False,
@@ -213,13 +269,13 @@ class EquipmentManager:
     ) -> Dict[str, Any]:
         """Get statistics about equipment checks."""
         try:
-            query = db.query(EquipmentCheck)
+            query = db.query(SafetyCheck)
             if class_id:
-                query = query.filter(EquipmentCheck.class_id == class_id)
+                query = query.filter(SafetyCheck.class_id == class_id)
             if start_date:
-                query = query.filter(EquipmentCheck.check_date >= start_date)
+                query = query.filter(SafetyCheck.check_date >= start_date)
             if end_date:
-                query = query.filter(EquipmentCheck.check_date <= end_date)
+                query = query.filter(SafetyCheck.check_date <= end_date)
             
             checks = query.all()
             

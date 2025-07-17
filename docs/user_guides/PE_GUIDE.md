@@ -118,4 +118,58 @@ This guide will be updated based on teacher feedback and new features. Check bac
 - New prompt templates
 - Additional use cases
 - Enhanced strategies
-- Community-contributed success stories 
+- Community-contributed success stories
+
+## Related Documentation
+
+### Core Documentation
+- [Activity System](/docs/activity_system.md)
+  - System features
+  - Implementation details
+  - Activity guidelines
+  - Best practices
+
+- [Safety Protocols](/docs/safety_protocols.md)
+  - Safety guidelines
+  - Emergency procedures
+  - Best practices
+  - Implementation details
+
+### Implementation Details
+- [Visual Guides](/docs/visual_guides.md)
+  - Activity diagrams
+  - Setup instructions
+  - Equipment layouts
+  - Safety visuals
+
+- [Assessment Framework](/docs/assessment_framework.md)
+  - Assessment tools
+  - Progress tracking
+  - Performance metrics
+  - Evaluation guides
+
+### Educational Resources
+- [Lesson Plans](/docs/lesson_plans.md)
+  - Activity structures
+  - Time management
+  - Teaching strategies
+  - Learning objectives
+
+- [Pocket Guide](/docs/pocket_guide.md)
+  - Quick reference
+  - Essential commands
+  - Common procedures
+  - Best practices
+
+### Additional Resources
+- [Activity Visualization Manager](/docs/activity_visualization_manager.md)
+  - Visual aids
+  - Setup diagrams
+  - Equipment layouts
+  - Space management
+
+- [Beta Documentation](/docs/beta/beta_documentation.md)
+  - System updates
+  - New features
+  - Implementation guides
+  - Best practices 

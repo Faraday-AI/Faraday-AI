@@ -5,6 +5,11 @@ import json
 from app.services.physical_education.services.student_manager import StudentManager
 from app.services.physical_education.services.assessment_system import AssessmentSystem
 from app.services.physical_education.services.lesson_planner import LessonPlanner
+from sqlalchemy.orm import Session
+from app.models.physical_education.class_ import PhysicalEducationClass
+from app.models.physical_education.student import Student
+from app.core.database import Base, engine
+from app.models.shared_base import SharedBase
 
 @pytest.fixture
 def student_manager():
@@ -76,6 +81,41 @@ def mock_progress_data():
             "communication": 75
         }
     }
+
+@pytest.fixture(scope="function")
+def db():
+    SharedBase.metadata.create_all(bind=engine)
+    db = Session(engine)
+    try:
+        yield db
+    finally:
+        db.close()
+        SharedBase.metadata.drop_all(bind=engine)
+
+@pytest.fixture
+def sample_class(db):
+    class_ = PhysicalEducationClass(
+        name="Test PE Class",
+        description="Test Description",
+        grade_level="9th",
+        max_students=30
+    )
+    db.add(class_)
+    db.commit()
+    db.refresh(class_)
+    return class_
+
+@pytest.fixture
+def sample_student(db):
+    student = Student(
+        first_name="John",
+        last_name="Doe",
+        grade_level="9th"
+    )
+    db.add(student)
+    db.commit()
+    db.refresh(student)
+    return student
 
 @pytest.mark.asyncio
 async def test_initialization(student_manager):
@@ -352,4 +392,78 @@ async def test_error_handling(student_manager):
     assert result_att is False
 
     with pytest.raises(ValueError):
-        await student_manager.record_progress("nonexistent_student", "class1", {}) 
+        await student_manager.record_progress("nonexistent_student", "class1", {})
+
+def test_add_student_to_class(db, sample_class, sample_student):
+    manager = StudentManager(db)
+    manager.add_student_to_class(sample_student.id, sample_class.id)
+    
+    # Verify student was added to class
+    assert sample_student in sample_class.students
+    assert sample_class in sample_student.classes
+
+def test_remove_student_from_class(db, sample_class, sample_student):
+    manager = StudentManager(db)
+    
+    # First add the student
+    manager.add_student_to_class(sample_student.id, sample_class.id)
+    
+    # Then remove them
+    manager.remove_student_from_class(sample_student.id, sample_class.id)
+    
+    # Verify student was removed
+    assert sample_student not in sample_class.students
+    assert sample_class not in sample_student.classes
+
+def test_get_student_classes(db, sample_class, sample_student):
+    manager = StudentManager(db)
+    
+    # Add student to class
+    manager.add_student_to_class(sample_student.id, sample_class.id)
+    
+    # Get student's classes
+    classes = manager.get_student_classes(sample_student.id)
+    
+    # Verify class is in the list
+    assert sample_class in classes
+
+def test_get_class_students(db, sample_class, sample_student):
+    manager = StudentManager(db)
+    
+    # Add student to class
+    manager.add_student_to_class(sample_student.id, sample_class.id)
+    
+    # Get class's students
+    students = manager.get_class_students(sample_class.id)
+    
+    # Verify student is in the list
+    assert sample_student in students
+
+def test_class_capacity(db, sample_class):
+    manager = StudentManager(db)
+    
+    # Create and add maximum number of students
+    for i in range(sample_class.max_students):
+        student = Student(
+            first_name=f"Student{i}",
+            last_name=f"Last{i}",
+            grade_level="9th"
+        )
+        db.add(student)
+        db.commit()
+        db.refresh(student)
+        manager.add_student_to_class(student.id, sample_class.id)
+    
+    # Try to add one more student
+    extra_student = Student(
+        first_name="Extra",
+        last_name="Student",
+        grade_level="9th"
+    )
+    db.add(extra_student)
+    db.commit()
+    db.refresh(extra_student)
+    
+    # Should raise an exception
+    with pytest.raises(ValueError):
+        manager.add_student_to_class(extra_student.id, sample_class.id) 

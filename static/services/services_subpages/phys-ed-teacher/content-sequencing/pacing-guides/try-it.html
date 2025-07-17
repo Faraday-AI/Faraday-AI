@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Pacing Guides - Phys Ed Teacher Assistant</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/content-sequencing/pacing-guides/pacing-guides.html" class="back-button" aria-label="Back to Pacing Guides">
+                <span class="back-arrow">←</span> Back to Pacing Guides
+            </a>
+            <h1>Try Pacing Guides</h1>
+            <p class="service-description">Create your own pacing guide for physical education</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Try It Widget -->
+            <section class="try-it-widget">
+                <div class="widget-content">
+                    <div class="widget-form">
+                        <form id="pacingForm">
+                            <div class="form-group">
+                                <label for="unit-title">Unit Title</label>
+                                <input type="text" id="unit-title" name="unit-title" placeholder="Enter your unit title" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="grade-level">Grade Level</label>
+                                <select id="grade-level" name="grade-level" required>
+                                    <option value="">Select grade level</option>
+                                    <option value="k-2">K-2</option>
+                                    <option value="3-5">3-5</option>
+                                    <option value="6-8">6-8</option>
+                                    <option value="9-12">9-12</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="total-weeks">Total Weeks</label>
+                                <input type="number" id="total-weeks" name="total-weeks" min="1" max="12" placeholder="Number of weeks" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="sessions-per-week">Sessions per Week</label>
+                                <input type="number" id="sessions-per-week" name="sessions-per-week" min="1" max="5" placeholder="Number of sessions" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="activities">Activities</label>
+                                <div class="activities-list">
+                                    <div class="activity-item">
+                                        <input type="text" name="activity[]" placeholder="Activity 1" required>
+                                        <input type="number" name="duration[]" min="5" max="60" placeholder="Duration (min)" required>
+                                        <button type="button" class="remove-activity">×</button>
+                                    </div>
+                                </div>
+                                <button type="button" class="add-activity">Add Activity</button>
+                            </div>
+                            <button type="submit" class="cta-button primary">Generate Pacing Guide</button>
+                        </form>
+                    </div>
+                    <div class="widget-preview" id="previewSection" style="display: none;">
+                        <h3>Your Pacing Guide</h3>
+                        <div class="preview-content" id="previewContent">
+                            <!-- Preview content will be generated here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('pacingForm');
+            const previewSection = document.getElementById('previewSection');
+            const previewContent = document.getElementById('previewContent');
+            const addActivityButton = document.querySelector('.add-activity');
+            const activitiesList = document.querySelector('.activities-list');
+
+            // Add activity input
+            addActivityButton.addEventListener('click', function() {
+                const activityCount = activitiesList.children.length + 1;
+                const activityItem = document.createElement('div');
+                activityItem.className = 'activity-item';
+                activityItem.innerHTML = `
+                    <input type="text" name="activity[]" placeholder="Activity ${activityCount}" required>
+                    <input type="number" name="duration[]" min="5" max="60" placeholder="Duration (min)" required>
+                    <button type="button" class="remove-activity">×</button>
+                `;
+                activitiesList.appendChild(activityItem);
+            });
+
+            // Remove activity input
+            activitiesList.addEventListener('click', function(e) {
+                if (e.target.classList.contains('remove-activity')) {
+                    e.target.parentElement.remove();
+                    // Update activity numbers
+                    const activities = activitiesList.querySelectorAll('.activity-item input[type="text"]');
+                    activities.forEach((input, index) => {
+                        input.placeholder = `Activity ${index + 1}`;
+                    });
+                }
+            });
+
+            // Form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get form values
+                const unitTitle = document.getElementById('unit-title').value;
+                const gradeLevel = document.getElementById('grade-level').value;
+                const totalWeeks = document.getElementById('total-weeks').value;
+                const sessionsPerWeek = document.getElementById('sessions-per-week').value;
+                const activities = Array.from(document.querySelectorAll('input[name="activity[]"]')).map(input => input.value);
+                const durations = Array.from(document.querySelectorAll('input[name="duration[]"]')).map(input => input.value);
+
+                // Generate preview content
+                let previewHTML = `
+                    <h4>${unitTitle}</h4>
+                    <p><strong>Grade Level:</strong> ${gradeLevel}</p>
+                    <p><strong>Total Weeks:</strong> ${totalWeeks}</p>
+                    <p><strong>Sessions per Week:</strong> ${sessionsPerWeek}</p>
+                    <h4>Activities:</h4>
+                    <ul>
+                `;
+
+                activities.forEach((activity, index) => {
+                    previewHTML += `<li>${activity} (${durations[index]} minutes)</li>`;
+                });
+
+                previewHTML += '</ul>';
+
+                // Display preview
+                previewContent.innerHTML = previewHTML;
+                previewSection.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html> 

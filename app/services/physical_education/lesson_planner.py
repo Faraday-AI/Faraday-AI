@@ -3,14 +3,24 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import json
 from app.core.monitoring import track_metrics
-from app.services.physical_education.assessment_system import AssessmentSystem
+from app.services.physical_education import service_integration
+from sqlalchemy.orm import Session
+from app.core.database import get_db
 
 class LessonPlanner:
     """Service for managing physical education lesson plans and curriculum."""
     
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(LessonPlanner, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
         self.logger = logging.getLogger("lesson_planner")
-        self.assessment_system = AssessmentSystem()
+        self.db = None
+        self.assessment_system = None
         
         # Lesson planning settings
         self.settings = {
@@ -48,111 +58,39 @@ class LessonPlanner:
             "warmup": {
                 "dynamic_stretching": {
                     "duration": 5,
-                    "equipment": "minimal",
-                    "skills": ["flexibility", "coordination"],
-                    "description": "Dynamic stretching exercises to prepare for activity"
-                },
-                "light_cardio": {
-                    "duration": 5,
-                    "equipment": "minimal",
-                    "skills": ["cardiovascular", "endurance"],
-                    "description": "Light cardiovascular exercises to raise heart rate"
-                }
-            },
-            "main_activities": {
-                "team_sports": {
-                    "basketball": {
-                        "duration": 20,
-                        "equipment": "basic",
-                        "skills": ["dribbling", "passing", "shooting", "teamwork"],
-                        "variations": ["3v3", "5v5", "skill drills"]
-                    },
-                    "soccer": {
-                        "duration": 20,
-                        "equipment": "basic",
-                        "skills": ["dribbling", "passing", "shooting", "teamwork"],
-                        "variations": ["small-sided games", "skill circuits"]
-                    }
-                },
-                "individual_skills": {
-                    "jumping": {
-                        "duration": 15,
-                        "equipment": "minimal",
-                        "skills": ["power", "coordination", "landing"],
-                        "variations": ["long jump", "high jump", "triple jump"]
-                    },
-                    "throwing": {
-                        "duration": 15,
-                        "equipment": "basic",
-                        "skills": ["accuracy", "power", "technique"],
-                        "variations": ["overhand", "underhand", "distance"]
-                    }
-                }
-            },
-            "cooldown": {
-                "static_stretching": {
-                    "duration": 5,
-                    "equipment": "minimal",
-                    "skills": ["flexibility", "recovery"],
-                    "description": "Static stretching exercises to cool down"
-                },
-                "breathing_exercises": {
-                    "duration": 5,
-                    "equipment": "minimal",
-                    "skills": ["relaxation", "mindfulness"],
-                    "description": "Breathing exercises to promote relaxation"
                 }
             }
         }
-        
-        # Lesson templates
-        self.lesson_templates = {
-            "skill_development": {
-                "warmup": "dynamic_stretching",
-                "main_activity": "individual_skills",
-                "cooldown": "static_stretching"
-            },
-            "team_sports": {
-                "warmup": "light_cardio",
-                "main_activity": "team_sports",
-                "cooldown": "static_stretching"
-            },
-            "fitness_focus": {
-                "warmup": "dynamic_stretching",
-                "main_activity": "circuit_training",
-                "cooldown": "breathing_exercises"
-            }
-        }
-
+    
     async def initialize(self):
         """Initialize the lesson planner."""
         try:
-            # Initialize assessment system
-            await self.assessment_system.initialize()
+            self.db = next(get_db())
+            self.assessment_system = service_integration.get_service("assessment_system")
             
-            # Load lesson templates
+            # Load required data
             self.load_lesson_templates()
-            
-            # Initialize activity database
             self.initialize_activity_database()
             
-            self.logger.info("Lesson planner initialized successfully")
+            self.logger.info("Lesson Planner initialized successfully")
         except Exception as e:
-            self.logger.error(f"Error initializing lesson planner: {str(e)}")
+            self.logger.error(f"Error initializing Lesson Planner: {str(e)}")
             raise
-
+    
     async def cleanup(self):
-        """Cleanup lesson planner resources."""
+        """Cleanup the lesson planner."""
         try:
-            # Cleanup assessment system
-            await self.assessment_system.cleanup()
+            self.db = None
+            self.assessment_system = None
             
-            # Save lesson templates
-            self.save_lesson_templates()
+            # Clear all data
+            self.activities = {}
+            self.settings = {}
+            self.curriculum_standards = {}
             
-            self.logger.info("Lesson planner cleaned up successfully")
+            self.logger.info("Lesson Planner cleaned up successfully")
         except Exception as e:
-            self.logger.error(f"Error cleaning up lesson planner: {str(e)}")
+            self.logger.error(f"Error cleaning up Lesson Planner: {str(e)}")
             raise
 
     def load_lesson_templates(self):

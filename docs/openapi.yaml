@@ -1,0 +1,1939 @@
+openapi: 3.1.0
+info:
+  title: Faraday AI Physical Education API
+  description: |
+    API for managing physical education activities and recommendations with multi-GPT dashboard support.
+    
+    This API provides intelligent activity recommendations for students based on their:
+    - Skill levels
+    - Fitness levels
+    - Preferences
+    - Class requirements
+    - Recent activity history
+    - Historical interactions and feedback
+    - Cross-GPT context and memory
+    
+    The system uses a sophisticated recommendation engine that considers:
+    - Activity difficulty levels
+    - Activity types (strength, cardio, flexibility, balance)
+    - Duration constraints
+    - Category distribution
+    - Recent activity history
+    - Historical performance data
+    - Previous GPT interactions and recommendations
+    - Shared context between different GPT instances
+    
+    Dashboard Features:
+    - User account management
+    - Multiple GPT subscription management
+    - GPT switching capabilities
+    - User preference management
+    - Activity history tracking
+    - Cross-GPT context sharing
+    - Dashboard analytics
+    - User feedback integration
+    
+    Memory and Context Features:
+    - Persistent memory storage for each student
+    - Cross-GPT context sharing
+    - Historical interaction tracking
+    - Preference evolution tracking
+    - Performance pattern analysis
+    - Multi-GPT collaboration history
+  version: 1.0.0
+  contact:
+    name: Faraday AI Support
+    email: support@faradayai.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.faradayai.com
+    description: Production server
+
+components:
+  schemas:
+    UserAccount:
+      type: object
+      required:
+        - user_id
+        - email
+        - subscription_status
+      properties:
+        user_id:
+          type: string
+          description: Unique identifier for the user
+          example: "usr-12345"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "user@example.com"
+        subscription_status:
+          type: string
+          enum: [active, inactive, trial]
+          description: Current subscription status
+          example: "active"
+        gpt_subscriptions:
+          type: array
+          items:
+            type: object
+            properties:
+              gpt_id:
+                type: string
+                description: ID of the subscribed GPT
+                example: "gpt-4-physical-education"
+              subscription_date:
+                type: string
+                format: date-time
+                description: When the subscription started
+                example: "2024-03-01T00:00:00Z"
+              status:
+                type: string
+                enum: [active, inactive, paused]
+                description: Status of the GPT subscription
+                example: "active"
+              preferences:
+                type: object
+                description: User preferences for this GPT
+                properties:
+                  default_difficulty:
+                    type: string
+                    enum: [beginner, intermediate, advanced]
+                    example: "intermediate"
+                  preferred_activities:
+                    type: array
+                    items:
+                      type: string
+                    example: ["strength", "cardio"]
+                  notification_settings:
+                    type: object
+                    properties:
+                      email_notifications:
+                        type: boolean
+                        example: true
+                      push_notifications:
+                        type: boolean
+                        example: false
+
+    ActivityRecommendationRequest:
+      type: object
+      required:
+        - user_id
+        - gpt_id
+        - student_id
+        - class_id
+        - preferences
+      properties:
+        user_id:
+          type: string
+          description: ID of the user making the request
+          example: "usr-12345"
+        gpt_id:
+          type: string
+          description: ID of the GPT handling the request
+          example: "gpt-4-physical-education"
+        student_id:
+          type: integer
+          description: Unique identifier for the student
+          example: 12345
+        class_id:
+          type: integer
+          description: Unique identifier for the physical education class
+          example: 67890
+        preferences:
+          type: object
+          required:
+            - difficulty_level
+            - activity_types
+            - duration_minutes
+          properties:
+            difficulty_level:
+              type: string
+              enum: [beginner, intermediate, advanced]
+              description: Student's preferred difficulty level
+              example: intermediate
+            activity_types:
+              type: array
+              items:
+                type: string
+                enum: [strength, cardio, flexibility, balance]
+              description: Types of activities the student prefers
+              example: [strength, cardio]
+            duration_minutes:
+              type: integer
+              minimum: 1
+              maximum: 120
+              description: Preferred duration of activities in minutes
+              example: 45
+        context:
+          type: object
+          description: Additional context for multi-GPT memory recall
+          properties:
+            previous_interactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  gpt_id:
+                    type: string
+                    description: ID of the GPT that made the previous interaction
+                    example: "gpt-4-fitness-coach"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: When the interaction occurred
+                    example: "2024-03-15T14:30:00Z"
+                  interaction_type:
+                    type: string
+                    enum: [recommendation, feedback, assessment, modification]
+                    description: Type of previous interaction
+                    example: "recommendation"
+                  details:
+                    type: object
+                    description: Details of the previous interaction
+            memory_keywords:
+              type: array
+              items:
+                type: string
+              description: Keywords for memory recall
+              example: ["strength_progress", "flexibility_goals", "cardio_endurance"]
+
+    ActivityRecommendationResponse:
+      type: object
+      required:
+        - id
+        - user_id
+        - gpt_id
+        - student_id
+        - class_id
+        - activity_id
+        - recommendation_score
+        - score_breakdown
+        - created_at
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the recommendation
+          example: 98765
+        user_id:
+          type: string
+          description: ID of the user who received the recommendation
+          example: "usr-12345"
+        gpt_id:
+          type: string
+          description: ID of the GPT that generated the recommendation
+          example: "gpt-4-physical-education"
+        student_id:
+          type: integer
+          description: ID of the student who received the recommendation
+          example: 12345
+        class_id:
+          type: integer
+          description: ID of the class the recommendation is for
+          example: 67890
+        activity_id:
+          type: integer
+          description: ID of the recommended activity
+          example: 54321
+        recommendation_score:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Overall recommendation score (0.0 to 1.0)
+          example: 0.85
+        score_breakdown:
+          type: object
+          description: Detailed breakdown of how the recommendation score was calculated
+          properties:
+            skill_match:
+              type: number
+              format: float
+              minimum: 0.0
+              maximum: 1.0
+              description: How well the activity matches the student's skill level
+              example: 0.9
+            fitness_match:
+              type: number
+              format: float
+              minimum: 0.0
+              maximum: 1.0
+              description: How well the activity matches the student's fitness level
+              example: 0.8
+            preference_match:
+              type: number
+              format: float
+              minimum: 0.0
+              maximum: 1.0
+              description: How well the activity matches the student's preferences
+              example: 0.85
+            memory_match:
+              type: number
+              format: float
+              minimum: 0.0
+              maximum: 1.0
+              description: How well the activity aligns with historical interactions
+              example: 0.75
+        created_at:
+          type: string
+          format: date-time
+          description: When the recommendation was generated
+          example: "2024-04-01T12:00:00Z"
+        memory_context:
+          type: object
+          description: Context information for memory recall
+          properties:
+            relevant_history:
+              type: array
+              items:
+                type: object
+                properties:
+                  interaction_id:
+                    type: string
+                    description: ID of the relevant historical interaction
+                    example: "hist-12345"
+                  relevance_score:
+                    type: number
+                    format: float
+                    description: How relevant this historical interaction is
+                    example: 0.85
+            gpt_collaboration:
+              type: array
+              items:
+                type: object
+                properties:
+                  gpt_id:
+                    type: string
+                    description: ID of the GPT that contributed
+                    example: "gpt-4-fitness-coach"
+                  contribution_type:
+                    type: string
+                    enum: [suggestion, modification, validation]
+                    description: Type of contribution
+                    example: "suggestion"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    description: When the contribution was made
+                    example: "2024-04-01T11:30:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
+          description: Human-readable error message
+          example: "Student not found. Please verify the student ID and try again."
+        context:
+          type: object
+          description: Additional context for error handling
+          properties:
+            user_id:
+              type: string
+              description: ID of the user who encountered the error
+              example: "usr-12345"
+            gpt_id:
+              type: string
+              description: ID of the GPT that encountered the error
+              example: "gpt-4-physical-education"
+            memory_state:
+              type: string
+              enum: [available, partial, unavailable]
+              description: State of memory recall at time of error
+              example: "available"
+            suggested_action:
+              type: string
+              description: Suggested action to resolve the error
+              example: "Try retrieving the student's information from the shared memory store"
+
+    LoadBalancerConfig:
+      type: object
+      required:
+        - routing_strategy
+        - regions
+        - monitoring
+      properties:
+        routing_strategy:
+          type: string
+          enum: [geographic, weighted_round_robin, least_connections, adaptive]
+          description: The current routing strategy for load balancing
+          example: "adaptive"
+        regions:
+          type: array
+          description: Configuration for each region
+          items:
+            $ref: '#/components/schemas/RegionConfig'
+        monitoring:
+          $ref: '#/components/schemas/MonitoringConfig'
+        circuit_breaker:
+          $ref: '#/components/schemas/CircuitBreakerConfig'
+
+    RegionConfig:
+      type: object
+      required:
+        - region
+        - weight
+        - health_check
+      properties:
+        region:
+          type: string
+          enum: [NORTH_AMERICA, EUROPE, ASIA, SOUTH_AMERICA]
+          description: Region identifier
+          example: "NORTH_AMERICA"
+        weight:
+          type: number
+          format: float
+          minimum: 0.0
+          maximum: 1.0
+          description: Load balancing weight for this region
+          example: 0.25
+        health_check:
+          $ref: '#/components/schemas/HealthCheckConfig'
+        resource_usage:
+          type: object
+          description: Current resource usage metrics
+          properties:
+            cpu:
+              type: number
+              format: float
+              description: CPU usage percentage
+              example: 65.5
+            memory:
+              type: number
+              format: float
+              description: Memory usage percentage
+              example: 78.3
+            network:
+              type: number
+              format: float
+              description: Network usage in MB/s
+              example: 42.7
+
+    MonitoringConfig:
+      type: object
+      required:
+        - metrics_enabled
+        - alert_thresholds
+      properties:
+        metrics_enabled:
+          type: array
+          description: List of enabled monitoring metrics
+          items:
+            type: string
+            enum: [cpu, memory, network, latency, error_rate]
+          example: ["cpu", "memory", "latency"]
+        alert_thresholds:
+          type: object
+          description: Thresholds for generating alerts
+          properties:
+            cpu_threshold:
+              type: number
+              format: float
+              description: CPU usage threshold percentage
+              example: 80.0
+            memory_threshold:
+              type: number
+              format: float
+              description: Memory usage threshold percentage
+              example: 85.0
+            latency_threshold:
+              type: number
+              format: float
+              description: Latency threshold in milliseconds
+              example: 1000.0
+
+    HealthCheckConfig:
+      type: object
+      required:
+        - interval
+        - timeout
+        - healthy_threshold
+        - unhealthy_threshold
+      properties:
+        interval:
+          type: integer
+          description: Health check interval in seconds
+          example: 30
+        timeout:
+          type: integer
+          description: Health check timeout in seconds
+          example: 5
+        healthy_threshold:
+          type: integer
+          description: Number of consecutive successes required to mark as healthy
+          example: 2
+        unhealthy_threshold:
+          type: integer
+          description: Number of consecutive failures required to mark as unhealthy
+          example: 3
+
+    CircuitBreakerConfig:
+      type: object
+      required:
+        - failure_threshold
+        - reset_timeout
+      properties:
+        failure_threshold:
+          type: integer
+          description: Number of failures before opening circuit
+          example: 5
+        reset_timeout:
+          type: integer
+          description: Seconds to wait before attempting to close circuit
+          example: 60
+
+    LoadBalancerMetrics:
+      type: object
+      required:
+        - timestamp
+        - regions
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp of the metrics
+          example: "2024-04-01T12:00:00Z"
+        regions:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              requests:
+                type: integer
+                description: Total number of requests
+                example: 1000
+              errors:
+                type: integer
+                description: Total number of errors
+                example: 5
+              latency:
+                type: object
+                properties:
+                  avg:
+                    type: number
+                    format: float
+                    description: Average latency in milliseconds
+                    example: 45.7
+                  p95:
+                    type: number
+                    format: float
+                    description: 95th percentile latency
+                    example: 125.3
+                  p99:
+                    type: number
+                    format: float
+                    description: 99th percentile latency
+                    example: 250.1
+              resource_usage:
+                $ref: '#/components/schemas/RegionConfig/properties/resource_usage'
+
+    LoadBalancerDetailedMetrics:
+      type: object
+      description: Detailed metrics for load balancer analysis
+      required:
+        - timestamp
+        - interval
+        - metrics
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: When these metrics were collected
+          example: "2024-04-01T12:00:00Z"
+        interval:
+          type: string
+          enum: [minute, hour, day, week]
+          description: Time interval for the metrics
+          example: "hour"
+        metrics:
+          type: object
+          properties:
+            request_distribution:
+              type: object
+              description: Request distribution across regions
+              additionalProperties:
+                type: object
+                properties:
+                  total_requests:
+                    type: integer
+                    description: Total number of requests handled
+                    example: 15000
+                  success_rate:
+                    type: number
+                    format: float
+                    description: Percentage of successful requests
+                    example: 99.8
+                  error_breakdown:
+                    type: object
+                    properties:
+                      timeout:
+                        type: integer
+                        example: 15
+                      connection_failed:
+                        type: integer
+                        example: 8
+                      circuit_open:
+                        type: integer
+                        example: 3
+            performance_metrics:
+              type: object
+              properties:
+                response_times:
+                  type: object
+                  properties:
+                    min:
+                      type: number
+                      format: float
+                      description: Minimum response time in ms
+                      example: 12.5
+                    max:
+                      type: number
+                      format: float
+                      description: Maximum response time in ms
+                      example: 850.3
+                    avg:
+                      type: number
+                      format: float
+                      description: Average response time in ms
+                      example: 45.7
+                    percentiles:
+                      type: object
+                      properties:
+                        p50:
+                          type: number
+                          format: float
+                          example: 42.1
+                        p75:
+                          type: number
+                          format: float
+                          example: 68.4
+                        p90:
+                          type: number
+                          format: float
+                          example: 95.2
+                        p95:
+                          type: number
+                          format: float
+                          example: 125.3
+                        p99:
+                          type: number
+                          format: float
+                          example: 250.1
+                throughput:
+                  type: object
+                  properties:
+                    requests_per_second:
+                      type: number
+                      format: float
+                      example: 256.7
+                    bandwidth_mbps:
+                      type: number
+                      format: float
+                      example: 45.2
+
+    RegionManagementRequest:
+      type: object
+      required:
+        - action
+        - region
+      properties:
+        action:
+          type: string
+          enum: [enable, disable, drain, test]
+          description: Management action to perform
+          example: "drain"
+        region:
+          type: string
+          enum: [NORTH_AMERICA, EUROPE, ASIA, SOUTH_AMERICA]
+          description: Target region
+          example: "EUROPE"
+        grace_period_seconds:
+          type: integer
+          description: Grace period for the action in seconds
+          example: 300
+        notification_channels:
+          type: array
+          items:
+            type: string
+            enum: [email, slack, webhook]
+          example: ["email", "slack"]
+
+    PredictiveAnalytics:
+      type: object
+      required:
+        - timestamp
+        - predictions
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: When the predictions were generated
+          example: "2024-04-01T12:00:00Z"
+        predictions:
+          type: object
+          properties:
+            load_prediction:
+              type: object
+              description: Predicted load for each region
+              additionalProperties:
+                type: object
+                properties:
+                  predicted_requests:
+                    type: integer
+                    description: Predicted request count for next interval
+                    example: 12500
+                  confidence:
+                    type: number
+                    format: float
+                    description: Prediction confidence score
+                    example: 0.85
+                  trend:
+                    type: string
+                    enum: [increasing, stable, decreasing]
+                    description: Load trend prediction
+                    example: "increasing"
+            resource_prediction:
+              type: object
+              description: Predicted resource usage
+              additionalProperties:
+                type: object
+                properties:
+                  cpu:
+                    type: number
+                    format: float
+                    description: Predicted CPU usage percentage
+                    example: 75.5
+                  memory:
+                    type: number
+                    format: float
+                    description: Predicted memory usage percentage
+                    example: 82.3
+                  confidence:
+                    type: number
+                    format: float
+                    description: Prediction confidence score
+                    example: 0.9
+            potential_issues:
+              type: array
+              description: Predicted potential issues
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                    enum: [overload, resource_exhaustion, latency_spike]
+                    description: Type of potential issue
+                    example: "overload"
+                  probability:
+                    type: number
+                    format: float
+                    description: Probability of issue occurring
+                    example: 0.75
+                  affected_regions:
+                    type: array
+                    items:
+                      type: string
+                    example: ["EUROPE", "ASIA"]
+                  estimated_time:
+                    type: string
+                    format: date-time
+                    description: Estimated time of issue occurrence
+                    example: "2024-04-01T14:30:00Z"
+
+    AlertConfiguration:
+      type: object
+      required:
+        - alert_type
+        - threshold
+        - notification_channels
+      properties:
+        alert_type:
+          type: string
+          enum: [load, latency, error_rate, resource_usage, health_check, circuit_breaker]
+          description: Type of alert to configure
+          example: "load"
+        threshold:
+          type: object
+          properties:
+            metric:
+              type: string
+              description: Metric to monitor
+              example: "requests_per_second"
+            operator:
+              type: string
+              enum: [gt, lt, gte, lte, eq]
+              description: Comparison operator
+              example: "gt"
+            value:
+              type: number
+              description: Threshold value
+              example: 1000
+            duration:
+              type: integer
+              description: Duration in seconds the condition must be true
+              example: 300
+        notification_channels:
+          type: array
+          items:
+            type: object
+            properties:
+              type:
+                type: string
+                enum: [email, slack, webhook]
+                example: "slack"
+              config:
+                type: object
+                description: Channel-specific configuration
+                example: {"channel": "#alerts", "mention": "@oncall"}
+        cooldown:
+          type: integer
+          description: Minimum seconds between repeated alerts
+          example: 600
+        severity:
+          type: string
+          enum: [info, warning, error, critical]
+          description: Alert severity level
+          example: "warning"
+
+paths:
+  /api/v1/users/{user_id}/gpt-subscriptions:
+    get:
+      summary: Get user's GPT subscriptions
+      description: |
+        Retrieve all GPT subscriptions for a user.
+        
+        This endpoint allows users to:
+        - View their active GPT subscriptions
+        - Check subscription status
+        - Review GPT-specific preferences
+        - Monitor subscription dates
+        
+        Example Use Case:
+        A user wants to review their GPT subscriptions to:
+        1. Check which GPTs they have access to
+        2. Verify subscription status
+        3. Review their preferences for each GPT
+        4. Plan potential subscription changes
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "usr-12345"
+      responses:
+        '200':
+          description: Successful response with user's GPT subscriptions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_id:
+                    type: string
+                    example: "usr-12345"
+                  subscriptions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserAccount/properties/gpt_subscriptions/items'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/users/{user_id}/gpt-subscriptions/{gpt_id}:
+    patch:
+      summary: Update GPT subscription preferences
+      description: |
+        Update preferences for a specific GPT subscription.
+        
+        This endpoint allows users to:
+        - Modify GPT-specific preferences
+        - Update notification settings
+        - Change default settings
+        - Customize GPT behavior
+        
+        Example Use Case:
+        A user wants to customize their physical education GPT:
+        1. Set preferred difficulty level
+        2. Choose favorite activity types
+        3. Configure notification preferences
+        4. Save personalized settings
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "usr-12345"
+        - name: gpt_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "gpt-4-physical-education"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                preferences:
+                  $ref: '#/components/schemas/UserAccount/properties/gpt_subscriptions/items/properties/preferences'
+      responses:
+        '200':
+          description: Preferences updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Preferences updated successfully"
+                  updated_preferences:
+                    $ref: '#/components/schemas/UserAccount/properties/gpt_subscriptions/items/properties/preferences'
+        '404':
+          description: User or GPT subscription not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/physical-education/recommendations:
+    post:
+      summary: Get personalized activity recommendations
+      description: |
+        Get personalized activity recommendations for a student based on their preferences, class requirements, and historical context.
+        
+        The recommendation engine considers:
+        - Student's skill level
+        - Student's fitness level
+        - Student's preferences
+        - Class requirements
+        - Recent activity history
+        - Activity difficulty levels
+        - Activity types
+        - Duration constraints
+        - Historical interactions
+        - Cross-GPT context
+        - Memory recall data
+        - User's GPT preferences
+        
+        Example Use Case:
+        A user wants recommendations for their student's next PE class:
+        1. Selects their physical education GPT
+        2. Provides student and class information
+        3. Sets preferences and constraints
+        4. Receives personalized recommendations
+        5. Gets memory context from other GPTs
+        
+        The system returns a list of recommended activities with scores and memory context.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivityRecommendationRequest'
+      parameters:
+        - name: min_score
+          in: query
+          description: Minimum recommendation score (0.0 to 1.0)
+          schema:
+            type: number
+            format: float
+            minimum: 0.0
+            maximum: 1.0
+            example: 0.7
+        - name: max_duration
+          in: query
+          description: Maximum activity duration in minutes
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 120
+            example: 60
+        - name: exclude_recent
+          in: query
+          description: Exclude activities that were recently recommended
+          schema:
+            type: boolean
+            default: false
+        - name: include_memory
+          in: query
+          description: Include memory recall data in the response
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Successful response with activity recommendations and memory context
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivityRecommendationResponse'
+        '404':
+          description: Student or class not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/physical-education/recommendations/history/{user_id}/{student_id}:
+    get:
+      summary: Get recommendation history with memory context
+      description: |
+        Get historical activity recommendations for a student with memory recall capabilities.
+        
+        This endpoint allows users to:
+        - View past recommendations
+        - Filter by date range
+        - Filter by activity type
+        - Filter by difficulty level
+        - Filter by recommendation score
+        - Access cross-GPT interaction history
+        - Retrieve memory context
+        - View preference evolution
+        
+        Example Use Case:
+        A user wants to review a student's activity history:
+        1. Selects their physical education GPT
+        2. Views historical recommendations
+        3. Analyzes cross-GPT interactions
+        4. Reviews memory context
+        5. Plans future activities
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "usr-12345"
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 12345
+        - name: class_id
+          in: query
+          description: Optional class ID to filter by
+          schema:
+            type: integer
+            example: 67890
+        - name: start_date
+          in: query
+          description: Filter recommendations after this date
+          schema:
+            type: string
+            format: date-time
+            example: "2024-03-01T00:00:00Z"
+        - name: end_date
+          in: query
+          description: Filter recommendations before this date
+          schema:
+            type: string
+            format: date-time
+            example: "2024-03-31T23:59:59Z"
+        - name: min_score
+          in: query
+          description: Minimum recommendation score (0.0 to 1.0)
+          schema:
+            type: number
+            format: float
+            minimum: 0.0
+            maximum: 1.0
+            example: 0.8
+        - name: activity_type
+          in: query
+          description: Filter by specific activity type
+          schema:
+            type: string
+            enum: [strength, cardio, flexibility, balance]
+            example: strength
+        - name: difficulty_level
+          in: query
+          description: Filter by difficulty level
+          schema:
+            type: string
+            enum: [beginner, intermediate, advanced]
+            example: intermediate
+        - name: limit
+          in: query
+          description: Maximum number of recommendations to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+        - name: include_memory
+          in: query
+          description: Include memory recall data in the response
+          schema:
+            type: boolean
+            default: true
+        - name: gpt_id
+          in: query
+          description: Filter by specific GPT's contributions
+          schema:
+            type: string
+            example: "gpt-4-fitness-coach"
+      responses:
+        '200':
+          description: Successful response with historical recommendations and memory context
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivityRecommendationResponse'
+        '404':
+          description: User or student not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/physical-education/recommendations/{user_id}/{student_id}:
+    delete:
+      summary: Clear recommendations with memory management
+      description: |
+        Clear stored recommendations for a student with memory management capabilities.
+        
+        This endpoint allows users to:
+        - Clear all recommendations for a student
+        - Clear recommendations for a specific class
+        - Clear recommendations before a specific date
+        - Manage memory retention policies
+        - Handle cross-GPT context cleanup
+        
+        Example Use Case:
+        A user wants to reset a student's recommendations:
+        1. Selects their physical education GPT
+        2. Clears old recommendations
+        3. Preserves important historical context
+        4. Updates memory retention settings
+        5. Prepares for new recommendations
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "usr-12345"
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 12345
+        - name: class_id
+          in: query
+          description: Optional class ID to filter by
+          schema:
+            type: integer
+            example: 67890
+        - name: before_date
+          in: query
+          description: Clear recommendations before this date
+          schema:
+            type: string
+            format: date-time
+            example: "2024-03-31T23:59:59Z"
+        - name: preserve_memory
+          in: query
+          description: Whether to preserve memory context while clearing recommendations
+          schema:
+            type: boolean
+            default: true
+        - name: notify_gpts
+          in: query
+          description: Whether to notify other GPTs of the clearance
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Recommendations cleared successfully with memory management
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully cleared 15 recommendations for student 12345"
+                  memory_status:
+                    type: object
+                    properties:
+                      preserved_contexts:
+                        type: integer
+                        description: Number of preserved memory contexts
+                        example: 5
+                      notified_gpts:
+                        type: array
+                        items:
+                          type: string
+                        description: List of GPTs that were notified
+                        example: ["gpt-4-fitness-coach", "gpt-4-progress-tracker"]
+        '404':
+          description: User or student not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/physical-education/recommendations/category/{user_id}/{student_id}/{class_id}/{category_id}:
+    get:
+      summary: Get category recommendations with memory context
+      description: |
+        Get activity recommendations based on a specific category with memory recall.
+        
+        This endpoint allows users to:
+        - Get recommendations for a specific activity category
+        - Filter by activity type
+        - Filter by difficulty level
+        - Filter by duration
+        - Exclude recently recommended activities
+        - Access category-specific memory
+        - Consider cross-GPT category expertise
+        
+        Example Use Case:
+        A user wants to find strength training activities:
+        1. Selects their physical education GPT
+        2. Specifies the category and filters
+        3. Gets recommendations with memory context
+        4. Reviews cross-GPT expertise
+        5. Makes informed decisions
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "usr-12345"
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 12345
+        - name: class_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 67890
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 54321
+        - name: activity_type
+          in: query
+          description: Filter by specific activity type
+          schema:
+            type: string
+            enum: [strength, cardio, flexibility, balance]
+            example: strength
+        - name: difficulty_level
+          in: query
+          description: Filter by difficulty level
+          schema:
+            type: string
+            enum: [beginner, intermediate, advanced]
+            example: intermediate
+        - name: min_score
+          in: query
+          description: Minimum recommendation score (0.0 to 1.0)
+          schema:
+            type: number
+            format: float
+            minimum: 0.0
+            maximum: 1.0
+            example: 0.8
+        - name: max_duration
+          in: query
+          description: Maximum activity duration in minutes
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 120
+            example: 45
+        - name: exclude_recent
+          in: query
+          description: Exclude activities that were recently recommended
+          schema:
+            type: boolean
+            default: false
+        - name: include_memory
+          in: query
+          description: Include memory recall data in the response
+          schema:
+            type: boolean
+            default: true
+        - name: gpt_expertise
+          in: query
+          description: Consider expertise from specific GPTs
+          schema:
+            type: array
+            items:
+              type: string
+            example: ["gpt-4-fitness-coach", "gpt-4-strength-specialist"]
+      responses:
+        '200':
+          description: Successful response with category-specific recommendations and memory context
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivityRecommendationResponse'
+        '404':
+          description: User, student, class, or category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/physical-education/recommendations/balanced/{user_id}/{student_id}/{class_id}:
+    get:
+      summary: Get balanced recommendations with memory context
+      description: |
+        Get a balanced set of recommendations across different categories with memory recall.
+        
+        This endpoint ensures a diverse set of recommendations by:
+        - Including activities from different categories
+        - Balancing activity types
+        - Considering different difficulty levels
+        - Respecting duration constraints
+        - Accessing cross-category memory
+        - Coordinating with multiple GPTs
+        - Maintaining historical balance
+        
+        Example Use Case:
+        A user wants to create a well-rounded PE session:
+        1. Selects their physical education GPT
+        2. Specifies student and class
+        3. Sets balance preferences
+        4. Gets coordinated recommendations
+        5. Reviews memory context
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "usr-12345"
+        - name: student_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 12345
+        - name: class_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            example: 67890
+        - name: min_score
+          in: query
+          description: Minimum recommendation score (0.0 to 1.0)
+          schema:
+            type: number
+            format: float
+            minimum: 0.0
+            maximum: 1.0
+            example: 0.8
+        - name: max_duration
+          in: query
+          description: Maximum activity duration in minutes
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 120
+            example: 45
+        - name: exclude_recent
+          in: query
+          description: Exclude activities that were recently recommended
+          schema:
+            type: boolean
+            default: false
+        - name: activity_types
+          in: query
+          description: Filter by specific activity types
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [strength, cardio, flexibility, balance]
+            example: [strength, cardio, flexibility]
+        - name: difficulty_levels
+          in: query
+          description: Filter by specific difficulty levels
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [beginner, intermediate, advanced]
+            example: [intermediate]
+        - name: include_memory
+          in: query
+          description: Include memory recall data in the response
+          schema:
+            type: boolean
+            default: true
+        - name: gpt_collaboration
+          in: query
+          description: Enable collaboration with specific GPTs
+          schema:
+            type: array
+            items:
+              type: string
+            example: ["gpt-4-fitness-coach", "gpt-4-balance-specialist"]
+      responses:
+        '200':
+          description: Successful response with balanced recommendations and memory context
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ActivityRecommendationResponse'
+        '404':
+          description: User, student, or class not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/load-balancer/config:
+    get:
+      summary: Get load balancer configuration
+      description: |
+        Retrieve the current load balancer configuration.
+        
+        This endpoint allows users to:
+        - View current routing strategy
+        - Check region configurations
+        - Review monitoring settings
+        - Inspect circuit breaker configuration
+      responses:
+        '200':
+          description: Current load balancer configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadBalancerConfig'
+    put:
+      summary: Update load balancer configuration
+      description: |
+        Update the load balancer configuration.
+        
+        This endpoint allows users to:
+        - Change routing strategy
+        - Update region weights
+        - Modify monitoring settings
+        - Adjust circuit breaker parameters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoadBalancerConfig'
+      responses:
+        '200':
+          description: Configuration updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadBalancerConfig'
+        '400':
+          description: Invalid configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/load-balancer/metrics:
+    get:
+      summary: Get load balancer metrics
+      description: |
+        Retrieve current metrics from the load balancer.
+        
+        This endpoint provides:
+        - Request statistics per region
+        - Error rates and latency metrics
+        - Resource usage metrics
+        - Health check results
+      parameters:
+        - name: start_time
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Current load balancer metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadBalancerMetrics'
+
+  /api/v1/load-balancer/health:
+    get:
+      summary: Get load balancer health status
+      description: |
+        Check the health status of all regions.
+        
+        This endpoint provides:
+        - Overall load balancer health
+        - Individual region health status
+        - Circuit breaker states
+        - Recent health check results
+      responses:
+        '200':
+          description: Current health status
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - status
+                  - regions
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy, degraded, unhealthy]
+                    description: Overall load balancer health status
+                    example: "healthy"
+                  regions:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        status:
+                          type: string
+                          enum: [healthy, degraded, unhealthy]
+                          example: "healthy"
+                        last_check:
+                          type: string
+                          format: date-time
+                          example: "2024-04-01T12:00:00Z"
+                        circuit_breaker:
+                          type: string
+                          enum: [closed, open, half-open]
+                          example: "closed"
+
+  /api/v1/load-balancer/regions/{region}:
+    parameters:
+      - name: region
+        in: path
+        required: true
+        schema:
+          type: string
+          enum: [NORTH_AMERICA, EUROPE, ASIA, SOUTH_AMERICA]
+    get:
+      summary: Get detailed region information
+      description: |
+        Get detailed information about a specific region.
+        
+        This endpoint provides:
+        - Current region status
+        - Detailed metrics
+        - Health check history
+        - Circuit breaker state
+        - Resource utilization
+        - Request distribution
+        - Error rates
+        - Performance metrics
+      responses:
+        '200':
+          description: Detailed region information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  region:
+                    type: string
+                    example: "EUROPE"
+                  status:
+                    type: string
+                    enum: [active, draining, disabled, testing]
+                    example: "active"
+                  health:
+                    type: object
+                    properties:
+                      status:
+                        type: string
+                        enum: [healthy, degraded, unhealthy]
+                        example: "healthy"
+                      last_check:
+                        type: string
+                        format: date-time
+                        example: "2024-04-01T12:00:00Z"
+                      health_check_history:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: string
+                              format: date-time
+                              example: "2024-04-01T11:59:00Z"
+                            result:
+                              type: string
+                              enum: [success, failure]
+                              example: "success"
+                            latency:
+                              type: number
+                              format: float
+                              example: 45.7
+                  circuit_breaker:
+                    type: object
+                    properties:
+                      state:
+                        type: string
+                        enum: [closed, open, half-open]
+                        example: "closed"
+                      failure_count:
+                        type: integer
+                        example: 2
+                      last_failure:
+                        type: string
+                        format: date-time
+                        example: "2024-04-01T11:45:00Z"
+                      next_retry:
+                        type: string
+                        format: date-time
+                        example: "2024-04-01T11:46:00Z"
+                  metrics:
+                    $ref: '#/components/schemas/LoadBalancerDetailedMetrics'
+    post:
+      summary: Manage region state
+      description: |
+        Perform management actions on a region.
+        
+        Available actions:
+        - enable: Enable the region for traffic
+        - disable: Disable the region from receiving traffic
+        - drain: Gradually drain traffic from the region
+        - test: Put the region in test mode
+        
+        The endpoint supports:
+        - Grace periods for smooth transitions
+        - Notification configurations
+        - Health check customization
+        - Circuit breaker adjustments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegionManagementRequest'
+      responses:
+        '200':
+          description: Region management action successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Successfully initiated drain operation for EUROPE region"
+                  status:
+                    type: string
+                    enum: [active, draining, disabled, testing]
+                    example: "draining"
+                  estimated_completion:
+                    type: string
+                    format: date-time
+                    example: "2024-04-01T12:05:00Z"
+        '400':
+          description: Invalid management request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/load-balancer/metrics/detailed:
+    get:
+      summary: Get detailed load balancer metrics
+      description: |
+        Retrieve detailed metrics from the load balancer.
+        
+        This endpoint provides:
+        - Detailed request distribution
+        - Performance metrics
+        - Error breakdowns
+        - Resource utilization
+        - Latency distributions
+        - Throughput statistics
+        
+        Supports:
+        - Time range filtering
+        - Metric type filtering
+        - Region filtering
+        - Aggregation intervals
+        - Custom percentiles
+      parameters:
+        - name: start_time
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: end_time
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: interval
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [minute, hour, day, week]
+            default: hour
+        - name: regions
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [NORTH_AMERICA, EUROPE, ASIA, SOUTH_AMERICA]
+        - name: include_percentiles
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: integer
+              minimum: 1
+              maximum: 100
+            example: [50, 75, 90, 95, 99]
+      responses:
+        '200':
+          description: Detailed metrics response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadBalancerDetailedMetrics'
+
+  /api/v1/load-balancer/analytics/predictions:
+    get:
+      summary: Get load balancer predictions
+      description: |
+        Get predictive analytics for the load balancer.
+        
+        This endpoint provides:
+        - Load predictions per region
+        - Resource usage predictions
+        - Potential issue predictions
+        - Confidence scores
+        - Trend analysis
+        
+        The predictions consider:
+        - Historical patterns
+        - Current trends
+        - Seasonal variations
+        - Known events
+        - Resource constraints
+        - Regional characteristics
+      parameters:
+        - name: prediction_window
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [hour, day, week]
+            default: hour
+        - name: regions
+          in: query
+          required: false
+          schema:
+            type: array
+            items:
+              type: string
+              enum: [NORTH_AMERICA, EUROPE, ASIA, SOUTH_AMERICA]
+        - name: confidence_threshold
+          in: query
+          required: false
+          schema:
+            type: number
+            format: float
+            minimum: 0.0
+            maximum: 1.0
+            default: 0.7
+      responses:
+        '200':
+          description: Predictive analytics response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PredictiveAnalytics'
+
+  /api/v1/load-balancer/alerts:
+    get:
+      summary: Get configured alerts
+      description: |
+        Get all configured load balancer alerts.
+        
+        This endpoint provides:
+        - Alert configurations
+        - Alert history
+        - Current alert status
+        - Notification settings
+      responses:
+        '200':
+          description: Current alert configurations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertConfiguration'
+    post:
+      summary: Create new alert
+      description: |
+        Create a new load balancer alert configuration.
+        
+        Supports alerts for:
+        - Load thresholds
+        - Latency thresholds
+        - Error rates
+        - Resource usage
+        - Health check failures
+        - Circuit breaker state changes
+        
+        With features for:
+        - Multiple notification channels
+        - Customizable thresholds
+        - Alert cooldown periods
+        - Severity levels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertConfiguration'
+      responses:
+        '201':
+          description: Alert created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AlertConfiguration'
+                  - type: object
+                    properties:
+                      id:
+                        type: string
+                        example: "alert-123"
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: "2024-04-01T12:00:00Z"
+        '400':
+          description: Invalid alert configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/load-balancer/alerts/{alert_id}:
+    parameters:
+      - name: alert_id
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get alert configuration
+      description: Get configuration and history for a specific alert
+      responses:
+        '200':
+          description: Alert configuration and history
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/AlertConfiguration'
+                  - type: object
+                    properties:
+                      history:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            timestamp:
+                              type: string
+                              format: date-time
+                              example: "2024-04-01T11:30:00Z"
+                            triggered:
+                              type: boolean
+                              example: true
+                            value:
+                              type: number
+                              example: 1250
+                            notifications:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  channel:
+                                    type: string
+                                    example: "slack"
+                                  status:
+                                    type: string
+                                    enum: [sent, failed]
+                                    example: "sent"
+    put:
+      summary: Update alert configuration
+      description: Update an existing alert configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertConfiguration'
+      responses:
+        '200':
+          description: Alert updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertConfiguration'
+    delete:
+      summary: Delete alert configuration
+      description: Remove an alert configuration
+      responses:
+        '204':
+          description: Alert deleted successfully 

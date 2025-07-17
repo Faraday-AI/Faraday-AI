@@ -2,8 +2,8 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock, Mock
 from sqlalchemy.orm import Session
-from app.services.physical_education.services.safety_incident_manager import SafetyIncidentManager
-from app.services.physical_education.models.safety import SafetyIncident
+from app.services.physical_education.safety_incident_manager import SafetyIncidentManager
+from app.models.physical_education.safety import SafetyIncident
 
 @pytest.fixture
 def safety_incident_manager():

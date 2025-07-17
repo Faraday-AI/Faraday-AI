@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessment - Language Arts Teacher Assistant - Faraday AI</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="AI-powered assessment tools for language arts teachers">
+    <style>
+        :root {
+            --accent-color: #e74c3c;
+            --background-color: #000000;
+            --border-radius: 8px;
+            --card-background: #1a1a1a;
+            --card-hover: #2a2a2a;
+            --primary-color: #3498db;
+            --secondary-color: #ffd700;
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --spacing-unit: 1rem;
+            --text-color: #ffffff;
+            --text-light: #bdc3c7;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .service-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .service-header {
+            position: relative;
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4) 0;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+        }
+
+        .service-subpage-nav {
+            position: absolute;
+            top: 0.5rem;
+            left: var(--spacing-unit);
+            z-index: 10;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 700;
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            background-color: var(--secondary-color);
+            border-radius: var(--border-radius);
+            transition: var(--transition);
+        }
+
+        .back-link:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .getting-started-section {
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            height: 178.125px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .getting-started-section h2 {
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .getting-started-section p {
+            color: var(--text-light);
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .back-button, .cta-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .back-button:hover, .cta-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .service-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        .service-tagline {
+            font-size: 1.25rem;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 500;
+        }
+
+        .service-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .service-section h2 {
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .service-section p {
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card {
+            background-color: #2980b9;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            background-color: #1c6ea4;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card h3 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            font-weight: 500;
+        }
+
+        .content-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .feature-list {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .feature-list li:before {
+            content: "•";
+            color: var(--secondary-color);
+            position: absolute;
+            left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="service-container">
+        <header class="service-header">
+            <nav class="service-subpage-nav">
+                <a href="/static/services/language-arts-teacher.html" class="back-link">← Back to Teacher Assistant</a>
+            </nav>
+            <div class="service-hero">
+                <h1>Assessment</h1>
+                <p class="service-tagline">Track and analyze student progress with AI-powered assessment tools</p>
+            </div>
+        </header>
+
+        <main>
+            <section class="service-section">
+                <h2>Overview</h2>
+                <p>Our assessment system <strong>provides language arts teachers with comprehensive tools to evaluate and track student progress</strong> across all aspects of language arts learning.</p>
+                
+                <p>The system's intelligent algorithms analyze student performance and provide detailed insights while helping teachers create effective assessments aligned with learning objectives.</p>
+
+                <p><strong>What sets our system apart:</strong></p>
+                <ul class="feature-list">
+                    <li><strong>Performance Analysis:</strong> AI-powered analysis of student assessments and progress.</li>
+                    <li><strong>Assessment Creation:</strong> Generate standards-aligned assessments and rubrics.</li>
+                    <li><strong>Progress Tracking:</strong> Monitor individual and class-wide progress over time.</li>
+                    <li><strong>Data Visualization:</strong> Clear, actionable insights through intuitive dashboards.</li>
+                </ul>
+            </section>
+
+            <section class="service-section">
+                <h2>Key Features</h2>
+                <ul class="feature-list">
+                    <li><strong>Assessment Creation:</strong> Generate standards-aligned assessments</li>
+                    <li><strong>Performance Analysis:</strong> Analyze student assessment results</li>
+                    <li><strong>Progress Reports:</strong> Track student progress over time</li>
+                </ul>
+            </section>
+
+            <section class="service-section">
+                <h2>Integration Features</h2>
+                <ul class="feature-list">
+                    <li><strong>Rubric Design:</strong> Create custom assessment rubrics</li>
+                    <li><strong>Data Analytics:</strong> Analyze assessment data</li>
+                    <li><strong>Parent Reports:</strong> Generate progress reports</li>
+                </ul>
+            </section>
+
+            <section class="getting-started-section">
+                <h2>Getting Started</h2>
+                <p>Ready to transform your language arts teaching experience?</p>
+                <div class="button-container">
+                    <button class="back-button" onclick="window.location.href='/static/services/language-arts-teacher.html'">← Back to Teacher Assistant</button>
+                    <button class="cta-button" onclick="showAuthForm()">Get Started</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        function showAuthForm() {
+            alert('This feature is coming soon! Stay tuned for updates.');
+        }
+    </script>
+</body>
+</html> 

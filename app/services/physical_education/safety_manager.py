@@ -3,189 +3,88 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import json
 from app.core.monitoring import track_metrics
-from app.services.physical_education.student_manager import StudentManager
-from app.services.physical_education.lesson_planner import LessonPlanner
+from app.services.physical_education import service_integration
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from app.core.database import get_db
-from app.services.physical_education.models.safety import (
-    SafetyIncident, RiskAssessment, SafetyCheck, 
-    EquipmentCheck, EnvironmentalCheck
+from app.models.physical_education.safety import (
+    SafetyIncident,
+    RiskAssessment,
+    SafetyProtocol,
+    SafetyAlert,
+    SafetyCheck,
+    EquipmentCheck,
+    EnvironmentalCheck
 )
+from app.models.physical_education.pe_enums.pe_types import (
+    RiskLevel,
+    IncidentType,
+    AlertType,
+    IncidentSeverity,
+    CheckType
+)
+from fastapi import HTTPException
 
 class SafetyManager:
     """Service for managing safety protocols, risk assessment, and emergency procedures."""
     
-    def __init__(self):
-        self.logger = logging.getLogger("safety_manager")
-        self.student_manager = StudentManager()
-        self.lesson_planner = LessonPlanner()
-        
-        # Safety protocols
-        self.safety_protocols = {
-            "general": {
-                "supervision": {
-                    "min_ratio": 1/15,  # 1 supervisor per 15 students
-                    "qualifications": ["First Aid", "CPR", "AED"],
-                    "responsibilities": [
-                        "Monitor student activities",
-                        "Enforce safety rules",
-                        "Respond to emergencies"
-                    ]
-                },
-                "equipment": {
-                    "inspection_frequency": 7,  # days
-                    "maintenance_requirements": [
-                        "Regular cleaning",
-                        "Periodic inspection",
-                        "Immediate repair of damaged items"
-                    ]
-                },
-                "environment": {
-                    "space_requirements": {
-                        "indoor": 35,  # square feet per student
-                        "outdoor": 100  # square feet per student
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(SafetyManager, cls).__new__(cls)
+        return cls._instance
+    
+    def __init__(self, db_session: Optional[Session] = None):
+        if not hasattr(self, '_initialized'):
+            self.logger = logging.getLogger("safety_manager")
+            self.db = db_session or next(get_db())
+            self.student_manager = None
+            self.lesson_planner = None
+            
+            # Safety protocols
+            self.safety_protocols = {
+                "general": {
+                    "supervision": {
+                        "min_ratio": 1/15,  # 1 supervisor per 15 students
+                        "qualifications": ["First Aid", "CPR", "AED"],
+                        "responsibilities": [
+                            "Monitor student activities",
+                            "Enforce safety rules",
+                            "Respond to emergencies"
+                        ]
                     },
-                    "surface_requirements": [
-                        "Non-slip",
-                        "Impact-absorbing",
-                        "Well-maintained"
-                    ]
-                }
-            },
-            "activities": {
-                "warmup": {
-                    "duration": 10,  # minutes
-                    "requirements": [
-                        "Proper stretching",
-                        "Gradual intensity increase",
-                        "Hydration check"
-                    ]
-                },
-                "main_activity": {
-                    "requirements": [
-                        "Proper technique demonstration",
-                        "Progressive skill development",
-                        "Adequate rest periods"
-                    ]
-                },
-                "cooldown": {
-                    "duration": 5,  # minutes
-                    "requirements": [
-                        "Proper stretching",
-                        "Hydration",
-                        "Cool-down exercises"
-                    ]
+                    "equipment": {
+                        "inspection_frequency": 7,  # days
+                        "maintenance_requirements": [
+                            "Regular cleaning",
+                            "Periodic inspection",
+                            "Immediate repair of damaged items"
+                        ]
+                    }
                 }
             }
-        }
-        
-        # Risk factors
-        self.risk_factors = {
-            "environmental": [
-                "temperature",
-                "humidity",
-                "air_quality",
-                "surface_conditions",
-                "lighting",
-                "equipment_condition"
-            ],
-            "student": [
-                "medical_conditions",
-                "skill_level",
-                "fatigue",
-                "hydration",
-                "previous_injuries"
-            ],
-            "activity": [
-                "intensity",
-                "complexity",
-                "equipment_usage",
-                "contact_level",
-                "duration"
-            ]
-        }
-        
-        # Emergency procedures
-        self.emergency_procedures = {
-            "medical_emergency": {
-                "steps": [
-                    "Assess situation",
-                    "Call emergency services",
-                    "Administer first aid",
-                    "Contact emergency contacts",
-                    "Document incident"
-                ],
-                "required_equipment": [
-                    "First aid kit",
-                    "AED",
-                    "Emergency contact list",
-                    "Incident report forms"
-                ]
-            },
-            "environmental_emergency": {
-                "steps": [
-                    "Assess danger",
-                    "Evacuate if necessary",
-                    "Secure equipment",
-                    "Contact administration",
-                    "Document incident"
-                ],
-                "required_equipment": [
-                    "Emergency evacuation plan",
-                    "Weather monitoring tools",
-                    "Communication devices"
-                ]
-            },
-            "equipment_failure": {
-                "steps": [
-                    "Stop activity",
-                    "Remove damaged equipment",
-                    "Assess for injuries",
-                    "Report incident",
-                    "Document details"
-                ],
-                "required_equipment": [
-                    "Backup equipment",
-                    "Maintenance tools",
-                    "Incident report forms"
-                ]
-            }
-        }
-        
-        # Incident tracking
-        self.incidents: Dict[str, List[Dict[str, Any]]] = {}
-        self.risk_assessments: Dict[str, Dict[str, Any]] = {}
-        self.safety_checks: Dict[str, List[Dict[str, Any]]] = {}
-
+            self._initialized = True
+    
     async def initialize(self):
         """Initialize the safety manager."""
         try:
-            # Initialize dependent services
-            await self.student_manager.initialize()
-            await self.lesson_planner.initialize()
-            
-            # Load safety data
-            self.load_safety_data()
-            
-            self.logger.info("Safety manager initialized successfully")
+            self.student_manager = service_integration.get_service('student_manager')
+            self.lesson_planner = service_integration.get_service('lesson_planner')
+            self.logger.info("Safety Manager initialized successfully")
         except Exception as e:
-            self.logger.error(f"Error initializing safety manager: {str(e)}")
+            self.logger.error(f"Error initializing Safety Manager: {str(e)}")
             raise
-
+    
     async def cleanup(self):
-        """Cleanup safety manager resources."""
+        """Cleanup the safety manager."""
         try:
-            # Cleanup dependent services
-            await self.student_manager.cleanup()
-            await self.lesson_planner.cleanup()
-            
-            # Save safety data
-            self.save_safety_data()
-            
-            self.logger.info("Safety manager cleaned up successfully")
+            self.db = None
+            self.student_manager = None
+            self.lesson_planner = None
+            self.logger.info("Safety Manager cleaned up successfully")
         except Exception as e:
-            self.logger.error(f"Error cleaning up safety manager: {str(e)}")
+            self.logger.error(f"Error cleaning up Safety Manager: {str(e)}")
             raise
 
     def load_safety_data(self):
@@ -196,6 +95,175 @@ class SafetyManager:
         except Exception as e:
             self.logger.error(f"Error loading safety data: {str(e)}")
             raise
+
+    async def create_risk_assessment(
+        self,
+        activity_id: int,
+        risk_level: RiskLevel,
+        factors: List[str],
+        mitigation_measures: List[str],
+        environmental_conditions: Optional[Dict[str, Any]] = None,
+        equipment_status: Optional[Dict[str, str]] = None,
+        student_health_considerations: Optional[List[str]] = None,
+        weather_conditions: Optional[Dict[str, Any]] = None
+    ) -> RiskAssessment:
+        """Create a new risk assessment for an activity."""
+        assessment = RiskAssessment(
+            activity_id=activity_id,
+            risk_level=risk_level,
+            factors=factors,
+            mitigation_measures=mitigation_measures,
+            environmental_conditions=environmental_conditions,
+            equipment_status=equipment_status,
+            student_health_considerations=student_health_considerations,
+            weather_conditions=weather_conditions
+        )
+        self.db.add(assessment)
+        await self.db.commit()
+        await self.db.refresh(assessment)
+        return assessment
+
+    async def get_risk_assessment(self, activity_id: int) -> Optional[RiskAssessment]:
+        """Get the latest risk assessment for an activity."""
+        return await self.db.query(RiskAssessment)\
+            .filter(RiskAssessment.activity_id == activity_id)\
+            .order_by(RiskAssessment.created_at.desc())\
+            .first()
+
+    async def report_incident(
+        self,
+        activity_id: int,
+        student_id: int,
+        incident_type: IncidentType,
+        severity: IncidentSeverity,
+        description: str,
+        response_taken: str,
+        reported_by: int,
+        location: Optional[str] = None,
+        equipment_involved: Optional[List[str]] = None,
+        witnesses: Optional[List[str]] = None,
+        follow_up_required: Optional[List[str]] = None
+    ) -> SafetyIncident:
+        """Report a new safety incident."""
+        incident = SafetyIncident(
+            activity_id=activity_id,
+            student_id=student_id,
+            incident_type=incident_type,
+            severity=severity,
+            description=description,
+            response_taken=response_taken,
+            reported_by=reported_by,
+            location=location,
+            equipment_involved=equipment_involved,
+            witnesses=witnesses,
+            follow_up_required=follow_up_required
+        )
+        self.db.add(incident)
+        await self.db.commit()
+        await self.db.refresh(incident)
+        return incident
+
+    async def get_incident(self, incident_id: int) -> Optional[SafetyIncident]:
+        """Get a specific safety incident."""
+        return await self.db.query(SafetyIncident)\
+            .filter(SafetyIncident.id == incident_id)\
+            .first()
+
+    async def get_activity_incidents(self, activity_id: int) -> List[SafetyIncident]:
+        """Get all incidents for a specific activity."""
+        return await self.db.query(SafetyIncident)\
+            .filter(SafetyIncident.activity_id == activity_id)\
+            .all()
+
+    async def create_alert(
+        self,
+        alert_type: AlertType,
+        severity: IncidentSeverity,
+        message: str,
+        recipients: List[int],
+        activity_id: Optional[int] = None,
+        equipment_id: Optional[int] = None
+    ) -> SafetyAlert:
+        """Create a new safety alert."""
+        alert = SafetyAlert(
+            alert_type=alert_type,
+            severity=severity,
+            message=message,
+            recipients=recipients,
+            activity_id=activity_id,
+            equipment_id=equipment_id
+        )
+        self.db.add(alert)
+        await self.db.commit()
+        await self.db.refresh(alert)
+        return alert
+
+    async def resolve_alert(self, alert_id: int, resolution_notes: str) -> Optional[SafetyAlert]:
+        """Resolve a safety alert."""
+        alert = await self.db.query(SafetyAlert)\
+            .filter(SafetyAlert.id == alert_id)\
+            .first()
+        if alert:
+            alert.resolved_at = datetime.utcnow()
+            alert.resolution_notes = resolution_notes
+            await self.db.commit()
+            await self.db.refresh(alert)
+        return alert
+
+    async def get_active_alerts(self) -> List[SafetyAlert]:
+        """Get all unresolved safety alerts."""
+        return await self.db.query(SafetyAlert)\
+            .filter(SafetyAlert.resolved_at.is_(None))\
+            .all()
+
+    async def create_safety_protocol(
+        self,
+        name: str,
+        description: str,
+        protocol_type: str,
+        steps: List[str],
+        activity_type: Optional[str] = None,
+        required_equipment: Optional[List[str]] = None,
+        emergency_contacts: Optional[List[Dict[str, str]]] = None
+    ) -> SafetyProtocol:
+        """Create a new safety protocol."""
+        protocol = SafetyProtocol(
+            name=name,
+            description=description,
+            protocol_type=protocol_type,
+            steps=steps,
+            activity_type=activity_type,
+            required_equipment=required_equipment,
+            emergency_contacts=emergency_contacts
+        )
+        self.db.add(protocol)
+        await self.db.commit()
+        await self.db.refresh(protocol)
+        return protocol
+
+    async def get_protocol(self, protocol_id: int) -> Optional[SafetyProtocol]:
+        """Get a specific safety protocol."""
+        return await self.db.query(SafetyProtocol)\
+            .filter(SafetyProtocol.id == protocol_id)\
+            .first()
+
+    async def get_activity_protocols(self, activity_type: str) -> List[SafetyProtocol]:
+        """Get all protocols for a specific activity type."""
+        return await self.db.query(SafetyProtocol)\
+            .filter(SafetyProtocol.activity_type == activity_type)\
+            .all()
+
+    async def update_protocol_review(self, protocol_id: int) -> Optional[SafetyProtocol]:
+        """Update the review dates for a protocol."""
+        protocol = await self.db.query(SafetyProtocol)\
+            .filter(SafetyProtocol.id == protocol_id)\
+            .first()
+        if protocol:
+            protocol.last_reviewed = datetime.utcnow()
+            protocol.next_review = datetime.utcnow() + timedelta(days=30)
+            await self.db.commit()
+            await self.db.refresh(protocol)
+        return protocol
 
     @track_metrics
     async def conduct_risk_assessment(self,
@@ -1147,30 +1215,17 @@ class SafetyManager:
             if db:
                 db.close()
 
-    async def get_risk_assessments(
-        self,
-        class_id: Optional[str] = None,
-        activity_type: Optional[str] = None,
-        risk_level: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        """Retrieve risk assessments with optional filters."""
+    async def get_risk_assessment(self, activity_id: int) -> Optional[RiskAssessment]:
+        """Get the latest risk assessment for an activity."""
         try:
             db = next(get_db())
-            query = db.query(RiskAssessment)
-            
-            if class_id:
-                query = query.filter(RiskAssessment.class_id == class_id)
-            if activity_type:
-                query = query.filter(RiskAssessment.activity_type == activity_type)
-            if risk_level:
-                query = query.filter(RiskAssessment.risk_level == risk_level)
-            
-            assessments = query.all()
-            return [assessment.to_dict() for assessment in assessments]
-            
+            return db.query(RiskAssessment)\
+                .filter(RiskAssessment.activity_id == activity_id)\
+                .order_by(RiskAssessment.created_at.desc())\
+                .first()
         except Exception as e:
-            self.logger.error(f"Error retrieving risk assessments: {str(e)}")
-            return []
+            self.logger.error(f"Error retrieving risk assessment: {str(e)}")
+            return None
         finally:
             if db:
                 db.close()
@@ -2200,4 +2255,205 @@ class SafetyManager:
             return {"success": 0, "failure": 0}
         finally:
             if db:
-                db.close() 
+                db.close()
+
+    async def report_incident(
+        self,
+        activity_id: int,
+        incident_type: IncidentType,
+        severity: IncidentSeverity,
+        description: str,
+        response_taken: str,
+        reported_by: int,
+        student_id: Optional[int] = None,
+        location: Optional[str] = None,
+        equipment_involved: Optional[List[str]] = None,
+        witnesses: Optional[List[str]] = None,
+        follow_up_required: Optional[List[str]] = None
+    ) -> SafetyIncident:
+        """Report a new safety incident."""
+        try:
+            incident = SafetyIncident(
+                activity_id=activity_id,
+                student_id=student_id,
+                incident_type=incident_type,
+                severity=severity,
+                description=description,
+                response_taken=response_taken,
+                reported_by=reported_by,
+                location=location,
+                equipment_involved=equipment_involved,
+                witnesses=witnesses,
+                follow_up_required=follow_up_required
+            )
+            self.db.add(incident)
+            self.db.commit()
+            self.db.refresh(incident)
+            
+            # Create an alert for the incident
+            await self.create_alert(
+                alert_type=AlertType.EMERGENCY,
+                severity=severity,
+                message=f"New safety incident reported: {description}",
+                recipients=[reported_by],  # Add appropriate recipients
+                activity_id=activity_id
+            )
+            
+            return incident
+            
+        except Exception as e:
+            self.logger.error(f"Error reporting incident: {str(e)}")
+            raise
+
+    async def get_incident(self, incident_id: int) -> Optional[SafetyIncident]:
+        """Get a specific safety incident."""
+        try:
+            return self.db.query(SafetyIncident)\
+                .filter(SafetyIncident.id == incident_id)\
+                .first()
+        except Exception as e:
+            self.logger.error(f"Error retrieving incident: {str(e)}")
+            return None
+
+    async def get_activity_incidents(self, activity_id: int) -> List[SafetyIncident]:
+        """Get all incidents for an activity."""
+        try:
+            return self.db.query(SafetyIncident)\
+                .filter(SafetyIncident.activity_id == activity_id)\
+                .order_by(SafetyIncident.created_at.desc())\
+                .all()
+        except Exception as e:
+            self.logger.error(f"Error retrieving activity incidents: {str(e)}")
+            return []
+
+    async def create_alert(
+        self,
+        alert_type: AlertType,
+        severity: IncidentSeverity,
+        message: str,
+        recipients: List[int],
+        activity_id: Optional[int] = None,
+        equipment_id: Optional[int] = None,
+        created_by: int = None
+    ) -> SafetyAlert:
+        """Create a new safety alert."""
+        try:
+            alert = SafetyAlert(
+                alert_type=alert_type,
+                severity=severity,
+                message=message,
+                recipients=recipients,
+                activity_id=activity_id,
+                equipment_id=equipment_id,
+                created_by=created_by
+            )
+            self.db.add(alert)
+            self.db.commit()
+            self.db.refresh(alert)
+            return alert
+        except Exception as e:
+            self.logger.error(f"Error creating alert: {str(e)}")
+            raise
+
+    async def resolve_alert(self, alert_id: int, resolution_notes: str) -> SafetyAlert:
+        """Resolve a safety alert."""
+        try:
+            alert = self.db.query(SafetyAlert)\
+                .filter(SafetyAlert.id == alert_id)\
+                .first()
+            
+            if not alert:
+                raise HTTPException(status_code=404, detail="Alert not found")
+            
+            alert.resolved_at = datetime.utcnow()
+            alert.resolution_notes = resolution_notes
+            self.db.commit()
+            self.db.refresh(alert)
+            return alert
+        except Exception as e:
+            self.logger.error(f"Error resolving alert: {str(e)}")
+            raise
+
+    async def get_active_alerts(self) -> List[SafetyAlert]:
+        """Get all unresolved safety alerts."""
+        try:
+            return self.db.query(SafetyAlert)\
+                .filter(SafetyAlert.resolved_at.is_(None))\
+                .order_by(SafetyAlert.created_at.desc())\
+                .all()
+        except Exception as e:
+            self.logger.error(f"Error retrieving active alerts: {str(e)}")
+            return []
+
+    async def create_safety_protocol(
+        self,
+        name: str,
+        description: str,
+        protocol_type: str,
+        steps: List[str],
+        activity_type: Optional[str] = None,
+        required_equipment: Optional[List[str]] = None,
+        emergency_contacts: Optional[List[Dict[str, str]]] = None,
+        created_by: int = None
+    ) -> SafetyProtocol:
+        """Create a new safety protocol."""
+        try:
+            protocol = SafetyProtocol(
+                name=name,
+                description=description,
+                activity_type=activity_type,
+                protocol_type=protocol_type,
+                steps=steps,
+                required_equipment=required_equipment,
+                emergency_contacts=emergency_contacts,
+                created_by=created_by,
+                last_reviewed=datetime.utcnow(),
+                next_review=datetime.utcnow()  # Set appropriate review date
+            )
+            self.db.add(protocol)
+            self.db.commit()
+            self.db.refresh(protocol)
+            return protocol
+        except Exception as e:
+            self.logger.error(f"Error creating safety protocol: {str(e)}")
+            raise
+
+    async def get_protocol(self, protocol_id: int) -> Optional[SafetyProtocol]:
+        """Get a specific safety protocol."""
+        try:
+            return self.db.query(SafetyProtocol)\
+                .filter(SafetyProtocol.id == protocol_id)\
+                .first()
+        except Exception as e:
+            self.logger.error(f"Error retrieving protocol: {str(e)}")
+            return None
+
+    async def get_activity_protocols(self, activity_type: str) -> List[SafetyProtocol]:
+        """Get all protocols for an activity type."""
+        try:
+            return self.db.query(SafetyProtocol)\
+                .filter(SafetyProtocol.activity_type == activity_type)\
+                .order_by(SafetyProtocol.name)\
+                .all()
+        except Exception as e:
+            self.logger.error(f"Error retrieving activity protocols: {str(e)}")
+            return []
+
+    async def update_protocol_review(self, protocol_id: int) -> SafetyProtocol:
+        """Update the review dates for a protocol."""
+        try:
+            protocol = self.db.query(SafetyProtocol)\
+                .filter(SafetyProtocol.id == protocol_id)\
+                .first()
+            
+            if not protocol:
+                raise HTTPException(status_code=404, detail="Protocol not found")
+            
+            protocol.last_reviewed = datetime.utcnow()
+            protocol.next_review = datetime.utcnow()  # Set appropriate review date
+            self.db.commit()
+            self.db.refresh(protocol)
+            return protocol
+        except Exception as e:
+            self.logger.error(f"Error updating protocol review: {str(e)}")
+            raise 

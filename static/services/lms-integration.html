@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - LMS Integration GPT</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="Seamless integration of AI capabilities with Learning Management Systems">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <header class="service-header">
+            <nav class="service-nav">
+                <a href="/" class="back-button">← Back to Home</a>
+                <div class="auth-section">
+                    <button class="auth-button" onclick="showAuthForm()">Login / Register</button>
+                </div>
+            </nav>
+            <div class="service-hero">
+                <h1>LMS Integration GPT</h1>
+                <p class="service-tagline">Bridging AI capabilities with your existing Learning Management System</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="service-content">
+            <!-- Overview Section -->
+            <section class="service-section" id="overview">
+                <h2>Overview</h2>
+                <div class="section-content">
+                    <p>Our LMS Integration GPT seamlessly connects our AI capabilities with your existing Learning Management System. It enhances your current educational platform with advanced AI features while maintaining your established workflows and processes.</p>
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section class="service-section" id="features">
+                <h2>Key Features</h2>
+                <div class="features-grid">
+                    <div class="feature-card visible">
+                        <h3>Universal Integration</h3>
+                        <p>Compatible with major LMS platforms including Canvas, Blackboard, Moodle, and more.</p>
+                    </div>
+                    <div class="feature-card visible">
+                        <h3>Data Synchronization</h3>
+                        <p>Real-time sync of student data, grades, and learning materials between systems.</p>
+                    </div>
+                    <div class="feature-card visible">
+                        <h3>Custom Workflows</h3>
+                        <p>Adaptable to your institution's specific processes and requirements.</p>
+                    </div>
+                    <div class="feature-card visible">
+                        <h3>Single Sign-On</h3>
+                        <p>Seamless authentication across platforms with secure SSO integration.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Implementation Section -->
+            <section class="service-section" id="implementation">
+                <h2>Technical Implementation</h2>
+                <div class="section-content">
+                    <div class="implementation-details">
+                        <p>The LMS Integration GPT is built with flexibility and security in mind:</p>
+                        <ul>
+                            <li>RESTful APIs for standardized communication</li>
+                            <li>OAuth 2.0 for secure authentication</li>
+                            <li>Webhook support for real-time updates</li>
+                            <li>Custom middleware for platform-specific requirements</li>
+                        </ul>
+                    </div>
+                    <div class="code-examples">
+                        <h3>API Integration Example</h3>
+                        <pre><code>POST /api/v1/lms/sync
+{
+    "lms_type": "canvas",
+    "course_id": "12345",
+    "sync_type": "grades",
+    "data": {
+        "assignments": [
+            {
+                "id": "assignment_1",
+                "grades": {
+                    "student_1": 95,
+                    "student_2": 88
+                }
+            }
+        ]
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Use Cases Section -->
+            <section class="service-section" id="use-cases">
+                <h2>Use Cases & Examples</h2>
+                <div class="use-cases-grid">
+                    <div class="use-case-card visible">
+                        <h3>Grade Synchronization</h3>
+                        <p>Automatically sync AI-graded assignments with your LMS gradebook.</p>
+                    </div>
+                    <div class="use-case-card visible">
+                        <h3>Content Distribution</h3>
+                        <p>Seamlessly distribute AI-generated content through your existing LMS.</p>
+                    </div>
+                    <div class="use-case-card visible">
+                        <h3>Analytics Integration</h3>
+                        <p>Combine AI insights with LMS analytics for comprehensive reporting.</p>
+                    </div>
+                    <div class="use-case-card visible">
+                        <h3>Custom Workflows</h3>
+                        <p>Create tailored integration paths for specific institutional needs.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Integration Section -->
+            <section class="service-section" id="integration">
+                <h2>Integration & API</h2>
+                <div class="section-content">
+                    <p>Supported LMS platforms and integration methods:</p>
+                    <ul>
+                        <li>Canvas API Integration</li>
+                        <li>Blackboard Learn REST API</li>
+                        <li>Moodle Web Services</li>
+                        <li>Custom API Development</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Technical Specifications -->
+            <section class="service-section" id="specifications">
+                <h2>Technical Specifications</h2>
+                <div class="specs-grid">
+                    <div class="spec-card">
+                        <h3>API Version</h3>
+                        <p>REST API v1.0, WebSocket support</p>
+                    </div>
+                    <div class="spec-card">
+                        <h3>Sync Frequency</h3>
+                        <p>Real-time or configurable intervals</p>
+                    </div>
+                    <div class="spec-card">
+                        <h3>Security</h3>
+                        <p>OAuth 2.0, JWT, SSL/TLS</p>
+                    </div>
+                    <div class="spec-card">
+                        <h3>Compliance</h3>
+                        <p>FERPA, GDPR, SOC 2 compliant</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="service-footer">
+            <div class="footer-content">
+                <div class="social-links">
+                    <a href="https://twitter.com/faradayai" target="_blank" rel="noopener noreferrer">Twitter</a>
+                    <a href="https://linkedin.com/company/faradayai" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+                    <a href="https://github.com/faradayai" target="_blank" rel="noopener noreferrer">GitHub</a>
+                </div>
+                <div class="footer-text">
+                    2025 FARADAY AI, LLC
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Authentication Form -->
+    <div class="auth-container">
+        <!-- Auth form content will be loaded dynamically -->
+    </div>
+
+    <script src="/static/js/services.js"></script>
+</body>
+</html> 

@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Time Management Assistant - Faraday AI</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="Faraday AI's Time Management Assistant - Your personal AI coach for scheduling, task management, and productivity">
+</head>
+<body data-service="time-management">
+    <div class="service-container">
+        <header class="service-header">
+            <a href="/" class="back-button">← Back to Home</a>
+            <h1>Time Management Assistant</h1>
+            <p class="service-description">Your AI-powered time management companion</p>
+        </header>
+        
+        <section class="service-features">
+            <h2>Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card" data-href="/static/services/services_subpages/time-management/scheduling.html" tabindex="0" aria-label="Smart Scheduling - AI-powered calendar management and optimization">
+                    <h3>Smart Scheduling</h3>
+                    <p>AI-powered calendar management and optimization</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/time-management/task-management.html" tabindex="0" aria-label="Task Management - Organize and prioritize your work">
+                    <h3>Task Management</h3>
+                    <p>Organize and prioritize your work</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/time-management/focus-sessions.html" tabindex="0" aria-label="Focus Sessions - Structured time blocks for maximum productivity">
+                    <h3>Focus Sessions</h3>
+                    <p>Structured time blocks for maximum productivity</p>
+                </div>
+                <div class="feature-card" data-href="/static/services/services_subpages/time-management/analytics.html" tabindex="0" aria-label="Productivity Analytics - Track and improve your time usage">
+                    <h3>Productivity Analytics</h3>
+                    <p>Track and improve your time usage</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-implementation">
+            <h2>How It Works</h2>
+            <div class="implementation-details">
+                <div class="detail-card" data-href="/static/services/services_subpages/time-management/calendar-integration.html" tabindex="0" aria-label="Calendar Integration - Sync with your existing calendar">
+                    <h3>Calendar Integration</h3>
+                    <p>Sync with your existing calendar</p>
+                </div>
+                <div class="detail-card" data-href="/static/services/services_subpages/time-management/ai-scheduling.html" tabindex="0" aria-label="AI Scheduling - Smart suggestions for optimal time allocation">
+                    <h3>AI Scheduling</h3>
+                    <p>Smart suggestions for optimal time allocation</p>
+                </div>
+                <div class="detail-card" data-href="/static/services/services_subpages/time-management/reminders.html" tabindex="0" aria-label="Smart Reminders - Never miss important deadlines">
+                    <h3>Smart Reminders</h3>
+                    <p>Never miss important deadlines</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-examples">
+            <h2>Example Use Cases</h2>
+            <div class="examples-grid">
+                <div class="example-card" data-href="/static/services/services_subpages/time-management/student.html" tabindex="0" aria-label="Student Schedule - Balance classes, study time, and activities">
+                    <h3>Student Schedule</h3>
+                    <p>Balance classes, study time, and activities</p>
+                </div>
+                <div class="example-card" data-href="/static/services/services_subpages/time-management/teacher.html" tabindex="0" aria-label="Teacher Planning - Manage lesson prep and grading">
+                    <h3>Teacher Planning</h3>
+                    <p>Manage lesson prep and grading</p>
+                </div>
+                <div class="example-card" data-href="/static/services/services_subpages/time-management/project.html" tabindex="0" aria-label="Project Management - Track deadlines and milestones">
+                    <h3>Project Management</h3>
+                    <p>Track deadlines and milestones</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="technical-section">
+            <h2>Advanced Features</h2>
+            <div class="technical-specs">
+                <div class="feature-card" data-href="/static/services/services_subpages/time-management/ai-algorithms.html" tabindex="0" aria-label="AI Algorithms - Advanced scheduling and optimization">
+                    <h3>AI Algorithms</h3>
+                    <p>Advanced scheduling and optimization</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-cta">
+            <h2>Ready to Take Control of Your Time?</h2>
+            <p>Start using our AI-powered time management system today.</p>
+            <button class="cta-button" onclick="showAuthForm()">Start Using Time Management Assistant</button>
+        </section>
+    </div>
+
+    <style>
+        .service-cta {
+            text-align: center;
+            margin: 4rem 0;
+        }
+
+        .cta-button {
+            background: #1a73e8;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: background 0.3s ease;
+        }
+
+        .cta-button:hover {
+            background: #1557b0;
+        }
+
+        @media (max-width: 768px) {
+            .service-cta {
+                margin: 2rem 0;
+            }
+        }
+    </style>
+
+    <!-- Auth Form Container -->
+    <div id="auth-container" class="auth-container">
+        <!-- Auth form will be injected here -->
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/services.js"></script>
+    <script>
+        // Show auth form when clicking CTA button
+        function showAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Load auth form content
+            fetch('/static/auth-form.html')
+                .then(response => response.text())
+                .then(html => {
+                    authContainer.innerHTML = html;
+                    
+                    // Initialize the auth form
+                    if (typeof initializeAuthForm === 'function') {
+                        initializeAuthForm();
+                    }
+                    
+                    // Initialize toggle functionality
+                    const loginToggle = document.querySelector('.login-toggle');
+                    const registerToggle = document.querySelector('.register-toggle');
+                    const loginForm = document.querySelector('.login-form');
+                    const registerForm = document.querySelector('.register-form');
+                    
+                    if (loginToggle && registerToggle && loginForm && registerForm) {
+                        // Set initial state
+                        loginForm.classList.add('active');
+                        loginToggle.classList.add('active');
+                        registerForm.classList.remove('active');
+                        registerToggle.classList.remove('active');
+                        
+                        // Add click handlers
+                        loginToggle.onclick = function(e) {
+                            e.preventDefault();
+                            loginForm.classList.add('active');
+                            loginToggle.classList.add('active');
+                            registerForm.classList.remove('active');
+                            registerToggle.classList.remove('active');
+                        };
+                        
+                        registerToggle.onclick = function(e) {
+                            e.preventDefault();
+                            registerForm.classList.add('active');
+                            registerToggle.classList.add('active');
+                            loginForm.classList.remove('active');
+                            loginToggle.classList.remove('active');
+                        };
+                    }
+                })
+                .catch(error => console.error('Error loading auth form:', error));
+        }
+
+        // Close auth form
+        function closeAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize auth form functionality
+        function initializeAuthForm() {
+            const closeButton = document.querySelector('.auth-close-button');
+            if (closeButton) {
+                closeButton.onclick = closeAuthForm;
+            }
+
+            // Add click outside to close
+            document.addEventListener('click', (e) => {
+                const authContainer = document.getElementById('auth-container');
+                if (e.target === authContainer) {
+                    closeAuthForm();
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

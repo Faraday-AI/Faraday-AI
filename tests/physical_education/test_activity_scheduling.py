@@ -1,8 +1,10 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
+from app.models.activity import Activity
+from app.services.physical_education.models.activity_plan import ActivityPlan, ActivityPlanActivity
 from app.services.physical_education.activity_manager import ActivityManager
-from app.services.physical_education.models.activity import Activity, ActivityPlan, ActivityPlanActivity
 
 @pytest.fixture
 def mock_db():

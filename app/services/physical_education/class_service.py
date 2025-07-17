@@ -1,13 +1,14 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from app.core.database import get_db
-from .models.class_ import Class, ClassStatus
-from .models.class_student import ClassStudent
-from .models.student import Student
-from .models.routine import Routine
-from .models.activity import Activity
-from .models.lesson_plan import LessonPlan
+from app.models.physical_education.class_ import PhysicalEducationClass
+from app.models.physical_education.student import Student
+from app.models.routine import Routine
+from app.models.activity import Activity
+from app.models.lesson_plan import LessonPlan
+from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis, MovementPattern
 
 class ClassService:
     """Service for managing physical education classes and related operations."""
@@ -15,7 +16,7 @@ class ClassService:
     def __init__(self, db: Session):
         self.db = db
 
-    def create_class(self, class_data: Dict[str, Any]) -> Class:
+    def create_class(self, class_data: Dict[str, Any]) -> PhysicalEducationClass:
         """
         Create a new physical education class.
         
@@ -30,18 +31,15 @@ class ClassService:
                 - status: ClassStatus
         
         Returns:
-            Class: The created class object
+            PhysicalEducationClass: The created class object
         """
-        try:
-            class_ = Class(**class_data)
-            self.db.add(class_)
-            self.db.commit()
-            return class_
-        except SQLAlchemyError as e:
-            self.db.rollback()
-            raise e
+        class_ = PhysicalEducationClass(**class_data)
+        self.db.add(class_)
+        self.db.commit()
+        self.db.refresh(class_)
+        return class_
 
-    def get_class(self, class_id: int) -> Optional[Class]:
+    def get_class(self, class_id: int) -> Optional[PhysicalEducationClass]:
         """
         Retrieve a class by its ID.
         
@@ -49,11 +47,11 @@ class ClassService:
             class_id: The ID of the class to retrieve
             
         Returns:
-            Optional[Class]: The class if found, None otherwise
+            Optional[PhysicalEducationClass]: The class if found, None otherwise
         """
-        return self.db.query(Class).filter(Class.id == class_id).first()
+        return self.db.query(PhysicalEducationClass).filter(PhysicalEducationClass.id == class_id).first()
 
-    def get_classes_by_grade(self, grade_level: str) -> List[Class]:
+    def get_classes_by_grade(self, grade_level: str) -> List[PhysicalEducationClass]:
         """
         Retrieve all classes for a specific grade level.
         
@@ -61,11 +59,11 @@ class ClassService:
             grade_level: The grade level to filter by
             
         Returns:
-            List[Class]: List of classes for the grade level
+            List[PhysicalEducationClass]: List of classes for the grade level
         """
-        return self.db.query(Class).filter(Class.grade_level == grade_level).all()
+        return self.db.query(PhysicalEducationClass).filter(PhysicalEducationClass.grade_level == grade_level).all()
 
-    def get_classes_by_status(self, status: ClassStatus) -> List[Class]:
+    def get_classes_by_status(self, status: ClassStatus) -> List[PhysicalEducationClass]:
         """
         Retrieve all classes with a specific status.
         
@@ -73,11 +71,11 @@ class ClassService:
             status: The class status to filter by
             
         Returns:
-            List[Class]: List of classes with the specified status
+            List[PhysicalEducationClass]: List of classes with the specified status
         """
-        return self.db.query(Class).filter(Class.status == status).all()
+        return self.db.query(PhysicalEducationClass).filter(PhysicalEducationClass.status == status).all()
 
-    def update_class(self, class_id: int, class_data: Dict[str, Any]) -> Optional[Class]:
+    def update_class(self, class_id: int, class_data: Dict[str, Any]) -> Optional[PhysicalEducationClass]:
         """
         Update an existing class.
         
@@ -86,21 +84,15 @@ class ClassService:
             class_data: Dictionary containing updated class details
             
         Returns:
-            Optional[Class]: The updated class if found, None otherwise
+            Optional[PhysicalEducationClass]: The updated class if found, None otherwise
         """
-        try:
-            class_ = self.get_class(class_id)
-            if not class_:
-                return None
-                
+        class_ = self.get_class(class_id)
+        if class_:
             for key, value in class_data.items():
                 setattr(class_, key, value)
-            
             self.db.commit()
-            return class_
-        except SQLAlchemyError as e:
-            self.db.rollback()
-            raise e
+            self.db.refresh(class_)
+        return class_
 
     def delete_class(self, class_id: int) -> bool:
         """
@@ -112,22 +104,12 @@ class ClassService:
         Returns:
             bool: True if deletion was successful, False otherwise
         """
-        try:
-            class_ = self.get_class(class_id)
-            if not class_:
-                return False
-                
-            # Delete associated records
-            self.db.query(ClassStudent).filter(
-                ClassStudent.class_id == class_id
-            ).delete()
-            
+        class_ = self.get_class(class_id)
+        if class_:
             self.db.delete(class_)
             self.db.commit()
             return True
-        except SQLAlchemyError as e:
-            self.db.rollback()
-            raise e
+        return False
 
     def enroll_student(self, class_id: int, student_id: str) -> bool:
         """
@@ -201,7 +183,7 @@ class ClassService:
             self.db.rollback()
             raise e
 
-    def get_class_students(self, class_id: int) -> List[Student]:
+    def get_students(self, class_id: int) -> List[Student]:
         """
         Get all students enrolled in a class.
         
@@ -211,13 +193,12 @@ class ClassService:
         Returns:
             List[Student]: List of enrolled students
         """
-        return self.db.query(Student).join(
-            ClassStudent
-        ).filter(
-            ClassStudent.class_id == class_id
-        ).all()
+        class_ = self.get_class(class_id)
+        if class_:
+            return [enrollment.student for enrollment in class_.student_enrollments]
+        return []
 
-    def get_student_classes(self, student_id: str) -> List[Class]:
+    def get_student_classes(self, student_id: str) -> List[PhysicalEducationClass]:
         """
         Get all classes a student is enrolled in.
         
@@ -225,9 +206,9 @@ class ClassService:
             student_id: The ID of the student
             
         Returns:
-            List[Class]: List of enrolled classes
+            List[PhysicalEducationClass]: List of enrolled classes
         """
-        return self.db.query(Class).join(
+        return self.db.query(PhysicalEducationClass).join(
             ClassStudent
         ).filter(
             ClassStudent.student_id == student_id

@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Language Arts Teacher Assistant</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="AI-powered Language Arts Teacher Assistant to enhance your teaching experience">
+    <style>
+        :root {
+            --accent-color: #e74c3c;
+            --background-color: #000000;
+            --border-radius: 8px;
+            --card-background: #1a1a1a;
+            --card-hover: #2a2a2a;
+            --primary-color: #3498db;
+            --secondary-color: #ffd700;
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --spacing-unit: 1rem;
+            --text-color: #ffffff;
+            --text-light: #bdc3c7;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .service-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .service-header {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4) 0;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+        }
+
+        .service-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: var(--text-color);
+            font-weight: 700;
+        }
+
+        .service-tagline {
+            font-size: 1.25rem;
+            color: var(--text-light);
+            max-width: 600px;
+            margin: 0 auto;
+            font-weight: 500;
+        }
+
+        .service-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .service-section h2 {
+            color: var(--secondary-color);
+            margin-bottom: 1.5rem;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .service-section p {
+            font-weight: 500;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card {
+            background-color: #2980b9;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+            cursor: pointer;
+            color: var(--text-color);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            background-color: #1c6ea4;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card h3 {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .feature-card p {
+            font-weight: 500;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+            background-color: var(--card-background);
+            padding: 0.75rem;
+            border-radius: var(--border-radius);
+        }
+
+        .benefit-icon {
+            color: var(--secondary-color);
+            font-size: 1.5rem;
+        }
+
+        .benefit-item h3 {
+            font-weight: 600;
+            margin-bottom: 0.1rem;
+        }
+
+        .benefit-item p {
+            font-weight: 500;
+            margin-bottom: 0;
+        }
+
+        .cta-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+            margin-top: 0;
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .service-footer {
+            background-color: var(--card-background);
+            margin-top: 3rem;
+            padding: 2rem 0;
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+
+        .footer-links {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .footer-links a {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+        }
+
+        .footer-links a:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .footer-text {
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .service-section ul li {
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .service-nav {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 0 var(--spacing-unit);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+        }
+
+        .back-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .back-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .getting-started-section {
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+            height: 178.125px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .getting-started-section h2 {
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .getting-started-section p {
+            color: var(--text-light);
+            font-size: 1rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .back-button, .cta-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            min-width: 200px;
+            text-align: center;
+            height: 45px;
+            line-height: 1.2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .back-button:hover, .cta-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .benefits-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .benefits-list li {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .benefits-list li:last-child {
+            border-bottom: none;
+        }
+
+        .benefits-list h3 {
+            color: var(--secondary-color);
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        .benefits-list p {
+            color: var(--text-light);
+            line-height: 1.6;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <header class="service-header">
+            <nav class="service-nav">
+                <a href="/static/services/teacher-admin.html#features" class="back-button">← Back to Teacher & Admin Assistants</a>
+            </nav>
+            <div class="service-hero">
+                <h1>Language Arts Teacher Assistant</h1>
+                <p class="service-tagline">Your AI-powered partner for creating engaging and effective language arts lessons</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <section class="service-section">
+                <h2>Overview</h2>
+                <p>Our Language Arts Teacher Assistant GPT is designed to revolutionize how you teach language arts. It combines advanced AI capabilities with educational expertise to provide comprehensive support for your teaching needs.</p>
+                
+                <p>This innovative tool is specifically crafted to help you:</p>
+                <ul>
+                    <li>Create engaging, standards-aligned lesson plans that captivate your students</li>
+                    <li>Develop comprehensive writing instruction materials across all genres</li>
+                    <li>Provide personalized feedback on student work in real-time</li>
+                    <li>Access a vast library of literary analysis resources and teaching strategies</li>
+                    <li>Integrate technology seamlessly into your language arts curriculum</li>
+                    <li>Track student progress and identify areas for improvement</li>
+                </ul>
+
+                <p>With our AI-powered assistant, you'll have a dedicated partner that understands the nuances of language arts education and helps you deliver exceptional instruction to your students.</p>
+                
+                <div class="features-grid">
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/language-arts/curriculum-aligned.html'">
+                        <h3>Curriculum-Aligned Content</h3>
+                        <p>Access standards-aligned lesson plans and materials for language arts instruction</p>
+                    </div>
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/language-arts/writing-instruction.html'">
+                        <h3>Writing Instruction</h3>
+                        <p>Create effective writing lessons and provide detailed feedback on student work</p>
+                    </div>
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/language-arts/assessment.html'">
+                        <h3>Real-Time Assessment</h3>
+                        <p>Get instant feedback on student understanding and progress</p>
+                    </div>
+                    <div class="feature-card" onclick="window.location.href='/static/services/services_subpages/language-arts/lesson-planning.html'">
+                        <h3>Lesson Planning</h3>
+                        <p>Create engaging and effective language arts lesson plans</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="service-section">
+                <h2>Key Benefits</h2>
+                <ul class="benefits-list">
+                    <li>
+                        <h3>Comprehensive Literacy</h3>
+                        <p>Enhance students' reading and writing skills with AI-powered tools that provide personalized feedback, suggest improvements, and offer a wide range of literary resources.</p>
+                    </li>
+                    <li>
+                        <h3>Critical Analysis</h3>
+                        <p>Develop students' ability to critically analyze texts through guided exercises, discussion prompts, and interactive activities that encourage deep thinking and comprehension.</p>
+                    </li>
+                    <li>
+                        <h3>Creative Expression</h3>
+                        <p>Foster creativity and self-expression in students with writing prompts, storytelling tools, and collaborative projects that inspire original thought and artistic exploration.</p>
+                    </li>
+                    <li>
+                        <h3>Language Development</h3>
+                        <p>Support language acquisition and vocabulary building with interactive lessons, games, and activities that make learning engaging and effective.</p>
+                    </li>
+                    <li>
+                        <h3>Multimodal Learning</h3>
+                        <p>Integrate various forms of media and technology into the classroom to create a dynamic learning environment that caters to diverse learning styles and preferences.</p>
+                    </li>
+                    <li>
+                        <h3>Professional Growth</h3>
+                        <p>Receive AI-powered feedback and suggestions to enhance your teaching methods, with personalized professional development resources that support continuous improvement.</p>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="service-section">
+                <h2>Integration with Additional Services</h2>
+                <p>Our Language Arts Teacher Assistant can be enhanced with a wide range of specialized GPTs available in our Additional Services. These complementary tools can help you create a comprehensive teaching ecosystem tailored to your specific needs.</p>
+                <p>From specialized subject assistants to administrative tools, our Additional Services can help you:</p>
+                <ul>
+                    <li>Create cross-curricular projects that combine language arts with other subjects</li>
+                    <li>Streamline administrative tasks and classroom management</li>
+                    <li>Provide specialized support for diverse learning needs</li>
+                    <li>Enhance communication with students and parents</li>
+                </ul>
+                <p>Explore our full range of additional services to find the perfect complement to your Language Arts Teacher Assistant.</p>
+                <a href="/static/services/additional-services.html" class="cta-button">View Additional Services</a>
+            </section>
+
+            <section class="getting-started-section">
+                <h2>Getting Started</h2>
+                <p>Ready to transform your language arts teaching experience?</p>
+                <div class="button-container">
+                    <button class="back-button" onclick="window.location.href='/static/services/teacher-admin.html#features'">← Back to Teacher & Admin Assistants</button>
+                    <button class="cta-button" onclick="showAuthForm()">Get Started</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer" role="contentinfo">
+            <div class="footer-content">
+                <div class="footer-text">
+                    FARADAY-AI, LLC 2025
+                </div>
+                <div class="social-links">
+                    <a href="https://github.com/faradayai" target="_blank" rel="noopener noreferrer" aria-label="Follow us on GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        function showComingSoon() {
+            alert('This feature is coming soon! Stay tuned for updates.');
+        }
+
+        function showAuthForm() {
+            // Implementation of showing the authentication form
+            alert('Authentication form will be shown here.');
+        }
+    </script>
+</body>
+</html> 

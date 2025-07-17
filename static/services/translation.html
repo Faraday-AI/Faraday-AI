@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Speech and Text Translation</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="Translate speech and text across multiple languages with AI assistance">
+</head>
+<body data-service="translation">
+    <div class="service-container">
+        <header class="service-header">
+            <a href="/" class="back-button">← Back to Home</a>
+            <h1>Speech and Text Translation</h1>
+            <p class="service-description">Translate speech and text across multiple languages with AI assistance</p>
+        </header>
+        
+        <section class="service-features">
+            <h2>Key Features</h2>
+            <div class="features-grid">
+                <div class="feature-card" data-href="/static/features/translation/realtime.html" tabindex="0" aria-label="Real-time Translation - Instantly translate spoken or written content">
+                    <h3>Real-time Translation</h3>
+                    <p>Instantly translate spoken or written content</p>
+                </div>
+                <div class="feature-card" data-href="/features/translation/multilingual" tabindex="0" aria-label="100+ Languages - Support for over 100 languages worldwide">
+                    <h3>100+ Languages</h3>
+                    <p>Support for over 100 languages worldwide</p>
+                </div>
+                <div class="feature-card" data-href="/features/translation/context" tabindex="0" aria-label="Context-Aware - Preserves meaning and context during translation">
+                    <h3>Context-Aware</h3>
+                    <p>Preserves meaning and context during translation</p>
+                </div>
+                <div class="feature-card" data-href="/features/translation/accessibility" tabindex="0" aria-label="Accessibility Tools - Caption generation and audio descriptions">
+                    <h3>Accessibility Tools</h3>
+                    <p>Caption generation and audio descriptions</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-implementation">
+            <h2>How It Works</h2>
+            <div class="implementation-details">
+                <div class="detail-card" data-href="/how-it-works/translation/input" tabindex="0" aria-label="Speech/Text Input - Record speech or input text to translate">
+                    <h3>Speech/Text Input</h3>
+                    <p>Record speech or input text to translate</p>
+                </div>
+                <div class="detail-card" data-href="/how-it-works/translation/process" tabindex="0" aria-label="AI Processing - Advanced neural models handle translation">
+                    <h3>AI Processing</h3>
+                    <p>Advanced neural models handle translation</p>
+                </div>
+                <div class="detail-card" data-href="/how-it-works/translation/output" tabindex="0" aria-label="Multi-format Output - Receive translations as text, audio, or both">
+                    <h3>Multi-format Output</h3>
+                    <p>Receive translations as text, audio, or both</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-examples">
+            <h2>Example Use Cases</h2>
+            <div class="examples-grid">
+                <div class="example-card" data-href="/examples/translation/classroom" tabindex="0" aria-label="Multilingual Classrooms - Support diverse language needs in education">
+                    <h3>Multilingual Classrooms</h3>
+                    <p>Support diverse language needs in education</p>
+                </div>
+                <div class="example-card" data-href="/examples/translation/research" tabindex="0" aria-label="Research Collaboration - Work with international research materials">
+                    <h3>Research Collaboration</h3>
+                    <p>Work with international research materials</p>
+                </div>
+                <div class="example-card" data-href="/examples/translation/content" tabindex="0" aria-label="Content Creation - Develop educational content in multiple languages">
+                    <h3>Content Creation</h3>
+                    <p>Develop educational content in multiple languages</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="technical-section">
+            <h2>Advanced Features</h2>
+            <div class="technical-specs">
+                <div class="spec-card" data-href="/technical/translation/cultural" tabindex="0" aria-label="Cultural Adaptation - Adjusts translations for cultural context and nuances">
+                    <h3>Cultural Adaptation</h3>
+                    <p>Adjusts translations for cultural context and nuances</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="service-cta">
+            <h2>Ready to Break Language Barriers?</h2>
+            <p>Start translating content across languages with our AI assistant.</p>
+            <button class="cta-button" onclick="showAuthForm()">Start Using Translation Tools</button>
+        </section>
+    </div>
+
+    <!-- Auth Form Container -->
+    <div id="auth-container" class="auth-container">
+        <!-- Auth form will be injected here -->
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/services.js"></script>
+    <script>
+        // Show auth form when clicking CTA button
+        function showAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Load auth form content
+            fetch('/static/auth-form.html')
+                .then(response => response.text())
+                .then(html => {
+                    authContainer.innerHTML = html;
+                    
+                    // Initialize the auth form
+                    if (typeof initializeAuthForm === 'function') {
+                        initializeAuthForm();
+                    }
+                    
+                    // Initialize toggle functionality
+                    const loginToggle = document.querySelector('.login-toggle');
+                    const registerToggle = document.querySelector('.register-toggle');
+                    const loginForm = document.querySelector('.login-form');
+                    const registerForm = document.querySelector('.register-form');
+                    
+                    if (loginToggle && registerToggle && loginForm && registerForm) {
+                        // Set initial state
+                        loginForm.classList.add('active');
+                        loginToggle.classList.add('active');
+                        registerForm.classList.remove('active');
+                        registerToggle.classList.remove('active');
+                        
+                        // Add click handlers
+                        loginToggle.onclick = function(e) {
+                            e.preventDefault();
+                            loginForm.classList.add('active');
+                            loginToggle.classList.add('active');
+                            registerForm.classList.remove('active');
+                            registerToggle.classList.remove('active');
+                        };
+                        
+                        registerToggle.onclick = function(e) {
+                            e.preventDefault();
+                            registerForm.classList.add('active');
+                            registerToggle.classList.add('active');
+                            loginForm.classList.remove('active');
+                            loginToggle.classList.remove('active');
+                        };
+                    }
+                })
+                .catch(error => console.error('Error loading auth form:', error));
+        }
+
+        // Close auth form
+        function closeAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize auth form functionality
+        function initializeAuthForm() {
+            const closeButton = document.querySelector('.auth-close-button');
+            if (closeButton) {
+                closeButton.onclick = closeAuthForm;
+            }
+
+            // Add click outside to close
+            document.addEventListener('click', (e) => {
+                const authContainer = document.getElementById('auth-container');
+                if (e.target === authContainer) {
+                    closeAuthForm();
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

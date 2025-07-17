@@ -644,4 +644,29 @@ class RealtimeCollaborationService:
     ) -> None:
         """Unregister a WebSocket connection."""
         if user_id in self.websocket_connections:
-            del self.websocket_connections[user_id] 
+            del self.websocket_connections[user_id]
+
+    async def cleanup(self) -> None:
+        """Clean up all resources when the service is shutting down."""
+        try:
+            # Close all active WebSocket connections
+            for user_id, websocket in self.websocket_connections.items():
+                try:
+                    await websocket.close()
+                except Exception as e:
+                    logger.error(f"Error closing websocket for user {user_id}: {str(e)}")
+
+            # Clear all data structures
+            self.active_sessions.clear()
+            self.session_participants.clear()
+            self.document_locks.clear()
+            self.collaborative_documents.clear()
+            self.websocket_connections.clear()
+            self.document_history.clear()
+            self.pending_changes.clear()
+            self.session_metadata.clear()
+
+            logger.info("RealtimeCollaborationService cleanup completed successfully")
+        except Exception as e:
+            logger.error(f"Error during RealtimeCollaborationService cleanup: {str(e)}")
+            raise 

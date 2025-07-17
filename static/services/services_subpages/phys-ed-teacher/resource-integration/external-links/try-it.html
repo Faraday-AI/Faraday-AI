@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try External Links - Resource Integration</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/resource-integration/external-links.html" class="back-button" aria-label="Back to External Links">
+                <span class="back-arrow">←</span> Back to External Links
+            </a>
+            <h1>Try External Links</h1>
+            <p class="service-description">Add and organize links to external educational resources</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Try It Widget -->
+            <section class="try-it-widget">
+                <form id="externalLinksForm" class="widget-form">
+                    <div class="form-group">
+                        <label for="linkType">Resource Type</label>
+                        <select id="linkType" name="linkType" required>
+                            <option value="">Select a resource type</option>
+                            <option value="video">Video</option>
+                            <option value="article">Article</option>
+                            <option value="website">Website</option>
+                            <option value="document">Document</option>
+                            <option value="interactive">Interactive Resource</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="linkTitle">Resource Title</label>
+                        <input type="text" id="linkTitle" name="linkTitle" placeholder="Enter resource title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="linkUrl">Resource URL</label>
+                        <input type="url" id="linkUrl" name="linkUrl" placeholder="Enter resource URL" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gradeLevel">Grade Level</label>
+                        <select id="gradeLevel" name="gradeLevel" required>
+                            <option value="">Select grade level</option>
+                            <option value="k-2">K-2</option>
+                            <option value="3-5">3-5</option>
+                            <option value="6-8">6-8</option>
+                            <option value="9-12">9-12</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject Area</label>
+                        <select id="subject" name="subject" required>
+                            <option value="">Select subject area</option>
+                            <option value="physical-education">Physical Education</option>
+                            <option value="health">Health</option>
+                            <option value="drivers-education">Driver's Education</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">Resource Description</label>
+                        <textarea id="description" name="description" placeholder="Enter a brief description of the resource" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tags">Tags</label>
+                        <input type="text" id="tags" name="tags" placeholder="Enter tags (comma separated)" required>
+                    </div>
+
+                    <button type="submit" class="cta-button primary">
+                        <span class="button-icon">🔗</span>
+                        <span class="button-text">Add Resource Link</span>
+                    </button>
+                </form>
+
+                <div id="linkPreview" class="widget-preview" style="display: none;">
+                    <h3>Your Resource Link</h3>
+                    <div class="preview-content">
+                        <!-- Preview content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.getElementById('externalLinksForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // TODO: Add link generation logic
+            document.getElementById('linkPreview').style.display = 'block';
+        });
+    </script>
+</body>
+</html> 
