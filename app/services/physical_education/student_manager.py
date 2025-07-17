@@ -3,16 +3,44 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 import json
 from app.core.monitoring import track_metrics
-from app.services.physical_education.assessment_system import AssessmentSystem
-from app.services.physical_education.lesson_planner import LessonPlanner
+from app.services.physical_education import service_integration
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+from app.models.physical_education.student import (
+    Student,
+    StudentHealthFitnessGoal,
+    StudentHealthGoalProgress,
+    StudentHealthGoalRecommendation
+)
+from app.models.health_fitness.metrics.health import HealthMetric
+from app.models.physical_education.pe_enums.pe_types import (
+    Gender,
+    FitnessLevel,
+    GoalType,
+    GoalStatus,
+    GoalCategory,
+    GoalTimeframe
+)
+from app.models.core.core_models import (
+    MetricType,
+    MeasurementUnit
+)
 
 class StudentManager:
     """Service for managing student profiles, class rosters, and progress tracking."""
     
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(StudentManager, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
         self.logger = logging.getLogger("student_manager")
-        self.assessment_system = AssessmentSystem()
-        self.lesson_planner = LessonPlanner()
+        self.db = None
+        self.assessment_system = None
+        self.lesson_planner = None
         
         # Student data structures
         self.students: Dict[str, Dict[str, Any]] = {}
@@ -48,50 +76,31 @@ class StudentManager:
             "skills": [
                 "locomotor_skills",
                 "non_locomotor_skills",
-                "manipulative_skills"
-            ],
-            "social": [
-                "teamwork",
-                "sportsmanship",
-                "leadership",
-                "communication"
+                "manipulative_skills",
+                "game_strategies"
             ]
         }
-
+    
     async def initialize(self):
         """Initialize the student manager."""
         try:
-            # Initialize dependent services
-            await self.assessment_system.initialize()
-            await self.lesson_planner.initialize()
-            
-            # Load student data
-            self.load_student_data()
-            
-            # Load class data
-            self.load_class_data()
-            
-            self.logger.info("Student manager initialized successfully")
+            self.db = next(get_db())
+            self.assessment_system = service_integration.get_service('assessment_system')
+            self.lesson_planner = service_integration.get_service('lesson_planner')
+            self.logger.info("Student Manager initialized successfully")
         except Exception as e:
-            self.logger.error(f"Error initializing student manager: {str(e)}")
+            self.logger.error(f"Error initializing Student Manager: {str(e)}")
             raise
-
+    
     async def cleanup(self):
-        """Cleanup student manager resources."""
+        """Cleanup the student manager."""
         try:
-            # Cleanup dependent services
-            await self.assessment_system.cleanup()
-            await self.lesson_planner.cleanup()
-            
-            # Save student data
-            self.save_student_data()
-            
-            # Save class data
-            self.save_class_data()
-            
-            self.logger.info("Student manager cleaned up successfully")
+            self.db = None
+            self.assessment_system = None
+            self.lesson_planner = None
+            self.logger.info("Student Manager cleaned up successfully")
         except Exception as e:
-            self.logger.error(f"Error cleaning up student manager: {str(e)}")
+            self.logger.error(f"Error cleaning up Student Manager: {str(e)}")
             raise
 
     def load_student_data(self):

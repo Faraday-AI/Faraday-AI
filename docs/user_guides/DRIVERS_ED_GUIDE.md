@@ -191,4 +191,58 @@ Develop resources for:
 - Advanced driving techniques
 - Continuing education
 - Safety updates
-``` 
+```
+
+## Related Documentation
+
+### Core Documentation
+- [Activity System](/docs/activity_system.md)
+  - System features
+  - Implementation details
+  - Activity guidelines
+  - Best practices
+
+- [Safety Protocols](/docs/safety_protocols.md)
+  - Safety guidelines
+  - Emergency procedures
+  - Best practices
+  - Implementation details
+
+### Implementation Details
+- [Visual Guides](/docs/visual_guides.md)
+  - Teaching aids
+  - Demonstration materials
+  - Safety diagrams
+  - Training visuals
+
+- [Assessment Framework](/docs/assessment_framework.md)
+  - Assessment tools
+  - Progress tracking
+  - Performance metrics
+  - Evaluation guides
+
+### Educational Resources
+- [Lesson Plans](/docs/lesson_plans.md)
+  - Activity structures
+  - Time management
+  - Teaching strategies
+  - Learning objectives
+
+- [Quick Reference Guide](/docs/quick_reference.md)
+  - Essential commands
+  - Common procedures
+  - Quick tips
+  - Best practices
+
+### Additional Resources
+- [Activity Visualization Manager](/docs/activity_visualization_manager.md)
+  - Visual aids
+  - Simulation tools
+  - Resource management
+  - Content organization
+
+- [Beta Documentation](/docs/beta/beta_documentation.md)
+  - System updates
+  - New features
+  - Implementation guides
+  - Best practices 

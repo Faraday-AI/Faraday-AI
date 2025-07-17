@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fun Warmup Templates</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/activity-design/activity-templates/template-library/warmups.html" class="back-button" aria-label="Back to Warmup Templates">
+                <span class="back-arrow">←</span> Back to Warmup Templates
+            </a>
+            <h1>Fun Warmup Templates</h1>
+            <p class="service-description">Browse and customize our collection of engaging warmup templates</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Template List -->
+            <section class="template-list">
+                <div class="template-card">
+                    <h3>Tag Games Warmup</h3>
+                    <p>Fun tag variations to get students moving</p>
+                    <div class="template-details">
+                        <span class="detail">Duration: 8-12 minutes</span>
+                        <span class="detail">Equipment: None</span>
+                        <span class="detail">Level: All</span>
+                    </div>
+                    <button class="use-template-btn" data-template="tag">Use Template</button>
+                </div>
+
+                <div class="template-card">
+                    <h3>Dance Warmup</h3>
+                    <p>Music-based movement activities</p>
+                    <div class="template-details">
+                        <span class="detail">Duration: 10-15 minutes</span>
+                        <span class="detail">Equipment: Music player</span>
+                        <span class="detail">Level: All</span>
+                    </div>
+                    <button class="use-template-btn" data-template="dance">Use Template</button>
+                </div>
+
+                <div class="template-card">
+                    <h3>Obstacle Course Warmup</h3>
+                    <p>Creative movement challenges</p>
+                    <div class="template-details">
+                        <span class="detail">Duration: 10-15 minutes</span>
+                        <span class="detail">Equipment: Cones, hoops, etc.</span>
+                        <span class="detail">Level: All</span>
+                    </div>
+                    <button class="use-template-btn" data-template="obstacle">Use Template</button>
+                </div>
+            </section>
+
+            <!-- Customization Form (Initially Hidden) -->
+            <section class="customization-form" id="customizationForm" style="display: none;">
+                <h2>Customize Your Fun Warmup</h2>
+                <form id="warmupForm">
+                    <div class="form-group">
+                        <label for="warmupName">Warmup Name</label>
+                        <input type="text" id="warmupName" name="warmupName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="activityType">Activity Type</label>
+                        <select id="activityType" name="activityType" required>
+                            <option value="tag">Tag Game</option>
+                            <option value="dance">Dance</option>
+                            <option value="obstacle">Obstacle Course</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="duration">Duration (minutes)</label>
+                        <input type="number" id="duration" name="duration" min="5" max="30" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="equipment">Equipment Needed</label>
+                        <input type="text" id="equipment" name="equipment" placeholder="e.g., Cones, Music player">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="space">Space Requirements</label>
+                        <select id="space" name="space" required>
+                            <option value="small">Small (classroom)</option>
+                            <option value="medium">Medium (gym half)</option>
+                            <option value="large">Large (full gym)</option>
+                            <option value="outdoor">Outdoor</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="modifications">Special Modifications</label>
+                        <textarea id="modifications" name="modifications" placeholder="Any specific modifications or adaptations needed"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="primary-button">Generate Custom Warmup</button>
+                </form>
+            </section>
+
+            <!-- Preview Section (Initially Hidden) -->
+            <section class="preview-section" id="previewSection" style="display: none;">
+                <h2>Your Custom Fun Warmup</h2>
+                <div id="warmupPreview"></div>
+                <button class="secondary-button" id="editButton">Edit</button>
+                <button class="primary-button" id="saveButton">Save</button>
+            </section>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const templateButtons = document.querySelectorAll('.use-template-btn');
+            const customizationForm = document.getElementById('customizationForm');
+            const previewSection = document.getElementById('previewSection');
+            const warmupForm = document.getElementById('warmupForm');
+            const editButton = document.getElementById('editButton');
+            const saveButton = document.getElementById('saveButton');
+
+            templateButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const template = this.getAttribute('data-template');
+                    customizationForm.style.display = 'block';
+                    // Pre-fill form based on template
+                    document.getElementById('warmupName').value = this.parentElement.querySelector('h3').textContent;
+                    document.getElementById('activityType').value = template;
+                });
+            });
+
+            warmupForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                customizationForm.style.display = 'none';
+                previewSection.style.display = 'block';
+                // Generate preview content
+                const preview = document.getElementById('warmupPreview');
+                preview.innerHTML = `
+                    <h3>${document.getElementById('warmupName').value}</h3>
+                    <p>Activity Type: ${document.getElementById('activityType').value}</p>
+                    <p>Duration: ${document.getElementById('duration').value} minutes</p>
+                    <p>Equipment: ${document.getElementById('equipment').value || 'None'}</p>
+                    <p>Space Required: ${document.getElementById('space').value}</p>
+                    <p>Modifications: ${document.getElementById('modifications').value || 'None'}</p>
+                `;
+            });
+
+            editButton.addEventListener('click', function() {
+                previewSection.style.display = 'none';
+                customizationForm.style.display = 'block';
+            });
+
+            saveButton.addEventListener('click', function() {
+                // Implement save functionality
+                alert('Warmup saved successfully!');
+            });
+        });
+    </script>
+</body>
+</html> 

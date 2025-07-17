@@ -35,6 +35,7 @@ class FileProcessingService:
             'ssn': r'\d{3}-\d{2}-\d{4}',
             'credit_card': r'\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}'
         }
+        self.temp_files = set()
 
     def _detect_sensitive_patterns(self, text: str) -> List[str]:
         """Detect sensitive data patterns in text."""
@@ -363,4 +364,19 @@ class FileProcessingService:
             }
         except Exception as e:
             logger.error(f"Error extracting text: {str(e)}")
-            return {"status": "error", "error": str(e)} 
+            return {"status": "error", "error": str(e)}
+
+    async def cleanup(self):
+        """Clean up any temporary files created during file processing."""
+        try:
+            for temp_file in self.temp_files:
+                try:
+                    if os.path.exists(temp_file):
+                        os.unlink(temp_file)
+                except Exception as e:
+                    logger.warning(f"Error cleaning up temporary file {temp_file}: {str(e)}")
+            self.temp_files.clear()
+            logger.info("FileProcessingService cleanup completed successfully")
+        except Exception as e:
+            logger.error(f"Error during FileProcessingService cleanup: {str(e)}")
+            raise 

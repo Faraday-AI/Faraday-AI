@@ -2,8 +2,8 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock
 from sqlalchemy.orm import Session
-from app.services.physical_education.services.equipment_manager import EquipmentManager
-from app.services.physical_education.models.safety import EquipmentCheck
+from app.services.physical_education.equipment_manager import EquipmentManager
+from app.models.physical_education.safety import EquipmentCheck
 
 @pytest.fixture
 def equipment_manager():

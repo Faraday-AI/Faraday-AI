@@ -1,7 +1,14 @@
 from datetime import date
-from app.models.lesson_plan import (
-    LessonPlan, Subject, GradeLevel, Standard, SmartGoal,
-    Objective, Activity, Assessment, DifferentiationPlan
+from app.models.educational.curriculum.lesson_plan import (
+    LessonPlan,
+    Objective,
+    Activity,
+    Assessment,
+    DifferentiationPlan,
+    Standard,
+    SmartGoal,
+    Subject,
+    GradeLevel
 )
 
 def get_pe_lesson_plan() -> LessonPlan:

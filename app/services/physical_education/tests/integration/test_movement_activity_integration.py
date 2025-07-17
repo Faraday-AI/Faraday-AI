@@ -1,0 +1,1 @@
+from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis 

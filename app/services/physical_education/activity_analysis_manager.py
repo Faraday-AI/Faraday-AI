@@ -1,29 +1,135 @@
-from typing import Dict, List, Optional, Tuple
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from scipy import stats
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import StandardScaler
+"""Activity analysis manager for physical education."""
+
 import logging
+from typing import Dict, Any, Optional, List
+from datetime import datetime
+import pandas as pd
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+
+# Import models
+from app.models.physical_education.activity.models import Activity
+from app.models.physical_education.pe_enums.pe_types import (
+    ActivityType,
+    DifficultyLevel,
+    EquipmentRequirement,
+    ConfidenceLevel,
+    PerformanceLevel,
+    AnalysisType,
+    AnalysisLevel,
+    AnalysisStatus,
+    AnalysisTrigger
+)
+from app.models.activity_adaptation.activity.activity import ActivityCategoryAssociation
+from app.models.physical_education.activity.models import (
+    StudentActivityPerformance,
+    StudentActivityPreference
+)
+from app.models.physical_education.exercise.models import Exercise
+from app.models.student import Student
 
 class ActivityAnalysisManager:
+    """Service for analyzing physical education activities."""
+    
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(ActivityAnalysisManager, cls).__new__(cls)
+        return cls._instance
+    
     def __init__(self):
+        self.logger = logging.getLogger("activity_analysis_manager")
+        self.db = None
+        
+        # Analysis components
+        self.analysis_history = []
+        self.performance_benchmarks = {}
+        self.injury_risk_factors = {}
+        self.movement_patterns = {}
+        self.feedback_history = {}
+        self.progress_tracking = {}
+        
+        # Analysis metrics
+        self.custom_metrics = {}
+        self.environmental_factors = {}
+        self.equipment_usage = {}
+        self.fatigue_analysis = {}
+        self.technique_variations = {}
+        self.movement_consistency = {}
+        self.biomechanical_analysis = {}
+        self.energy_efficiency = {}
+        self.symmetry_analysis = {}
+        self.skill_level_assessment = {}
+        self.recovery_analysis = {}
+        self.adaptation_analysis = {}
+        self.performance_prediction = {}
+        
+        # Caching and optimization
+        self.analysis_cache = {}
+        self.batch_cache = {}
+        
+        # Analysis configuration
         self.analysis_config = {
             'min_data_points': 5,
-            'confidence_level': 0.95,
+            'confidence_threshold': 0.8,
+            'performance_window': 30,  # days
             'trend_window': 7,  # days
-            'improvement_threshold': 0.1,  # 10% improvement
-            'consistency_threshold': 0.8,  # 80% consistency
-            'max_gap_days': 30  # maximum gap between data points
+            'batch_size': 100
         }
-        
-        # Initialize logging
-        self.logger = logging.getLogger(__name__)
+    
+    async def initialize(self):
+        """Initialize the activity analysis manager."""
+        try:
+            # Get database session using context manager
+            db_gen = get_db()
+            self.db = await anext(db_gen)
+            
+            # Load analysis benchmarks
+            await self.load_performance_benchmarks()
+            
+            self.logger.info("Activity Analysis Manager initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing Activity Analysis Manager: {str(e)}")
+            raise
+    
+    async def cleanup(self):
+        """Cleanup the activity analysis manager."""
+        try:
+            # Clear all data
+            self.analysis_history.clear()
+            self.performance_benchmarks.clear()
+            self.injury_risk_factors.clear()
+            self.movement_patterns.clear()
+            self.feedback_history.clear()
+            self.progress_tracking.clear()
+            self.custom_metrics.clear()
+            self.environmental_factors.clear()
+            self.equipment_usage.clear()
+            self.fatigue_analysis.clear()
+            self.technique_variations.clear()
+            self.movement_consistency.clear()
+            self.biomechanical_analysis.clear()
+            self.energy_efficiency.clear()
+            self.symmetry_analysis.clear()
+            self.skill_level_assessment.clear()
+            self.recovery_analysis.clear()
+            self.adaptation_analysis.clear()
+            self.performance_prediction.clear()
+            self.analysis_cache.clear()
+            self.batch_cache.clear()
+            
+            # Reset service references
+            self.db = None
+            
+            self.logger.info("Activity Analysis Manager cleaned up successfully")
+        except Exception as e:
+            self.logger.error(f"Error cleaning up Activity Analysis Manager: {str(e)}")
+            raise
 
     async def analyze_student_performance(self, student_id: str, 
                                         start_date: Optional[datetime] = None,
-                                        end_date: Optional[datetime] = None) -> Dict:
+                                        end_date: Optional[datetime] = None) -> Dict[str, Any]:
         """Analyze student's performance across activities."""
         # Get performance data
         performance_data = await self._get_performance_data(student_id, start_date, end_date)
@@ -31,20 +137,23 @@ class ActivityAnalysisManager:
         if len(performance_data) < self.analysis_config['min_data_points']:
             raise ValueError(f"Insufficient data points for analysis. Minimum required: {self.analysis_config['min_data_points']}")
         
+        # Convert performance data to DataFrame for analysis
+        df = pd.DataFrame(performance_data)
+        
         # Calculate overall metrics
-        overall_metrics = self._calculate_overall_metrics(performance_data)
+        overall_metrics = self._calculate_overall_metrics(df)
         
         # Calculate performance by type and category
-        type_metrics = self._calculate_performance_by_type(performance_data)
-        category_metrics = self._calculate_performance_by_category(performance_data)
+        type_metrics = self._calculate_performance_by_type(df)
+        category_metrics = self._calculate_performance_by_category(df)
         
         # Identify strengths and areas for improvement
-        strengths = self._identify_strengths(performance_data)
-        improvements = self._identify_improvements(performance_data)
+        strengths = self._identify_strengths(df)
+        improvements = self._identify_improvements(df)
         
         # Generate recommendations
         recommendations = self._generate_recommendations(
-            performance_data,
+            df,
             strengths,
             improvements
         )
@@ -65,63 +174,87 @@ class ActivityAnalysisManager:
 
     async def _get_performance_data(self, student_id: str,
                                   start_date: Optional[datetime],
-                                  end_date: Optional[datetime]) -> pd.DataFrame:
+                                  end_date: Optional[datetime]) -> List[Dict[str, Any]]:
         """Retrieve and prepare performance data."""
-        # This is a placeholder for actual data retrieval
-        # In practice, this would query the database
-        return pd.DataFrame()
+        try:
+            query = self.db.query(StudentActivityPerformance).filter(
+                StudentActivityPerformance.student_id == student_id
+            )
+            
+            if start_date:
+                query = query.filter(StudentActivityPerformance.created_at >= start_date)
+            if end_date:
+                query = query.filter(StudentActivityPerformance.created_at <= end_date)
+            
+            performances = query.all()
+            
+            return [
+                {
+                    'id': perf.id,
+                    'activity_id': perf.activity_id,
+                    'score': perf.score,
+                    'created_at': perf.created_at,
+                    'activity_type': perf.activity.activity_type,
+                    'difficulty': perf.activity.difficulty,
+                    'completed': True  # Assuming recorded performances are completed
+                }
+                for perf in performances
+            ]
+        except Exception as e:
+            self.logger.error(f"Error retrieving performance data: {str(e)}")
+            return []
 
-    def _calculate_overall_metrics(self, data: pd.DataFrame) -> Dict:
+    def _calculate_overall_metrics(self, data: pd.DataFrame) -> Dict[str, Any]:
         """Calculate overall performance metrics."""
         metrics = {
-            'average_score': data['score'].mean(),
-            'median_score': data['score'].median(),
-            'std_deviation': data['score'].std(),
-            'min_score': data['score'].min(),
-            'max_score': data['score'].max(),
+            'average_score': float(data['score'].mean()),
+            'median_score': float(data['score'].median()),
+            'std_deviation': float(data['score'].std()),
+            'min_score': float(data['score'].min()),
+            'max_score': float(data['score'].max()),
             'total_activities': len(data),
-            'completion_rate': data['completed'].mean() if 'completed' in data else None,
+            'completion_rate': float(data['completed'].mean()) if 'completed' in data else None,
             'consistency_score': self._calculate_consistency_score(data),
             'improvement_rate': self._calculate_improvement_rate(data)
         }
         
         return metrics
 
-    def _calculate_performance_by_type(self, data: pd.DataFrame) -> Dict:
+    def _calculate_performance_by_type(self, data: pd.DataFrame) -> Dict[str, Any]:
         """Calculate performance metrics by activity type."""
         type_metrics = {}
         
         for activity_type in data['activity_type'].unique():
             type_data = data[data['activity_type'] == activity_type]
             type_metrics[activity_type] = {
-                'average_score': type_data['score'].mean(),
-                'median_score': type_data['score'].median(),
-                'std_deviation': type_data['score'].std(),
+                'average_score': float(type_data['score'].mean()),
+                'median_score': float(type_data['score'].median()),
+                'std_deviation': float(type_data['score'].std()),
                 'count': len(type_data),
-                'completion_rate': type_data['completed'].mean() if 'completed' in type_data else None,
+                'completion_rate': float(type_data['completed'].mean()) if 'completed' in type_data else None,
                 'trend': self._calculate_trend(type_data)
             }
             
         return type_metrics
 
-    def _calculate_performance_by_category(self, data: pd.DataFrame) -> Dict:
+    def _calculate_performance_by_category(self, data: pd.DataFrame) -> Dict[str, Any]:
         """Calculate performance metrics by category."""
         category_metrics = {}
         
         for category in data['category'].unique():
             category_data = data[data['category'] == category]
             category_metrics[category] = {
-                'average_score': category_data['score'].mean(),
-                'median_score': category_data['score'].median(),
-                'std_deviation': category_data['score'].std(),
+                'average_score': float(category_data['score'].mean()),
+                'median_score': float(category_data['score'].median()),
+                'std_deviation': float(category_data['score'].std()),
                 'count': len(category_data),
-                'completion_rate': category_data['completed'].mean() if 'completed' in category_data else None,
+                'completion_rate': float(category_data['completed'].mean()) if 'completed' in category_data else None,
                 'trend': self._calculate_trend(category_data)
             }
             
         return category_metrics
 
-    def _identify_strengths(self, data: pd.DataFrame) -> List[Dict]:
+    def _identify_strengths(self, data: pd.DataFrame) -> List[Dict[str, Any]]:
         """Identify student's strengths."""
         strengths = []
         
@@ -129,8 +262,8 @@ class ActivityAnalysisManager:
         for activity_type in data['activity_type'].unique():
             type_data = data[data['activity_type'] == activity_type]
             if len(type_data) >= self.analysis_config['min_data_points']:
-                avg_score = type_data['score'].mean()
-                if avg_score >= self.analysis_config['consistency_threshold']:
+                avg_score = float(type_data['score'].mean())
+                if avg_score >= self.analysis_config['confidence_threshold']:
                     strengths.append({
                         'type': 'activity_type',
                         'name': activity_type,
@@ -142,8 +275,8 @@ class ActivityAnalysisManager:
         for category in data['category'].unique():
             category_data = data[data['category'] == category]
             if len(category_data) >= self.analysis_config['min_data_points']:
-                avg_score = category_data['score'].mean()
-                if avg_score >= self.analysis_config['consistency_threshold']:
+                avg_score = float(category_data['score'].mean())
+                if avg_score >= self.analysis_config['confidence_threshold']:
                     strengths.append({
                         'type': 'category',
                         'name': category,
@@ -153,7 +286,7 @@ class ActivityAnalysisManager:
         
         return strengths
 
-    def _identify_improvements(self, data: pd.DataFrame) -> List[Dict]:
+    def _identify_improvements(self, data: pd.DataFrame) -> List[Dict[str, Any]]:
         """Identify areas for improvement."""
         improvements = []
         
@@ -166,7 +299,7 @@ class ActivityAnalysisManager:
                     improvements.append({
                         'type': 'activity_type',
                         'name': activity_type,
-                        'current_score': type_data['score'].mean(),
+                        'current_score': float(type_data['score'].mean()),
                         'trend': trend,
                         'suggestions': self._generate_improvement_suggestions(type_data)
                     })
@@ -180,7 +313,7 @@ class ActivityAnalysisManager:
                     improvements.append({
                         'type': 'category',
                         'name': category,
-                        'current_score': category_data['score'].mean(),
+                        'current_score': float(category_data['score'].mean()),
                         'trend': trend,
                         'suggestions': self._generate_improvement_suggestions(category_data)
                     })
@@ -188,8 +321,8 @@ class ActivityAnalysisManager:
         return improvements
 
     def _generate_recommendations(self, data: pd.DataFrame,
-                                strengths: List[Dict],
-                                improvements: List[Dict]) -> List[Dict]:
+                                strengths: List[Dict[str, Any]],
+                                improvements: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """Generate personalized recommendations."""
         recommendations = []
         
@@ -295,7 +428,7 @@ class ActivityAnalysisManager:
         
         return suggestions
 
-    def _generate_balanced_recommendations(self, data: pd.DataFrame) -> List[Dict]:
+    def _generate_balanced_recommendations(self, data: pd.DataFrame) -> List[Dict[str, Any]]:
         """Generate balanced recommendations across all areas."""
         recommendations = []
         
@@ -310,6 +443,4 @@ class ActivityAnalysisManager:
                     'area': category,
                     'suggestion': f"Consider spending more time on other categories to maintain balanced development",
                     'priority': 'low'
-                })
-        
-        return recommendations 
+                }) 

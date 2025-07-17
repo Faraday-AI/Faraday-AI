@@ -1,0 +1,33 @@
+"""Seed user preferences data."""
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.dashboard.models.user_preferences import UserPreferences
+from app.dashboard.models import DashboardUser as User
+
+async def seed_user_preferences(session: AsyncSession) -> None:
+    """Seed user preferences data."""
+    print("Seeding user preferences...")
+    try:
+        # Get all users
+        users = (await session.execute(User.__table__.select())).fetchall()
+        
+        # Create preferences for each user
+        preferences = []
+        for user in users:
+            preference = UserPreferences(
+                user_id=user.id,
+                theme="light",
+                notifications={"email": True, "push": True, "in_app": True},
+                language="en",
+                timezone="America/New_York"
+            )
+            preferences.append(preference)
+        
+        # Add all preferences
+        session.add_all(preferences)
+        await session.commit()
+        print("User preferences seeded successfully!")
+        
+    except Exception as e:
+        print(f"Error seeding user preferences: {e}")
+        await session.rollback()
+        raise 

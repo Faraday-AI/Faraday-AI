@@ -3,7 +3,7 @@ from typing import List, Dict, Optional, Any
 from sqlalchemy.orm import Session
 from datetime import datetime
 from app.models.gpt import GPTRole, GPTInteraction
-from app.models.user import User
+from app.models.core.user import Teacher
 from app.models.memory import UserMemory
 from app.schemas.gpt import GPTRoleCreate, GPTRoleUpdate, GPTInteractionCreate
 

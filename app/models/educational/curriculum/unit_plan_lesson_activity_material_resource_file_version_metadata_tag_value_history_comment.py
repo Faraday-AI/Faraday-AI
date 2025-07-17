@@ -1,0 +1,1 @@
+from app.models.physical_education.base.base_class import Base 

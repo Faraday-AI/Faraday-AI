@@ -1,12 +1,12 @@
-from typing import List, Optional
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from app.models.physical_education.class_ import PhysicalEducationClass, ClassCreate, ClassUpdate
+from app.models.routine import Routine
 from app.core.database import get_db
-from app.services.physical_education.models.class_ import Class
-from app.services.physical_education.models.class_types import ClassStatus
-from app.services.physical_education.models.student import Student
-from app.services.physical_education.models.routine import Routine
-from app.services.physical_education.services.class_service import ClassService
+from app.models.student import Student
+from app.services.physical_education.class_service import ClassService
 from pydantic import BaseModel, Field, ConfigDict
 
 router = APIRouter(prefix="/classes", tags=["classes"])
@@ -43,18 +43,15 @@ class ClassResponse(ClassBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-@router.post("/", response_model=ClassResponse)
+@router.post("/", response_model=PhysicalEducationClass)
 def create_class(class_: ClassCreate, db: Session = Depends(get_db)):
     """Create a new physical education class."""
     service = ClassService(db)
-    try:
-        return service.create_class(class_.model_dump())
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return service.create_class(class_.model_dump())
 
-@router.get("/{class_id}", response_model=ClassResponse)
+@router.get("/{class_id}", response_model=PhysicalEducationClass)
 def get_class(class_id: int, db: Session = Depends(get_db)):
-    """Get a class by ID."""
+    """Get a physical education class by ID."""
     service = ClassService(db)
     class_ = service.get_class(class_id)
     if not class_:
@@ -77,13 +74,13 @@ def get_classes(
     else:
         return service.get_all_classes()
 
-@router.put("/{class_id}", response_model=ClassResponse)
+@router.put("/{class_id}", response_model=PhysicalEducationClass)
 def update_class(
     class_id: int,
     class_: ClassUpdate,
     db: Session = Depends(get_db)
 ):
-    """Update an existing class."""
+    """Update a physical education class."""
     service = ClassService(db)
     updated_class = service.update_class(class_id, class_.model_dump(exclude_unset=True))
     if not updated_class:
@@ -92,7 +89,7 @@ def update_class(
 
 @router.delete("/{class_id}")
 def delete_class(class_id: int, db: Session = Depends(get_db)):
-    """Delete a class."""
+    """Delete a physical education class."""
     service = ClassService(db)
     success = service.delete_class(class_id)
     if not success:

@@ -22,7 +22,7 @@ from app.services.physical_education.services.movement_analysis_service import (
     MovementAnalysisMetrics,
     MovementAnalysisError
 )
-from app.services.physical_education.models.movement_analysis.movement_models import MovementAnalysis as MovementAnalysisModel, MovementPattern
+from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis as MovementAnalysisModel
 from app.services.physical_education.activity_manager import ActivityManager
 from app.services.physical_education.services.safety_manager import SafetyManager
 from app.services.physical_education.services.student_manager import StudentManager
@@ -635,8 +635,8 @@ async def test_get_movement_patterns(service, mock_db):
     # Setup
     analysis_id = 123
     expected_patterns = [
-        MovementPattern(id=1, analysis_id=analysis_id),
-        MovementPattern(id=2, analysis_id=analysis_id)
+        MovementAnalysisModel(id=1, analysis_id=analysis_id),
+        MovementAnalysisModel(id=2, analysis_id=analysis_id)
     ]
     mock_db.query.return_value.filter.return_value.all.return_value = expected_patterns
     
@@ -645,4 +645,4 @@ async def test_get_movement_patterns(service, mock_db):
     
     # Verify
     assert result == expected_patterns
-    mock_db.query.assert_called_with(MovementPattern) 
+    mock_db.query.assert_called_with(MovementAnalysisModel) 

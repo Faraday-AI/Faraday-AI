@@ -288,7 +288,7 @@ WEBSOCKET_PORT=9100       # WebSocket port
 LOG_LEVEL=INFO           # Logging level
 
 # Database Configuration
-DATABASE_URL=            # PostgreSQL connection string
+DATABASE_URL=postgresql://faraday_admin:CodaMoeLuna31@faraday-ai-db.postgres.database.azure.com:5432/postgres?sslmode=require
 
 # Redis Configuration
 REDIS_PORT=6379         # Redis port
@@ -430,3 +430,86 @@ docker stats
 3. Use environment variables for configuration
 4. Regularly update base images
 5. Implement proper access controls 
+
+### Current Database Validation Process (Updated April 2024)
+
+### Validation Script Output
+The validation script (`app/scripts/validate_data.py`) provides detailed output in the following format:
+
+1. Table Counts:
+   ```
+   users: 3 records
+   user_memories: 6 records
+   memory_interactions: 12 records
+   activities: 44 records
+   lessons: 3 records
+   subject_categories: 5 records
+   students: 8 records
+   classes: 4 records
+   safety_checks: 20 records
+   ```
+
+2. Relationship Validation:
+   - User-Memory Relationships (2 memories per user)
+   - Activity Category Relationships (multiple categories per activity)
+   - Parent-Child Category Hierarchies (5 main categories with subcategories)
+
+3. Activity Details:
+   - Activity Assignments with Type and Difficulty
+   - Category Associations
+   - Full Path Information
+
+4. Category Hierarchy Analysis:
+   - Validates category structure
+   - Checks parent-child relationships
+   - Verifies activity distribution
+
+### Current Validation Commands
+```bash
+# Validate database state
+docker-compose exec app python -m app.scripts.validate_data
+
+# Seed final balance activities
+docker-compose exec app python -m app.scripts.seed_data.seed_final_balance
+```
+
+### Validation Success Indicators
+1. All tables exist with correct record counts
+2. Relationships are properly established
+3. Category hierarchy is maintained
+4. Activity distribution matches expected counts
+5. No foreign key constraint violations
+
+### Common Validation Issues
+
+1. Missing Tables:
+   - Verify migrations have run successfully
+   - Check database connection settings
+   - Ensure proper environment variables
+
+2. Incomplete Data:
+   - Run seed scripts in correct order
+   - Verify foreign key constraints
+   - Check for failed transactions
+
+3. Category Issues:
+   - Validate parent-child relationships
+   - Check activity distribution
+   - Verify category assignments
+
+### Troubleshooting
+
+1. If validation fails:
+   - Check database logs
+   - Verify container status
+   - Review migration history
+
+2. If seeding fails:
+   - Check data integrity
+   - Verify foreign keys
+   - Review error messages
+
+3. If categories are incorrect:
+   - Verify category hierarchy
+   - Check activity assignments
+   - Review category relationships 

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from app.core.config import get_settings
 from app.core.database import get_db
-from app.models.user import User
+from app.models.core.user import User
 import logging
 from openai import OpenAI
 from passlib.context import CryptContext

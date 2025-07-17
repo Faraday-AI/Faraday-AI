@@ -1,144 +1,360 @@
+"""Activity circuit breaker manager for physical education."""
+
 import logging
-from typing import Dict, Any, Optional
-from fastapi import Depends
+from typing import Dict, Any, Optional, List
+from datetime import datetime
+import numpy as np
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.services.physical_education.activity_manager import ActivityManager
-import redis.asyncio as redis
-from datetime import datetime, timedelta
-from enum import Enum
 
-logger = logging.getLogger(__name__)
-
-class CircuitState(Enum):
-    CLOSED = "closed"
-    OPEN = "open"
-    HALF_OPEN = "half_open"
+# Import models
+from app.models.activity import (
+    Activity,
+    ActivityType,
+    DifficultyLevel,
+    EquipmentRequirement,
+    ActivityCategoryAssociation
+)
+from app.models.student import Student
+from app.models.circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerPolicy,
+    CircuitBreakerMetrics,
+    CircuitBreakerStatus
+)
+from app.models.physical_education.pe_enums.pe_types import (
+    CircuitBreakerType,
+    CircuitBreakerLevel,
+    CircuitBreakerStatus,
+    CircuitBreakerTrigger
+)
+from app.models.physical_education.activity.models import (
+    StudentActivityPerformance,
+    StudentActivityPreference
+)
 
 class ActivityCircuitBreakerManager:
-    """Service for managing circuit breaking for activities."""
+    """Service for managing physical education activity circuit breakers."""
     
-    def __init__(self, db: Session = Depends(get_db)):
-        self.db = db
-        self.logger = logging.getLogger(__name__)
-        self.activity_manager = ActivityManager(db)
-        self.redis_client = redis.Redis(
-            host='localhost',
-            port=6379,
-            db=0,
-            decode_responses=True
-        )
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(ActivityCircuitBreakerManager, cls).__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        self.logger = logging.getLogger("activity_circuit_breaker_manager")
+        self.db = None
         
         # Circuit breaker settings
         self.settings = {
-            'failure_threshold': 5,
-            'reset_timeout': 60,  # 1 minute
-            'half_open_timeout': 30,  # 30 seconds
-            'success_threshold': 3
+            "circuit_breaker_enabled": True,
+            "auto_break": True,
+            "failure_threshold": 5,
+            "reset_timeout": 60,  # seconds
+            "half_open_timeout": 30,  # seconds
+            "thresholds": {
+                "error_rate": 0.5,
+                "latency": 1000,  # ms
+                "timeout": 5000  # ms
+            }
         }
         
-    async def check_circuit(self, service_name: str) -> bool:
-        """Check if circuit is closed for a service."""
+        # Circuit breaker components
+        self.circuit_breakers = {}
+        self.breaker_metrics = {}
+        self.failure_history = []
+        self.state_history = []
+    
+    async def initialize(self):
+        """Initialize the circuit breaker manager."""
         try:
-            state_key = f"circuit:{service_name}:state"
-            state = await self.redis_client.get(state_key)
+            self.db = next(get_db())
             
-            if not state:
-                return True  # Default to closed
-                
-            if state == CircuitState.OPEN.value:
-                # Check if reset timeout has passed
-                last_failure_key = f"circuit:{service_name}:last_failure"
-                last_failure = await self.redis_client.get(last_failure_key)
-                if last_failure:
-                    last_failure_time = datetime.fromtimestamp(float(last_failure))
-                    if (datetime.now() - last_failure_time).seconds >= self.settings['reset_timeout']:
-                        # Move to half-open state
-                        await self.redis_client.set(state_key, CircuitState.HALF_OPEN.value)
-                        return True
-                return False
-                
-            return True
+            # Initialize circuit breaker components
+            self.initialize_circuit_breaker_components()
+            
+            self.logger.info("Activity Circuit Breaker Manager initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing Activity Circuit Breaker Manager: {str(e)}")
+            raise
+    
+    async def cleanup(self):
+        """Cleanup the circuit breaker manager."""
+        try:
+            # Clear all data
+            self.circuit_breakers.clear()
+            self.breaker_metrics.clear()
+            self.failure_history.clear()
+            self.state_history.clear()
+            
+            # Reset service references
+            self.db = None
+            
+            self.logger.info("Activity Circuit Breaker Manager cleaned up successfully")
+        except Exception as e:
+            self.logger.error(f"Error cleaning up Activity Circuit Breaker Manager: {str(e)}")
+            raise
+
+    def initialize_circuit_breaker_components(self):
+        """Initialize circuit breaker components."""
+        try:
+            # Initialize breaker metrics
+            self.breaker_metrics = {
+                "failures": {
+                    "count": 0,
+                    "rate": 0.0,
+                    "window_start": datetime.now().isoformat()
+                },
+                "trips": {
+                    "count": 0,
+                    "rate": 0.0
+                },
+                "resets": {
+                    "count": 0,
+                    "rate": 0.0
+                }
+            }
+            
+            self.logger.info("Circuit breaker components initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing circuit breaker components: {str(e)}")
+            raise
+
+    async def check_circuit_breaker(
+        self,
+        activity_id: str,
+        student_id: str
+    ) -> Dict[str, Any]:
+        """Check if circuit breaker allows request."""
+        try:
+            if not self.settings["circuit_breaker_enabled"]:
+                return {"allowed": True}
+            
+            # Get circuit breaker key
+            breaker_key = f"{student_id}_{activity_id}"
+            
+            # Get or create circuit breaker
+            breaker = self._get_or_create_breaker(breaker_key)
+            
+            # Check breaker state
+            if breaker["state"] == "open":
+                if self._should_transition_to_half_open(breaker):
+                    breaker["state"] = "half-open"
+                    self._update_state_history(breaker_key, "half-open")
+                else:
+                    return {
+                        "allowed": False,
+                        "reason": "Circuit breaker is open"
+                    }
+            
+            # Allow request if breaker is closed or half-open
+            return {"allowed": True}
             
         except Exception as e:
-            self.logger.error(f"Error checking circuit: {str(e)}")
-            return True  # Default to closed
-            
-    async def record_failure(self, service_name: str) -> None:
-        """Record a service failure."""
+            self.logger.error(f"Error checking circuit breaker: {str(e)}")
+            raise
+
+    async def record_success(
+        self,
+        activity_id: str,
+        student_id: str
+    ) -> None:
+        """Record successful request."""
         try:
-            failure_key = f"circuit:{service_name}:failures"
-            last_failure_key = f"circuit:{service_name}:last_failure"
-            state_key = f"circuit:{service_name}:state"
+            breaker_key = f"{student_id}_{activity_id}"
+            breaker = self._get_or_create_breaker(breaker_key)
             
-            # Increment failure count
-            failures = int(await self.redis_client.get(failure_key) or 0)
-            failures += 1
+            # Reset failure count
+            breaker["failure_count"] = 0
             
-            # Update last failure time
-            await self.redis_client.set(last_failure_key, datetime.now().timestamp())
-            
-            # Check if threshold reached
-            if failures >= self.settings['failure_threshold']:
-                await self.redis_client.set(state_key, CircuitState.OPEN.value)
-                self.logger.warning(f"Circuit breaker opened for {service_name}")
-                
-            await self.redis_client.set(failure_key, failures)
-            
-        except Exception as e:
-            self.logger.error(f"Error recording failure: {str(e)}")
-            
-    async def record_success(self, service_name: str) -> None:
-        """Record a service success."""
-        try:
-            success_key = f"circuit:{service_name}:successes"
-            state_key = f"circuit:{service_name}:state"
-            
-            # Increment success count
-            successes = int(await self.redis_client.get(success_key) or 0)
-            successes += 1
-            
-            # Check if in half-open state
-            current_state = await self.redis_client.get(state_key)
-            if current_state == CircuitState.HALF_OPEN.value:
-                if successes >= self.settings['success_threshold']:
-                    # Reset circuit
-                    await self.reset_circuit(service_name)
-                    
-            await self.redis_client.set(success_key, successes)
+            # Transition to closed state if in half-open
+            if breaker["state"] == "half-open":
+                breaker["state"] = "closed"
+                self._update_state_history(breaker_key, "closed")
             
         except Exception as e:
             self.logger.error(f"Error recording success: {str(e)}")
-            
-    async def reset_circuit(self, service_name: str) -> None:
-        """Reset circuit breaker for a service."""
+            raise
+
+    async def record_failure(
+        self,
+        activity_id: str,
+        student_id: str,
+        error: Optional[str] = None
+    ) -> None:
+        """Record failed request."""
         try:
-            # Reset all counters and state
-            await self.redis_client.delete(f"circuit:{service_name}:failures")
-            await self.redis_client.delete(f"circuit:{service_name}:successes")
-            await self.redis_client.delete(f"circuit:{service_name}:last_failure")
-            await self.redis_client.set(f"circuit:{service_name}:state", CircuitState.CLOSED.value)
+            breaker_key = f"{student_id}_{activity_id}"
+            breaker = self._get_or_create_breaker(breaker_key)
             
-            self.logger.info(f"Circuit breaker reset for {service_name}")
+            # Increment failure count
+            breaker["failure_count"] += 1
+            
+            # Update failure history
+            self._update_failure_history(
+                breaker_key,
+                error or "Unknown error"
+            )
+            
+            # Update metrics
+            self._update_breaker_metrics("failures")
+            
+            # Check if should trip breaker
+            if self._should_trip_breaker(breaker):
+                breaker["state"] = "open"
+                breaker["last_trip_time"] = datetime.now().isoformat()
+                self._update_state_history(breaker_key, "open")
+                self._update_breaker_metrics("trips")
             
         except Exception as e:
-            self.logger.error(f"Error resetting circuit: {str(e)}")
-            
-    async def get_circuit_stats(self, service_name: str) -> Dict[str, Any]:
-        """Get circuit breaker statistics for a service."""
+            self.logger.error(f"Error recording failure: {str(e)}")
+            raise
+
+    async def get_breaker_metrics(self) -> Dict[str, Any]:
+        """Get circuit breaker metrics."""
         try:
-            failures = int(await self.redis_client.get(f"circuit:{service_name}:failures") or 0)
-            successes = int(await self.redis_client.get(f"circuit:{service_name}:successes") or 0)
-            state = await self.redis_client.get(f"circuit:{service_name}:state") or CircuitState.CLOSED.value
-            last_failure = await self.redis_client.get(f"circuit:{service_name}:last_failure")
+            # Calculate rates
+            window_start = datetime.fromisoformat(
+                self.breaker_metrics["failures"]["window_start"]
+            )
+            now = datetime.now()
+            window_duration = (now - window_start).total_seconds()
             
-            return {
-                'state': state,
-                'failures': failures,
-                'successes': successes,
-                'last_failure': datetime.fromtimestamp(float(last_failure)).isoformat() if last_failure else None,
-                'threshold': self.settings['failure_threshold']
-            }
+            if window_duration > 0:
+                self.breaker_metrics["failures"]["rate"] = (
+                    self.breaker_metrics["failures"]["count"] /
+                    window_duration
+                )
+                
+                self.breaker_metrics["trips"]["rate"] = (
+                    self.breaker_metrics["trips"]["count"] /
+                    window_duration
+                )
+                
+                self.breaker_metrics["resets"]["rate"] = (
+                    self.breaker_metrics["resets"]["count"] /
+                    window_duration
+                )
+            
+            return self.breaker_metrics
+            
         except Exception as e:
-            self.logger.error(f"Error getting circuit stats: {str(e)}")
-            return {} 
+            self.logger.error(f"Error getting breaker metrics: {str(e)}")
+            raise
+
+    def _get_or_create_breaker(
+        self,
+        breaker_key: str
+    ) -> Dict[str, Any]:
+        """Get or create circuit breaker."""
+        try:
+            if breaker_key not in self.circuit_breakers:
+                self.circuit_breakers[breaker_key] = {
+                    "state": "closed",
+                    "failure_count": 0,
+                    "last_failure_time": None,
+                    "last_trip_time": None,
+                    "last_reset_time": None
+                }
+            
+            return self.circuit_breakers[breaker_key]
+            
+        except Exception as e:
+            self.logger.error(f"Error getting or creating breaker: {str(e)}")
+            raise
+
+    def _should_trip_breaker(
+        self,
+        breaker: Dict[str, Any]
+    ) -> bool:
+        """Check if breaker should trip."""
+        try:
+            return (
+                breaker["failure_count"] >= self.settings["failure_threshold"]
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Error checking if should trip breaker: {str(e)}")
+            return False
+
+    def _should_transition_to_half_open(
+        self,
+        breaker: Dict[str, Any]
+    ) -> bool:
+        """Check if breaker should transition to half-open state."""
+        try:
+            if not breaker["last_trip_time"]:
+                return False
+            
+            last_trip = datetime.fromisoformat(breaker["last_trip_time"])
+            now = datetime.now()
+            
+            return (
+                (now - last_trip).total_seconds() >=
+                self.settings["reset_timeout"]
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Error checking if should transition to half-open: {str(e)}")
+            return False
+
+    def _update_failure_history(
+        self,
+        breaker_key: str,
+        error: str
+    ) -> None:
+        """Update failure history."""
+        try:
+            self.failure_history.append({
+                "breaker_key": breaker_key,
+                "error": error,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # Trim history if needed
+            if len(self.failure_history) > 1000:  # Keep last 1000 records
+                self.failure_history = self.failure_history[-1000:]
+            
+        except Exception as e:
+            self.logger.error(f"Error updating failure history: {str(e)}")
+            raise
+
+    def _update_state_history(
+        self,
+        breaker_key: str,
+        state: str
+    ) -> None:
+        """Update state history."""
+        try:
+            self.state_history.append({
+                "breaker_key": breaker_key,
+                "state": state,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # Trim history if needed
+            if len(self.state_history) > 1000:  # Keep last 1000 records
+                self.state_history = self.state_history[-1000:]
+            
+        except Exception as e:
+            self.logger.error(f"Error updating state history: {str(e)}")
+            raise
+
+    def _update_breaker_metrics(
+        self,
+        metric_type: str
+    ) -> None:
+        """Update circuit breaker metrics."""
+        try:
+            if metric_type == "failures":
+                self.breaker_metrics["failures"]["count"] += 1
+            elif metric_type == "trips":
+                self.breaker_metrics["trips"]["count"] += 1
+            elif metric_type == "resets":
+                self.breaker_metrics["resets"]["count"] += 1
+            
+        except Exception as e:
+            self.logger.error(f"Error updating breaker metrics: {str(e)}")
+            raise 

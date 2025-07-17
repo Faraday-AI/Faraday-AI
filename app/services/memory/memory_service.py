@@ -1,9 +1,11 @@
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from datetime import datetime
+from sqlalchemy.sql import text
+from app.dashboard.models import DashboardUser as User
 from app.models.memory import UserMemory, MemoryInteraction
-from app.models.lesson import User
 from app.models.subject import AssistantProfile
+from app.core.config import get_settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -13,6 +15,7 @@ class MemoryService:
     
     def __init__(self, db: Session):
         self.db = db
+        self.settings = get_settings()
         
     async def create_memory(
         self,

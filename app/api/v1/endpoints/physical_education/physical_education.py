@@ -4,7 +4,11 @@ from app.services.ai.ai_analytics import PhysicalEducationAI
 from pydantic import BaseModel
 import json
 
+from ..safety import router as safety_router
+
 router = APIRouter()
+router.include_router(safety_router, prefix="/safety", tags=["safety"])
+
 pe_ai = PhysicalEducationAI()
 
 class LessonPlanRequest(BaseModel):

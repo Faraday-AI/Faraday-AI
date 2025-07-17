@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock, Mock
 from sqlalchemy.orm import Session
 from fastapi import Depends
-from app.services.physical_education.services.risk_assessment_manager import RiskAssessmentManager
-from app.services.physical_education.models.safety import RiskAssessment
+from app.services.physical_education.risk_assessment_manager import RiskAssessmentManager
+from app.models.physical_education.safety import RiskAssessment
 
 @pytest.fixture
 def risk_manager():

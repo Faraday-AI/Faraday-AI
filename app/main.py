@@ -1,3 +1,7 @@
+"""
+Main application module.
+"""
+
 import logging
 from typing import Optional, Dict, Any, List, Tuple
 import tempfile
@@ -30,16 +34,16 @@ from app.services.ai.ai_analytics import AIAnalytics
 from app.api.v1.endpoints.management.ai_analysis import router as ai_analysis_router
 from app.api.v1.endpoints.management.activity_management import router as activity_management
 from app.api.v1.endpoints.physical_education import physical_education
-from app.core.database import init_db
+from app.api.v1.endpoints.physical_education.health_fitness import router as health_fitness_router
+from app.core.database import initialize_engines, get_db, engine, init_db
+from app.core.enums import Region
 from app.api.v1 import auth
 from app.api.v1.endpoints.core.memory import router as memory_router
 from app.api.v1.endpoints.assistants.math_assistant import router as math_assistant_router
 from app.api.v1.endpoints.assistants.science_assistant import router as science_assistant_router
 import socket
 from app.core.health import router as health_router
-from app.services.physical_education.pe_service import PEService
-from app.services.physical_education.activity_manager import ActivityManager
-from app.services.physical_education.security_service import SecurityService
+from app.services.physical_education import service_integration
 from app.api.v1.middleware.cache import add_caching
 from app.api.v1 import router as api_router
 from fastapi_limiter import FastAPILimiter
@@ -51,6 +55,35 @@ from app.core.config import settings, get_settings
 from app.core.auth import get_current_active_user
 from app.services.physical_education.movement_analyzer import MovementAnalyzer
 from app.services.physical_education.video_processor import VideoProcessor
+from app.dashboard.api.v1.endpoints import (
+    dashboard,
+    analytics,
+    compatibility,
+    gpt_context,
+    gpt_manager,
+    resource_optimization,
+    access_control,
+    resource_sharing,
+    optimization_monitoring,
+    notifications  # Add new import
+)
+from app.dashboard.services.gpt_manager_service import GPTManagerService
+from app.dashboard.api.v1.middleware.rate_limit import setup_rate_limiting
+from app.dashboard.api.v1.middleware.auth import setup_auth_middleware
+from app.api.v1.endpoints import educational
+from app.core.load_balancer import GlobalLoadBalancer
+from app.core.regional_failover import RegionalFailoverManager
+from app.dashboard.services.monitoring import MonitoringService
+from app.dashboard.services.resource_sharing import ResourceSharingService
+from app.dashboard.services.load_balancer_service import LoadBalancerService
+from app.services.physical_education import service_integration
+from pydantic import BaseModel
+from app.services.physical_education.pe_service import PEService
+import time
+from prometheus_client.core import CollectorRegistry
+from app.core.database import engine, Base
+from app.core.middleware import RequestLoggingMiddleware
+from app.models.core.core_models import Region
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -116,6 +149,18 @@ app.include_router(health_router, tags=["System"])
 app.include_router(ai_analysis_router, prefix="/api")
 app.include_router(debug_router)
 app.include_router(activity_management, prefix="/api/v1/activities", tags=["activities"])
+app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
+app.include_router(compatibility.router, prefix="/api/v1/compatibility", tags=["compatibility"])
+app.include_router(gpt_context.router, prefix="/api/v1/gpt-context", tags=["gpt-context"])
+app.include_router(gpt_manager.router, prefix="/api/v1/gpt-manager", tags=["gpt-manager"])
+app.include_router(resource_optimization.router, prefix="/api/v1/resource-optimization", tags=["resource-optimization"])
+app.include_router(access_control.router, prefix="/api/v1/access-control", tags=["access-control"])
+app.include_router(resource_sharing.router, prefix="/api/v1/resource-sharing", tags=["resource-sharing"])
+app.include_router(optimization_monitoring.router, prefix="/api/v1/optimization-monitoring", tags=["optimization-monitoring"])
+app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])  # Add new router
+app.include_router(educational.router, prefix="/api/v1/educational", tags=["educational"])
+app.include_router(health_fitness_router, prefix="/api/v1/physical-education", tags=["physical-education"])
 
 # Mount static files at /static instead of root
 base_dir = Path(__file__).parent.parent
@@ -155,70 +200,122 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Set up rate limiting for access control endpoints
+setup_rate_limiting(app)
+
+# Set up authentication for access control endpoints
+setup_auth_middleware(app)
+
 @lru_cache()
 def get_pe_service() -> PEService:
     """Get PE service instance."""
     service = PEService("physical_education")
     return service
 
+@lru_cache()
+def get_gpt_manager_service() -> GPTManagerService:
+    """Get GPT manager service instance."""
+    service = GPTManagerService(next(get_db()))
+    return service
+
+# Global service variables
+failover_manager = None
+load_balancer = None
+monitoring_service = None
+load_balancer_service = None
+
+@lru_cache()
+def get_resource_sharing_service(db: Session = Depends(get_db)) -> ResourceSharingService:
+    """Get resource sharing service instance."""
+    return ResourceSharingService(db=db)
+
+# Initialize load balancer dashboard service
+# Comment out initial service creation as it will be created in startup event
+# load_balancer_service = LoadBalancerService(
+#     load_balancer=load_balancer,
+#     monitoring_service=monitoring_service,
+#     resource_service=get_resource_sharing_service(next(get_db()))
+# )
+
+# Include load balancer router
+# app.include_router(load_balancer_service.router, prefix="/api/load-balancer", tags=["Load Balancer"])
+
 # Initialize services
 @app.on_event("startup")
 async def startup_event():
-    """Initialize services on startup."""
+    """Initialize application services on startup."""
     try:
-        # Initialize database
-        await init_db()
+        # Initialize database engines first
+        logger.info("Starting database engine initialization...")
+        initialize_engines()  # Remove await since it's synchronous
+        logger.info("Database engines initialized")
         
-        # Initialize PE service
-        pe_service = get_pe_service()
-        await pe_service.initialize()
-
-        # Initialize Redis client
-        redis_client = redis.asyncio.Redis(
-            host=app_settings.REDIS_HOST,
-            port=app_settings.REDIS_PORT,
-            db=app_settings.REDIS_DB,
-            password=app_settings.REDIS_PASSWORD,
-            decode_responses=True
+        # Initialize database
+        logger.info("Starting database initialization...")
+        if not await init_db():
+            raise RuntimeError("Database initialization failed")
+        logger.info("Database initialized successfully")
+        
+        # Initialize services after database is ready
+        logger.info("Initializing application services...")
+        global failover_manager, load_balancer, monitoring_service, load_balancer_service
+        failover_manager = RegionalFailoverManager()
+        load_balancer = GlobalLoadBalancer(failover_manager)
+        monitoring_service = MonitoringService()
+        
+        # Initialize load balancer service
+        db_session = next(get_db())
+        resource_service = get_resource_sharing_service(db_session)
+        load_balancer_service = LoadBalancerService(
+            load_balancer=load_balancer,
+            monitoring_service=monitoring_service,
+            resource_service=resource_service
         )
         
-        # Initialize Security service
-        global security_service
-        security_service = SecurityService(redis_client)
-        await security_service.initialize()
+        # Include load balancer router
+        app.include_router(load_balancer_service.router, prefix="/api/load-balancer", tags=["Load Balancer"])
         
-        # Set initialized flag
-        app.state.initialized = True
+        # Start Prometheus metrics server only in the main process
+        if settings.ENABLE_METRICS and os.environ.get('WORKER_CLASS') != 'uvicorn.workers.UvicornWorker':
+            try:
+                start_http_server(METRICS_PORT)
+                logger.info(f"Prometheus metrics server started on port {METRICS_PORT}")
+            except OSError as e:
+                if "Address already in use" in str(e):
+                    logger.warning(f"Metrics server port {METRICS_PORT} already in use, skipping metrics server startup")
+                else:
+                    logger.error(f"Error starting metrics server: {e}")
+                    raise
         
-        logger.info("Services initialized successfully")
+        # Initialize rate limiter
+        redis_instance = redis.asyncio.Redis.from_url(
+            settings.REDIS_URL,
+            encoding="utf-8",
+            decode_responses=True
+        )
+        await FastAPILimiter.init(redis_instance)
+        
+        logger.info("Application startup complete")
     except Exception as e:
-        logger.error(f"Error during startup: {str(e)}")
-        app.state.initialized = False
+        logger.error(f"Error during startup: {e}")
         raise
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Cleanup services on shutdown."""
+    """Cleanup the application on shutdown."""
     try:
-        # Cleanup PE service
-        pe_service = get_pe_service()
-        await pe_service.cleanup()
+        # Cleanup physical education services
+        await service_integration.cleanup()
         
-        # Cleanup Security service
-        if security_service:
-            await security_service.cleanup()
+        # Cleanup other services
+        await get_realtime_collaboration_service().cleanup()
+        await get_file_processing_service().cleanup()
+        await get_ai_analytics_service().cleanup()
         
-        # Close Redis connection
-        await redis_client.close()
-        
-        logger.info("Services cleaned up successfully")
+        logging.info("Application shutdown completed successfully")
     except Exception as e:
-        logger.error(f"Error during shutdown: {str(e)}")
+        logging.error(f"Error during shutdown: {str(e)}")
         raise
-
-# Start Prometheus metrics server
-start_http_server(METRICS_PORT)
-logger.info(f"Started Prometheus metrics server on port {METRICS_PORT}")
 
 @app.get("/")
 async def root():
@@ -376,6 +473,7 @@ async def health_check():
 
         # Check Redis connection
         try:
+            redis_client = redis.Redis.from_url(settings.REDIS_URL)
             redis_client.ping()
             redis_status = "healthy"
         except Exception as e:
@@ -461,16 +559,49 @@ _ai_analytics_service = AIAnalytics()
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Prometheus metrics
-LEARNING_ACCURACY = Gauge("learning_accuracy", "User learning accuracy by topic")
-RESPONSE_TIME = Histogram("response_time_seconds", "API response time in seconds")
-RECOMMENDATION_QUALITY = Gauge("recommendation_quality", "Resource recommendation effectiveness")
-USER_ENGAGEMENT = Counter("user_engagement_minutes", "Total user engagement time in minutes")
-ACTIVE_USERS = Gauge("active_users", "Number of active users in the last 24 hours")
-ERROR_COUNT = Counter("error_count", "Number of errors by endpoint")
-ACHIEVEMENT_COUNT = Counter("achievement_count", "Number of achievements earned")
-STREAK_LENGTH = Gauge("streak_length", "Current streak length by user", ["user_id"])
-CHALLENGE_COMPLETION = Counter("challenge_completion", "Number of daily challenges completed")
+def create_metrics():
+    """Create Prometheus metrics if they don't exist."""
+    registry = CollectorRegistry()
+    
+    metrics = {
+        'learning_accuracy': Gauge("learning_accuracy", "User learning accuracy by topic", registry=registry),
+        'response_time': Histogram("response_time_seconds", "API response time in seconds", registry=registry),
+        'recommendation_quality': Gauge("recommendation_quality", "Resource recommendation effectiveness", registry=registry),
+        'user_engagement': Counter("user_engagement_minutes", "Total user engagement time in minutes", registry=registry),
+        'active_users': Gauge("active_users", "Number of active users in the last 24 hours", registry=registry),
+        'error_count': Counter("error_count", "Number of errors by endpoint", registry=registry),
+        'achievement_count': Counter("achievement_count", "Number of achievements earned", registry=registry),
+        'streak_length': Gauge("streak_length", "Current streak length by user", ["user_id"], registry=registry),
+        'challenge_completion': Counter("challenge_completion", "Number of daily challenges completed", registry=registry),
+        
+        # GPT Manager metrics
+        'gpt_tool_count': Gauge("gpt_tool_count", "Number of active GPT tools per user", ["user_id"], registry=registry),
+        'gpt_command_latency': Histogram("gpt_command_latency_seconds", "Latency of GPT command processing", registry=registry),
+        'gpt_command_count': Counter("gpt_command_count", "Number of GPT commands processed", ["status"], registry=registry),
+        'gpt_tool_errors': Counter("gpt_tool_errors", "Number of GPT tool errors", ["tool_name"], registry=registry)
+    }
+    
+    return metrics, registry
 
+# Initialize metrics
+METRICS, REGISTRY = create_metrics()
+
+# Extract individual metrics for easier access
+LEARNING_ACCURACY = METRICS['learning_accuracy']
+RESPONSE_TIME = METRICS['response_time']
+RECOMMENDATION_QUALITY = METRICS['recommendation_quality']
+USER_ENGAGEMENT = METRICS['user_engagement']
+ACTIVE_USERS = METRICS['active_users']
+ERROR_COUNT = METRICS['error_count']
+ACHIEVEMENT_COUNT = METRICS['achievement_count']
+STREAK_LENGTH = METRICS['streak_length']
+CHALLENGE_COMPLETION = METRICS['challenge_completion']
+
+# GPT Manager metrics
+GPT_TOOL_COUNT = METRICS['gpt_tool_count']
+GPT_COMMAND_LATENCY = METRICS['gpt_command_latency']
+GPT_COMMAND_COUNT = METRICS['gpt_command_count']
+GPT_TOOL_ERRORS = METRICS['gpt_tool_errors']
 
 # Utility function: generate unique filename
 def generate_unique_filename(extension: str = ".txt") -> str:
@@ -648,10 +779,55 @@ async def websocket_endpoint(websocket: WebSocket):
         ACTIVE_USERS.set(max(0, ACTIVE_USERS._value.get() - 1))
 
 
-@app.get("/metrics/summary")
-async def get_metrics_summary():
-    return {"learning_accuracy": LEARNING_ACCURACY._value.get(), "response_time_avg": RESPONSE_TIME._sum.get() / RESPONSE_TIME._count.get() if RESPONSE_TIME._count.get() else 0.0, "recommendation_quality": RECOMMENDATION_QUALITY._value.get(), "user_engagement_minutes": USER_ENGAGEMENT._value.get(), "active_users": ACTIVE_USERS._value.get(), "error_count": ERROR_COUNT._value.get(), "achievement_count": ACHIEVEMENT_COUNT._value.get(), "challenge_completion": CHALLENGE_COMPLETION._value.get()}
+class MetricsSummary(BaseModel):
+    learning_accuracy: float
+    response_time_avg: float
+    recommendation_quality: float
+    user_engagement_minutes: float
+    active_users: int
+    error_count: int
+    achievement_count: int
+    challenge_completion: float
 
+@app.get("/metrics/summary", response_model=MetricsSummary)
+async def get_metrics_summary() -> Dict[str, Any]:
+    """
+    Get a summary of all system metrics.
+    
+    Returns:
+        Dict containing the following metrics:
+        - learning_accuracy: Current learning accuracy score
+        - response_time_avg: Average response time
+        - recommendation_quality: Quality score of recommendations
+        - user_engagement_minutes: Total user engagement time
+        - active_users: Number of currently active users
+        - error_count: Total number of errors encountered
+        - achievement_count: Total number of achievements unlocked
+        - challenge_completion: Challenge completion rate
+    """
+    try:
+        response_time_avg = (
+            RESPONSE_TIME._sum.get() / RESPONSE_TIME._count.get()
+            if RESPONSE_TIME._count.get() > 0
+            else 0.0
+        )
+        
+        return {
+            "learning_accuracy": LEARNING_ACCURACY._value.get(),
+            "response_time_avg": response_time_avg,
+            "recommendation_quality": RECOMMENDATION_QUALITY._value.get(),
+            "user_engagement_minutes": USER_ENGAGEMENT._value.get(),
+            "active_users": ACTIVE_USERS._value.get(),
+            "error_count": ERROR_COUNT._value.get(),
+            "achievement_count": ACHIEVEMENT_COUNT._value.get(),
+            "challenge_completion": CHALLENGE_COMPLETION._value.get()
+        }
+    except Exception as e:
+        ERROR_COUNT.inc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving metrics: {str(e)}"
+        )
 
 @app.get("/simulate/metrics")
 async def simulate_metrics():
@@ -3369,6 +3545,7 @@ async def check_database():
 
 async def check_redis():
     try:
+        redis_client = redis.Redis.from_url(settings.REDIS_URL)
         redis_client.ping()
         return "ready"
     except Exception as e:
@@ -3385,10 +3562,10 @@ async def check_minio():
 
 async def check_models():
     try:
-        model_dir = Path("/app/models")
+        model_dir = Path("/app/models")  # Correct path
         if not model_dir.exists():
             return "not_ready"
-        required_models = ["movement_analysis.h5", "activity_adaptation.joblib", "activity_assessment.joblib"]
+        required_models = ["movement_analysis_model.keras", "activity_adaptation.joblib", "activity_assessment.joblib"]
         for model in required_models:
             if not (model_dir / model).exists():
                 return "not_ready"
@@ -3396,4 +3573,12 @@ async def check_models():
     except Exception as e:
         logger.error(f"Models check failed: {str(e)}")
         return "not_ready"
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Clean up resources when the application shuts down."""
+    global _realtime_collaboration_service
+    if _realtime_collaboration_service is not None:
+        await _realtime_collaboration_service.cleanup()
+        _realtime_collaboration_service = None
 

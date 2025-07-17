@@ -29,6 +29,17 @@ setup(
         "alembic",
         "pydantic",
         "python-dotenv",
+        "pandas",
+        "numpy",
+        "plotly",
+        "seaborn",
+        "matplotlib",
+        "networkx",
+        "psutil",
+        "email-validator",
+        "imageio",
+        "python-pptx",
+        "python-docx",
     ],
     extras_require={
         'dev': [

@@ -1,13 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from app.core.database import get_db
-from app.services.memory.memory_service import MemoryService
-from app.models.memory import UserMemory, MemoryInteraction, UserMemoryResponse, MemoryInteractionResponse
-from app.core.auth import get_current_user
-from app.models.lesson import User
-from pydantic import BaseModel
+from typing import List, Dict, Any, Optional
 from datetime import datetime
+
+from app.core.database import get_db
+from app.core.auth import get_current_user
+from app.dashboard.models import DashboardUser as User
+from app.models.memory import UserMemory, MemoryInteraction, UserMemoryResponse, MemoryInteractionResponse
+from pydantic import BaseModel
 
 router = APIRouter()
 

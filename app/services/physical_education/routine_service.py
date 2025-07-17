@@ -1,11 +1,18 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Dict, Any, Optional
+from datetime import datetime
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from app.models.routine import (
+    Routine, 
+    RoutineType, 
+    RoutineActivity, 
+    RoutineStatus,
+    RoutineDifficulty
+)
+from app.models.physical_education.class_ import PhysicalEducationClass
+from app.models.student import Student
 from app.core.database import get_db
-from .models.routine import Routine, RoutineStatus
-from .models.routine_activity import RoutineActivity
-from .models.activity import Activity
-from .models.class_ import Class
+from app.models.activity import Activity
 
 class RoutineService:
     """Service for managing physical education routines and related operations."""
@@ -245,7 +252,7 @@ class RoutineService:
             RoutineActivity.order
         ).all()
 
-    def get_routine_class(self, routine_id: int) -> Optional[Class]:
+    def get_routine_class(self, routine_id: int) -> Optional[PhysicalEducationClass]:
         """
         Get the class associated with a routine.
         
@@ -253,9 +260,9 @@ class RoutineService:
             routine_id: The ID of the routine
             
         Returns:
-            Optional[Class]: The associated class if found, None otherwise
+            Optional[PhysicalEducationClass]: The associated class if found, None otherwise
         """
         routine = self.get_routine(routine_id)
         if not routine:
             return None
-        return self.db.query(Class).filter(Class.id == routine.class_id).first() 
+        return self.db.query(PhysicalEducationClass).filter(PhysicalEducationClass.id == routine.class_id).first() 

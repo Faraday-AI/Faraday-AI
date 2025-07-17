@@ -1,0 +1,72 @@
+groups:
+  - name: cache-manager
+    rules:
+      # High memory usage alert
+      - alert: HighMemoryUsage
+        expr: cache_size_bytes{type="memory"} > 8000000000  # 8GB
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High memory usage in cache manager
+          description: Memory usage is above 8GB for 5 minutes
+
+      # High Redis memory usage alert
+      - alert: HighRedisMemoryUsage
+        expr: cache_size_bytes{type="redis"} > 16000000000  # 16GB
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High Redis memory usage
+          description: Redis memory usage is above 16GB for 5 minutes
+
+      # Low hit ratio alert
+      - alert: LowHitRatio
+        expr: cache_hit_ratio < 0.5
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: Low cache hit ratio
+          description: Cache hit ratio is below 50% for 15 minutes
+
+      # Redis connection error alert
+      - alert: RedisConnectionError
+        expr: cache_operations_total{operation="get", status="error"} > 10
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Redis connection errors
+          description: More than 10 Redis connection errors in the last minute
+
+      # High latency alert
+      - alert: HighCacheLatency
+        expr: rate(cache_latency_seconds_sum[5m]) / rate(cache_latency_seconds_count[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: High cache operation latency
+          description: Average cache operation latency is above 100ms for 5 minutes
+
+      # Batch queue size alert
+      - alert: LargeBatchQueue
+        expr: cache_batch_queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Large batch operation queue
+          description: Batch operation queue size is above 1000 for 5 minutes
+
+      # Warmup queue size alert
+      - alert: LargeWarmupQueue
+        expr: cache_warmup_queue_size > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Large cache warmup queue
+          description: Cache warmup queue size is above 1000 for 5 minutes 

@@ -4,14 +4,21 @@ import redis.asyncio as redis
 from datetime import datetime
 import json
 import time
+from unittest.mock import patch, MagicMock, AsyncMock
+from sqlalchemy.orm import Session
 
 from app.services.physical_education.services.movement_analysis_service import MovementAnalysisService
-from app.services.physical_education.models.movement_analysis.movement_models import MovementAnalysis, MovementPattern
+from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis, MovementPattern
 from app.services.physical_education.services.rate_limiter import RateLimiter
 from app.services.physical_education.services.circuit_breaker import CircuitBreaker
 from app.services.physical_education.models.movement import Movement, MovementType, MovementQuality
-from app.services.physical_education.models.exercise import Exercise, ExerciseType, DifficultyLevel
-from app.services.physical_education.models.workout import Workout, WorkoutType, WorkoutStatus
+from app.models.exercise import (
+    Exercise,
+    ExerciseType,
+    WorkoutType,
+    EquipmentType,
+    MovementType
+)
 
 @pytest.fixture
 async def redis_client():

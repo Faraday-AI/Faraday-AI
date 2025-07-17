@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from typing import List, Dict, Any
-from app.services.physical_education.models.activity import (
-    Activity,
+from app.models.physical_education.activity import Activity
+from app.schemas.activity import (
     ActivityCreate,
     ActivityUpdate,
     ActivityResponse

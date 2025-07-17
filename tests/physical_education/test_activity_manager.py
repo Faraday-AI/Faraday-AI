@@ -1,3 +1,8 @@
+import os
+# Set up test environment before any imports
+os.environ["TEST_MODE"] = "true"
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 import asyncio
 import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
@@ -11,21 +16,162 @@ import time
 import json
 from pathlib import Path
 import pytest
+from sqlalchemy import create_engine
+from app.core.database import get_db, get_session_factory, initialize_engines, SessionLocal
 
 from app.services.physical_education.activity_manager import ActivityManager
-from app.services.physical_education.models.activity import (
-    Activity,
-    Exercise,
-    Routine,
+from app.models.shared_base import SharedBase
+from app.models.core.user import Teacher
+from app.models.security.api_key import APIKey
+from app.models.security.rate_limit import RateLimit, RateLimitPolicy, RateLimitMetrics
+from app.models.physical_education.activity.models import Activity
+from app.models.physical_education.exercise.models import Exercise
+from app.models.physical_education.routine.models import Routine
+from app.models.physical_education.activity_adaptation.activity_adaptation import ActivityAdaptation, AdaptationHistory
+from app.models.physical_education.pe_enums.pe_types import (
     ActivityType,
-    DifficultyLevel,
+    ActivityStatus,
+    ActivityCategory,
+    ActivityCategoryType,
+    ActivityDifficulty as DifficultyLevel,
     EquipmentRequirement,
-    ActivityCategory
+    RateLimitType,
+    RateLimitLevel,
+    RateLimitStatus,
+    RateLimitTrigger
 )
+
+@pytest.fixture(scope="session")
+def engine():
+    """Create a test database engine."""
+    return create_engine(os.getenv('DATABASE_URL'))
+
+@pytest.fixture(autouse=True)
+def setup_test_db(engine):
+    """Set up test database for each test."""
+    # Verify environment variables are set
+    assert os.getenv('TEST_MODE') == 'true', "TEST_MODE must be set to 'true'"
+    assert os.getenv('DATABASE_URL') is not None, "DATABASE_URL must be set"
+    assert os.getenv('DATABASE_URL').startswith('sqlite'), "DATABASE_URL must be a SQLite URL in test mode"
+    
+    # Initialize database with retries
+    max_retries = 3
+    retry_delay = 5
+    
+    for attempt in range(max_retries):
+        try:
+            # Create all tables at once using SharedBase to ensure proper order
+            SharedBase.metadata.create_all(bind=engine)
+            
+            # Create test data
+            db = SessionLocal()
+            
+            # Create test user first with simple string ID
+            test_user = Teacher(
+                id=1,  # Integer ID
+                email="test@example.com",
+                first_name="Test",
+                last_name="User",
+                role="teacher"
+            )
+            db.add(test_user)
+            db.commit()
+
+            # Create test API key next with simple string ID
+            test_api_key = APIKey(
+                id="test_api_key_123",
+                key="test_key",
+                name="Test API Key",
+                description="Test API Key for testing",
+                user_id=1,  # Integer ID
+                permissions={},
+                is_active=True,
+                source="database",
+                environment="test",
+                service_name="test_service"
+            )
+            db.add(test_api_key)
+            db.commit()
+
+            # Create test rate limit last with integer ID
+            test_rate_limit = RateLimit(
+                id=1,  # Integer ID
+                key="test_rate_limit",
+                limit_type=RateLimitType.API,
+                limit_level=RateLimitLevel.STANDARD,
+                max_requests=100,
+                window_size=60,
+                burst_size=10,
+                current_count=0,
+                status=RateLimitStatus.ACTIVE,
+                api_key_id="test_api_key_123"
+            )
+            db.add(test_rate_limit)
+            db.commit()
+
+            # Create test rate limit policy with integer foreign key
+            test_policy = RateLimitPolicy(
+                id=1,  # Integer ID
+                rate_limit_id=1,  # Integer foreign key
+                name="Test Policy",
+                description="Test rate limit policy",
+                trigger=RateLimitTrigger.THRESHOLD,
+                action="block",
+                parameters={"threshold": 80},
+                is_active=True
+            )
+            db.add(test_policy)
+            db.commit()
+
+            # Create test rate limit metrics with integer foreign key
+            test_metrics = RateLimitMetrics(
+                id=1,  # Integer ID
+                rate_limit_id=1,  # Integer foreign key
+                window_start=datetime.utcnow(),
+                request_count=0,
+                violation_count=0,
+                average_latency=0.0,
+                max_latency=0.0,
+                burst_count=0,
+                metrics_data={}
+            )
+            db.add(test_metrics)
+            db.commit()
+            
+            db.close()
+            break
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(retry_delay)
+    
+    yield
+
+    # Clean up tables
+    SharedBase.metadata.drop_all(bind=engine)
 
 @pytest.fixture
 def mock_db():
-    return MagicMock()
+    """Create a mock database session."""
+    session = MagicMock(spec=Session)
+    
+    # Mock common database operations
+    session.query = MagicMock()
+    session.add = MagicMock()
+    session.commit = MagicMock()
+    session.rollback = MagicMock()
+    session.close = MagicMock()
+    
+    # Mock query chain
+    mock_query = MagicMock()
+    mock_filter = MagicMock()
+    mock_first = MagicMock()
+    
+    session.query.return_value = mock_query
+    mock_query.filter.return_value = mock_filter
+    mock_filter.first.return_value = mock_first
+    
+    return session
 
 @pytest.fixture
 def mock_websocket():
@@ -35,12 +181,77 @@ def mock_websocket():
     return websocket
 
 @pytest.fixture
+def mock_movement_analyzer():
+    analyzer = MagicMock()
+    analyzer.initialize = AsyncMock()
+    analyzer.cleanup = AsyncMock()
+    return analyzer
+
+@pytest.fixture
+def mock_assessment_system():
+    system = MagicMock()
+    system.initialize = AsyncMock()
+    system.cleanup = AsyncMock()
+    return system
+
+@pytest.fixture
+def mock_lesson_planner():
+    planner = MagicMock()
+    planner.initialize = AsyncMock()
+    planner.cleanup = AsyncMock()
+    return planner
+
+@pytest.fixture
+def mock_safety_manager():
+    manager = MagicMock()
+    manager.initialize = AsyncMock()
+    manager.cleanup = AsyncMock()
+    return manager
+
+@pytest.fixture
+def mock_student_manager():
+    manager = MagicMock()
+    manager.initialize = AsyncMock()
+    manager.cleanup = AsyncMock()
+    return manager
+
+@pytest.fixture(autouse=True)
+def setup_service_integration(mock_movement_analyzer, mock_assessment_system, mock_lesson_planner, mock_safety_manager, mock_student_manager):
+    """Setup service integration for all tests."""
+    with patch('app.services.physical_education.activity_manager.service_integration') as mock_service_integration:
+        # Set up the services dictionary with the mock services
+        mock_service_integration.services = {
+            'movement_analyzer': mock_movement_analyzer,
+            'assessment_system': mock_assessment_system,
+            'lesson_planner': mock_lesson_planner,
+            'safety_manager': mock_safety_manager,
+            'student_manager': mock_student_manager
+        }
+        
+        # Set up the get_service method
+        def get_service_side_effect(service_name):
+            if service_name not in mock_service_integration.services:
+                raise ValueError(f"Service not found: {service_name}")
+            return mock_service_integration.services[service_name]
+        
+        mock_service_integration.get_service.side_effect = get_service_side_effect
+        mock_service_integration._initialized = True
+        yield mock_service_integration
+
+@pytest.fixture
 def activity_manager(mock_db):
-    with patch('app.services.physical_education.services.activity_manager.ActivityVisualizationManager'), \
-         patch('app.services.physical_education.services.activity_manager.ActivityCollaborationManager'), \
-         patch('app.services.physical_education.services.activity_manager.ActivityExportManager'), \
-         patch('app.services.physical_education.services.activity_manager.ActivityAnalysisManager'):
-        return ActivityManager(db=mock_db)
+    """Create and initialize an ActivityManager instance."""
+    with patch('app.services.physical_education.activity_visualization_manager.ActivityVisualizationManager'), \
+         patch('app.services.physical_education.activity_collaboration_manager.ActivityCollaborationManager'), \
+         patch('app.services.physical_education.activity_export_manager.ActivityExportManager'), \
+         patch('app.services.physical_education.activity_analysis_manager.ActivityAnalysisManager'), \
+         patch('app.core.database.get_db', return_value=iter([mock_db])):
+        
+        # Create and initialize the ActivityManager
+        manager = ActivityManager()
+        asyncio.run(manager.initialize())
+        yield manager
+        asyncio.run(manager.cleanup())
 
 @pytest.mark.asyncio
 async def test_connect_websocket(activity_manager, mock_websocket):
@@ -72,7 +283,7 @@ async def test_broadcast_update(activity_manager, mock_websocket):
     # Setup
     student_id = 'test_student'
     activity_manager.active_connections[student_id] = [mock_websocket]
-    update_data = {'type': 'activity_update', 'data': {'id': 'activity1'}}
+    update_data = {'activity_type': 'activity_update', 'data': {'id': 'activity1'}}
     
     # Test
     await activity_manager.broadcast_update(student_id, update_data)
@@ -86,25 +297,32 @@ async def test_create_activity_success(activity_manager, mock_db):
     activity_data = {
         'name': 'Test Activity',
         'description': 'Test Description',
-        'activity_type': ActivityType.STRENGTH.value,
+        'activity_type': ActivityType.STRENGTH_TRAINING.value,
         'difficulty': DifficultyLevel.INTERMEDIATE.value,
         'equipment_required': EquipmentRequirement.NONE.value,
-        'categories': [ActivityCategory.FITNESS.value],
+        'categories': [ActivityCategory.FITNESS_TRAINING.value],
         'duration_minutes': 30,
         'instructions': 'Test Instructions',
         'safety_notes': 'Test Safety Notes'
     }
+    
+    # Mock activity creation
     mock_activity = MagicMock(spec=Activity)
     mock_db.add.return_value = None
     mock_db.commit.return_value = None
     mock_db.refresh.return_value = None
+    
+    # Mock category query
+    mock_category = MagicMock()
+    mock_category.id = 1
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_category
     
     # Test
     result = await activity_manager.create_activity(**activity_data)
     
     # Verify
     assert isinstance(result, Activity)
-    mock_db.add.assert_called_once()
+    mock_db.add.assert_called()
     mock_db.commit.assert_called_once()
     mock_db.refresh.assert_called_once()
 
@@ -117,7 +335,7 @@ async def test_create_activity_invalid_type(activity_manager):
         'activity_type': 'invalid_type',
         'difficulty': DifficultyLevel.INTERMEDIATE.value,
         'equipment_required': EquipmentRequirement.NONE.value,
-        'categories': [ActivityCategory.FITNESS.value],
+        'categories': [ActivityCategory.FITNESS_TRAINING.value],
         'duration_minutes': 30,
         'instructions': 'Test Instructions',
         'safety_notes': 'Test Safety Notes'
@@ -133,10 +351,10 @@ async def test_create_activity_invalid_difficulty(activity_manager):
     activity_data = {
         'name': 'Test Activity',
         'description': 'Test Description',
-        'activity_type': ActivityType.STRENGTH.value,
+        'activity_type': ActivityType.STRENGTH_TRAINING.value,
         'difficulty': 'invalid_difficulty',
         'equipment_required': EquipmentRequirement.NONE.value,
-        'categories': [ActivityCategory.FITNESS.value],
+        'categories': [ActivityCategory.FITNESS_TRAINING.value],
         'duration_minutes': 30,
         'instructions': 'Test Instructions',
         'safety_notes': 'Test Safety Notes'
@@ -152,10 +370,10 @@ async def test_create_activity_invalid_equipment(activity_manager):
     activity_data = {
         'name': 'Test Activity',
         'description': 'Test Description',
-        'activity_type': ActivityType.STRENGTH.value,
+        'activity_type': ActivityType.STRENGTH_TRAINING.value,
         'difficulty': DifficultyLevel.INTERMEDIATE.value,
         'equipment_required': 'invalid_equipment',
-        'categories': [ActivityCategory.FITNESS.value],
+        'categories': [ActivityCategory.FITNESS_TRAINING.value],
         'duration_minutes': 30,
         'instructions': 'Test Instructions',
         'safety_notes': 'Test Safety Notes'
@@ -171,7 +389,7 @@ async def test_create_activity_invalid_category(activity_manager):
     activity_data = {
         'name': 'Test Activity',
         'description': 'Test Description',
-        'activity_type': ActivityType.STRENGTH.value,
+        'activity_type': ActivityType.STRENGTH_TRAINING.value,
         'difficulty': DifficultyLevel.INTERMEDIATE.value,
         'equipment_required': EquipmentRequirement.NONE.value,
         'categories': ['invalid_category'],
@@ -215,12 +433,16 @@ async def test_get_activity_not_found(activity_manager, mock_db):
 async def test_update_activity_success(activity_manager, mock_db):
     # Setup
     activity_id = 'test_activity'
-    update_data = {'name': 'Updated Activity'}
+    update_data = {
+        'name': 'Updated Activity',
+        'description': 'Updated Description',
+        'difficulty': DifficultyLevel.ADVANCED.value
+    }
     mock_activity = MagicMock(spec=Activity)
     mock_db.query.return_value.filter.return_value.first.return_value = mock_activity
     
     # Test
-    result = await activity_manager.update_activity(activity_id, update_data)
+    result = await activity_manager.update_activity(activity_id, **update_data)
     
     # Verify
     assert result == mock_activity
@@ -230,11 +452,15 @@ async def test_update_activity_success(activity_manager, mock_db):
 async def test_update_activity_not_found(activity_manager, mock_db):
     # Setup
     activity_id = 'test_activity'
-    update_data = {'name': 'Updated Activity'}
+    update_data = {
+        'name': 'Updated Activity',
+        'description': 'Updated Description',
+        'difficulty': DifficultyLevel.ADVANCED.value
+    }
     mock_db.query.return_value.filter.return_value.first.return_value = None
     
     # Test
-    result = await activity_manager.update_activity(activity_id, update_data)
+    result = await activity_manager.update_activity(activity_id, **update_data)
     
     # Verify
     assert result is None
@@ -270,16 +496,75 @@ async def test_delete_activity_not_found(activity_manager, mock_db):
     mock_db.commit.assert_not_called()
 
 class TestActivityManager(unittest.TestCase):
-    def setUp(self):
-        """Set up test fixtures."""
-        self.mock_db = MagicMock(spec=Session)
-        self.activity_manager = ActivityManager(db=self.mock_db)
+    @classmethod
+    def setUpClass(cls):
+        """Set up test fixtures for the entire test class."""
+        # Create mock services
+        cls.mock_movement_analyzer = MagicMock()
+        cls.mock_movement_analyzer.initialize = AsyncMock()
+        cls.mock_movement_analyzer.cleanup = AsyncMock()
         
+        cls.mock_assessment_system = MagicMock()
+        cls.mock_assessment_system.initialize = AsyncMock()
+        cls.mock_assessment_system.cleanup = AsyncMock()
+        
+        cls.mock_lesson_planner = MagicMock()
+        cls.mock_lesson_planner.initialize = AsyncMock()
+        cls.mock_lesson_planner.cleanup = AsyncMock()
+        
+        cls.mock_safety_manager = MagicMock()
+        cls.mock_safety_manager.initialize = AsyncMock()
+        cls.mock_safety_manager.cleanup = AsyncMock()
+        
+        cls.mock_student_manager = MagicMock()
+        cls.mock_student_manager.initialize = AsyncMock()
+        cls.mock_student_manager.cleanup = AsyncMock()
+        
+        # Patch service integration
+        cls.service_integration_patcher = patch('app.services.physical_education.activity_manager.service_integration')
+        cls.mock_service_integration = cls.service_integration_patcher.start()
+        
+        # Set up the services dictionary
+        cls.mock_service_integration.services = {
+            'movement_analyzer': cls.mock_movement_analyzer,
+            'assessment_system': cls.mock_assessment_system,
+            'lesson_planner': cls.mock_lesson_planner,
+            'safety_manager': cls.mock_safety_manager,
+            'student_manager': cls.mock_student_manager
+        }
+        
+        # Set up the get_service method
+        def get_service_side_effect(service_name):
+            if service_name not in cls.mock_service_integration.services:
+                raise ValueError(f"Service not found: {service_name}")
+            return cls.mock_service_integration.services[service_name]
+        
+        cls.mock_service_integration.get_service.side_effect = get_service_side_effect
+        cls.mock_service_integration._initialized = True
+
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up test fixtures for the entire test class."""
+        cls.service_integration_patcher.stop()
+
+    def setUp(self):
+        """Set up test fixtures for each test method."""
+        # Create mock database session
+        self.mock_db = MagicMock(spec=Session)
+        
+        # Patch database
+        self.get_db_patcher = patch('app.core.database.get_db', return_value=iter([self.mock_db]))
+        self.get_db_patcher.start()
+        
+        # Create and initialize the ActivityManager
+        self.activity_manager = ActivityManager()
+        asyncio.run(self.activity_manager.initialize())
+
         # Test data
         self.test_activity = {
             "name": "Test Activity",
             "description": "Test Description",
-            "activity_type": ActivityType.STRENGTH.value,
+            "activity_type": ActivityType.STRENGTH_TRAINING.value,
             "difficulty": DifficultyLevel.INTERMEDIATE.value,
             "equipment_required": EquipmentRequirement.MINIMAL.value,
             "categories": [ActivityCategory.CARDIO.value],
@@ -311,6 +596,11 @@ class TestActivityManager(unittest.TestCase):
             "duration_minutes": 30
         }
 
+    def tearDown(self):
+        """Clean up test fixtures for each test method."""
+        self.get_db_patcher.stop()
+        asyncio.run(self.activity_manager.cleanup())
+
     async def asyncSetUp(self):
         """Set up async test fixtures."""
         self.mock_websocket = MagicMock(spec=WebSocket)
@@ -328,7 +618,7 @@ class TestActivityManager(unittest.TestCase):
         self.assertEqual(result.name, self.test_activity["name"])
         self.assertEqual(result.description, self.test_activity["description"])
         self.assertEqual(result.activity_type, self.test_activity["activity_type"])
-        self.assertEqual(result.difficulty, self.test_activity["difficulty"])
+        self.assertEqual(result.difficulty_level, self.test_activity["difficulty_level"])
         self.assertEqual(result.equipment_required, self.test_activity["equipment_required"])
         self.assertEqual(result.categories, self.test_activity["categories"])
         self.assertEqual(result.duration_minutes, self.test_activity["duration_minutes"])
@@ -345,8 +635,8 @@ class TestActivityManager(unittest.TestCase):
     async def test_get_activities_filtering(self):
         """Test filtering activities."""
         activities = await self.activity_manager.get_activities(
-            activity_type=ActivityType.STRENGTH.value,
-            difficulty=DifficultyLevel.INTERMEDIATE.value,
+            activity_type=ActivityType.STRENGTH_TRAINING.value,
+            difficulty_level=DifficultyLevel.INTERMEDIATE.value,
             equipment_required=EquipmentRequirement.MINIMAL.value,
             category=ActivityCategory.CARDIO.value,
             duration_min=20,
@@ -356,8 +646,8 @@ class TestActivityManager(unittest.TestCase):
         self.assertIsInstance(activities, list)
         for activity in activities:
             self.assertIsInstance(activity, Activity)
-            self.assertEqual(activity.activity_type, ActivityType.STRENGTH.value)
-            self.assertEqual(activity.difficulty, DifficultyLevel.INTERMEDIATE.value)
+            self.assertEqual(activity.activity_type, ActivityType.STRENGTH_TRAINING.value)
+            self.assertEqual(activity.difficulty_level, DifficultyLevel.INTERMEDIATE.value)
             self.assertEqual(activity.equipment_required, EquipmentRequirement.MINIMAL.value)
             self.assertIn(ActivityCategory.CARDIO.value, activity.categories)
             self.assertGreaterEqual(activity.duration_minutes, 20)
@@ -456,7 +746,7 @@ class TestActivityManager(unittest.TestCase):
 
     async def test_broadcast_update(self):
         """Test broadcasting updates via WebSocket."""
-        test_data = {"type": "update", "data": "test"}
+        test_data = {"activity_type": "update", "data": "test"}
         await self.activity_manager.broadcast_update("test_student_id", test_data)
         
         self.mock_websocket.send_json.assert_called_once_with(test_data)
@@ -523,7 +813,7 @@ class TestActivityManager(unittest.TestCase):
             await self.activity_manager.create_activity(
                 name="Test Activity",
                 # Missing description
-                activity_type=ActivityType.STRENGTH.value
+                activity_type=ActivityType.STRENGTH_TRAINING.value
             )
         
         # Test invalid activity type
@@ -539,8 +829,8 @@ class TestActivityManager(unittest.TestCase):
             await self.activity_manager.create_activity(
                 name="Test Activity",
                 description="Test Description",
-                activity_type=ActivityType.STRENGTH.value,
-                difficulty="invalid_difficulty"
+                activity_type=ActivityType.STRENGTH_TRAINING.value,
+                difficulty_level="invalid_difficulty"
             )
 
     async def test_invalid_exercise_creation(self):
@@ -702,7 +992,7 @@ class TestActivityManager(unittest.TestCase):
         
         # Test broadcasting to non-existent connection
         with self.assertRaises(ValueError):
-            await self.activity_manager.broadcast_update("non_existent_student", {"type": "test"})
+            await self.activity_manager.broadcast_update("non_existent_student", {"activity_type": "test"})
 
     async def test_collaborative_session_error_handling(self):
         """Test error handling in collaborative sessions."""
@@ -793,8 +1083,8 @@ class TestActivityManager(unittest.TestCase):
             self.activity_manager.create_activity(
                 name=f"Test Activity {i}",
                 description=f"Test Description {i}",
-                activity_type=ActivityType.STRENGTH.value,
-                difficulty=DifficultyLevel.INTERMEDIATE.value,
+                activity_type=ActivityType.STRENGTH_TRAINING.value,
+                difficulty_level=DifficultyLevel.INTERMEDIATE.value,
                 equipment_required=EquipmentRequirement.MINIMAL.value,
                 categories=[ActivityCategory.CARDIO.value],
                 duration_minutes=30
@@ -835,16 +1125,16 @@ class TestActivityManager(unittest.TestCase):
             await self.activity_manager.create_activity(
                 name="",  # Empty name
                 description="Test Description",
-                activity_type=ActivityType.STRENGTH.value,
-                difficulty=DifficultyLevel.INTERMEDIATE.value
+                activity_type=ActivityType.STRENGTH_TRAINING.value,
+                difficulty_level=DifficultyLevel.INTERMEDIATE.value
             )
         
         with self.assertRaises(ValueError):
             await self.activity_manager.create_activity(
                 name="a" * 256,  # Name too long
                 description="Test Description",
-                activity_type=ActivityType.STRENGTH.value,
-                difficulty=DifficultyLevel.INTERMEDIATE.value
+                activity_type=ActivityType.STRENGTH_TRAINING.value,
+                difficulty_level=DifficultyLevel.INTERMEDIATE.value
             )
         
         # Test description validation
@@ -852,8 +1142,8 @@ class TestActivityManager(unittest.TestCase):
             await self.activity_manager.create_activity(
                 name="Test Activity",
                 description="",  # Empty description
-                activity_type=ActivityType.STRENGTH.value,
-                difficulty=DifficultyLevel.INTERMEDIATE.value
+                activity_type=ActivityType.STRENGTH_TRAINING.value,
+                difficulty_level=DifficultyLevel.INTERMEDIATE.value
             )
         
         # Test duration validation
@@ -861,8 +1151,8 @@ class TestActivityManager(unittest.TestCase):
             await self.activity_manager.create_activity(
                 name="Test Activity",
                 description="Test Description",
-                activity_type=ActivityType.STRENGTH.value,
-                difficulty=DifficultyLevel.INTERMEDIATE.value,
+                activity_type=ActivityType.STRENGTH_TRAINING.value,
+                difficulty_level=DifficultyLevel.INTERMEDIATE.value,
                 duration_minutes=-1  # Negative duration
             )
 
@@ -930,8 +1220,8 @@ class TestActivityManager(unittest.TestCase):
             await self.activity_manager.create_activity(
                 name=f"Test Activity {i}",
                 description=f"Test Description {i}",
-                activity_type=ActivityType.STRENGTH.value,
-                difficulty=DifficultyLevel.INTERMEDIATE.value
+                activity_type=ActivityType.STRENGTH_TRAINING.value,
+                difficulty_level=DifficultyLevel.INTERMEDIATE.value
             )
         
         # Verify limit enforcement

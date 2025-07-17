@@ -1,14 +1,28 @@
-import cv2
-import numpy as np
-import mediapipe as mp
-from typing import Dict, Any, List, Optional, Tuple
-import logging
-from app.core.monitoring import track_metrics
+# Standard library imports
 import asyncio
+import logging
 import os
 from datetime import datetime, timedelta
-from app.services.physical_education.models.movement_analysis.movement_models import MovementModels, MovementAnalysis, MovementPattern
-from app.services.physical_education.models.skill_assessment.skill_assessment_models import SkillModels
+from typing import Dict, Any, List, Optional, Tuple
+
+# Third-party imports
+import cv2
+import mediapipe as mp
+import numpy as np
+from sqlalchemy.orm import Session
+
+# Local application imports
+from app.core.database import get_db
+from app.core.monitoring import track_metrics
+from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis, MovementPattern
+from app.models.physical_education.activity.models import Activity
+from app.models.physical_education.student.models import Student
+from app.models.physical_education.pe_enums.pe_types import (
+    MovementType,
+    AnalysisStatus,
+    ConfidenceLevel
+)
+from app.models.physical_education.skill_assessment.skill_assessment_models import SkillModels
 from app.services.physical_education.movement_analyzer import MovementAnalyzer
 
 class VideoProcessor:

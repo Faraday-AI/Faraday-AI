@@ -1,0 +1,27 @@
+Daily Notification Digest
+Time Period: {{ start_time }} to {{ end_time }}
+Total Notifications: {{ notifications|length }}
+
+{% for severity in ['urgent', 'high', 'normal', 'low'] %}
+{% set severity_notifications = notifications|selectattr('severity', 'equalto', severity)|list %}
+{% if severity_notifications %}
+{{ severity|upper }} Priority Notifications ({{ severity_notifications|length }}):
+{% for notification in severity_notifications %}
+- {{ notification.message }}
+  Type: {{ notification.alert_type }}
+  Time: {{ notification.timestamp }}
+  {% if notification.details %}Details: {{ notification.details|tojson }}{% endif %}
+  {% if notification.recommendations %}
+  Recommendations:
+  {% for rec in notification.recommendations %}
+    * {{ rec }}
+  {% endfor %}
+  {% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+Summary by Type:
+{% for type, count in notification_counts.items() %}
+- {{ type }}: {{ count }}
+{% endfor %} 

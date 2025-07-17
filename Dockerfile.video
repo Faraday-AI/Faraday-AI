@@ -16,12 +16,23 @@ RUN apt-get update && apt-get install -y \
 RUN python3.10 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy only requirements first
+# Set working directory and Python path
 WORKDIR /app
+ENV PYTHONPATH=/app/app
+
+# Copy only requirements first
 COPY requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Create necessary directories
+RUN mkdir -p /app/models /app/utils
+
+# Copy application code
+COPY app/services/physical_education/video_processor.py /app/services/physical_education/video_processor.py
+COPY app/models/ /app/models/
+COPY app/utils/ /app/utils/
 
 # Final stage
 FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
@@ -38,24 +49,22 @@ RUN apt-get update && apt-get install -y \
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Set working directory
+# Set working directory and Python path
 WORKDIR /app
+ENV PYTHONPATH=/app/app
 
 # Create non-root user and set permissions
 RUN useradd -m -u 1000 appuser \
-    && mkdir -p /app/models /app/static \
+    && mkdir -p /app/models /app/app/utils \
     && chown -R appuser:appuser /app
 
-# Copy only necessary files
-COPY --chown=appuser:appuser app/services/physical_education/video_processor.py ./app/services/physical_education/
-COPY --chown=appuser:appuser /app/models/ /app/models/
-COPY --chown=appuser:appuser app/utils/ ./app/utils/
+# Copy application code from builder
+COPY --from=builder --chown=appuser:appuser /app /app
 
 USER appuser
 
-# Set environment variables in a single layer
-ENV PYTHONPATH=/app \
-    PYTHONUNBUFFERED=1
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
 
 # Expose port
 EXPOSE 8001

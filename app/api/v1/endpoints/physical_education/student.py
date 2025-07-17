@@ -6,12 +6,26 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 import logging
 import asyncio
+from sqlalchemy.orm import Session
 
 from ....core.auth import get_current_active_user, oauth2_scheme
 from ....core.rate_limit import rate_limit
 from ....core.cache import cache_manager
 from ....services.physical_education.services.student_manager import StudentManager
 from ....services.physical_education.services.assessment_system import AssessmentSystem
+from app.models.physical_education.student import (
+    Student,
+    HealthMetric,
+    StudentHealthFitnessGoal,
+    StudentHealthGoalProgress,
+    StudentHealthGoalRecommendation
+)
+from app.models.health_fitness.metrics.health import HealthMetric
+from app.models.physical_education.progress import (
+    Progress,
+    ProgressGoal,
+    ProgressNote
+)
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -1559,5 +1573,36 @@ async def generate_student_recommendations(
                 "message": "An unexpected error occurred"
             }
         )
+
+# Progress Note Models
+class ProgressNoteResponse(BaseModel):
+    """Response model for progress notes."""
+    id: int
+    content: str
+    progress_id: int
+    teacher_id: int
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ProgressNoteRequest(BaseModel):
+    """Request model for progress notes."""
+    content: str
+    progress_id: int
+    teacher_id: int
+
+@router.post("/progress/notes", response_model=ProgressNoteResponse)
+async def create_progress_note(
+    request: ProgressNoteRequest,
+    db: Session = Depends(get_db)
+):
+    """Create a new progress note."""
+    note = ProgressNote(**request.dict())
+    db.add(note)
+    db.commit()
+    db.refresh(note)
+    return note
 
 # ... More endpoints to be added ... 

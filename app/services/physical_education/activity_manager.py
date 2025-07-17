@@ -1,161 +1,170 @@
 from typing import Dict, Any, List, Optional, Tuple, Union
 from datetime import datetime, timedelta
 import logging
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from io import BytesIO
-import base64
-import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
-import json
-import os
-from pathlib import Path
-import networkx as nx
-from openpyxl import Workbook
-import csv
-from pptx import Presentation
-from docx import Document
-import markdown
-# import latex  # Commented out as it's not essential for testing
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
-from fastapi import Depends
-from fastapi.websockets import WebSocket
-import asyncio
-import websockets
-import aiofiles
-from pylatex import Document, Section, Subsection, Command
-import holoviews as hv
-from bokeh.plotting import figure, show
-from bokeh.models import HoverTool, ColumnDataSource
-import streamlit as st
+from fastapi import WebSocket
+import pandas as pd
+import numpy as np
+import plotly.graph_objects as go
+import plotly.express as px
+import seaborn as sns
+import matplotlib.pyplot as plt
+import networkx as nx
+from io import BytesIO
+import base64
+import json
+from pathlib import Path
+from app.core.database import get_db
+from app.core.monitoring import track_metrics
+from app.services.physical_education import service_integration
 
-from app.services.physical_education.models.activity import (
-    Activity,
-    Exercise,
-    Routine,
-    StudentActivityPerformance,
-    StudentActivityPreference,
-    ActivityProgression,
+# Import models
+from app.models.physical_education.activity import Activity
+from app.models.physical_education.pe_enums.pe_types import (
     ActivityType,
     DifficultyLevel,
-    EquipmentRequirement,
-    ActivityCategory
+    EquipmentRequirement
 )
-from app.services.physical_education.models.routine_activity import RoutineActivity
-from app.services.physical_education.models.student import Student
-from app.services.physical_education.models.class_ import Class
-from app.core.database import get_db
-from app.services.physical_education.activity_visualization_manager import ActivityVisualizationManager
-from app.services.physical_education.activity_collaboration_manager import ActivityCollaborationManager
-from app.services.physical_education.activity_export_manager import ActivityExportManager
-from app.services.physical_education.activity_analysis_manager import ActivityAnalysisManager
+from app.models.physical_education.activity.models import (
+    StudentActivityPerformance,
+    StudentActivityPreference,
+    ActivityProgression
+)
+from app.models.activity_adaptation.student.activity_student import (
+    StudentActivityPreference as AdaptationPreference
+)
+from app.models.physical_education.activity_adaptation.activity_adaptation import ActivityAdaptation
+from app.models.physical_education.exercise.models import Exercise
+from app.models.routine import Routine
+from app.models.physical_education.student.models import Student
+from app.models.activity_plan import ActivityPlan, ActivityPlanActivity
+from app.models.physical_education.class_ import PhysicalEducationClass
 
 class ActivityManager:
-    def __init__(self, db: Session = Depends(get_db)):
-        self.db = db
-        self.logger = logging.getLogger(__name__)
+    """Manages physical education activities and related operations."""
+    
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(ActivityManager, cls).__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        self.logger = logging.getLogger("activity_manager")
+        self.movement_analyzer = None
+        self.assessment_system = None
+        self.lesson_planner = None
+        self.safety_manager = None
+        self.student_manager = None
         
-        # Activity configuration
-        self.activity_types = [t.value for t in ActivityType]
-        self.difficulty_levels = [d.value for d in DifficultyLevel]
-        self.equipment_requirements = [e.value for e in EquipmentRequirement]
-        self.categories = [c.value for c in ActivityCategory]
+        # WebSocket connections
+        self.active_connections = {}
         
-        # Visualization configuration
-        plt.style.use('default')  # Use default style instead of seaborn
-        sns.set_palette("husl")
+        # Activity validation
+        self.activity_types = {t.value for t in ActivityType}
+        self.difficulty_levels = {d.value for d in DifficultyLevel}
+        self.equipment_requirements = {e.value for e in EquipmentRequirement}
         
-        # Export configuration
-        self.export_formats = ['png', 'svg', 'pdf', 'html', 'json', 'xlsx', 'csv', 'pptx', 'docx', 'md', 'tex']
-        self.export_dir = Path("exports/visualizations")
-        self.export_dir.mkdir(parents=True, exist_ok=True)
+        # Activity tracking
+        self.websockets = {}
+        self.collaborative_sessions = {}
+        self.real_time_updates = {}
+        self.subscribers = {}
         
-        # Interactive features configuration
-        self.interactive_features = {
-            'filtering': True,
-            'sorting': True,
-            'custom_styling': True,
-            'tooltips': True,
-            'zoom': True,
-            'pan': True,
-            'selection': True,
-            'animation': True,
-            'drill_down': True,
-            'annotations': True,
-            'custom_metrics': True,
-            'comparison': True,
-            'export': True,
-            'real_time_updates': True,
-            'collaborative_annotations': True,
-            'custom_filters': True,
-            'data_export': True,
-            'interactive_legends': True,
-            'cross_highlighting': True,
-            'live_chat': True,
-            'shared_workspace': True,
-            'version_history': True
-        }
-
-        # WebSocket connections for real-time updates
-        self.active_connections: Dict[str, List[WebSocket]] = {}
-
-        # Enhanced interactive features configuration
-        self.interactive_features.update({
-            'drill_down': True,
-            'custom_annotations': True,
-            'real_time_collaboration': True,
-            'custom_metrics': True,
-            'comparison': True,
-            'export': True,
-            'real_time_updates': True,
-            'collaborative_annotations': True,
-            'custom_filters': True,
-            'data_export': True,
-            'interactive_legends': True,
-            'cross_highlighting': True,
-            'animation': True,
-            'zoom': True,
-            'pan': True,
-            'selection': True,
-            'custom_styling': True,
-            'filtering': True,
-            'sorting': True,
-            'tooltips': True
-        })
-
-        # WebSocket connections for real-time collaboration
-        self.collaborative_sessions: Dict[str, Dict[str, Any]] = {}
-
-        # Add new export formats
-        self.export_formats.extend(['latex', 'md'])
+        # Analysis components
+        self.analysis_history = []
+        self.performance_benchmarks = {}
+        self.injury_risk_factors = {}
+        self.movement_patterns = {}
+        self.feedback_history = {}
+        self.progress_tracking = {}
         
-        # Add new visualization types
-        self.visualization_types = ['chord_diagram', 'stream_graph', 'parallel_coordinates', 'network_graph']
+        # Activity components
+        self.custom_metrics = {}
+        self.environmental_factors = {}
+        self.equipment_usage = {}
+        self.fatigue_analysis = {}
+        self.technique_variations = {}
+        self.movement_consistency = {}
+        self.biomechanical_analysis = {}
+        self.energy_efficiency = {}
+        self.symmetry_analysis = {}
+        self.skill_level_assessment = {}
+        self.recovery_analysis = {}
+        self.adaptation_analysis = {}
+        self.performance_prediction = {}
         
-        # Initialize real-time update system
-        self._init_real_time_system()
-        
-        # Initialize collaborative features
-        self._init_collaborative_features()
-
-        # Initialize specialized managers
-        self.visualization_manager = ActivityVisualizationManager()
-        self.collaboration_manager = ActivityCollaborationManager()
-        self.export_manager = ActivityExportManager()
-        self.analysis_manager = ActivityAnalysisManager()
-        
-        # Initialize core settings
-        self.settings = {
-            'max_activities_per_student': 100,
-            'activity_timeout': 3600,  # 1 hour in seconds
-            'default_duration': 30,  # minutes
-            'min_duration': 5,  # minutes
-            'max_duration': 120  # minutes
-        }
+        # Caching and optimization
+        self.analysis_cache = {}
+        self.batch_cache = {}
+    
+    async def initialize(self):
+        """Initialize the activity manager."""
+        try:
+            # Initialize services
+            self.movement_analyzer = service_integration.get_service("movement_analyzer")
+            self.assessment_system = service_integration.get_service("assessment_system")
+            self.lesson_planner = service_integration.get_service("lesson_planner")
+            self.safety_manager = service_integration.get_service("safety_manager")
+            self.student_manager = service_integration.get_service("student_manager")
+            
+            # Initialize real-time system
+            self._init_real_time_system()
+            self._init_collaborative_features()
+            self.logger.info("Activity Manager initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing Activity Manager: {str(e)}")
+            raise
+    
+    async def cleanup(self):
+        """Cleanup the activity manager."""
+        try:
+            # Cleanup websockets
+            for student_id, websocket in self.websockets.items():
+                await websocket.close()
+            
+            # Cleanup collaborative sessions
+            for session_id, session in self.collaborative_sessions.items():
+                await session.cleanup()
+            
+            # Clear all data
+            self.real_time_updates.clear()
+            self.subscribers.clear()
+            self.analysis_history.clear()
+            self.performance_benchmarks.clear()
+            self.injury_risk_factors.clear()
+            self.movement_patterns.clear()
+            self.feedback_history.clear()
+            self.progress_tracking.clear()
+            self.custom_metrics.clear()
+            self.environmental_factors.clear()
+            self.equipment_usage.clear()
+            self.fatigue_analysis.clear()
+            self.technique_variations.clear()
+            self.movement_consistency.clear()
+            self.biomechanical_analysis.clear()
+            self.energy_efficiency.clear()
+            self.symmetry_analysis.clear()
+            self.skill_level_assessment.clear()
+            self.recovery_analysis.clear()
+            self.adaptation_analysis.clear()
+            self.performance_prediction.clear()
+            self.analysis_cache.clear()
+            self.batch_cache.clear()
+            
+            # Reset service references
+            self.movement_analyzer = None
+            self.assessment_system = None
+            self.lesson_planner = None
+            self.safety_manager = None
+            self.student_manager = None
+            
+            self.logger.info("Activity Manager cleaned up successfully")
+        except Exception as e:
+            self.logger.error(f"Error cleaning up Activity Manager: {str(e)}")
+            raise
 
     def _init_real_time_system(self):
         """Initialize real-time update system."""
@@ -205,53 +214,49 @@ class ActivityManager:
         variations: Optional[List[str]] = None,
         modifications: Optional[Dict[str, str]] = None
     ) -> Activity:
-        """Create a new physical activity."""
+        """Create a new activity."""
         try:
-            # Validate inputs
-            if activity_type not in self.activity_types:
-                raise ValueError(f"Invalid activity type. Must be one of: {self.activity_types}")
-            if difficulty not in self.difficulty_levels:
-                raise ValueError(f"Invalid difficulty level. Must be one of: {self.difficulty_levels}")
-            if equipment_required not in self.equipment_requirements:
-                raise ValueError(f"Invalid equipment requirement. Must be one of: {self.equipment_requirements}")
-            if not all(cat in self.categories for cat in categories):
-                raise ValueError(f"Invalid category. Must be one of: {self.categories}")
-            
-            # Create activity
-            activity = Activity(
-                name=name,
-                description=description,
-                activity_type=activity_type,
-                difficulty=difficulty,
-                equipment_required=equipment_required,
-                categories=categories,
-                duration_minutes=duration_minutes,
-                instructions=instructions,
-                safety_notes=safety_notes,
-                variations=variations or [],
-                modifications=modifications or {},
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
-            )
-            
-            self.db.add(activity)
-            self.db.commit()
-            self.db.refresh(activity)
-            
-            return activity
-            
+            with get_db() as db:
+                activity = Activity(
+                    name=name,
+                    description=description,
+                    activity_type=activity_type,
+                    difficulty_level=difficulty,
+                    equipment_required=equipment_required,
+                    duration_minutes=duration_minutes,
+                    instructions=instructions,
+                    safety_notes=safety_notes,
+                    variations=variations,
+                    modifications=modifications
+                )
+                db.add(activity)
+                db.commit()
+                db.refresh(activity)
+                
+                # Add categories
+                for category_name in categories:
+                    category = db.query(ActivityCategory).filter(ActivityCategory.name == category_name).first()
+                    if category:
+                        association = ActivityCategoryAssociation(
+                            activity_id=activity.id,
+                            category_id=category.id
+                        )
+                        db.add(association)
+                
+                db.commit()
+                return activity
         except Exception as e:
-            self.db.rollback()
             self.logger.error(f"Error creating activity: {str(e)}")
             raise
 
     async def get_activity(self, activity_id: str) -> Optional[Activity]:
-        """Retrieve an activity by ID."""
+        """Get an activity by ID."""
         try:
-            return self.db.query(Activity).filter(Activity.id == activity_id).first()
+            with get_db() as db:
+                return db.query(Activity).filter(Activity.id == activity_id).first()
         except Exception as e:
-            self.logger.error(f"Error retrieving activity: {str(e)}")
-            return None
+            self.logger.error(f"Error getting activity: {str(e)}")
+            raise
 
     async def get_activities(
         self,
@@ -262,80 +267,106 @@ class ActivityManager:
         duration_min: Optional[int] = None,
         duration_max: Optional[int] = None
     ) -> List[Activity]:
-        """Retrieve activities with optional filters."""
+        """Get activities with optional filters."""
         try:
-            query = self.db.query(Activity)
-            
-            if activity_type:
-                query = query.filter(Activity.activity_type == activity_type)
-            if difficulty:
-                query = query.filter(Activity.difficulty == difficulty)
-            if equipment_required:
-                query = query.filter(Activity.equipment_required == equipment_required)
-            if category:
-                query = query.filter(Activity.categories.contains([category]))
-            if duration_min is not None:
-                query = query.filter(Activity.duration_minutes >= duration_min)
-            if duration_max is not None:
-                query = query.filter(Activity.duration_minutes <= duration_max)
-            
-            return query.all()
-            
+            with get_db() as db:
+                query = db.query(Activity)
+                
+                if activity_type:
+                    query = query.filter(Activity.activity_type == activity_type)
+                if difficulty:
+                    query = query.filter(Activity.difficulty_level == difficulty)
+                if equipment_required:
+                    query = query.filter(Activity.equipment_required == equipment_required)
+                if category:
+                    query = query.join(ActivityCategoryAssociation).join(ActivityCategory).filter(
+                        ActivityCategory.name == category
+                    )
+                if duration_min is not None:
+                    query = query.filter(Activity.duration_minutes >= duration_min)
+                if duration_max is not None:
+                    query = query.filter(Activity.duration_minutes <= duration_max)
+                
+                return query.all()
         except Exception as e:
-            self.logger.error(f"Error retrieving activities: {str(e)}")
-            return []
+            self.logger.error(f"Error getting activities: {str(e)}")
+            raise
 
     async def update_activity(
         self,
         activity_id: str,
-        **kwargs
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        activity_type: Optional[str] = None,
+        difficulty: Optional[str] = None,
+        equipment_required: Optional[str] = None,
+        duration_minutes: Optional[int] = None,
+        instructions: Optional[str] = None,
+        safety_notes: Optional[str] = None,
+        variations: Optional[List[str]] = None,
+        modifications: Optional[Dict[str, str]] = None
     ) -> Optional[Activity]:
-        """Update an existing activity."""
+        """Update an activity."""
         try:
-            activity = await self.get_activity(activity_id)
-            if not activity:
-                return None
-            
-            # Validate and update fields
-            for key, value in kwargs.items():
-                if hasattr(activity, key):
-                    if key == "activity_type" and value not in self.activity_types:
-                        raise ValueError(f"Invalid activity type: {value}")
-                    if key == "difficulty" and value not in self.difficulty_levels:
-                        raise ValueError(f"Invalid difficulty level: {value}")
-                    if key == "equipment_required" and value not in self.equipment_requirements:
-                        raise ValueError(f"Invalid equipment requirement: {value}")
-                    if key == "categories" and not all(cat in self.categories for cat in value):
-                        raise ValueError(f"Invalid category in: {value}")
-                    
-                    setattr(activity, key, value)
-            
-            activity.updated_at = datetime.utcnow()
-            self.db.commit()
-            self.db.refresh(activity)
-            
-            return activity
-            
+            with get_db() as db:
+                activity = db.query(Activity).filter(Activity.id == activity_id).first()
+                if not activity:
+                    return None
+
+                if name is not None:
+                    activity.name = name
+                if description is not None:
+                    activity.description = description
+                if activity_type is not None:
+                    if activity_type not in self.activity_types:
+                        raise ValueError(f"Invalid activity type: {activity_type}")
+                    activity.activity_type = activity_type
+                if difficulty is not None:
+                    if difficulty not in self.difficulty_levels:
+                        raise ValueError(f"Invalid difficulty level: {difficulty}")
+                    activity.difficulty_level = difficulty
+                if equipment_required is not None:
+                    if equipment_required not in self.equipment_requirements:
+                        raise ValueError(f"Invalid equipment requirement: {equipment_required}")
+                    activity.equipment_required = equipment_required
+                if duration_minutes is not None:
+                    activity.duration_minutes = duration_minutes
+                if instructions is not None:
+                    activity.instructions = instructions
+                if safety_notes is not None:
+                    activity.safety_notes = safety_notes
+                if variations is not None:
+                    activity.variations = variations
+                if modifications is not None:
+                    activity.modifications = modifications
+
+                db.commit()
+                db.refresh(activity)
+                return activity
         except Exception as e:
-            self.db.rollback()
             self.logger.error(f"Error updating activity: {str(e)}")
-            return None
+            raise
 
     async def delete_activity(self, activity_id: str) -> bool:
         """Delete an activity."""
         try:
-            activity = await self.get_activity(activity_id)
-            if not activity:
-                return False
-            
-            self.db.delete(activity)
-            self.db.commit()
-            return True
-            
+            with get_db() as db:
+                activity = db.query(Activity).filter(Activity.id == activity_id).first()
+                if not activity:
+                    return False
+
+                # Delete category associations
+                db.query(ActivityCategoryAssociation).filter(
+                    ActivityCategoryAssociation.activity_id == activity_id
+                ).delete()
+
+                # Delete the activity
+                db.delete(activity)
+                db.commit()
+                return True
         except Exception as e:
-            self.db.rollback()
             self.logger.error(f"Error deleting activity: {str(e)}")
-            return False
+            raise
 
     async def create_exercise(
         self,
@@ -349,34 +380,30 @@ class ActivityManager:
         progression_steps: Optional[List[str]] = None,
         regression_steps: Optional[List[str]] = None
     ) -> Exercise:
-        """Create a new exercise based on an activity."""
+        """Create a new exercise."""
         try:
-            activity = await self.get_activity(activity_id)
-            if not activity:
-                raise ValueError(f"Activity not found: {activity_id}")
-            
-            exercise = Exercise(
-                name=name,
-                description=description,
-                activity_id=activity_id,
-                sets=sets,
-                reps=reps,
-                rest_time_seconds=rest_time_seconds,
-                technique_notes=technique_notes,
-                progression_steps=progression_steps or [],
-                regression_steps=regression_steps or [],
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
-            )
-            
-            self.db.add(exercise)
-            self.db.commit()
-            self.db.refresh(exercise)
-            
-            return exercise
-            
+            with get_db() as db:
+                # Verify activity exists
+                activity = db.query(Activity).filter(Activity.id == activity_id).first()
+                if not activity:
+                    raise ValueError(f"Activity with ID {activity_id} not found")
+
+                exercise = Exercise(
+                    name=name,
+                    description=description,
+                    activity_id=activity_id,
+                    sets=sets,
+                    reps=reps,
+                    rest_time_seconds=rest_time_seconds,
+                    technique_notes=technique_notes,
+                    progression_steps=progression_steps,
+                    regression_steps=regression_steps
+                )
+                db.add(exercise)
+                db.commit()
+                db.refresh(exercise)
+                return exercise
         except Exception as e:
-            self.db.rollback()
             self.logger.error(f"Error creating exercise: {str(e)}")
             raise
 
@@ -393,48 +420,48 @@ class ActivityManager:
     ) -> Routine:
         """Create a new exercise routine."""
         try:
-            # Validate class exists
-            class_ = self.db.query(Class).filter(Class.id == class_id).first()
-            if not class_:
-                raise ValueError(f"Class not found: {class_id}")
-            
-            # Validate activities
-            for activity_data in activities:
-                activity = await self.get_activity(activity_data["activity_id"])
-                if not activity:
-                    raise ValueError(f"Activity not found: {activity_data['activity_id']}")
-            
-            routine = Routine(
-                name=name,
-                description=description,
-                class_id=class_id,
-                activities=activities,
-                duration_minutes=duration_minutes,
-                warm_up_activities=warm_up_activities or [],
-                cool_down_activities=cool_down_activities or [],
-                notes=notes or "",
-                created_at=datetime.utcnow(),
-                updated_at=datetime.utcnow()
-            )
-            
-            self.db.add(routine)
-            self.db.commit()
-            self.db.refresh(routine)
-            
-            return routine
-            
+            with get_db() as db:
+                # Validate class exists
+                class_ = db.query(PhysicalEducationClass).filter(PhysicalEducationClass.id == class_id).first()
+                if not class_:
+                    raise ValueError(f"Class not found: {class_id}")
+                
+                # Validate activities
+                for activity_data in activities:
+                    activity = db.query(Activity).filter(Activity.id == activity_data["activity_id"]).first()
+                    if not activity:
+                        raise ValueError(f"Activity not found: {activity_data['activity_id']}")
+                
+                routine = Routine(
+                    name=name,
+                    description=description,
+                    class_id=class_id,
+                    activities=activities,
+                    duration_minutes=duration_minutes,
+                    warm_up_activities=warm_up_activities or [],
+                    cool_down_activities=cool_down_activities or [],
+                    notes=notes or "",
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                
+                db.add(routine)
+                db.commit()
+                db.refresh(routine)
+                
+                return routine
         except Exception as e:
-            self.db.rollback()
             self.logger.error(f"Error creating routine: {str(e)}")
             raise
 
     async def get_routine(self, routine_id: str) -> Optional[Routine]:
-        """Retrieve a routine by ID."""
+        """Get a routine by ID."""
         try:
-            return self.db.query(Routine).filter(Routine.id == routine_id).first()
+            with get_db() as db:
+                return db.query(Routine).filter(Routine.id == routine_id).first()
         except Exception as e:
-            self.logger.error(f"Error retrieving routine: {str(e)}")
-            return None
+            self.logger.error(f"Error getting routine: {str(e)}")
+            raise
 
     async def get_routines(
         self,
@@ -442,72 +469,70 @@ class ActivityManager:
         duration_min: Optional[int] = None,
         duration_max: Optional[int] = None
     ) -> List[Routine]:
-        """Retrieve routines with optional filters."""
+        """Get routines with optional filters."""
         try:
-            query = self.db.query(Routine)
-            
-            if class_id:
-                query = query.filter(Routine.class_id == class_id)
-            if duration_min is not None:
-                query = query.filter(Routine.duration_minutes >= duration_min)
-            if duration_max is not None:
-                query = query.filter(Routine.duration_minutes <= duration_max)
-            
-            return query.all()
-            
+            with get_db() as db:
+                query = db.query(Routine)
+                
+                if class_id:
+                    query = query.filter(Routine.class_id == class_id)
+                if duration_min is not None:
+                    query = query.filter(Routine.duration_minutes >= duration_min)
+                if duration_max is not None:
+                    query = query.filter(Routine.duration_minutes <= duration_max)
+                
+                return query.all()
         except Exception as e:
-            self.logger.error(f"Error retrieving routines: {str(e)}")
-            return []
+            self.logger.error(f"Error getting routines: {str(e)}")
+            raise
 
     async def update_routine(
         self,
         routine_id: str,
         **kwargs
     ) -> Optional[Routine]:
-        """Update an existing routine."""
+        """Update a routine."""
         try:
-            routine = await self.get_routine(routine_id)
-            if not routine:
-                return None
-            
-            # Validate and update fields
-            for key, value in kwargs.items():
-                if hasattr(routine, key):
-                    if key == "activities":
-                        # Validate activities
-                        for activity_data in value:
-                            activity = await self.get_activity(activity_data["activity_id"])
-                            if not activity:
-                                raise ValueError(f"Activity not found: {activity_data['activity_id']}")
-                    
-                    setattr(routine, key, value)
-            
-            routine.updated_at = datetime.utcnow()
-            self.db.commit()
-            self.db.refresh(routine)
-            
-            return routine
-            
+            with get_db() as db:
+                routine = db.query(Routine).filter(Routine.id == routine_id).first()
+                if not routine:
+                    return None
+                
+                # Validate and update fields
+                for key, value in kwargs.items():
+                    if hasattr(routine, key):
+                        if key == "activities":
+                            # Validate activities
+                            for activity_data in value:
+                                activity = db.query(Activity).filter(Activity.id == activity_data["activity_id"]).first()
+                                if not activity:
+                                    raise ValueError(f"Activity not found: {activity_data['activity_id']}")
+                        
+                        setattr(routine, key, value)
+                
+                routine.updated_at = datetime.utcnow()
+                db.commit()
+                db.refresh(routine)
+                
+                return routine
         except Exception as e:
-            self.db.rollback()
             self.logger.error(f"Error updating routine: {str(e)}")
-            return None
+            raise
 
     async def delete_routine(self, routine_id: str) -> bool:
         """Delete a routine."""
         try:
-            routine = await self.get_routine(routine_id)
-            if not routine:
-                return False
-            
-            self.db.delete(routine)
-            self.db.commit()
-            return True
-            
+            with get_db() as db:
+                routine = db.query(Routine).filter(Routine.id == routine_id).first()
+                if not routine:
+                    return False
+                
+                db.delete(routine)
+                db.commit()
+                return True
         except Exception as e:
-            self.db.rollback()
             self.logger.error(f"Error deleting routine: {str(e)}")
-            return False
+            raise
 
     async def get_activity_statistics(
         self,
@@ -517,66 +542,70 @@ class ActivityManager:
     ) -> Dict[str, Any]:
         """Get statistics about activities and routines."""
         try:
-            stats = {
-                "total_activities": 0,
-                "activities_by_type": {},
-                "activities_by_difficulty": {},
-                "activities_by_equipment": {},
-                "activities_by_category": {},
-                "average_duration": 0,
-                "total_routines": 0,
-                "routines_by_class": {},
-                "average_routine_duration": 0
-            }
-            
-            # Activity statistics
-            activities = await self.get_activities()
-            stats["total_activities"] = len(activities)
-            
-            for activity in activities:
-                # Count by type
-                stats["activities_by_type"][activity.activity_type] = \
-                    stats["activities_by_type"].get(activity.activity_type, 0) + 1
+            with get_db() as db:
+                stats = {
+                    "total_activities": 0,
+                    "activities_by_type": {},
+                    "activities_by_difficulty": {},
+                    "activities_by_equipment": {},
+                    "activities_by_category": {},
+                    "average_duration": 0,
+                    "total_routines": 0,
+                    "routines_by_class": {},
+                    "average_routine_duration": 0
+                }
                 
-                # Count by difficulty
-                stats["activities_by_difficulty"][activity.difficulty] = \
-                    stats["activities_by_difficulty"].get(activity.difficulty, 0) + 1
+                # Activity statistics
+                query = db.query(Activity)
+                activities = query.all()
+                stats["total_activities"] = len(activities)
                 
-                # Count by equipment
-                stats["activities_by_equipment"][activity.equipment_required] = \
-                    stats["activities_by_equipment"].get(activity.equipment_required, 0) + 1
+                for activity in activities:
+                    # Count by type
+                    stats["activities_by_type"][activity.activity_type] = \
+                        stats["activities_by_type"].get(activity.activity_type, 0) + 1
+                    
+                    # Count by difficulty
+                    stats["activities_by_difficulty"][activity.difficulty_level] = \
+                        stats["activities_by_difficulty"].get(activity.difficulty_level, 0) + 1
+                    
+                    # Count by equipment
+                    stats["activities_by_equipment"][activity.equipment_required] = \
+                        stats["activities_by_equipment"].get(activity.equipment_required, 0) + 1
+                    
+                    # Count by category
+                    for category in activity.categories:
+                        stats["activities_by_category"][category] = \
+                            stats["activities_by_category"].get(category, 0) + 1
+                    
+                    # Average duration
+                    stats["average_duration"] += activity.duration_minutes
                 
-                # Count by category
-                for category in activity.categories:
-                    stats["activities_by_category"][category] = \
-                        stats["activities_by_category"].get(category, 0) + 1
+                if activities:
+                    stats["average_duration"] /= len(activities)
                 
-                # Average duration
-                stats["average_duration"] += activity.duration_minutes
-            
-            if activities:
-                stats["average_duration"] /= len(activities)
-            
-            # Routine statistics
-            routines = await self.get_routines(class_id)
-            stats["total_routines"] = len(routines)
-            
-            for routine in routines:
-                # Count by class
-                stats["routines_by_class"][routine.class_id] = \
-                    stats["routines_by_class"].get(routine.class_id, 0) + 1
+                # Routine statistics
+                query = db.query(Routine)
+                if class_id:
+                    query = query.filter(Routine.class_id == class_id)
+                routines = query.all()
+                stats["total_routines"] = len(routines)
                 
-                # Average routine duration
-                stats["average_routine_duration"] += routine.duration_minutes
-            
-            if routines:
-                stats["average_routine_duration"] /= len(routines)
-            
-            return stats
-            
+                for routine in routines:
+                    # Count by class
+                    stats["routines_by_class"][routine.class_id] = \
+                        stats["routines_by_class"].get(routine.class_id, 0) + 1
+                    
+                    # Average routine duration
+                    stats["average_routine_duration"] += routine.duration_minutes
+                
+                if routines:
+                    stats["average_routine_duration"] /= len(routines)
+                
+                return stats
         except Exception as e:
             self.logger.error(f"Error getting activity statistics: {str(e)}")
-            return {}
+            raise
 
     async def get_activity_progression(
         self,
@@ -654,41 +683,40 @@ class ActivityManager:
     ) -> Dict[str, Any]:
         """Track performance for a specific activity and student."""
         try:
-            activity = await self.get_activity(activity_id)
-            if not activity:
-                raise ValueError(f"Activity not found: {activity_id}")
-            
-            student = self.db.query(Student).filter(Student.id == student_id).first()
-            if not student:
-                raise ValueError(f"Student not found: {student_id}")
-            
-            # Create performance record
-            performance = StudentActivityPerformance(
-                student_id=student_id,
-                activity_id=activity_id,
-                score=score,
-                notes=notes,
-                date=datetime.utcnow()
-            )
-            
-            self.db.add(performance)
-            self.db.commit()
-            
-            # Get updated progression data
-            progression = await self.get_activity_progression(activity_id, student_id)
-            
-            return {
-                "performance": {
-                    "id": performance.id,
-                    "score": score,
-                    "notes": notes,
-                    "date": performance.date
-                },
-                "progression": progression
-            }
-            
+            with get_db() as db:
+                activity = db.query(Activity).filter(Activity.id == activity_id).first()
+                if not activity:
+                    raise ValueError(f"Activity not found: {activity_id}")
+                
+                student = db.query(Student).filter(Student.id == student_id).first()
+                if not student:
+                    raise ValueError(f"Student not found: {student_id}")
+                
+                # Create performance record
+                performance = StudentActivityPerformance(
+                    student_id=student_id,
+                    activity_id=activity_id,
+                    score=score,
+                    notes=notes,
+                    date=datetime.utcnow()
+                )
+                
+                db.add(performance)
+                db.commit()
+                
+                # Get updated progression data
+                progression = await self.get_activity_progression(activity_id, student_id)
+                
+                return {
+                    "performance": {
+                        "id": performance.id,
+                        "score": score,
+                        "notes": notes,
+                        "date": performance.date
+                    },
+                    "progression": progression
+                }
         except Exception as e:
-            self.db.rollback()
             self.logger.error(f"Error tracking activity performance: {str(e)}")
             raise
 
@@ -700,68 +728,86 @@ class ActivityManager:
     ) -> List[Dict[str, Any]]:
         """Get recommended activities for a student based on their performance and goals."""
         try:
-            student = self.db.query(Student).filter(Student.id == student_id).first()
-            if not student:
-                raise ValueError(f"Student not found: {student_id}")
-            
-            # Get student's performance history
-            performance_history = self.db.query(StudentActivityPerformance).filter(
-                StudentActivityPerformance.student_id == student_id
-            ).all()
-            
-            # Get student's current class activities if class_id is provided
-            class_activities = []
-            if class_id:
-                class_ = self.db.query(Class).filter(Class.id == class_id).first()
-                if class_:
-                    class_activities = [ra.activity for ra in class_.routines]
-            
-            # Calculate activity preferences and strengths
-            preferences = {}
-            strengths = {}
-            for performance in performance_history:
-                activity = await self.get_activity(performance.activity_id)
-                if activity:
-                    for category in activity.categories:
-                        preferences[category] = preferences.get(category, 0) + performance.score
-                        strengths[category] = strengths.get(category, 0) + 1
-            
-            # Normalize preferences and strengths
-            if preferences:
-                max_pref = max(preferences.values())
-                preferences = {k: v/max_pref for k, v in preferences.items()}
-            
-            if strengths:
-                max_strength = max(strengths.values())
-                strengths = {k: v/max_strength for k, v in strengths.items()}
-            
-            # Get all available activities
-            query = self.db.query(Activity)
-            if class_activities:
-                query = query.filter(Activity.id.notin_([a.id for a in class_activities]))
-            
-            activities = query.all()
-            
-            # Score activities based on preferences and strengths
-            scored_activities = []
-            for activity in activities:
-                score = 0
-                for category in activity.categories:
-                    score += preferences.get(category, 0.5) * strengths.get(category, 0.5)
+            with get_db() as db:
+                student = db.query(Student).filter(Student.id == student_id).first()
+                if not student:
+                    raise ValueError(f"Student not found: {student_id}")
                 
-                scored_activities.append({
-                    "activity": activity,
-                    "score": score,
-                    "match_reasons": [
-                        f"Matches {category} preference" for category in activity.categories
-                        if preferences.get(category, 0) > 0.7
-                    ]
-                })
-            
-            # Sort by score and return top recommendations
-            scored_activities.sort(key=lambda x: x["score"], reverse=True)
-            return scored_activities[:limit]
-            
+                # Get student's performance history
+                performance_history = db.query(StudentActivityPerformance).filter(
+                    StudentActivityPerformance.student_id == student_id
+                ).all()
+                
+                # Get student's preferences
+                pe_preferences = db.query(StudentActivityPreference).filter(
+                    StudentActivityPreference.student_id == student_id
+                ).all()
+                
+                # Get student's adaptation preferences
+                adaptation_preferences = db.query(AdaptationPreference).filter(
+                    AdaptationPreference.student_id == student_id
+                ).all()
+                
+                # Get student's current class activities if class_id is provided
+                class_activities = []
+                if class_id:
+                    class_ = db.query(PhysicalEducationClass).filter(PhysicalEducationClass.id == class_id).first()
+                    if class_:
+                        class_activities = [ra.activity for ra in class_.routines]
+                
+                # Calculate activity preferences and strengths
+                preferences = {}
+                strengths = {}
+                for performance in performance_history:
+                    activity = db.query(Activity).filter(Activity.id == performance.activity_id).first()
+                    if activity:
+                        for category in activity.categories:
+                            preferences[category] = preferences.get(category, 0) + performance.score
+                            strengths[category] = strengths.get(category, 0) + 1
+                
+                # Normalize preferences and strengths
+                if preferences:
+                    max_pref = max(preferences.values())
+                    preferences = {k: v/max_pref for k, v in preferences.items()}
+                
+                if strengths:
+                    max_strength = max(strengths.values())
+                    strengths = {k: v/max_strength for k, v in strengths.items()}
+                
+                # Get all available activities
+                query = db.query(Activity)
+                if class_activities:
+                    query = query.filter(Activity.id.notin_([a.id for a in class_activities]))
+                
+                activities = query.all()
+                
+                # Score activities based on preferences and strengths
+                scored_activities = []
+                for activity in activities:
+                    score = 0
+                    for category in activity.categories:
+                        score += preferences.get(category, 0.5) * strengths.get(category, 0.5)
+                    
+                    # Add preference score
+                    preference_score = await self._calculate_preference_score(
+                        activity,
+                        pe_preferences,
+                        adaptation_preferences
+                    )
+                    score = (score * 0.7) + (preference_score * 0.3)
+                    
+                    scored_activities.append({
+                        "activity": activity,
+                        "score": score,
+                        "match_reasons": [
+                            f"Matches {category} preference" for category in activity.categories
+                            if preferences.get(category, 0) > 0.7
+                        ]
+                    })
+                
+                # Sort by score and return top recommendations
+                scored_activities.sort(key=lambda x: x["score"], reverse=True)
+                return scored_activities[:limit]
         except Exception as e:
             self.logger.error(f"Error getting recommended activities: {str(e)}")
             raise
@@ -769,93 +815,82 @@ class ActivityManager:
     async def generate_activity_plan(
         self,
         student_id: str,
-        class_id: str,
-        duration_minutes: int,
-        focus_areas: Optional[List[str]] = None
+        class_id: Optional[str] = None,
+        duration: int = 60,  # minutes
+        difficulty: Optional[str] = None
     ) -> Dict[str, Any]:
         """Generate a personalized activity plan for a student."""
         try:
-            student = self.db.query(Student).filter(Student.id == student_id).first()
-            if not student:
-                raise ValueError(f"Student not found: {student_id}")
-            
-            class_ = self.db.query(Class).filter(Class.id == class_id).first()
-            if not class_:
-                raise ValueError(f"Class not found: {class_id}")
-            
-            # Get recommended activities
-            recommended = await self.get_recommended_activities(student_id, class_id)
-            
-            # Filter by focus areas if provided
-            if focus_areas:
-                recommended = [
-                    r for r in recommended
-                    if any(category in focus_areas for category in r["activity"].categories)
-                ]
-            
-            # Create activity plan
-            plan = {
-                "student_id": student_id,
-                "class_id": class_id,
-                "duration_minutes": duration_minutes,
-                "activities": [],
-                "total_duration": 0
-            }
-            
-            # Add warm-up activities
-            warm_up_duration = min(10, duration_minutes // 10)
-            warm_ups = [
-                a for a in recommended
-                if a["activity"].activity_type == ActivityType.WARM_UP
-            ]
-            if warm_ups:
-                plan["activities"].append({
-                    "activity": warm_ups[0]["activity"],
-                    "duration_minutes": warm_up_duration,
-                    "type": "warm_up"
-                })
-                plan["total_duration"] += warm_up_duration
-            
-            # Add main activities
-            remaining_duration = duration_minutes - plan["total_duration"]
-            main_activities = [
-                a for a in recommended
-                if a["activity"].activity_type not in [ActivityType.WARM_UP, ActivityType.COOL_DOWN]
-            ]
-            
-            for activity in main_activities:
-                if plan["total_duration"] >= duration_minutes:
-                    break
+            with get_db() as db:
+                student = db.query(Student).filter(Student.id == student_id).first()
+                if not student:
+                    raise ValueError(f"Student not found: {student_id}")
                 
-                activity_duration = min(
-                    activity["activity"].duration_minutes,
-                    remaining_duration
-                )
+                # Get student's performance history
+                performance_history = db.query(StudentActivityPerformance).filter(
+                    StudentActivityPerformance.student_id == student_id
+                ).all()
                 
-                plan["activities"].append({
-                    "activity": activity["activity"],
-                    "duration_minutes": activity_duration,
-                    "type": "main"
-                })
-                plan["total_duration"] += activity_duration
-                remaining_duration -= activity_duration
-            
-            # Add cool-down activities
-            cool_down_duration = min(5, (duration_minutes - plan["total_duration"]))
-            cool_downs = [
-                a for a in recommended
-                if a["activity"].activity_type == ActivityType.COOL_DOWN
-            ]
-            if cool_downs and cool_down_duration > 0:
-                plan["activities"].append({
-                    "activity": cool_downs[0]["activity"],
-                    "duration_minutes": cool_down_duration,
-                    "type": "cool_down"
-                })
-                plan["total_duration"] += cool_down_duration
-            
-            return plan
-            
+                # Calculate student's strengths and weaknesses
+                strengths = {}
+                weaknesses = {}
+                for performance in performance_history:
+                    activity = db.query(Activity).filter(Activity.id == performance.activity_id).first()
+                    if activity:
+                        for category in activity.categories:
+                            if performance.score >= 0.7:
+                                strengths[category] = strengths.get(category, 0) + 1
+                            else:
+                                weaknesses[category] = weaknesses.get(category, 0) + 1
+                
+                # Get available activities
+                query = db.query(Activity)
+                if difficulty:
+                    query = query.filter(Activity.difficulty_level == difficulty)
+                
+                activities = query.all()
+                
+                # Score activities based on student's needs
+                scored_activities = []
+                for activity in activities:
+                    score = 0
+                    for category in activity.categories:
+                        if category in weaknesses:
+                            score += 2  # Prioritize weak areas
+                        if category in strengths:
+                            score += 1  # Include some strong areas
+                    
+                    scored_activities.append({
+                        "activity": activity,
+                        "score": score
+                    })
+                
+                # Sort by score and select activities
+                scored_activities.sort(key=lambda x: x["score"], reverse=True)
+                selected_activities = []
+                remaining_time = duration
+                
+                for scored_activity in scored_activities:
+                    activity = scored_activity["activity"]
+                    if activity.duration <= remaining_time:
+                        selected_activities.append(activity)
+                        remaining_time -= activity.duration
+                    
+                    if remaining_time <= 0:
+                        break
+                
+                # Create activity plan
+                plan = {
+                    "student_id": student_id,
+                    "class_id": class_id,
+                    "total_duration": duration,
+                    "activities": selected_activities,
+                    "focus_areas": list(weaknesses.keys()),
+                    "estimated_calories": sum(a.calories_burned for a in selected_activities),
+                    "difficulty_level": difficulty or "mixed"
+                }
+                
+                return plan
         except Exception as e:
             self.logger.error(f"Error generating activity plan: {str(e)}")
             raise
@@ -866,59 +901,237 @@ class ActivityManager:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None
     ) -> Dict[str, Any]:
-        """Analyze student's performance using the analysis manager."""
-        return await self.analysis_manager.analyze_student_performance(
-            student_id, start_date, end_date
-        )
+        """Analyze a student's performance across all activities."""
+        try:
+            with get_db() as db:
+                student = db.query(Student).filter(Student.id == student_id).first()
+                if not student:
+                    raise ValueError(f"Student not found: {student_id}")
+                
+                # Get performance history
+                query = db.query(StudentActivityPerformance).filter(
+                    StudentActivityPerformance.student_id == student_id
+                )
+                
+                if start_date:
+                    query = query.filter(StudentActivityPerformance.date >= start_date)
+                if end_date:
+                    query = query.filter(StudentActivityPerformance.date <= end_date)
+                
+                performances = query.all()
+                
+                # Calculate overall statistics
+                total_activities = len(performances)
+                if total_activities == 0:
+                    return {
+                        "student_id": student_id,
+                        "total_activities": 0,
+                        "average_score": 0,
+                        "improvement_rate": 0,
+                        "category_performance": {},
+                        "activity_type_performance": {},
+                        "recommendations": []
+                    }
+                
+                # Calculate scores by category and activity type
+                category_scores = {}
+                type_scores = {}
+                scores_over_time = []
+                
+                for performance in performances:
+                    activity = db.query(Activity).filter(Activity.id == performance.activity_id).first()
+                    if activity:
+                        # Track scores over time
+                        scores_over_time.append({
+                            "date": performance.date,
+                            "score": performance.score,
+                            "activity_name": activity.name
+                        })
+                        
+                        # Track category scores
+                        for category in activity.categories:
+                            if category not in category_scores:
+                                category_scores[category] = []
+                            category_scores[category].append(performance.score)
+                        
+                        # Track activity type scores
+                        activity_type = activity.activity_type
+                        if activity_type not in type_scores:
+                            type_scores[activity_type] = []
+                        type_scores[activity_type].append(performance.score)
+                
+                # Calculate averages and improvement rates
+                category_performance = {
+                    category: {
+                        "average_score": sum(scores) / len(scores),
+                        "total_activities": len(scores)
+                    }
+                    for category, scores in category_scores.items()
+                }
+                
+                type_performance = {
+                    activity_type: {
+                        "average_score": sum(scores) / len(scores),
+                        "total_activities": len(scores)
+                    }
+                    for activity_type, scores in type_scores.items()
+                }
+                
+                # Calculate overall improvement rate
+                if len(scores_over_time) >= 2:
+                    scores_over_time.sort(key=lambda x: x["date"])
+                    first_half = scores_over_time[:len(scores_over_time)//2]
+                    second_half = scores_over_time[len(scores_over_time)//2:]
+                    
+                    first_avg = sum(s["score"] for s in first_half) / len(first_half)
+                    second_avg = sum(s["score"] for s in second_half) / len(second_half)
+                    
+                    improvement_rate = ((second_avg - first_avg) / first_avg) * 100 if first_avg > 0 else 0
+                else:
+                    improvement_rate = 0
+                
+                # Generate recommendations
+                recommendations = []
+                
+                # Recommend focus on weak categories
+                weak_categories = [
+                    category for category, perf in category_performance.items()
+                    if perf["average_score"] < 0.7
+                ]
+                if weak_categories:
+                    recommendations.append({
+                        "type": "focus_area",
+                        "message": f"Focus on improving in: {', '.join(weak_categories)}",
+                        "priority": "high"
+                    })
+                
+                # Recommend more practice in low-performing activity types
+                low_performing_types = [
+                    activity_type for activity_type, perf in type_performance.items()
+                    if perf["average_score"] < 0.7
+                ]
+                if low_performing_types:
+                    recommendations.append({
+                        "type": "activity_type",
+                        "message": f"Practice more: {', '.join(low_performing_types)}",
+                        "priority": "medium"
+                    })
+                
+                # Overall performance analysis
+                return {
+                    "student_id": student_id,
+                    "total_activities": total_activities,
+                    "average_score": sum(p.score for p in performances) / total_activities,
+                    "improvement_rate": improvement_rate,
+                    "category_performance": category_performance,
+                    "activity_type_performance": type_performance,
+                    "recommendations": recommendations,
+                    "performance_trend": scores_over_time
+                }
+        except Exception as e:
+            self.logger.error(f"Error analyzing student performance: {str(e)}")
+            raise
 
     async def update_student_preferences(
         self,
         student_id: str,
-        activity_type: str,
-        preference_score: float
+        preferences: Dict[str, Any]
     ) -> Dict[str, Any]:
-        """Update student's preference for a specific activity type."""
+        """Update a student's activity preferences."""
         try:
-            student = self.db.query(Student).filter(Student.id == student_id).first()
-            if not student:
-                raise ValueError(f"Student not found: {student_id}")
-            
-            if activity_type not in self.activity_types:
-                raise ValueError(f"Invalid activity type: {activity_type}")
-            
-            if not 0 <= preference_score <= 1:
-                raise ValueError("Preference score must be between 0 and 1")
-            
-            # Get or create preference
-            preference = self.db.query(StudentActivityPreference).filter(
-                and_(
-                    StudentActivityPreference.student_id == student_id,
-                    StudentActivityPreference.activity_type == activity_type
-                )
-            ).first()
-            
-            if not preference:
-                preference = StudentActivityPreference(
-                    student_id=student_id,
-                    activity_type=activity_type,
-                    preference_score=preference_score
-                )
-                self.db.add(preference)
-            else:
-                preference.preference_score = preference_score
-                preference.last_updated = datetime.utcnow()
-            
-            self.db.commit()
-            
-            return {
-                "student_id": student_id,
-                "activity_type": activity_type,
-                "preference_score": preference_score,
-                "last_updated": preference.last_updated
-            }
-            
+            with get_db() as db:
+                student = db.query(Student).filter(Student.id == student_id).first()
+                if not student:
+                    raise ValueError(f"Student not found: {student_id}")
+                
+                # Update PE preferences
+                if "pe_preferences" in preferences:
+                    for pref_data in preferences["pe_preferences"]:
+                        activity_id = pref_data.get("activity_id")
+                        if not activity_id:
+                            continue
+                            
+                        preference = db.query(StudentActivityPreference).filter(
+                            StudentActivityPreference.student_id == student_id,
+                            StudentActivityPreference.activity_id == activity_id
+                        ).first()
+                        
+                        if preference:
+                            # Update existing preference
+                            preference.preference_score = pref_data.get("preference_score", preference.preference_score)
+                            preference.preference_level = pref_data.get("preference_level", preference.preference_level)
+                            preference.notes = pref_data.get("notes", preference.notes)
+                            preference.preference_metadata = pref_data.get("preference_metadata", preference.preference_metadata)
+                        else:
+                            # Create new preference
+                            preference = StudentActivityPreference(
+                                student_id=student_id,
+                                activity_id=activity_id,
+                                preference_score=pref_data.get("preference_score", 0.5),
+                                preference_level=pref_data.get("preference_level", 3),
+                                notes=pref_data.get("notes"),
+                                preference_metadata=pref_data.get("preference_metadata")
+                            )
+                            db.add(preference)
+                
+                # Update adaptation preferences
+                if "adaptation_preferences" in preferences:
+                    for pref_data in preferences["adaptation_preferences"]:
+                        activity_type = pref_data.get("activity_type")
+                        if not activity_type:
+                            continue
+                            
+                        preference = db.query(AdaptationPreference).filter(
+                            AdaptationPreference.student_id == student_id,
+                            AdaptationPreference.activity_type == activity_type
+                        ).first()
+                        
+                        if preference:
+                            # Update existing preference
+                            preference.preference_score = pref_data.get("preference_score", preference.preference_score)
+                        else:
+                            # Create new preference
+                            preference = AdaptationPreference(
+                                student_id=student_id,
+                                activity_type=activity_type,
+                                preference_score=pref_data.get("preference_score", 0.5)
+                            )
+                            db.add(preference)
+                
+                db.commit()
+                
+                # Get updated preferences
+                pe_preferences = db.query(StudentActivityPreference).filter(
+                    StudentActivityPreference.student_id == student_id
+                ).all()
+                
+                adaptation_preferences = db.query(AdaptationPreference).filter(
+                    AdaptationPreference.student_id == student_id
+                ).all()
+                
+                return {
+                    "student_id": student_id,
+                    "updated_preferences": {
+                        "pe_preferences": [
+                            {
+                                "activity_id": p.activity_id,
+                                "preference_score": p.preference_score,
+                                "preference_level": p.preference_level,
+                                "notes": p.notes,
+                                "preference_metadata": p.preference_metadata
+                            }
+                            for p in pe_preferences
+                        ],
+                        "adaptation_preferences": [
+                            {
+                                "activity_type": p.activity_type,
+                                "preference_score": p.preference_score
+                            }
+                            for p in adaptation_preferences
+                        ]
+                    }
+                }
         except Exception as e:
-            self.db.rollback()
             self.logger.error(f"Error updating student preferences: {str(e)}")
             raise
 
@@ -1103,8 +1316,13 @@ class ActivityManager:
             ).all()
             
             # Get student's preferences
-            preferences = self.db.query(StudentActivityPreference).filter(
+            pe_preferences = self.db.query(StudentActivityPreference).filter(
                 StudentActivityPreference.student_id == student_id
+            ).all()
+            
+            # Get student's adaptation preferences
+            adaptation_preferences = self.db.query(AdaptationPreference).filter(
+                AdaptationPreference.student_id == student_id
             ).all()
             
             # Get all available activities
@@ -1121,70 +1339,44 @@ class ActivityManager:
             recommendations = []
             
             for activity in activities:
-                score = {
-                    "activity": activity,
-                    "total_score": 0.0,
-                    "scores": {},
-                    "match_reasons": []
-                }
-                
-                # 1. Performance-based scoring
+                # Calculate various scores
                 performance_score = await self._calculate_performance_score(activity, performances)
-                score["scores"]["performance"] = performance_score
-                score["total_score"] += performance_score * 0.4
-                
-                # 2. Preference-based scoring
-                preference_score = await self._calculate_preference_score(activity, preferences)
-                score["scores"]["preference"] = preference_score
-                score["total_score"] += preference_score * 0.3
-                
-                # 3. Difficulty progression scoring
+                preference_score = await self._calculate_preference_score(
+                    activity,
+                    pe_preferences,
+                    adaptation_preferences
+                )
                 progression_score = await self._calculate_progression_score(activity, student_id)
-                score["scores"]["progression"] = progression_score
-                score["total_score"] += progression_score * 0.2
-                
-                # 4. Activity diversity scoring
                 diversity_score = await self._calculate_diversity_score(activity, performances)
-                score["scores"]["diversity"] = diversity_score
-                score["total_score"] += diversity_score * 0.1
                 
-                # Add match reasons
-                if performance_score > 0.7:
-                    score["match_reasons"].append("Matches performance history")
-                if preference_score > 0.7:
-                    score["match_reasons"].append("Matches preferences")
-                if progression_score > 0.7:
-                    score["match_reasons"].append("Good progression fit")
-                if diversity_score > 0.7:
-                    score["match_reasons"].append("Adds activity diversity")
+                # Calculate final score with weights
+                final_score = (
+                    performance_score * 0.3 +
+                    preference_score * 0.3 +
+                    progression_score * 0.2 +
+                    diversity_score * 0.2
+                )
                 
-                recommendations.append(score)
-            
-            # Sort by total score
-            recommendations.sort(key=lambda x: x["total_score"], reverse=True)
-            
-            result = {
-                "recommendations": recommendations[:limit],
-                "metrics": {}
-            }
-            
-            if include_metrics:
-                result["metrics"] = {
-                    "total_activities": len(activities),
-                    "scoring_weights": {
-                        "performance": 0.4,
-                        "preference": 0.3,
-                        "progression": 0.2,
-                        "diversity": 0.1
-                    },
-                    "score_distribution": {
-                        "high": len([r for r in recommendations if r["total_score"] > 0.7]),
-                        "medium": len([r for r in recommendations if 0.4 <= r["total_score"] <= 0.7]),
-                        "low": len([r for r in recommendations if r["total_score"] < 0.4])
-                    }
+                recommendation = {
+                    "activity": activity,
+                    "score": final_score,
+                    "metrics": {
+                        "performance": performance_score,
+                        "preference": preference_score,
+                        "progression": progression_score,
+                        "diversity": diversity_score
+                    } if include_metrics else None
                 }
+                
+                recommendations.append(recommendation)
             
-            return result
+            # Sort by score and return top recommendations
+            recommendations.sort(key=lambda x: x["score"], reverse=True)
+            return {
+                "recommendations": recommendations[:limit],
+                "total_activities": len(activities),
+                "metrics_included": include_metrics
+            }
             
         except Exception as e:
             self.logger.error(f"Error getting advanced recommendations: {str(e)}")
@@ -1229,23 +1421,43 @@ class ActivityManager:
     async def _calculate_preference_score(
         self,
         activity: Activity,
-        preferences: List[StudentActivityPreference]
+        preferences: List[StudentActivityPreference],
+        adaptation_preferences: Optional[List[AdaptationPreference]] = None
     ) -> float:
         """Calculate preference-based score for an activity."""
         try:
-            if not preferences:
+            if not preferences and not adaptation_preferences:
                 return 0.5  # Default score for no preferences
             
-            # Find matching preference
-            matching_preference = next(
-                (p for p in preferences if p.activity_type == activity.activity_type),
-                None
-            )
+            # Calculate score from PE preferences
+            pe_score = 0.0
+            if preferences:
+                matching_preference = next(
+                    (p for p in preferences if p.activity_id == activity.id),
+                    None
+                )
+                if matching_preference:
+                    pe_score = matching_preference.preference_score
             
-            if matching_preference:
-                return matching_preference.preference_score
+            # Calculate score from adaptation preferences
+            adaptation_score = 0.0
+            if adaptation_preferences:
+                matching_adaptation = next(
+                    (p for p in adaptation_preferences if p.activity_type == activity.activity_type),
+                    None
+                )
+                if matching_adaptation:
+                    adaptation_score = matching_adaptation.preference_score
             
-            return 0.5  # Default score for no matching preference
+            # Combine scores with weights
+            if pe_score > 0 and adaptation_score > 0:
+                return (pe_score * 0.7) + (adaptation_score * 0.3)
+            elif pe_score > 0:
+                return pe_score
+            elif adaptation_score > 0:
+                return adaptation_score
+            
+            return 0.5  # Default score for no matching preferences
             
         except Exception as e:
             self.logger.error(f"Error calculating preference score: {str(e)}")
@@ -2322,5 +2534,12 @@ class ActivityManager:
                            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)))
         
         return fig
+
+    def get_categories(self) -> List[str]:
+        """Get all available activity category names from the database."""
+        if not self.categories:
+            categories = self.db.query(ActivityCategoryType.name).all()
+            self.categories = [category[0] for category in categories]
+        return self.categories
 
     # ... rest of the existing methods ... 

@@ -2,12 +2,10 @@ from typing import List, Optional
 from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.services.physical_education.models.safety import (
-    RiskAssessment,
+from app.models.physical_education.safety import (
     SafetyIncident,
-    SafetyCheck,
-    EquipmentCheck,
-    EnvironmentalCheck
+    RiskAssessment,
+    SafetyCheck
 )
 from app.services.physical_education.safety_manager import SafetyManager
 from app.services.physical_education.safety_incident_manager import SafetyIncidentManager
@@ -109,7 +107,7 @@ class SafetyService:
         purchase_date: Optional[str] = None,
         max_age_years: Optional[float] = None,
         equipment_metadata: Optional[dict] = None
-    ) -> EquipmentCheck:
+    ) -> SafetyCheck:
         """Create a new equipment check."""
         return await self.equipment_manager.create_equipment_check(
             class_id=class_id,
@@ -123,7 +121,7 @@ class SafetyService:
             equipment_metadata=equipment_metadata
         )
 
-    async def get_equipment_check(self, check_id: str) -> Optional[EquipmentCheck]:
+    async def get_equipment_check(self, check_id: str) -> Optional[SafetyCheck]:
         """Get an equipment check by ID."""
         return await self.equipment_manager.get_equipment_check(check_id)
 
@@ -131,7 +129,7 @@ class SafetyService:
         self,
         check_id: str,
         **kwargs
-    ) -> Optional[EquipmentCheck]:
+    ) -> Optional[SafetyCheck]:
         """Update an equipment check."""
         return await self.equipment_manager.update_equipment_check(check_id, **kwargs)
 

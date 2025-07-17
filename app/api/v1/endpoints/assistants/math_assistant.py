@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from typing import List, Optional
 from app.core.database import get_db
+from app.dashboard.models import DashboardUser as User
 from app.core.auth import get_current_user
-from app.models.lesson import User
 from pydantic import BaseModel
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 
 router = APIRouter()
 

@@ -3,29 +3,29 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from app.core.database import get_db
 from app.services.core.base_service import BaseService
-from app.services.physical_education.video_processor import VideoProcessor
-from app.services.physical_education.movement_analyzer import MovementAnalyzer
+from app.services.physical_education import service_integration
 from app.core.monitoring import track_metrics
 import logging
 import mediapipe as mp
-from app.services.physical_education.models.activity import (
-    Activity, 
-    Exercise,
+from app.models.physical_education.activity.models import (
+    Activity,
+    ActivityType,
     StudentActivityPerformance,
     StudentActivityPreference,
     ActivityProgression
 )
-from app.services.physical_education.models.student import Student
-from app.services.physical_education.models.class_ import Class
-from app.services.physical_education.models.activity_adaptation.activity_adaptation_models import ActivityAdaptation
-from app.services.physical_education.models.skill_assessment.skill_assessment_models import SkillAssessment
-from app.services.physical_education.models.movement_analysis.movement_models import MovementAnalysis
-from app.services.physical_education.models.safety import RiskAssessment
-from app.services.physical_education.models.activity_category_association import ActivityCategoryAssociation
-from app.services.physical_education.models.routine import Routine
-from app.services.physical_education.models.routine_activity import RoutineActivity
-from app.services.physical_education.models.activity_plan import ActivityPlan
-from app.services.physical_education.models.activity_plan_activity import ActivityPlanActivity
+from app.models.physical_education.pe_enums.pe_types import (
+    DifficultyLevel,
+    EquipmentRequirement,
+    ActivityCategory
+)
+from app.models.physical_education.student.models import (
+    Student
+)
+from app.models.physical_education.activity_plan.models import ActivityPlan, ActivityPlanActivity
+from app.models.physical_education.exercise.models import Exercise
+from app.models.physical_education.safety.models import RiskAssessment
+from app.models.physical_education.routine.models import Routine, RoutineActivity
 
 class PEService(BaseService):
     """Physical Education Service implementation."""
@@ -38,7 +38,7 @@ class PEService(BaseService):
             cls._instance = super(PEService, cls).__new__(cls)
         return cls._instance
     
-    def __init__(self, service_type: str):
+    def __init__(self):
         if self._model is None:
             self._model = mp.solutions.pose.Pose(
                 static_image_mode=False,
@@ -46,23 +46,48 @@ class PEService(BaseService):
                 enable_segmentation=True,
                 min_detection_confidence=0.5
             )
-        super().__init__(service_type)
-        self.video_processor = VideoProcessor()
-        self.movement_analyzer = MovementAnalyzer()
+        super().__init__("physical_education")
         self.logger = logging.getLogger("pe_service")
-        
+        self.db = None
+        self.movement_analyzer = None
+        self.assessment_system = None
+        self.lesson_planner = None
+        self.safety_manager = None
+        self.student_manager = None
+        self.activity_manager = None
+    
     async def initialize(self):
-        """Initialize PE service resources."""
-        await self.video_processor.initialize()
-        await self.movement_analyzer.initialize()
-        self.logger.info("PE Service initialized")
-        
+        """Initialize the PE service."""
+        try:
+            self.db = next(get_db())
+            self.movement_analyzer = service_integration.get_service("movement_analyzer")
+            self.assessment_system = service_integration.get_service("assessment_system")
+            self.lesson_planner = service_integration.get_service("lesson_planner")
+            self.safety_manager = service_integration.get_service("safety_manager")
+            self.student_manager = service_integration.get_service("student_manager")
+            self.activity_manager = service_integration.get_service("activity_manager")
+            
+            self.logger.info("PE Service initialized successfully")
+        except Exception as e:
+            self.logger.error(f"Error initializing PE Service: {str(e)}")
+            raise
+    
     async def cleanup(self):
-        """Cleanup PE service resources."""
-        await self.video_processor.cleanup()
-        await self.movement_analyzer.cleanup()
-        self.logger.info("PE Service cleaned up")
-        
+        """Cleanup the PE service."""
+        try:
+            self.db = None
+            self.movement_analyzer = None
+            self.assessment_system = None
+            self.lesson_planner = None
+            self.safety_manager = None
+            self.student_manager = None
+            self.activity_manager = None
+            
+            self.logger.info("PE Service cleaned up successfully")
+        except Exception as e:
+            self.logger.error(f"Error cleaning up PE Service: {str(e)}")
+            raise
+    
     async def process_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process PE-specific requests."""
         action = request_data.get("action")

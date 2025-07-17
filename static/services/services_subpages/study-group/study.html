@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Study Assistant</title>
+    <link rel="stylesheet" href="/static/css/features.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="AI-powered study tools for educational settings">
+</head>
+<body>
+    <div class="feature-container">
+        <!-- Header Section -->
+        <header class="feature-header">
+            <nav class="feature-nav">
+                <a href="/services/study" class="back-button">← Back to Study Tools</a>
+                <div class="auth-section">
+                    <button class="auth-button" onclick="showAuthForm()">Login / Register</button>
+                </div>
+            </nav>
+            <div class="feature-hero">
+                <h1>Study Assistant</h1>
+                <p class="feature-tagline">Enhance your study sessions with AI-powered tools</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <section class="feature-overview">
+                <h2>Overview</h2>
+                <p>Our Study Assistant helps students optimize their study sessions through personalized recommendations and AI-powered tools. Whether you're preparing for exams, working on assignments, or learning new material, our assistant makes your study time more effective and efficient.</p>
+                
+                <div class="feature-image">
+                    <div class="placeholder-content">
+                        <span class="placeholder-icon">📚</span>
+                        <p>Study Assistant Interface</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-benefits">
+                <h2>Benefits for Students</h2>
+                <ul class="benefits-list">
+                    <li>
+                        <h3>Personalized Study Plans</h3>
+                        <p>Get customized study schedules based on your goals and progress</p>
+                    </li>
+                    <li>
+                        <h3>Smart Flashcards</h3>
+                        <p>Create and review flashcards with AI-powered suggestions</p>
+                    </li>
+                    <li>
+                        <h3>Focus Management</h3>
+                        <p>Stay on track with built-in focus timers and breaks</p>
+                    </li>
+                    <li>
+                        <h3>Progress Tracking</h3>
+                        <p>Monitor your study habits and improvement over time</p>
+                    </li>
+                </ul>
+            </section>
+
+            <section class="feature-details">
+                <h2>Technical Details</h2>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <h3>AI Scheduling</h3>
+                        <p>Intelligent study schedule creation and optimization</p>
+                    </div>
+                    <div class="detail-item">
+                        <h3>Content Analysis</h3>
+                        <p>Automatic extraction of key concepts and terms</p>
+                    </div>
+                    <div class="detail-item">
+                        <h3>Performance Analytics</h3>
+                        <p>Detailed insights into your study patterns and progress</p>
+                    </div>
+                    <div class="detail-item">
+                        <h3>Multi-device Sync</h3>
+                        <p>Access your study materials across all your devices</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-demo">
+                <h2>See It In Action</h2>
+                <div class="demo-container">
+                    <div class="video-container">
+                        <div class="placeholder-content demo-placeholder">
+                            <span class="placeholder-icon">▶️</span>
+                            <p>Video Demo Coming Soon</p>
+                        </div>
+                    </div>
+                    <p class="demo-caption">Watch how our study assistant helps students optimize their learning process.</p>
+                </div>
+            </section>
+
+            <section class="feature-testimonials">
+                <h2>What Students Say</h2>
+                <div class="testimonials-container">
+                    <div class="testimonial">
+                        <p>"The study assistant has transformed how I prepare for exams. The personalized study plans and smart flashcards have made a huge difference in my grades."</p>
+                        <div class="testimonial-author">
+                            <span class="name">James Wilson</span>
+                            <span class="title">College Student</span>
+                        </div>
+                    </div>
+                    <div class="testimonial">
+                        <p>"I love how it helps me stay focused and organized. The progress tracking keeps me motivated, and I've seen a significant improvement in my study habits."</p>
+                        <div class="testimonial-author">
+                            <span class="name">Sophia Chen</span>
+                            <span class="title">High School Student</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="feature-cta">
+                <h2>Ready to Enhance Your Study Sessions?</h2>
+                <p>Start using AI-powered study tools to improve your learning today.</p>
+                <button class="cta-button" onclick="showAuthForm()">Start Using Study Tools</button>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="feature-footer">
+            <div class="footer-links">
+                <a href="/services/study">Back to Study Tools</a>
+                <a href="/features/study/techniques">Explore Study Techniques</a>
+                <a href="/pricing">Pricing Options</a>
+            </div>
+            <div class="footer-text">
+                © 2025 Faraday AI. All rights reserved.
+            </div>
+        </footer>
+    </div>
+
+    <!-- Auth Form Container -->
+    <div id="auth-container" class="auth-container">
+        <!-- Auth form will be injected here -->
+    </div>
+
+    <script src="/static/js/auth.js"></script>
+    <script>
+        // Show auth form when clicking CTA button
+        function showAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+            
+            // Load auth form content
+            fetch('/static/auth-form.html')
+                .then(response => response.text())
+                .then(html => {
+                    authContainer.innerHTML = html;
+                    initializeAuthForm();
+                })
+                .catch(error => console.error('Error loading auth form:', error));
+        }
+
+        // Close auth form
+        function closeAuthForm() {
+            const authContainer = document.getElementById('auth-container');
+            authContainer.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // Initialize auth form functionality
+        function initializeAuthForm() {
+            const closeButton = document.querySelector('.auth-close-button');
+            if (closeButton) {
+                closeButton.onclick = closeAuthForm;
+            }
+
+            // Add click outside to close
+            document.addEventListener('click', (e) => {
+                const authContainer = document.getElementById('auth-container');
+                if (e.target === authContainer) {
+                    closeAuthForm();
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

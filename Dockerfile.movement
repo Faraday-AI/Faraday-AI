@@ -1,5 +1,5 @@
-# Use Ubuntu base image
-FROM ubuntu:22.04
+# Build stage
+FROM ubuntu:22.04 as builder
 
 # Install Python and dependencies
 RUN apt-get update && apt-get install -y \
@@ -23,28 +23,61 @@ RUN apt-get update && apt-get install -y \
 RUN python3.10 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Set working directory and Python path
+WORKDIR /app
+ENV PYTHONPATH=/app/app
+
 # Copy requirements
 COPY requirements.txt .
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Set working directory
-WORKDIR /app
+# Create necessary directories
+RUN mkdir -p /app/models /app/utils
 
 # Copy application code
-COPY . .
+COPY app/services/physical_education/movement_analyzer.py /app/services/physical_education/
+COPY app/utils/ /app/utils/
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser
+# Final stage
+FROM ubuntu:22.04
+
+# Install Python and runtime dependencies
+RUN apt-get update && apt-get install -y \
+    python3.10 \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1 \
+    libglu1-mesa \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Set working directory and Python path
+WORKDIR /app
+ENV PYTHONPATH=/app/app
+
+# Create non-root user and set permissions
+RUN useradd -m -u 1000 appuser \
+    && mkdir -p /app/models /app/app/utils \
+    && chown -R appuser:appuser /app
+
+# Copy application code from builder
+COPY --from=builder --chown=appuser:appuser /app /app
+
 USER appuser
 
 # Set environment variables
-ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
 # Expose port
 EXPOSE 8001
 
 # Run the application
-CMD ["python", "-m", "app.services.movement_analyzer"] 
+CMD ["python", "-m", "app.services.physical_education.movement_analyzer"] 

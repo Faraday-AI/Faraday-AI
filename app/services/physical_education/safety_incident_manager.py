@@ -1,10 +1,10 @@
-from typing import Dict, Any, List, Optional
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 import logging
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-from app.services.physical_education.models.safety import SafetyIncident
+from app.models.physical_education.safety import SafetyIncident
 from app.core.database import get_db
 
 class SafetyIncidentManager:

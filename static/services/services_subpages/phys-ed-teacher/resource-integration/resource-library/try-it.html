@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Try Resource Library - Resource Integration</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/resource-integration/resource-library/resource-library.html" class="back-button" aria-label="Back to Resource Library">
+                <span class="back-arrow">←</span> Back to Resource Library
+            </a>
+            <h1>Try Resource Library</h1>
+            <p class="service-description">Create and manage teaching resources using our template generator</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <!-- Try It Widget -->
+            <section class="try-it-widget">
+                <form id="resourceLibraryForm" class="widget-form">
+                    <div class="form-group">
+                        <label for="resourceType">Resource Type</label>
+                        <select id="resourceType" name="resourceType" required>
+                            <option value="">Select a resource type</option>
+                            <option value="lesson-plan">Lesson Plan</option>
+                            <option value="worksheet">Worksheet</option>
+                            <option value="assessment">Assessment</option>
+                            <option value="activity-guide">Activity Guide</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="resourceName">Resource Name</label>
+                        <input type="text" id="resourceName" name="resourceName" placeholder="Enter resource name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gradeLevel">Grade Level</label>
+                        <select id="gradeLevel" name="gradeLevel" required>
+                            <option value="">Select grade level</option>
+                            <option value="k-2">K-2</option>
+                            <option value="3-5">3-5</option>
+                            <option value="6-8">6-8</option>
+                            <option value="9-12">9-12</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject">Subject Area</label>
+                        <select id="subject" name="subject" required>
+                            <option value="">Select subject area</option>
+                            <option value="physical-education">Physical Education</option>
+                            <option value="health">Health</option>
+                            <option value="drivers-education">Driver's Education</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="objectives">Learning Objectives</label>
+                        <textarea id="objectives" name="objectives" placeholder="Enter learning objectives" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="materials">Required Materials</label>
+                        <textarea id="materials" name="materials" placeholder="List required materials" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="instructions">Instructions</label>
+                        <textarea id="instructions" name="instructions" placeholder="Enter detailed instructions" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="assessment">Assessment Criteria</label>
+                        <textarea id="assessment" name="assessment" placeholder="Enter assessment criteria" required></textarea>
+                    </div>
+
+                    <button type="submit" class="cta-button primary">
+                        <span class="button-icon">📚</span>
+                        <span class="button-text">Generate Resource</span>
+                    </button>
+                </form>
+
+                <div id="resourcePreview" class="widget-preview" style="display: none;">
+                    <h3>Your Resource Design</h3>
+                    <div class="preview-content">
+                        <!-- Preview content will be populated by JavaScript -->
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.getElementById('resourceLibraryForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // TODO: Add resource generation logic
+            document.getElementById('resourcePreview').style.display = 'block';
+        });
+    </script>
+</body>
+</html> 

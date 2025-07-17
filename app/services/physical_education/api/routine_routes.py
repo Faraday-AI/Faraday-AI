@@ -1,12 +1,13 @@
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Dict, Any, Optional
+from datetime import datetime
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from app.models.routine import Routine, RoutineStatus, RoutineCreate, RoutineUpdate, RoutineResponse
 from app.core.database import get_db
-from app.services.physical_education.models.routine import Routine
-from app.services.physical_education.models.routine_types import RoutineStatus
-from app.services.physical_education.models.activity import Activity
-from app.services.physical_education.models.class_ import Class
-from app.services.physical_education.services.routine_service import RoutineService
+from app.models.physical_education.pe_enums.pe_types import RoutineType
+from app.models.activity import Activity
+from app.models.physical_education.class_ import PhysicalEducationClass
+from app.services.physical_education.routine_service import RoutineService
 from pydantic import BaseModel, Field, ConfigDict
 
 router = APIRouter(prefix="/routines", tags=["routines"])
@@ -24,7 +25,7 @@ class RoutineBase(BaseModel):
     description: str
     class_id: int
     focus_areas: List[str]
-    status: RoutineStatus
+    status: RoutineType
     activities: Optional[List[ActivityInRoutine]] = Field(default_factory=list)
 
 class RoutineCreate(RoutineBase):
@@ -37,7 +38,7 @@ class RoutineUpdate(BaseModel):
     description: Optional[str] = None
     class_id: Optional[int] = None
     focus_areas: Optional[List[str]] = None
-    status: Optional[RoutineStatus] = None
+    status: Optional[RoutineType] = None
     activities: Optional[List[ActivityInRoutine]] = None
 
 class RoutineResponse(RoutineBase):
@@ -69,7 +70,7 @@ def get_routine(routine_id: int, db: Session = Depends(get_db)):
 @router.get("/", response_model=List[RoutineResponse])
 def get_routines(
     class_id: Optional[int] = None,
-    status: Optional[RoutineStatus] = None,
+    status: Optional[RoutineType] = None,
     db: Session = Depends(get_db)
 ):
     """Get routines with optional filters."""
@@ -145,7 +146,7 @@ def get_routine_activities(routine_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Routine not found")
     return activities
 
-@router.get("/{routine_id}/class", response_model=Class)
+@router.get("/{routine_id}/class", response_model=PhysicalEducationClass)
 def get_routine_class(routine_id: int, db: Session = Depends(get_db)):
     """Get the class associated with a routine."""
     service = RoutineService(db)

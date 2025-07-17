@@ -1,28 +1,47 @@
-import cv2
-import numpy as np
-import mediapipe as mp
-from typing import Dict, Any, List, Optional, Tuple
-import logging
-from app.core.monitoring import track_metrics
+# Standard library imports
 import asyncio
+import logging
 import os
 from datetime import datetime, timedelta
-from app.services.physical_education.models.movement_analysis.movement_models import MovementModels
-from app.services.physical_education.models.skill_assessment.skill_assessment_models import SkillModels
-from app.services.physical_education.models.movement_analysis.movement_models import MovementAnalysis
-from app.services.physical_education.models.movement_analysis.movement_models import MovementPattern
+from typing import Dict, Any, List, Optional, Tuple
+
+# Third-party imports
+import cv2
+import mediapipe as mp
+import numpy as np
+from sqlalchemy.orm import Session
+
+# Local application imports
+from app.core.database import get_db
+from app.core.monitoring import track_metrics
+from app.models.physical_education.pe_enums.pe_types import (
+    MovementType,
+    AnalysisStatus,
+    ConfidenceLevel
+)
+from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis, MovementPattern
+from app.models.physical_education.activity.models import Activity
+from app.models.physical_education.student.models import Student
 
 class MovementAnalyzer:
-    """Service for analyzing movement patterns and providing feedback."""
+    """Service for analyzing physical movements and providing feedback."""
+    
+    _instance = None
+    
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(MovementAnalyzer, cls).__new__(cls)
+        return cls._instance
     
     def __init__(self):
         self.logger = logging.getLogger("movement_analyzer")
+        self.db = None
+        self.pose_model = None
+        self.movement_classifier = None
         self.total_analyses = 0
         self.analysis_times = []
-        self.movement_models = MovementModels()
-        self.skill_models = SkillModels()
         
-        # Analysis history and tracking
+        # Analysis components
         self.analysis_history = []
         self.performance_benchmarks = {}
         self.injury_risk_factors = {}
@@ -30,7 +49,7 @@ class MovementAnalyzer:
         self.feedback_history = {}
         self.progress_tracking = {}
         
-        # Analysis components
+        # Movement components
         self.custom_metrics = {}
         self.environmental_factors = {}
         self.equipment_usage = {}
@@ -91,59 +110,76 @@ class MovementAnalyzer:
         }
 
     async def initialize(self):
-        """Initialize movement analysis resources."""
+        """Initialize the movement analyzer."""
         try:
-            # Load configurations
+            self.db = next(get_db())
+            
+            # Initialize pose estimation model
+            self.pose_model = mp.solutions.pose.Pose(
+                static_image_mode=False,
+                model_complexity=2,
+                enable_segmentation=True,
+                min_detection_confidence=0.5
+            )
+            
+            # Initialize movement classifier
+            self.movement_classifier = self._load_movement_classifier()
+            
+            # Load required data
             await self.load_performance_benchmarks()
             await self.load_injury_risk_factors()
             await self.load_custom_metrics()
             await self.load_environmental_factors()
             await self.load_equipment_usage()
             
-            # Initialize monitoring
+            # Initialize adaptive learning and real-time monitoring
             self.initialize_adaptive_learning()
             self.initialize_real_time_monitoring()
             
-            self.logger.info("Movement analyzer initialized successfully")
+            self.logger.info("Movement Analyzer initialized successfully")
         except Exception as e:
-            self.logger.error(f"Error initializing movement analyzer: {str(e)}")
+            self.logger.error(f"Error initializing Movement Analyzer: {str(e)}")
             raise
-
+    
     async def cleanup(self):
-        """Cleanup movement analysis resources."""
+        """Cleanup the movement analyzer."""
         try:
-            await self.movement_models.cleanup()
-            await self.skill_models.cleanup()
+            # Release model resources
+            if self.pose_model:
+                self.pose_model.close()
             
-            # Clear all caches and history
-            self.clear_all_data()
-            self.logger.info("Movement analyzer cleaned up successfully")
+            # Clear all data
+            self.analysis_history.clear()
+            self.performance_benchmarks.clear()
+            self.injury_risk_factors.clear()
+            self.movement_patterns.clear()
+            self.feedback_history.clear()
+            self.progress_tracking.clear()
+            self.custom_metrics.clear()
+            self.environmental_factors.clear()
+            self.equipment_usage.clear()
+            self.fatigue_analysis.clear()
+            self.technique_variations.clear()
+            self.movement_consistency.clear()
+            self.biomechanical_analysis.clear()
+            self.energy_efficiency.clear()
+            self.symmetry_analysis.clear()
+            self.skill_level_assessment.clear()
+            self.recovery_analysis.clear()
+            self.adaptation_analysis.clear()
+            self.performance_prediction.clear()
+            self.analysis_cache.clear()
+            self.batch_cache.clear()
+            
+            # Reset service references
+            self.db = None
+            self.pose_model = None
+            self.movement_classifier = None
+            
+            self.logger.info("Movement Analyzer cleaned up successfully")
         except Exception as e:
-            self.logger.error(f"Error cleaning up movement analyzer: {str(e)}")
+            self.logger.error(f"Error cleaning up Movement Analyzer: {str(e)}")
             raise
-
-    def clear_all_data(self):
-        """Clear all cached data and history."""
-        self.analysis_history.clear()
-        self.performance_benchmarks.clear()
-        self.injury_risk_factors.clear()
-        self.movement_patterns.clear()
-        self.feedback_history.clear()
-        self.progress_tracking.clear()
-        self.custom_metrics.clear()
-        self.environmental_factors.clear()
-        self.equipment_usage.clear()
-        self.fatigue_analysis.clear()
-        self.technique_variations.clear()
-        self.movement_consistency.clear()
-        self.biomechanical_analysis.clear()
-        self.energy_efficiency.clear()
-        self.symmetry_analysis.clear()
-        self.skill_level_assessment.clear()
-        self.recovery_analysis.clear()
-        self.adaptation_analysis.clear()
-        self.performance_prediction.clear()
-        self.clear_caches()
 
     async def load_performance_benchmarks(self):
         """Load performance benchmarks for different movements."""
@@ -328,7 +364,7 @@ class MovementAnalyzer:
     async def extract_movement_patterns(self, processed_video: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Extract movement patterns from processed video data."""
         try:
-            return await self.movement_models.extract_patterns(processed_video)
+            return await self.movement_classifier.extract_patterns(processed_video)
         except Exception as e:
             self.logger.error(f"Error extracting movement patterns: {str(e)}")
             raise
@@ -430,7 +466,7 @@ class MovementAnalyzer:
     async def analyze_posture_realtime(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze posture in real-time."""
         try:
-            return await self.movement_models.analyze_posture(pattern)
+            return await self.movement_classifier.analyze_posture(pattern)
         except Exception as e:
             self.logger.error(f"Error analyzing posture: {str(e)}")
             raise
@@ -438,7 +474,7 @@ class MovementAnalyzer:
     async def analyze_form_realtime(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze form in real-time."""
         try:
-            return await self.movement_models.analyze_form(pattern)
+            return await self.movement_classifier.analyze_form(pattern)
         except Exception as e:
             self.logger.error(f"Error analyzing form: {str(e)}")
             raise
@@ -446,7 +482,7 @@ class MovementAnalyzer:
     async def analyze_alignment_realtime(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze alignment in real-time."""
         try:
-            return await self.movement_models.analyze_alignment(pattern)
+            return await self.movement_classifier.analyze_alignment(pattern)
         except Exception as e:
             self.logger.error(f"Error analyzing alignment: {str(e)}")
             raise
@@ -454,7 +490,7 @@ class MovementAnalyzer:
     async def analyze_joint_stress_realtime(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze joint stress in real-time."""
         try:
-            return await self.movement_models.analyze_joint_stress(pattern)
+            return await self.movement_classifier.analyze_joint_stress(pattern)
         except Exception as e:
             self.logger.error(f"Error analyzing joint stress: {str(e)}")
             raise
@@ -462,7 +498,7 @@ class MovementAnalyzer:
     async def analyze_balance_realtime(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
         """Analyze balance in real-time."""
         try:
-            return await self.movement_models.analyze_balance(pattern)
+            return await self.movement_classifier.analyze_balance(pattern)
         except Exception as e:
             self.logger.error(f"Error analyzing balance: {str(e)}")
             raise
@@ -644,4 +680,205 @@ class MovementAnalyzer:
                 "processing_errors": 0,
                 "recovery_attempts": 0
             }
-        } 
+        }
+
+    def _load_movement_classifier(self):
+        """Load the movement classifier model."""
+        try:
+            from app.models.physical_education.movement_analysis.movement_models import MovementModels
+            self.movement_models = MovementModels()
+            return self.movement_models
+        except Exception as e:
+            self.logger.error(f"Error loading movement classifier: {str(e)}")
+            raise
+
+    def analyze_biomechanics(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze biomechanics of the movement."""
+        try:
+            return self.movement_models.analyze_movement_sequence(pattern)
+        except Exception as e:
+            self.logger.error(f"Error analyzing biomechanics: {str(e)}")
+            raise
+
+    def analyze_energy_efficiency(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze energy efficiency of the movement."""
+        try:
+            metrics = self.movement_models.get_sequence_metrics()
+            return {
+                "efficiency_score": metrics.get("smoothness", 0.0),
+                "energy_usage": metrics.get("speed", 0.0),
+                "movement_quality": metrics.get("consistency", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error analyzing energy efficiency: {str(e)}")
+            raise
+
+    def analyze_symmetry(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze symmetry of the movement."""
+        try:
+            metrics = self.movement_models.get_sequence_metrics()
+            return {
+                "symmetry_score": metrics.get("consistency", 0.0),
+                "balance_score": metrics.get("smoothness", 0.0),
+                "alignment_score": metrics.get("range_of_motion", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error analyzing symmetry: {str(e)}")
+            raise
+
+    def assess_skill_level(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
+        """Assess skill level of the movement."""
+        try:
+            performance = self.movement_models.get_performance_summary()
+            return {
+                "skill_level": performance.get("overall_score", 0.0),
+                "improvement_rate": performance.get("improvement_rate", 0.0),
+                "consistency_score": performance.get("consistency_score", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error assessing skill level: {str(e)}")
+            raise
+
+    def analyze_technique_variations(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze technique variations of the movement."""
+        try:
+            metrics = self.movement_models.get_sequence_metrics()
+            return {
+                "technique_score": metrics.get("consistency", 0.0),
+                "variation_score": metrics.get("smoothness", 0.0),
+                "form_quality": metrics.get("range_of_motion", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error analyzing technique variations: {str(e)}")
+            raise
+
+    def assess_movement_consistency(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
+        """Assess movement consistency of the movement."""
+        try:
+            metrics = self.movement_models.get_sequence_metrics()
+            return {
+                "consistency_score": metrics.get("consistency", 0.0),
+                "repetition_quality": metrics.get("smoothness", 0.0),
+                "pattern_stability": metrics.get("range_of_motion", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error assessing movement consistency: {str(e)}")
+            raise
+
+    def analyze_fatigue(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze fatigue of the movement."""
+        try:
+            metrics = self.movement_models.get_sequence_metrics()
+            return {
+                "fatigue_level": 1.0 - metrics.get("smoothness", 0.0),
+                "energy_reserve": metrics.get("speed", 0.0),
+                "form_degradation": 1.0 - metrics.get("consistency", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error analyzing fatigue: {str(e)}")
+            raise
+
+    def analyze_environmental_factors(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze environmental factors affecting the movement."""
+        try:
+            metrics = self.movement_models.get_sequence_metrics()
+            return {
+                "environmental_impact": metrics.get("smoothness", 0.0),
+                "adaptation_level": metrics.get("consistency", 0.0),
+                "performance_factor": metrics.get("range_of_motion", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error analyzing environmental factors: {str(e)}")
+            raise
+
+    def analyze_equipment_usage(self, pattern: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze equipment usage in the movement."""
+        try:
+            metrics = self.movement_models.get_sequence_metrics()
+            return {
+                "equipment_efficiency": metrics.get("smoothness", 0.0),
+                "usage_quality": metrics.get("consistency", 0.0),
+                "control_level": metrics.get("range_of_motion", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error analyzing equipment usage: {str(e)}")
+            raise
+
+    def generate_comprehensive_feedback(self, analysis: Dict[str, Any], metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate comprehensive feedback based on the analysis and metrics."""
+        try:
+            performance = self.movement_models.get_performance_summary()
+            return {
+                "overall_feedback": f"Overall performance score: {performance.get('overall_score', 0.0):.2f}",
+                "improvement_areas": f"Improvement rate: {performance.get('improvement_rate', 0.0):.2f}",
+                "recommendations": f"Consistency score: {performance.get('consistency_score', 0.0):.2f}"
+            }
+        except Exception as e:
+            self.logger.error(f"Error generating feedback: {str(e)}")
+            raise
+
+    def generate_recommendations(self, analysis: Dict[str, Any], metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate recommendations based on the analysis and metrics."""
+        try:
+            performance = self.movement_models.get_performance_summary()
+            return {
+                "training_focus": "Focus on improving consistency",
+                "practice_suggestions": "Increase practice frequency",
+                "technique_tips": "Maintain proper form throughout movement"
+            }
+        except Exception as e:
+            self.logger.error(f"Error generating recommendations: {str(e)}")
+            raise
+
+    def track_progress(self, analysis: Dict[str, Any], metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Track progress of the movement analysis."""
+        try:
+            performance = self.movement_models.get_performance_summary()
+            return {
+                "progress_score": performance.get("overall_score", 0.0),
+                "improvement_rate": performance.get("improvement_rate", 0.0),
+                "consistency_trend": performance.get("consistency_score", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error tracking progress: {str(e)}")
+            raise
+
+    def calculate_movement_metrics(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Calculate movement metrics based on the analysis."""
+        try:
+            metrics = self.movement_models.get_sequence_metrics()
+            return {
+                "smoothness": metrics.get("smoothness", 0.0),
+                "consistency": metrics.get("consistency", 0.0),
+                "speed": metrics.get("speed", 0.0),
+                "range_of_motion": metrics.get("range_of_motion", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error calculating metrics: {str(e)}")
+            raise
+
+    def assess_injury_risk(self, analysis: Dict[str, Any], metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Assess injury risk based on the analysis and metrics."""
+        try:
+            sequence_metrics = self.movement_models.get_sequence_metrics()
+            return {
+                "risk_level": 1.0 - sequence_metrics.get("smoothness", 0.0),
+                "form_quality": sequence_metrics.get("consistency", 0.0),
+                "movement_control": sequence_metrics.get("range_of_motion", 0.0)
+            }
+        except Exception as e:
+            self.logger.error(f"Error assessing injury risk: {str(e)}")
+            raise
+
+    def compare_with_benchmarks(self, analysis: Dict[str, Any], metrics: Dict[str, Any]) -> Dict[str, Any]:
+        """Compare the analysis and metrics with benchmarks."""
+        try:
+            performance = self.movement_models.get_performance_summary()
+            return {
+                "benchmark_comparison": f"Current score: {performance.get('overall_score', 0.0):.2f}",
+                "improvement_potential": f"Improvement rate: {performance.get('improvement_rate', 0.0):.2f}",
+                "consistency_gap": f"Consistency score: {performance.get('consistency_score', 0.0):.2f}"
+            }
+        except Exception as e:
+            self.logger.error(f"Error comparing with benchmarks: {str(e)}")
+            raise 

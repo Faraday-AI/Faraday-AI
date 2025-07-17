@@ -5,10 +5,10 @@ global:
 scrape_configs:
   - job_name: 'faraday-app'
     static_configs:
-      - targets: ['app:${APP_METRICS_PORT:-9091}']
+      - targets: ['app:9091']
     metrics_path: '/metrics'
     scheme: 'http'
 
   - job_name: 'prometheus'
     static_configs:
-      - targets: ['localhost:${PROMETHEUS_PORT:-9090}'] 
+      - targets: ['localhost:9090'] 

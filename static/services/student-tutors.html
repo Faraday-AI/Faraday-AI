@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Student Tutors</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="AI-powered tutors to help students excel in their studies and develop effective learning strategies">
+    <style>
+        :root {
+            --accent-color: #e74c3c;
+            --background-color: #000000;
+            --border-radius: 8px;
+            --card-background: #1a1a1a;
+            --card-hover: #2a2a2a;
+            --primary-color: #3498db;
+            --secondary-color: #ffd700;
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --spacing-unit: 1rem;
+            --text-color: #ffffff;
+            --text-light: #bdc3c7;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        #getting-started {
+            color: white;
+        }
+
+        #getting-started ol {
+            padding-left: 1.5rem;
+            display: block;
+            list-style-type: decimal;
+            margin-block-start: 1em;
+            margin-block-end: 1em;
+            padding-inline-start: 40px;
+            line-height: 25.6px;
+            counter-reset: item;
+        }
+
+        #getting-started ol li {
+            display: block;
+            position: relative;
+            padding-left: 0;
+            margin-left: 0;
+            font-weight: 600;
+        }
+
+        #getting-started ol li:before {
+            content: none;
+        }
+
+        .service-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .service-card {
+            background-color: #2980b9;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            transition: var(--transition);
+            cursor: pointer;
+            border: none;
+            color: var(--text-color);
+        }
+
+        .service-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            background-color: #1c6ea4;
+        }
+
+        .back-button, .auth-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+        .back-button:hover, .auth-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .service-footer {
+            background-color: var(--card-background);
+            margin-top: 3rem;
+            padding: 2rem 0;
+            border-radius: var(--border-radius);
+            text-align: center;
+        }
+
+        .footer-links {
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        .footer-links a {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+        }
+
+        .footer-links a:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .footer-text {
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .social-links a {
+            color: var(--text-color);
+            text-decoration: none;
+            margin: 0 1rem;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .social-links a:hover {
+            color: var(--secondary-color);
+        }
+
+        .service-header {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4) 0;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .service-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 var(--spacing-unit);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+            width: 100%;
+            position: relative;
+        }
+
+        .nav-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 0;
+            position: absolute;
+            left: var(--spacing-unit);
+            top: 0;
+        }
+
+        .auth-section {
+            position: absolute;
+            right: var(--spacing-unit);
+            top: 0;
+        }
+
+        .service-hero {
+            max-width: 800px;
+            margin: 0 auto;
+            padding-top: calc(var(--spacing-unit) * 4);
+        }
+
+        .service-hero h1 {
+            color: var(--text-color);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .service-tagline {
+            color: var(--text-light);
+            font-size: 1.2rem;
+            line-height: 1.6;
+            font-weight: 600;
+        }
+
+        .service-card h3 {
+            font-size: 1.4rem;
+            margin: 0;
+            color: var(--text-color);
+            font-weight: 600;
+        }
+
+        .service-card p {
+            font-size: 1.1rem;
+            color: var(--text-color);
+            line-height: 1.4;
+            margin: 0;
+            opacity: 0.9;
+        }
+
+        .getting-started-section {
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+            text-align: center;
+            color: var(--text-color);
+            border-top: 8px solid var(--secondary-color);
+        }
+
+        .getting-started-section h2 {
+            color: var(--text-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .getting-started-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0;
+        }
+
+        .getting-started-section li {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .cta-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+        .cta-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+    </style>
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <header class="service-header">
+            <nav class="service-nav">
+                <div class="nav-buttons">
+                    <a href="/" class="back-button">← Back to Home</a>
+                    <a href="/static/services/teacher-admin.html" class="back-button">← Back to Teachers</a>
+                    <a href="/static/services/additional-services.html" class="back-button">← Back to Additional Services</a>
+                </div>
+                <div class="auth-section">
+                    <button class="auth-button" onclick="showAuthForm()">Login / Register</button>
+                </div>
+            </nav>
+            <div class="service-hero">
+                <h1>Student Tutors</h1>
+                <p class="service-tagline">AI-powered tutors to help you excel in your studies and develop effective learning strategies</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="service-content">
+            <!-- Overview Section -->
+            <section class="service-section" id="overview">
+                <h2>Overview</h2>
+                <div class="section-content">
+                    <p style="font-weight: 600;">Faraday AI's Student Tutors represent a revolutionary approach to personalized education, combining cutting-edge artificial intelligence with proven pedagogical methodologies to deliver an unparalleled learning experience.</p>
+                    
+                    <div class="highlight-box">
+                        <p>"Our AI tutors don't just teach - they understand, adapt, and evolve with each student's unique learning journey, creating a truly personalized educational experience that drives measurable academic success."</p>
+                    </div>
+
+                    <h3>Transformative Learning Experience</h3>
+                    <p>Our platform leverages advanced AI algorithms to create a dynamic, responsive learning environment that:</p>
+                    <ul>
+                        <li>Adapts to individual learning styles and paces</li>
+                        <li>Provides real-time feedback and guidance</li>
+                        <li>Identifies knowledge gaps and learning opportunities</li>
+                        <li>Creates personalized study plans and learning paths</li>
+                        <li>Offers 24/7 availability for uninterrupted learning</li>
+                    </ul>
+
+                    <h3>Academic Excellence</h3>
+                    <p>Designed to complement traditional education, our AI tutors:</p>
+                    <ul>
+                        <li>Support core curriculum subjects with expert-level knowledge</li>
+                        <li>Provide step-by-step explanations and problem-solving strategies</li>
+                        <li>Offer practice exercises and assessments with immediate feedback</li>
+                        <li>Track progress and adjust difficulty levels automatically</li>
+                        <li>Prepare students for standardized tests and examinations</li>
+                    </ul>
+
+                    <h3>Key Differentiators</h3>
+                    <p>What sets our AI tutors apart:</p>
+                    <ul>
+                        <li>Advanced natural language processing for human-like interactions</li>
+                        <li>Machine learning algorithms that improve with each interaction</li>
+                        <li>Comprehensive subject coverage across all academic levels</li>
+                        <li>Seamless integration with existing educational platforms</li>
+                        <li>Data-driven insights for continuous improvement</li>
+                    </ul>
+
+                    <h3>Business Value</h3>
+                    <p>For educational institutions and students alike, our solution offers:</p>
+                    <ul>
+                        <li>Cost-effective alternative to traditional tutoring</li>
+                        <li>Scalable solution for institutions of any size</li>
+                        <li>Consistent, high-quality educational support</li>
+                        <li>Measurable learning outcomes and progress tracking</li>
+                        <li>Reduced administrative burden for educators</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Features Section -->
+            <section class="service-section" id="features">
+                <h2>Available Tutors</h2>
+                <div class="features-grid">
+                    <div class="service-card" onclick="showTutorComingSoon('Math Tutor')">
+                        <h3>Math Tutor</h3>
+                        <p>Get help with math problems, understand concepts, and practice with step-by-step solutions</p>
+                    </div>
+                    <div class="service-card" onclick="showTutorComingSoon('Science Tutor')">
+                        <h3>Science Tutor</h3>
+                        <p>Learn scientific concepts, get help with lab reports, and understand complex theories</p>
+                    </div>
+                    <div class="service-card" onclick="showTutorComingSoon('Language Arts Tutor')">
+                        <h3>Language Arts Tutor</h3>
+                        <p>Improve writing skills, grammar, and literature analysis with personalized guidance</p>
+                    </div>
+                    <div class="service-card" onclick="showTutorComingSoon('History Tutor')">
+                        <h3>History Tutor</h3>
+                        <p>Understand historical events, analyze primary sources, and improve research skills</p>
+                    </div>
+                    <div class="service-card" onclick="showTutorComingSoon('Study Skills Coach')">
+                        <h3>Study Skills Coach</h3>
+                        <p>Develop effective study habits, time management, and test-taking strategies</p>
+                    </div>
+                    <div class="service-card" onclick="showTutorComingSoon('Writing Assistant')">
+                        <h3>Writing Assistant</h3>
+                        <p>Get help with essays, research papers, and creative writing projects</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Benefits Section -->
+            <section class="service-section" id="benefits">
+                <h2>Key Benefits</h2>
+                <div class="section-content">
+                    <h3>For Students</h3>
+                    <ul>
+                        <li>Personalized learning paths that adapt to your unique strengths and challenges</li>
+                        <li>24/7 access to expert-level academic support across all subjects</li>
+                        <li>Immediate feedback and detailed explanations for complex concepts</li>
+                        <li>Development of critical thinking and problem-solving skills</li>
+                        <li>Improved academic performance and confidence in learning</li>
+                        <li>Flexible learning schedule that fits your lifestyle</li>
+                    </ul>
+
+                    <h3>For Educational Institutions</h3>
+                    <ul>
+                        <li>Enhanced student success rates and academic outcomes</li>
+                        <li>Scalable tutoring solution that reaches all students</li>
+                        <li>Data-driven insights into student learning patterns and needs</li>
+                        <li>Reduced burden on teaching staff for basic support</li>
+                        <li>Cost-effective alternative to traditional tutoring programs</li>
+                        <li>Seamless integration with existing learning management systems</li>
+                    </ul>
+
+                    <h3>For Parents and Guardians</h3>
+                    <ul>
+                        <li>Peace of mind knowing your child has access to quality academic support</li>
+                        <li>Transparent progress tracking and performance analytics</li>
+                        <li>Affordable alternative to expensive private tutoring</li>
+                        <li>Flexible support that adapts to your child's schedule</li>
+                        <li>Development of independent learning skills in your child</li>
+                        <li>Regular progress reports and achievement milestones</li>
+                    </ul>
+
+                    <h3>For Educators</h3>
+                    <ul>
+                        <li>Comprehensive support for differentiated instruction</li>
+                        <li>Time-saving automated assessment and feedback tools</li>
+                        <li>Detailed analytics to identify class-wide learning trends</li>
+                        <li>Enhanced ability to focus on advanced teaching strategies</li>
+                        <li>Support for students with diverse learning needs</li>
+                        <li>Integration with existing curriculum and teaching methods</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Getting Started Section -->
+            <section class="getting-started-section">
+                <h2>Getting Started</h2>
+                <ul>
+                    <li>Choose the tutor that best matches your learning needs</li>
+                    <li>Sign up or log in to access your personalized learning experience</li>
+                    <li>Set your learning goals and preferences</li>
+                    <li>Start receiving personalized tutoring and support</li>
+                </ul>
+                <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button class="cta-button" onclick="showGettingStartedComingSoon()">Get Started</button>
+                    <button class="cta-button" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">Back to Top</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer" role="contentinfo">
+            <div class="footer-content">
+                <div class="footer-text">
+                    FARADAY-AI, LLC 2025
+                </div>
+                <div class="social-links">
+                    <a href="https://github.com/faradayai" target="_blank" rel="noopener noreferrer" aria-label="Follow us on GitHub">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Authentication Form -->
+    <div class="auth-container" id="auth-form-container" style="display: none;">
+        <div class="auth-form">
+            <h2>Login / Register</h2>
+            <form id="auth-form">
+                <input type="email" placeholder="Email" required>
+                <input type="password" placeholder="Password" required>
+                <button type="submit" class="auth-button">Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/services.js"></script>
+    <script>
+        function showAuthForm() {
+            alert('Login / Register feature coming soon!');
+        }
+
+        function showGettingStartedComingSoon() {
+            alert('Getting Started feature coming soon!');
+        }
+
+        function showPricingComingSoon() {
+            alert('Pricing Options coming soon!');
+        }
+
+        function showTutorComingSoon(tutorName) {
+            alert(`${tutorName} feature coming soon!`);
+        }
+
+        // Add smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Preset Configurations</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/services.css">
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <div class="service-header">
+            <a href="/static/services/services_subpages/phys-ed-teacher/activity-design/activity-templates/quick-setup/quick-setup.html" class="back-button" aria-label="Back to Quick Setup">
+                <span class="back-arrow">←</span> Back to Quick Setup
+            </a>
+            <h1>Preset Configurations</h1>
+            <p class="service-description">Choose from pre-configured activity settings</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="service-content">
+            <form id="presetForm">
+                <div class="form-group">
+                    <label for="presetType">Preset Type</label>
+                    <select id="presetType" name="presetType" required>
+                        <option value="">Select preset type</option>
+                        <option value="beginner">Beginner-Friendly Activities</option>
+                        <option value="team">Team-Based Games</option>
+                        <option value="fitness">Fitness-Focused Drills</option>
+                        <option value="skill">Skill Development Exercises</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="gradeRange">Grade Range</label>
+                    <select id="gradeRange" name="gradeRange" required>
+                        <option value="">Select grade range</option>
+                        <option value="elementary">Elementary (K-5)</option>
+                        <option value="middle">Middle School (6-8)</option>
+                        <option value="high">High School (9-12)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="classSize">Class Size</label>
+                    <select id="classSize" name="classSize" required>
+                        <option value="">Select class size</option>
+                        <option value="small">Small (10-15 students)</option>
+                        <option value="medium">Medium (16-25 students)</option>
+                        <option value="large">Large (26+ students)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="equipment">Available Equipment</label>
+                    <select id="equipment" name="equipment" required>
+                        <option value="">Select equipment level</option>
+                        <option value="minimal">Minimal (balls only)</option>
+                        <option value="basic">Basic (balls, cones, jump ropes)</option>
+                        <option value="full">Full (all equipment available)</option>
+                    </select>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="primary-button">Generate Activity</button>
+                </div>
+            </form>
+
+            <!-- Preview Section (Initially Hidden) -->
+            <section class="preview-section" id="previewSection" style="display: none;">
+                <h2>Your Generated Activity</h2>
+                <div id="activityPreview"></div>
+                <div class="button-group">
+                    <button class="secondary-button" id="editButton">Edit</button>
+                    <button class="primary-button" id="saveButton">Save</button>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script src="/static/js/services.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const presetForm = document.getElementById('presetForm');
+            const previewSection = document.getElementById('previewSection');
+            const editButton = document.getElementById('editButton');
+            const saveButton = document.getElementById('saveButton');
+
+            presetForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                presetForm.style.display = 'none';
+                previewSection.style.display = 'block';
+                
+                // Generate preview content
+                const preview = document.getElementById('activityPreview');
+                preview.innerHTML = `
+                    <h3>${document.getElementById('presetType').value}</h3>
+                    <p>Grade Range: ${document.getElementById('gradeRange').value}</p>
+                    <p>Class Size: ${document.getElementById('classSize').value}</p>
+                    <p>Equipment Level: ${document.getElementById('equipment').value}</p>
+                    <div class="activity-details">
+                        <h4>Activity Details:</h4>
+                        <p>This is a sample activity description based on your selected preset configuration. The actual activity would be generated based on the selected parameters.</p>
+                    </div>
+                `;
+            });
+
+            editButton.addEventListener('click', function() {
+                previewSection.style.display = 'none';
+                presetForm.style.display = 'block';
+            });
+
+            saveButton.addEventListener('click', function() {
+                // Implement save functionality
+                alert('Activity saved successfully!');
+            });
+        });
+    </script>
+</body>
+</html> 
