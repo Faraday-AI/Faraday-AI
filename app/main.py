@@ -37,7 +37,7 @@ from app.api.v1.endpoints.physical_education import physical_education
 from app.api.v1.endpoints.physical_education.health_fitness import router as health_fitness_router
 from app.core.database import initialize_engines, get_db, engine, init_db
 from app.core.enums import Region
-from app.api.v1 import auth
+from app.api.auth import router as auth_router
 from app.api.v1.endpoints.core.memory import router as memory_router
 from app.api.v1.endpoints.assistants.math_assistant import router as math_assistant_router
 from app.api.v1.endpoints.assistants.science_assistant import router as science_assistant_router
@@ -161,6 +161,7 @@ app.include_router(optimization_monitoring.router, prefix="/api/v1/optimization-
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])  # Add new router
 app.include_router(educational.router, prefix="/api/v1/educational", tags=["educational"])
 app.include_router(health_fitness_router, prefix="/api/v1/physical-education", tags=["physical-education"])
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 
 # Mount static files at /static instead of root
 base_dir = Path(__file__).parent.parent
@@ -526,7 +527,7 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(BaseHTTPMiddleware, dispatch=add_rate_limiting)
 app.add_middleware(BaseHTTPMiddleware, dispatch=add_caching)
 
-# Create a singleton instance
+# Create a singleton instance with lazy loading
 _realtime_collaboration_service = None
 _file_processing_service = None
 _ai_analytics_service = None
@@ -535,25 +536,44 @@ def get_realtime_collaboration_service() -> RealtimeCollaborationService:
     """Get the singleton instance of RealtimeCollaborationService."""
     global _realtime_collaboration_service
     if _realtime_collaboration_service is None:
-        _realtime_collaboration_service = RealtimeCollaborationService()
+        try:
+            _realtime_collaboration_service = RealtimeCollaborationService()
+        except Exception as e:
+            logger.error(f"Failed to create RealtimeCollaborationService: {e}")
+            # Return a mock service that handles errors gracefully
+            class MockCollaborationService:
+                async def handle_request(self, *args, **kwargs):
+                    return {"status": "service_unavailable", "message": "Collaboration service is temporarily unavailable"}
+            _realtime_collaboration_service = MockCollaborationService()
     return _realtime_collaboration_service
 
 def get_file_processing_service() -> FileProcessingService:
     global _file_processing_service
     if _file_processing_service is None:
-        _file_processing_service = FileProcessingService()
+        try:
+            _file_processing_service = FileProcessingService()
+        except Exception as e:
+            logger.error(f"Failed to create FileProcessingService: {e}")
+            # Return a mock service that handles errors gracefully
+            class MockFileService:
+                async def process_file(self, *args, **kwargs):
+                    return {"status": "service_unavailable", "message": "File processing service is temporarily unavailable"}
+            _file_processing_service = MockFileService()
     return _file_processing_service
 
 def get_ai_analytics_service() -> AIAnalytics:
     global _ai_analytics_service
     if _ai_analytics_service is None:
-        _ai_analytics_service = AIAnalytics()
+        try:
+            _ai_analytics_service = AIAnalytics()
+        except Exception as e:
+            logger.error(f"Failed to create AIAnalytics: {e}")
+            # Return a mock service that handles errors gracefully
+            class MockAIAnalytics:
+                async def analyze(self, *args, **kwargs):
+                    return {"status": "service_unavailable", "message": "AI Analytics service is temporarily unavailable"}
+            _ai_analytics_service = MockAIAnalytics()
     return _ai_analytics_service
-
-# Create the singleton instances at startup
-_realtime_collaboration_service = RealtimeCollaborationService()
-_file_processing_service = FileProcessingService()
-_ai_analytics_service = AIAnalytics()
 
 # Serve static files
 # app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -806,21 +826,29 @@ async def get_metrics_summary() -> Dict[str, Any]:
         - challenge_completion: Challenge completion rate
     """
     try:
-        response_time_avg = (
-            RESPONSE_TIME._sum.get() / RESPONSE_TIME._count.get()
-            if RESPONSE_TIME._count.get() > 0
-            else 0.0
-        )
+        # Use safe methods to get histogram values with defaults
+        response_time_sum = getattr(RESPONSE_TIME, '_sum', None)
+        response_time_count = getattr(RESPONSE_TIME, '_count', None)
+        
+        if response_time_sum and response_time_count:
+            try:
+                sum_val = response_time_sum.get()
+                count_val = response_time_count.get()
+                response_time_avg = sum_val / count_val if count_val > 0 else 0.0
+            except Exception:
+                response_time_avg = 0.0
+        else:
+            response_time_avg = 0.0
         
         return {
-            "learning_accuracy": LEARNING_ACCURACY._value.get(),
+            "learning_accuracy": getattr(LEARNING_ACCURACY, '_value', 0.0),
             "response_time_avg": response_time_avg,
-            "recommendation_quality": RECOMMENDATION_QUALITY._value.get(),
-            "user_engagement_minutes": USER_ENGAGEMENT._value.get(),
-            "active_users": ACTIVE_USERS._value.get(),
-            "error_count": ERROR_COUNT._value.get(),
-            "achievement_count": ACHIEVEMENT_COUNT._value.get(),
-            "challenge_completion": CHALLENGE_COMPLETION._value.get()
+            "recommendation_quality": getattr(RECOMMENDATION_QUALITY, '_value', 0.0),
+            "user_engagement_minutes": getattr(USER_ENGAGEMENT, '_value', 0.0),
+            "active_users": getattr(ACTIVE_USERS, '_value', 0),
+            "error_count": getattr(ERROR_COUNT, '_value', 0),
+            "achievement_count": getattr(ACHIEVEMENT_COUNT, '_value', 0),
+            "challenge_completion": getattr(CHALLENGE_COMPLETION, '_value', 0.0)
         }
     except Exception as e:
         ERROR_COUNT.inc()
