@@ -50,11 +50,55 @@ Faraday-AI/
 
 # Scripts with sensitive information
 run.sh
+run_auth_tests.sh
+setup_local.sh
 *.sh
 
-# Environment variables
+# Environment variables and secrets
 .env
 .env.*
+*.env
+.env.local
+.env.production
+.env.staging
+.env.development
+
+# API Keys and Secrets
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.csr
+*.pem
+*.key
+*.secret
+*.token
+*_key
+*_secret
+*_token
+*_password
+*_api_key
+*_private_key
+*_public_key
+
+# Database credentials
+database.ini
+db_config.ini
+db_credentials.*
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration files with secrets
+config.ini
+config.json
+config.yml
+config.yaml
+settings.ini
+settings.json
+settings.yml
+settings.yaml
 
 # Test coverage
 .coverage
@@ -90,3 +134,52 @@ node_modules/
 docs/context/CURRENT_STATUS_SUMMARY.md
 docs/CRITICAL_REFERENCE.md
 docs/DISASTER_RECOVERY_GUIDE.md
+
+# Docker secrets
+docker-compose.override.yml
+docker-compose.prod.yml
+docker-compose.staging.yml
+
+# SSL/TLS certificates
+*.crt
+*.key
+*.pem
+*.p12
+*.pfx
+*.csr
+
+# Backup files
+*.backup
+*.bak
+*.old
+*.orig
+
+# Cache directories
+.cache/
+cache/
+__pycache__/
+.pytest_cache/
+
+# Local development files
+local/
+local_*
+dev/
+dev_*
+test_*
+temp/
+tmp/
+
+# Log files
+*.log
+logs/
+log/
+
+# Database dumps
+*.sql
+*.dump
+*.backup
+
+# User-specific files
+.user/
+.userrc
+.user_*
