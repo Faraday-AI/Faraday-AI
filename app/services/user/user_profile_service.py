@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException, UploadFile
+from fastapi import HTTPException, UploadFile, Depends
 import os
 import uuid
 from pathlib import Path
@@ -17,6 +17,7 @@ from pathlib import Path
 from app.models.core.user import User
 from app.models.user_management.user.user_management import UserProfile
 from app.schemas.user_profile import UserProfileCreate, UserProfileUpdate, UserProfileResponse
+from app.db.session import get_db
 
 
 class UserProfileService:
@@ -27,14 +28,14 @@ class UserProfileService:
         self.upload_dir = Path("uploads/profiles")
         self.upload_dir.mkdir(parents=True, exist_ok=True)
     
-    def get_user_profile(self, user_id: int) -> Optional[UserProfile]:
+    async def get_user_profile(self, user_id: int) -> Optional[UserProfile]:
         """Get user profile by user ID."""
         return self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
     
-    def create_user_profile(self, user_id: int, profile_data: UserProfileCreate) -> UserProfile:
+    async def create_user_profile(self, user_id: int, profile_data: UserProfileCreate) -> UserProfile:
         """Create a new user profile."""
         # Check if profile already exists
-        existing_profile = self.get_user_profile(user_id)
+        existing_profile = await self.get_user_profile(user_id)
         if existing_profile:
             raise HTTPException(status_code=400, detail="User profile already exists")
         
@@ -57,12 +58,12 @@ class UserProfileService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to create user profile")
     
-    def update_user_profile(self, user_id: int, profile_data: UserProfileUpdate) -> UserProfile:
+    async def update_user_profile(self, user_id: int, profile_data: UserProfileUpdate) -> UserProfile:
         """Update user profile."""
-        profile = self.get_user_profile(user_id)
+        profile = await self.get_user_profile(user_id)
         if not profile:
             # Create profile if it doesn't exist
-            return self.create_user_profile(user_id, UserProfileCreate(**profile_data.dict()))
+            return await self.create_user_profile(user_id, UserProfileCreate(**profile_data.dict()))
         
         # Update profile fields
         update_data = profile_data.dict(exclude_unset=True)
@@ -79,9 +80,9 @@ class UserProfileService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to update user profile")
     
-    def delete_user_profile(self, user_id: int) -> bool:
+    async def delete_user_profile(self, user_id: int) -> bool:
         """Delete user profile."""
-        profile = self.get_user_profile(user_id)
+        profile = await self.get_user_profile(user_id)
         if not profile:
             raise HTTPException(status_code=404, detail="User profile not found")
         
@@ -93,7 +94,7 @@ class UserProfileService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to delete user profile")
     
-    def upload_profile_picture(self, user_id: int, file: UploadFile) -> str:
+    async def upload_profile_picture(self, user_id: int, file: UploadFile) -> str:
         """Upload and store profile picture."""
         # Validate file type
         allowed_types = ["image/jpeg", "image/png", "image/gif", "image/webp"]
@@ -119,10 +120,10 @@ class UserProfileService:
             raise HTTPException(status_code=500, detail=f"Failed to save file: {str(e)}")
         
         # Update profile with new avatar URL
-        profile = self.get_user_profile(user_id)
+        profile = await self.get_user_profile(user_id)
         if not profile:
             # Create basic profile if it doesn't exist
-            profile = self.create_user_profile(
+            profile = await self.create_user_profile(
                 user_id, 
                 UserProfileCreate(
                     bio="",
@@ -148,9 +149,9 @@ class UserProfileService:
                 file_path.unlink()
             raise HTTPException(status_code=400, detail="Failed to update profile with avatar")
     
-    def remove_profile_picture(self, user_id: int) -> bool:
+    async def remove_profile_picture(self, user_id: int) -> bool:
         """Remove profile picture."""
-        profile = self.get_user_profile(user_id)
+        profile = await self.get_user_profile(user_id)
         if not profile:
             raise HTTPException(status_code=404, detail="User profile not found")
         
@@ -176,9 +177,9 @@ class UserProfileService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to remove profile picture")
     
-    def update_privacy_settings(self, user_id: int, privacy_settings: Dict[str, Any]) -> UserProfile:
+    async def update_privacy_settings(self, user_id: int, privacy_settings: Dict[str, Any]) -> UserProfile:
         """Update user privacy settings."""
-        profile = self.get_user_profile(user_id)
+        profile = await self.get_user_profile(user_id)
         if not profile:
             raise HTTPException(status_code=404, detail="User profile not found")
         
@@ -196,17 +197,17 @@ class UserProfileService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to update privacy settings")
     
-    def get_privacy_settings(self, user_id: int) -> Dict[str, Any]:
+    async def get_privacy_settings(self, user_id: int) -> Dict[str, Any]:
         """Get user privacy settings."""
-        profile = self.get_user_profile(user_id)
+        profile = await self.get_user_profile(user_id)
         if not profile:
             raise HTTPException(status_code=404, detail="User profile not found")
         
         return profile.custom_settings.get("privacy", {}) if profile.custom_settings else {}
     
-    def verify_profile(self, user_id: int, verification_data: Dict[str, Any]) -> UserProfile:
+    async def verify_profile(self, user_id: int, verification_data: Dict[str, Any]) -> UserProfile:
         """Verify user profile with additional information."""
-        profile = self.get_user_profile(user_id)
+        profile = await self.get_user_profile(user_id)
         if not profile:
             raise HTTPException(status_code=404, detail="User profile not found")
         
@@ -228,14 +229,14 @@ class UserProfileService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to verify profile")
     
-    def get_profile_by_email(self, email: str) -> Optional[UserProfile]:
+    async def get_profile_by_email(self, email: str) -> Optional[UserProfile]:
         """Get user profile by email."""
         user = self.db.query(User).filter(User.email == email).first()
         if not user:
             return None
-        return self.get_user_profile(user.id)
+        return await self.get_user_profile(user.id)
     
-    def search_profiles(self, query: str, limit: int = 10) -> List[UserProfile]:
+    async def search_profiles(self, query: str, limit: int = 10) -> List[UserProfile]:
         """Search user profiles by name or bio."""
         return (
             self.db.query(UserProfile)
@@ -250,6 +251,6 @@ class UserProfileService:
         )
 
 
-def get_user_profile_service(db: Session) -> UserProfileService:
+def get_user_profile_service(db: Session = Depends(get_db)) -> UserProfileService:
     """Dependency to get user profile service."""
     return UserProfileService(db) 
