@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 
 from app.models.core.user import User
 from app.models.user_management.user.user_management import UserProfile
@@ -21,6 +21,7 @@ from app.schemas.user_preferences import (
     NotificationSettings,
     AccessibilitySettings
 )
+from app.db.session import get_db
 
 
 class UserPreferencesService:
@@ -29,7 +30,7 @@ class UserPreferencesService:
     def __init__(self, db: Session):
         self.db = db
     
-    def get_user_preferences(self, user_id: int) -> Optional[Dict[str, Any]]:
+    async def get_user_preferences(self, user_id: int) -> Optional[Dict[str, Any]]:
         """Get user preferences."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -43,7 +44,7 @@ class UserPreferencesService:
             "timezone": profile.timezone
         }
     
-    def update_user_preferences(self, user_id: int, preferences_data: UserPreferencesUpdate) -> Dict[str, Any]:
+    async def update_user_preferences(self, user_id: int, preferences_data: UserPreferencesUpdate) -> Dict[str, Any]:
         """Update user preferences."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -84,12 +85,12 @@ class UserPreferencesService:
         try:
             self.db.commit()
             self.db.refresh(profile)
-            return self.get_user_preferences(user_id)
+            return await self.get_user_preferences(user_id)
         except IntegrityError:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to update user preferences")
     
-    def update_theme_settings(self, user_id: int, theme_settings: ThemeSettings) -> Dict[str, Any]:
+    async def update_theme_settings(self, user_id: int, theme_settings: ThemeSettings) -> Dict[str, Any]:
         """Update user theme settings."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -108,7 +109,7 @@ class UserPreferencesService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to update theme settings")
     
-    def get_theme_settings(self, user_id: int) -> ThemeSettings:
+    async def get_theme_settings(self, user_id: int) -> ThemeSettings:
         """Get user theme settings."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -117,7 +118,7 @@ class UserPreferencesService:
         theme_data = profile.custom_settings.get("theme", {}) if profile.custom_settings else {}
         return ThemeSettings(**theme_data)
     
-    def update_notification_settings(self, user_id: int, notification_settings: NotificationSettings) -> Dict[str, Any]:
+    async def update_notification_settings(self, user_id: int, notification_settings: NotificationSettings) -> Dict[str, Any]:
         """Update user notification settings."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -134,7 +135,7 @@ class UserPreferencesService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to update notification settings")
     
-    def get_notification_settings(self, user_id: int) -> NotificationSettings:
+    async def get_notification_settings(self, user_id: int) -> NotificationSettings:
         """Get user notification settings."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -143,7 +144,7 @@ class UserPreferencesService:
         notification_data = profile.notification_preferences or {}
         return NotificationSettings(**notification_data)
     
-    def update_accessibility_settings(self, user_id: int, accessibility_settings: AccessibilitySettings) -> Dict[str, Any]:
+    async def update_accessibility_settings(self, user_id: int, accessibility_settings: AccessibilitySettings) -> Dict[str, Any]:
         """Update user accessibility settings."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -162,7 +163,7 @@ class UserPreferencesService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to update accessibility settings")
     
-    def get_accessibility_settings(self, user_id: int) -> AccessibilitySettings:
+    async def get_accessibility_settings(self, user_id: int) -> AccessibilitySettings:
         """Get user accessibility settings."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -171,7 +172,7 @@ class UserPreferencesService:
         accessibility_data = profile.custom_settings.get("accessibility", {}) if profile.custom_settings else {}
         return AccessibilitySettings(**accessibility_data)
     
-    def update_language_settings(self, user_id: int, language: str, timezone: str) -> Dict[str, str]:
+    async def update_language_settings(self, user_id: int, language: str, timezone: str) -> Dict[str, str]:
         """Update user language and timezone settings."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -189,7 +190,7 @@ class UserPreferencesService:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to update language settings")
     
-    def get_language_settings(self, user_id: int) -> Dict[str, str]:
+    async def get_language_settings(self, user_id: int) -> Dict[str, str]:
         """Get user language and timezone settings."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -197,7 +198,7 @@ class UserPreferencesService:
         
         return {"language": profile.language, "timezone": profile.timezone}
     
-    def reset_preferences_to_default(self, user_id: int) -> Dict[str, Any]:
+    async def reset_preferences_to_default(self, user_id: int) -> Dict[str, Any]:
         """Reset user preferences to default values."""
         profile = self.db.query(UserProfile).filter(UserProfile.user_id == user_id).first()
         if not profile:
@@ -240,14 +241,14 @@ class UserPreferencesService:
         try:
             self.db.commit()
             self.db.refresh(profile)
-            return self.get_user_preferences(user_id)
+            return await self.get_user_preferences(user_id)
         except IntegrityError:
             self.db.rollback()
             raise HTTPException(status_code=400, detail="Failed to reset preferences")
     
-    def export_preferences(self, user_id: int) -> Dict[str, Any]:
+    async def export_preferences(self, user_id: int) -> Dict[str, Any]:
         """Export user preferences for backup."""
-        preferences = self.get_user_preferences(user_id)
+        preferences = await self.get_user_preferences(user_id)
         if not preferences:
             raise HTTPException(status_code=404, detail="User preferences not found")
         
@@ -257,7 +258,7 @@ class UserPreferencesService:
             "preferences": preferences
         }
     
-    def import_preferences(self, user_id: int, preferences_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def import_preferences(self, user_id: int, preferences_data: Dict[str, Any]) -> Dict[str, Any]:
         """Import user preferences from backup."""
         if "preferences" not in preferences_data:
             raise HTTPException(status_code=400, detail="Invalid preferences data")
@@ -266,9 +267,9 @@ class UserPreferencesService:
         
         # Update preferences
         update_data = UserPreferencesUpdate(**preferences)
-        return self.update_user_preferences(user_id, update_data)
+        return await self.update_user_preferences(user_id, update_data)
 
 
-def get_user_preferences_service(db: Session) -> UserPreferencesService:
+def get_user_preferences_service(db: Session = Depends(get_db)) -> UserPreferencesService:
     """Dependency to get user preferences service."""
     return UserPreferencesService(db) 
