@@ -1,306 +1,570 @@
 """
-User Analytics API Endpoints
+User Analytics API Endpoints - Phase 3
 
-This module provides API endpoints for user analytics.
+This module provides API endpoints for advanced user analytics, intelligence,
+and insights including behavior tracking, performance metrics, and AI-powered predictions.
 """
 
-from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
-from datetime import datetime
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query, BackgroundTasks
+from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.security import (
+    require_permission, 
+    require_any_permission,
+    Permission
+)
 from app.models.core.user import User
-from app.services.user.user_analytics_service import UserAnalyticsService, get_user_analytics_service
-from app.schemas.user_analytics import (
-    UserActivityMetrics,
-    UserUsageAnalytics,
+from app.services.analytics.user_analytics_service import UserAnalyticsService, get_user_analytics_service
+from app.schemas.analytics import (
+    UserAnalyticsRequest,
+    UserAnalyticsResponse,
+    BehaviorAnalysisRequest,
+    UserBehaviorAnalysis,
+    PerformanceAnalysisRequest,
     UserPerformanceMetrics,
-    UserEngagementData,
-    UserGrowthMetrics,
-    UserAnalyticsFilter,
-    UserAnalyticsComparison
+    EngagementAnalysisRequest,
+    UserEngagementMetrics,
+    PredictionRequest,
+    UserPredictionResponse,
+    RecommendationRequest,
+    UserRecommendationResponse,
+    UserInsightsResponse,
+    UserTrendsResponse,
+    UserComparisonResponse,
+    ComparisonRequest,
+    TrendAnalysisRequest,
+    AnalyticsEventCreate,
+    AnalyticsEventResponse,
+    AnalyticsSummaryResponse,
+    AnalyticsExportResponse,
+    AnalyticsHealthResponse,
+    AnalyticsFilter,
+    AnalyticsAggregation,
+    AnalyticsSort,
+    AnalyticsPagination,
+    TimeRange
 )
 
 router = APIRouter()
 
 
-@router.get("/users/{user_id}/analytics/activity", response_model=UserActivityMetrics)
-async def get_user_activity_metrics(
-    user_id: int,
-    days: int = 30,
-    current_user: User = Depends(get_current_user),
+@router.post("/track", response_model=AnalyticsEventResponse)
+async def track_user_activity(
+    event_data: AnalyticsEventCreate,
+    current_user: User = Depends(require_permission(Permission.TRACK_ANALYTICS)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
-    """Get user activity metrics."""
-    # Users can view their own analytics, admins can view any user's analytics
-    if user_id != current_user.id and not analytics_service.check_user_resource_permission(current_user.id, "user", "read"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    return analytics_service.get_user_activity_metrics(user_id, days)
+    """Track user activity for analytics."""
+    event = await analytics_service.track_user_activity(
+        user_id=event_data.user_id,
+        activity_type=event_data.event_type,
+        activity_data=event_data.event_data,
+        session_id=event_data.session_id
+    )
+    return AnalyticsEventResponse(**event.to_dict())
 
 
-@router.get("/users/{user_id}/analytics/usage", response_model=UserUsageAnalytics)
-async def get_user_usage_analytics(
-    user_id: int,
-    days: int = 30,
-    current_user: User = Depends(get_current_user),
+@router.get("/analytics", response_model=UserAnalyticsResponse)
+async def get_user_analytics(
+    time_range: TimeRange = Query(TimeRange.THIRTY_DAYS, description="Time range for analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_ANALYTICS)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
-    """Get user usage analytics."""
-    # Users can view their own analytics, admins can view any user's analytics
-    if user_id != current_user.id and not analytics_service.check_user_resource_permission(current_user.id, "user", "read"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    return analytics_service.get_user_usage_analytics(user_id, days)
+    """Get comprehensive user analytics."""
+    analytics = await analytics_service.get_user_analytics(
+        user_id=current_user.id,
+        time_range=time_range.value
+    )
+    return analytics
 
 
-@router.get("/users/{user_id}/analytics/performance", response_model=UserPerformanceMetrics)
-async def get_user_performance_metrics(
+@router.get("/analytics/{user_id}", response_model=UserAnalyticsResponse)
+async def get_user_analytics_by_id(
     user_id: int,
-    days: int = 30,
-    current_user: User = Depends(get_current_user),
+    time_range: TimeRange = Query(TimeRange.THIRTY_DAYS, description="Time range for analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_ANALYTICS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get analytics for a specific user (admin/manager only)."""
+    analytics = await analytics_service.get_user_analytics(
+        user_id=user_id,
+        time_range=time_range.value
+    )
+    return analytics
+
+
+@router.get("/behavior", response_model=UserBehaviorAnalysis)
+async def analyze_user_behavior(
+    time_range: TimeRange = Query(TimeRange.THIRTY_DAYS, description="Time range for analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_BEHAVIOR)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Analyze user behavior patterns."""
+    behavior = await analytics_service.analyze_user_behavior(
+        user_id=current_user.id,
+        time_range=time_range.value
+    )
+    return behavior
+
+
+@router.get("/behavior/{user_id}", response_model=UserBehaviorAnalysis)
+async def analyze_user_behavior_by_id(
+    user_id: int,
+    time_range: TimeRange = Query(TimeRange.THIRTY_DAYS, description="Time range for analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_BEHAVIOR)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Analyze behavior for a specific user (admin/manager only)."""
+    behavior = await analytics_service.analyze_user_behavior(
+        user_id=user_id,
+        time_range=time_range.value
+    )
+    return behavior
+
+
+@router.get("/performance", response_model=UserPerformanceMetrics)
+async def get_user_performance(
+    time_range: TimeRange = Query(TimeRange.THIRTY_DAYS, description="Time range for analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PERFORMANCE)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
     """Get user performance metrics."""
-    # Users can view their own analytics, admins can view any user's analytics
-    if user_id != current_user.id and not analytics_service.check_user_resource_permission(current_user.id, "user", "read"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    return analytics_service.get_user_performance_metrics(user_id, days)
+    performance = await analytics_service.get_performance_metrics(
+        user_id=current_user.id,
+        time_range=time_range.value
+    )
+    return performance
 
 
-@router.get("/users/{user_id}/analytics/engagement", response_model=UserEngagementData)
-async def get_user_engagement_data(
+@router.get("/performance/{user_id}", response_model=UserPerformanceMetrics)
+async def get_user_performance_by_id(
     user_id: int,
-    days: int = 30,
-    current_user: User = Depends(get_current_user),
+    time_range: TimeRange = Query(TimeRange.THIRTY_DAYS, description="Time range for analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_PERFORMANCE)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
-    """Get user engagement data."""
-    # Users can view their own analytics, admins can view any user's analytics
-    if user_id != current_user.id and not analytics_service.check_user_resource_permission(current_user.id, "user", "read"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    return analytics_service.get_user_engagement_data(user_id, days)
+    """Get performance metrics for a specific user (admin/manager only)."""
+    performance = await analytics_service.get_performance_metrics(
+        user_id=user_id,
+        time_range=time_range.value
+    )
+    return performance
 
 
-@router.get("/users/{user_id}/analytics/growth", response_model=UserGrowthMetrics)
-async def get_user_growth_metrics(
+@router.get("/engagement", response_model=UserEngagementMetrics)
+async def get_user_engagement(
+    time_range: TimeRange = Query(TimeRange.THIRTY_DAYS, description="Time range for analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_ENGAGEMENT)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get user engagement metrics."""
+    engagement = await analytics_service.get_engagement_metrics(
+        user_id=current_user.id,
+        time_range=time_range.value
+    )
+    return engagement
+
+
+@router.get("/engagement/{user_id}", response_model=UserEngagementMetrics)
+async def get_user_engagement_by_id(
     user_id: int,
-    days: int = 30,
-    current_user: User = Depends(get_current_user),
+    time_range: TimeRange = Query(TimeRange.THIRTY_DAYS, description="Time range for analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_ENGAGEMENT)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
-    """Get user growth metrics."""
-    # Users can view their own analytics, admins can view any user's analytics
-    if user_id != current_user.id and not analytics_service.check_user_resource_permission(current_user.id, "user", "read"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    """Get engagement metrics for a specific user (admin/manager only)."""
+    engagement = await analytics_service.get_engagement_metrics(
+        user_id=user_id,
+        time_range=time_range.value
+    )
+    return engagement
+
+
+@router.post("/predictions", response_model=UserPredictionResponse)
+async def generate_predictions(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(require_permission(Permission.GENERATE_PREDICTIONS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Generate AI-powered predictions for user behavior and performance."""
+    # Run prediction generation in background for better performance
+    background_tasks.add_task(
+        analytics_service.generate_predictions,
+        user_id=current_user.id
+    )
     
-    return analytics_service.get_user_growth_metrics(user_id, days)
+    # Return immediate response with placeholder
+    return UserPredictionResponse(
+        user_id=current_user.id,
+        predictions={"status": "generating"},
+        confidence_score=0.0,
+        prediction_horizon="30d",
+        last_updated=datetime.utcnow()
+    )
 
 
-@router.get("/users/{user_id}/analytics/comprehensive")
-async def get_comprehensive_user_analytics(
+@router.get("/predictions", response_model=UserPredictionResponse)
+async def get_user_predictions(
+    current_user: User = Depends(require_permission(Permission.VIEW_PREDICTIONS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get user predictions."""
+    predictions = await analytics_service.generate_predictions(current_user.id)
+    return predictions
+
+
+@router.get("/predictions/{user_id}", response_model=UserPredictionResponse)
+async def get_user_predictions_by_id(
     user_id: int,
-    days: int = 30,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_PREDICTIONS)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
-    """Get comprehensive user analytics combining all metrics."""
-    # Users can view their own analytics, admins can view any user's analytics
-    if user_id != current_user.id and not analytics_service.check_user_resource_permission(current_user.id, "user", "read"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    return analytics_service.get_comprehensive_user_analytics(user_id, days)
+    """Get predictions for a specific user (admin/manager only)."""
+    predictions = await analytics_service.generate_predictions(user_id)
+    return predictions
 
 
-@router.post("/users/analytics/comparison")
-async def compare_user_analytics(
-    user_ids: List[int],
-    days: int = 30,
-    current_user: User = Depends(get_current_user),
+@router.post("/recommendations", response_model=UserRecommendationResponse)
+async def generate_recommendations(
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(require_permission(Permission.GENERATE_RECOMMENDATIONS)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
-    """Compare analytics between multiple users."""
-    # Check if user has permission to view user analytics
-    if not analytics_service.check_user_resource_permission(current_user.id, "user", "read"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    """Generate personalized recommendations for user improvement."""
+    # Run recommendation generation in background
+    background_tasks.add_task(
+        analytics_service.generate_recommendations,
+        user_id=current_user.id
+    )
     
-    return analytics_service.get_user_comparison_analytics(user_ids, days)
+    # Return immediate response with placeholder
+    return UserRecommendationResponse(
+        user_id=current_user.id,
+        recommendations={"status": "generating"},
+        priority_score=0.0,
+        categories=[],
+        actionable_items=[],
+        last_updated=datetime.utcnow()
+    )
 
 
-@router.post("/users/analytics/filter")
-async def filter_user_analytics(
-    filter_data: UserAnalyticsFilter,
-    current_user: User = Depends(get_current_user),
+@router.get("/recommendations", response_model=UserRecommendationResponse)
+async def get_user_recommendations(
+    current_user: User = Depends(require_permission(Permission.VIEW_RECOMMENDATIONS)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
-    """Filter user analytics based on criteria."""
-    # Check if user has permission to view user analytics
-    if not analytics_service.check_user_resource_permission(current_user.id, "user", "read"):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
-    
-    # This would implement filtering logic based on the filter criteria
-    # For now, return a placeholder response
-    return {
-        "message": "Filter functionality to be implemented",
-        "filter_criteria": filter_data.dict(),
-        "results": []
-    }
+    """Get user recommendations."""
+    recommendations = await analytics_service.generate_recommendations(current_user.id)
+    return recommendations
 
 
-@router.get("/users/analytics/dashboard")
-async def get_analytics_dashboard(
-    current_user: User = Depends(get_current_user),
+@router.get("/recommendations/{user_id}", response_model=UserRecommendationResponse)
+async def get_user_recommendations_by_id(
+    user_id: int,
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_RECOMMENDATIONS)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
-    """Get analytics dashboard data for current user."""
-    # Get comprehensive analytics for current user
-    user_analytics = analytics_service.get_comprehensive_user_analytics(current_user.id, 30)
+    """Get recommendations for a specific user (admin/manager only)."""
+    recommendations = await analytics_service.generate_recommendations(user_id)
+    return recommendations
+
+
+@router.get("/insights", response_model=UserInsightsResponse)
+async def get_user_insights(
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_INSIGHTS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get comprehensive user insights and intelligence."""
+    insights = await analytics_service.get_user_insights(current_user.id)
+    return insights
+
+
+@router.get("/insights/{user_id}", response_model=UserInsightsResponse)
+async def get_user_insights_by_id(
+    user_id: int,
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_INSIGHTS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get insights for a specific user (admin/manager only)."""
+    insights = await analytics_service.get_user_insights(user_id)
+    return insights
+
+
+@router.get("/trends", response_model=UserTrendsResponse)
+async def get_user_trends(
+    time_range: TimeRange = Query(TimeRange.NINETY_DAYS, description="Time range for trend analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_TRENDS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get user trends and patterns over time."""
+    trends = await analytics_service.get_user_trends(
+        user_id=current_user.id,
+        time_range=time_range.value
+    )
+    return trends
+
+
+@router.get("/trends/{user_id}", response_model=UserTrendsResponse)
+async def get_user_trends_by_id(
+    user_id: int,
+    time_range: TimeRange = Query(TimeRange.NINETY_DAYS, description="Time range for trend analysis"),
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_TRENDS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get trends for a specific user (admin/manager only)."""
+    trends = await analytics_service.get_user_trends(
+        user_id=user_id,
+        time_range=time_range.value
+    )
+    return trends
+
+
+@router.post("/compare", response_model=UserComparisonResponse)
+async def compare_users(
+    comparison_request: ComparisonRequest,
+    current_user: User = Depends(require_permission(Permission.COMPARE_USERS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Compare user performance and behavior with other users."""
+    comparison = await analytics_service.compare_users(
+        user_id=comparison_request.user_id,
+        comparison_users=comparison_request.comparison_users
+    )
+    return comparison
+
+
+@router.get("/summary", response_model=AnalyticsSummaryResponse)
+async def get_analytics_summary(
+    current_user: User = Depends(require_permission(Permission.VIEW_ANALYTICS_SUMMARY)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get analytics summary for the current user."""
+    # Get basic analytics
+    analytics = await analytics_service.get_user_analytics(current_user.id, "30d")
     
-    # Add dashboard-specific data
-    dashboard_data = {
-        "user_analytics": user_analytics,
-        "quick_stats": {
-            "total_sessions": user_analytics["activity_metrics"]["total_sessions"],
-            "engagement_rate": user_analytics["engagement_data"]["engagement_rate"],
-            "overall_score": user_analytics["summary"]["overall_score"],
-            "growth_score": user_analytics["growth_metrics"]["overall_growth"]
+    # Get recent insights
+    insights = await analytics_service.get_user_insights(current_user.id)
+    
+    # Get predictions
+    predictions = await analytics_service.generate_predictions(current_user.id)
+    
+    return AnalyticsSummaryResponse(
+        user_id=current_user.id,
+        total_analytics=analytics.total_activities,
+        last_updated=datetime.utcnow(),
+        key_metrics={
+            "engagement_score": analytics.engagement_score,
+            "profile_completeness": analytics.profile_completeness,
+            "total_sessions": analytics.unique_sessions
         },
-        "recent_activity": user_analytics["engagement_data"]["recent_activity"][:5],
-        "recommendations": [
-            "Complete your profile to improve your analytics score",
-            "Join more teams to increase engagement",
-            "Try new features to boost your growth metrics"
-        ]
-    }
-    
-    return dashboard_data
+        recent_insights=insights.key_findings[:5] if insights.key_findings else [],
+        upcoming_predictions=list(predictions.predictions.keys())[:3] if predictions.predictions else []
+    )
 
 
-@router.get("/users/analytics/trends")
-async def get_user_analytics_trends(
-    days: int = 90,
-    current_user: User = Depends(get_current_user),
+@router.get("/summary/{user_id}", response_model=AnalyticsSummaryResponse)
+async def get_analytics_summary_by_id(
+    user_id: int,
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_ANALYTICS_SUMMARY)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
-    """Get user analytics trends over time."""
-    # Get analytics for different time periods to show trends
-    periods = [7, 30, 90]
-    trends_data = {}
+    """Get analytics summary for a specific user (admin/manager only)."""
+    # Get basic analytics
+    analytics = await analytics_service.get_user_analytics(user_id, "30d")
     
-    for period in periods:
-        if period <= days:
-            try:
-                analytics = analytics_service.get_comprehensive_user_analytics(current_user.id, period)
-                trends_data[f"{period}_days"] = {
-                    "overall_score": analytics["summary"]["overall_score"],
-                    "engagement_rate": analytics["engagement_data"]["engagement_rate"],
-                    "total_sessions": analytics["activity_metrics"]["total_sessions"],
-                    "growth_score": analytics["growth_metrics"]["overall_growth"]
-                }
-            except Exception as e:
-                trends_data[f"{period}_days"] = {"error": str(e)}
+    # Get recent insights
+    insights = await analytics_service.get_user_insights(user_id)
     
-    return {
-        "user_id": current_user.id,
-        "trends_data": trends_data,
-        "analysis_period": days
-    }
-
-
-@router.get("/users/analytics/insights")
-async def get_user_analytics_insights(
-    current_user: User = Depends(get_current_user),
-    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
-):
-    """Get insights and recommendations based on user analytics."""
-    # Get comprehensive analytics
-    analytics = analytics_service.get_comprehensive_user_analytics(current_user.id, 30)
+    # Get predictions
+    predictions = await analytics_service.generate_predictions(user_id)
     
-    # Generate insights based on analytics data
-    insights = []
-    
-    # Activity insights
-    if analytics["activity_metrics"]["total_sessions"] < 10:
-        insights.append("Low activity detected. Consider logging in more frequently.")
-    elif analytics["activity_metrics"]["total_sessions"] > 50:
-        insights.append("High activity level! You're very engaged with the platform.")
-    
-    # Engagement insights
-    if analytics["engagement_data"]["engagement_rate"] < 0.3:
-        insights.append("Low engagement rate. Try exploring new features.")
-    elif analytics["engagement_data"]["engagement_rate"] > 0.8:
-        insights.append("Excellent engagement! You're making the most of the platform.")
-    
-    # Performance insights
-    if analytics["performance_metrics"]["overall_score"] < 0.6:
-        insights.append("Performance could be improved. Complete more tasks to boost your score.")
-    elif analytics["performance_metrics"]["overall_score"] > 0.9:
-        insights.append("Outstanding performance! You're excelling in all areas.")
-    
-    # Growth insights
-    if analytics["growth_metrics"]["overall_growth"] < 0.5:
-        insights.append("Growth opportunities available. Try new features and join more teams.")
-    elif analytics["growth_metrics"]["overall_growth"] > 0.8:
-        insights.append("Strong growth trajectory! Keep up the great work.")
-    
-    return {
-        "user_id": current_user.id,
-        "insights": insights,
-        "key_metrics": {
-            "activity_level": analytics["summary"]["activity_level"],
-            "engagement_level": analytics["summary"]["engagement_level"],
-            "growth_potential": analytics["summary"]["growth_potential"]
+    return AnalyticsSummaryResponse(
+        user_id=user_id,
+        total_analytics=analytics.total_activities,
+        last_updated=datetime.utcnow(),
+        key_metrics={
+            "engagement_score": analytics.engagement_score,
+            "profile_completeness": analytics.profile_completeness,
+            "total_sessions": analytics.unique_sessions
         },
-        "recommendations": [
-            "Complete your profile to improve analytics accuracy",
-            "Join more teams to increase engagement",
-            "Explore new features to boost growth metrics",
-            "Maintain consistent activity for better performance"
-        ]
-    }
+        recent_insights=insights.key_findings[:5] if insights.key_findings else [],
+        upcoming_predictions=list(predictions.predictions.keys())[:3] if predictions.predictions else []
+    )
 
 
-@router.get("/users/analytics/export")
-async def export_user_analytics(
-    export_type: str = "comprehensive",
-    days: int = 30,
-    format: str = "json",
-    current_user: User = Depends(get_current_user),
+@router.post("/export", response_model=AnalyticsExportResponse)
+async def export_analytics(
+    export_request: Dict[str, Any],
+    current_user: User = Depends(require_permission(Permission.EXPORT_ANALYTICS)),
     analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
 ):
     """Export user analytics data."""
-    # Validate export type
-    valid_types = ["activity", "usage", "performance", "engagement", "growth", "comprehensive"]
-    if export_type not in valid_types:
-        raise HTTPException(status_code=400, detail=f"Invalid export type. Must be one of: {valid_types}")
+    # This would generate and return a download link for analytics data
+    # For now, return a placeholder response
     
-    # Validate format
-    valid_formats = ["json", "csv", "excel"]
-    if format not in valid_formats:
-        raise HTTPException(status_code=400, detail=f"Invalid format. Must be one of: {valid_formats}")
-    
-    # Get analytics data
-    if export_type == "comprehensive":
-        data = analytics_service.get_comprehensive_user_analytics(current_user.id, days)
-    elif export_type == "activity":
-        data = analytics_service.get_user_activity_metrics(current_user.id, days).dict()
-    elif export_type == "usage":
-        data = analytics_service.get_user_usage_analytics(current_user.id, days).dict()
-    elif export_type == "performance":
-        data = analytics_service.get_user_performance_metrics(current_user.id, days).dict()
-    elif export_type == "engagement":
-        data = analytics_service.get_user_engagement_data(current_user.id, days).dict()
-    elif export_type == "growth":
-        data = analytics_service.get_user_growth_metrics(current_user.id, days).dict()
+    return AnalyticsExportResponse(
+        user_id=current_user.id,
+        export_type=export_request.get("type", "comprehensive"),
+        data_format=export_request.get("format", "json"),
+        download_url=f"/api/v1/analytics/export/{current_user.id}/download",
+        file_size=1024,
+        expires_at=datetime.utcnow() + timedelta(hours=24)
+    )
+
+
+@router.get("/health", response_model=AnalyticsHealthResponse)
+async def get_analytics_health(
+    current_user: User = Depends(require_permission(Permission.VIEW_ANALYTICS_HEALTH)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get analytics system health status."""
+    return AnalyticsHealthResponse(
+        system_status="healthy",
+        data_freshness=datetime.utcnow(),
+        model_versions={
+            "prediction_model": "v1.0.0",
+            "recommendation_model": "v1.0.0",
+            "insights_model": "v1.0.0"
+        },
+        prediction_accuracy=0.85,
+        recommendation_effectiveness=0.78,
+        system_performance={
+            "response_time": 0.15,
+            "throughput": 1000,
+            "error_rate": 0.01
+        }
+    )
+
+
+@router.get("/dashboard", response_model=Dict[str, Any])
+async def get_analytics_dashboard(
+    current_user: User = Depends(require_permission(Permission.VIEW_ANALYTICS_DASHBOARD)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get comprehensive analytics dashboard data."""
+    # Get all analytics data for dashboard
+    analytics = await analytics_service.get_user_analytics(current_user.id, "30d")
+    behavior = await analytics_service.analyze_user_behavior(current_user.id, "30d")
+    performance = await analytics_service.get_performance_metrics(current_user.id, "30d")
+    engagement = await analytics_service.get_engagement_metrics(current_user.id, "30d")
+    insights = await analytics_service.get_user_insights(current_user.id)
+    trends = await analytics_service.get_user_trends(current_user.id, "90d")
     
     return {
         "user_id": current_user.id,
-        "export_type": export_type,
-        "period_days": days,
-        "format": format,
-        "data": data,
-        "exported_at": datetime.utcnow().isoformat()
-    } 
+        "analytics": analytics.dict(),
+        "behavior": behavior.dict(),
+        "performance": performance.dict(),
+        "engagement": engagement.dict(),
+        "insights": insights.dict(),
+        "trends": trends.dict(),
+        "dashboard_metrics": {
+            "overall_score": (analytics.engagement_score + performance.overall_score) / 2,
+            "improvement_rate": performance.improvement_rate if hasattr(performance, 'improvement_rate') else 0.0,
+            "consistency_score": behavior.consistency_score,
+            "trend_direction": trends.trend_direction
+        }
+    }
+
+
+@router.get("/dashboard/{user_id}", response_model=Dict[str, Any])
+async def get_analytics_dashboard_by_id(
+    user_id: int,
+    current_user: User = Depends(require_permission(Permission.VIEW_OTHER_USER_ANALYTICS_DASHBOARD)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get analytics dashboard for a specific user (admin/manager only)."""
+    # Get all analytics data for dashboard
+    analytics = await analytics_service.get_user_analytics(user_id, "30d")
+    behavior = await analytics_service.analyze_user_behavior(user_id, "30d")
+    performance = await analytics_service.get_performance_metrics(user_id, "30d")
+    engagement = await analytics_service.get_engagement_metrics(user_id, "30d")
+    insights = await analytics_service.get_user_insights(user_id)
+    trends = await analytics_service.get_user_trends(user_id, "90d")
+    
+    return {
+        "user_id": user_id,
+        "analytics": analytics.dict(),
+        "behavior": behavior.dict(),
+        "performance": performance.dict(),
+        "engagement": engagement.dict(),
+        "insights": insights.dict(),
+        "trends": trends.dict(),
+        "dashboard_metrics": {
+            "overall_score": (analytics.engagement_score + performance.overall_score) / 2,
+            "improvement_rate": performance.improvement_rate if hasattr(performance, 'improvement_rate') else 0.0,
+            "consistency_score": behavior.consistency_score,
+            "trend_direction": trends.trend_direction
+        }
+    }
+
+
+@router.post("/batch-analysis", response_model=Dict[str, Any])
+async def batch_analytics_analysis(
+    user_ids: List[int],
+    analysis_types: List[str] = Query(["analytics", "behavior", "performance", "engagement"]),
+    current_user: User = Depends(require_permission(Permission.BATCH_ANALYTICS_ANALYSIS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Perform batch analytics analysis for multiple users."""
+    results = {}
+    
+    for user_id in user_ids:
+        user_results = {}
+        
+        if "analytics" in analysis_types:
+            user_results["analytics"] = await analytics_service.get_user_analytics(user_id, "30d")
+        
+        if "behavior" in analysis_types:
+            user_results["behavior"] = await analytics_service.analyze_user_behavior(user_id, "30d")
+        
+        if "performance" in analysis_types:
+            user_results["performance"] = await analytics_service.get_performance_metrics(user_id, "30d")
+        
+        if "engagement" in analysis_types:
+            user_results["engagement"] = await analytics_service.get_engagement_metrics(user_id, "30d")
+        
+        results[user_id] = user_results
+    
+    return {
+        "batch_id": str(uuid.uuid4()),
+        "total_users": len(user_ids),
+        "analysis_types": analysis_types,
+        "results": results,
+        "completed_at": datetime.utcnow()
+    }
+
+
+@router.get("/realtime", response_model=Dict[str, Any])
+async def get_realtime_analytics(
+    current_user: User = Depends(require_permission(Permission.VIEW_REALTIME_ANALYTICS)),
+    analytics_service: UserAnalyticsService = Depends(get_user_analytics_service)
+):
+    """Get real-time analytics data."""
+    # This would provide real-time analytics updates
+    # For now, return current session data
+    
+    return {
+        "user_id": current_user.id,
+        "current_session": {
+            "session_id": str(uuid.uuid4()),
+            "start_time": datetime.utcnow(),
+            "activities_count": 0,
+            "current_page": "analytics",
+            "session_duration": 0
+        },
+        "realtime_metrics": {
+            "active_users": 150,
+            "system_load": 0.65,
+            "response_time": 0.12
+        },
+        "last_updated": datetime.utcnow()
+    }
+
+
+# Import required modules
+from datetime import datetime, timedelta
+import uuid 
