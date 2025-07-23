@@ -41,6 +41,7 @@ from app.api.auth import router as auth_router
 from app.api.v1.endpoints.core.memory import router as memory_router
 from app.api.v1.endpoints.assistants.math_assistant import router as math_assistant_router
 from app.api.v1.endpoints.assistants.science_assistant import router as science_assistant_router
+from app.api.v1.endpoints.rbac_management import router as rbac_management_router
 import socket
 from app.core.health import router as health_router
 from app.services.physical_education import service_integration
@@ -162,6 +163,8 @@ app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["
 app.include_router(educational.router, prefix="/api/v1/educational", tags=["educational"])
 app.include_router(health_fitness_router, prefix="/api/v1/physical-education", tags=["physical-education"])
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(rbac_management_router, prefix="/api/v1/rbac-management", tags=["rbac-management"])
+app.include_router(rbac_management_router, prefix="/api/v1/rbac-management", tags=["rbac-management"])
 
 # Mount static files at /static instead of root
 base_dir = Path(__file__).parent.parent

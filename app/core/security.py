@@ -20,6 +20,8 @@ from starlette.middleware.cors import CORSMiddleware
 import redis
 from app.core.config import settings
 import uuid
+from app.core.auth import get_current_user
+from app.models.core.user import User
 
 # Try to import pyotp, but make it optional
 try:
@@ -152,6 +154,26 @@ class Permission(str, Enum):
     EDIT_USERS = "edit_users"
     DELETE_USERS = "delete_users"
     
+    # User profile management
+    VIEW_USER_PROFILES = "view_user_profiles"
+    EDIT_USER_PROFILES = "edit_user_profiles"
+    CREATE_USER_PROFILES = "create_user_profiles"
+    DELETE_USER_PROFILES = "delete_user_profiles"
+    UPLOAD_PROFILE_PICTURES = "upload_profile_pictures"
+    REMOVE_PROFILE_PICTURES = "remove_profile_pictures"
+    
+    # User preferences management
+    VIEW_USER_PREFERENCES = "view_user_preferences"
+    EDIT_USER_PREFERENCES = "edit_user_preferences"
+    RESET_USER_PREFERENCES = "reset_user_preferences"
+    EXPORT_USER_PREFERENCES = "export_user_preferences"
+    IMPORT_USER_PREFERENCES = "import_user_preferences"
+    
+    # User privacy management
+    VIEW_USER_PRIVACY = "view_user_privacy"
+    EDIT_USER_PRIVACY = "edit_user_privacy"
+    MANAGE_USER_PRIVACY = "manage_user_privacy"
+    
     # Course management
     VIEW_COURSES = "view_courses"
     EDIT_COURSES = "edit_courses"
@@ -193,6 +215,20 @@ ROLE_PERMISSIONS: Dict[UserRole, List[Permission]] = {
         Permission.VIEW_USERS,
         Permission.EDIT_USERS,
         Permission.DELETE_USERS,
+        Permission.VIEW_USER_PROFILES,
+        Permission.EDIT_USER_PROFILES,
+        Permission.CREATE_USER_PROFILES,
+        Permission.DELETE_USER_PROFILES,
+        Permission.UPLOAD_PROFILE_PICTURES,
+        Permission.REMOVE_PROFILE_PICTURES,
+        Permission.VIEW_USER_PREFERENCES,
+        Permission.EDIT_USER_PREFERENCES,
+        Permission.RESET_USER_PREFERENCES,
+        Permission.EXPORT_USER_PREFERENCES,
+        Permission.IMPORT_USER_PREFERENCES,
+        Permission.VIEW_USER_PRIVACY,
+        Permission.EDIT_USER_PRIVACY,
+        Permission.MANAGE_USER_PRIVACY,
         Permission.VIEW_COURSES,
         Permission.EDIT_COURSES,
         Permission.CREATE_COURSES,
@@ -218,6 +254,11 @@ ROLE_PERMISSIONS: Dict[UserRole, List[Permission]] = {
         Permission.VIEW_BOARDS
     ],
     UserRole.TEACHER: [
+        Permission.VIEW_USER_PROFILES,
+        Permission.EDIT_USER_PROFILES,
+        Permission.VIEW_USER_PREFERENCES,
+        Permission.EDIT_USER_PREFERENCES,
+        Permission.VIEW_USER_PRIVACY,
         Permission.VIEW_COURSES,
         Permission.EDIT_COURSES,
         Permission.VIEW_GRADES,
@@ -234,6 +275,12 @@ ROLE_PERMISSIONS: Dict[UserRole, List[Permission]] = {
         Permission.POST_TO_BOARDS
     ],
     UserRole.STUDENT: [
+        Permission.VIEW_USER_PROFILES,
+        Permission.EDIT_USER_PROFILES,
+        Permission.VIEW_USER_PREFERENCES,
+        Permission.EDIT_USER_PREFERENCES,
+        Permission.VIEW_USER_PRIVACY,
+        Permission.EDIT_USER_PRIVACY,
         Permission.VIEW_COURSES,
         Permission.VIEW_GRADES,
         Permission.VIEW_ASSIGNMENTS,
@@ -244,6 +291,9 @@ ROLE_PERMISSIONS: Dict[UserRole, List[Permission]] = {
         Permission.POST_TO_BOARDS
     ],
     UserRole.PARENT: [
+        Permission.VIEW_USER_PROFILES,
+        Permission.VIEW_USER_PREFERENCES,
+        Permission.VIEW_USER_PRIVACY,
         Permission.VIEW_COURSES,
         Permission.VIEW_GRADES,
         Permission.VIEW_ASSIGNMENTS,
@@ -253,6 +303,9 @@ ROLE_PERMISSIONS: Dict[UserRole, List[Permission]] = {
     ],
     UserRole.STAFF: [
         Permission.VIEW_USERS,
+        Permission.VIEW_USER_PROFILES,
+        Permission.VIEW_USER_PREFERENCES,
+        Permission.VIEW_USER_PRIVACY,
         Permission.VIEW_COURSES,
         Permission.VIEW_GRADES,
         Permission.VIEW_ASSIGNMENTS,
@@ -267,6 +320,74 @@ ROLE_PERMISSIONS: Dict[UserRole, List[Permission]] = {
 def has_permission(user_role: UserRole, permission: Permission) -> bool:
     """Check if user role has permission."""
     return permission in ROLE_PERMISSIONS.get(user_role, [])
+
+
+def require_permission(permission: Permission):
+    """Dependency to require a specific permission."""
+    def permission_checker(current_user: User = Depends(get_current_user)):
+        # Get user's role from the user object
+        user_role = getattr(current_user, 'role', None)
+        if not user_role:
+            raise HTTPException(
+                status_code=403,
+                detail="User role not found"
+            )
+        
+        # Convert string role to enum if needed
+        if isinstance(user_role, str):
+            try:
+                user_role = UserRole(user_role)
+            except ValueError:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Invalid user role"
+                )
+        
+        if not has_permission(user_role, permission):
+            raise HTTPException(
+                status_code=403,
+                detail=f"Insufficient permissions. Required: {permission}"
+            )
+        
+        return current_user
+    
+    return permission_checker
+
+
+def require_any_permission(*permissions: Permission):
+    """Dependency to require any of the specified permissions."""
+    def permission_checker(current_user: User = Depends(get_current_user)):
+        # Get user's role from the user object
+        user_role = getattr(current_user, 'role', None)
+        if not user_role:
+            raise HTTPException(
+                status_code=403,
+                detail="User role not found"
+            )
+        
+        # Convert string role to enum if needed
+        if isinstance(user_role, str):
+            try:
+                user_role = UserRole(user_role)
+            except ValueError:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Invalid user role"
+                )
+        
+        # Check if user has any of the required permissions
+        has_any_permission = any(has_permission(user_role, perm) for perm in permissions)
+        
+        if not has_any_permission:
+            required_permissions = ", ".join([str(perm) for perm in permissions])
+            raise HTTPException(
+                status_code=403,
+                detail=f"Insufficient permissions. Required one of: {required_permissions}"
+            )
+        
+        return current_user
+    
+    return permission_checker
 
 class Token(BaseModel):
     """Token model."""

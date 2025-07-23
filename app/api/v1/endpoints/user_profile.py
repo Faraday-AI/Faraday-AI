@@ -10,6 +10,11 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.security import (
+    require_permission, 
+    require_any_permission,
+    Permission
+)
 from app.models.core.user import User
 from app.services.user.user_profile_service import UserProfileService, get_user_profile_service
 from app.schemas.user_profile import (
@@ -27,7 +32,7 @@ router = APIRouter()
 
 @router.get("/profile", response_model=UserProfileResponse)
 async def get_user_profile(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PROFILES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Get current user's profile."""
@@ -40,7 +45,7 @@ async def get_user_profile(
 @router.post("/profile", response_model=UserProfileResponse)
 async def create_user_profile(
     profile_data: UserProfileCreate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.CREATE_USER_PROFILES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Create user profile."""
@@ -51,7 +56,7 @@ async def create_user_profile(
 @router.put("/profile", response_model=UserProfileResponse)
 async def update_user_profile(
     profile_data: UserProfileUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PROFILES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Update user profile."""
@@ -61,7 +66,7 @@ async def update_user_profile(
 
 @router.delete("/profile")
 async def delete_user_profile(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.DELETE_USER_PROFILES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Delete user profile."""
@@ -72,7 +77,7 @@ async def delete_user_profile(
 @router.post("/profile/avatar", response_model=dict)
 async def upload_profile_picture(
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.UPLOAD_PROFILE_PICTURES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Upload profile picture."""
@@ -82,7 +87,7 @@ async def upload_profile_picture(
 
 @router.delete("/profile/avatar")
 async def remove_profile_picture(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.REMOVE_PROFILE_PICTURES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Remove profile picture."""
@@ -92,7 +97,7 @@ async def remove_profile_picture(
 
 @router.get("/profile/privacy", response_model=UserProfilePrivacySettings)
 async def get_privacy_settings(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PRIVACY)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Get user privacy settings."""
@@ -103,7 +108,7 @@ async def get_privacy_settings(
 @router.put("/profile/privacy", response_model=UserProfileResponse)
 async def update_privacy_settings(
     privacy_settings: UserProfilePrivacySettings,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PRIVACY)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Update user privacy settings."""
@@ -116,7 +121,7 @@ async def update_privacy_settings(
 
 @router.get("/profile/complete", response_model=UserProfileComplete)
 async def get_complete_profile(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_any_permission(Permission.VIEW_USER_PROFILES, Permission.VIEW_USER_PREFERENCES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Get complete user profile with all settings."""
@@ -146,7 +151,7 @@ async def get_complete_profile(
 
 @router.get("/profile/stats", response_model=UserProfileStats)
 async def get_profile_stats(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PROFILES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Get user profile statistics."""
@@ -188,7 +193,7 @@ async def get_profile_stats(
 async def search_profiles(
     query: str,
     limit: int = 10,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PROFILES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Search user profiles."""
@@ -215,7 +220,7 @@ async def search_profiles(
 @router.get("/profiles/{user_id}", response_model=UserProfileResponse)
 async def get_user_profile_by_id(
     user_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PROFILES)),
     profile_service: UserProfileService = Depends(get_user_profile_service)
 ):
     """Get user profile by ID (public information only)."""
@@ -242,4 +247,4 @@ async def get_user_profile_by_id(
     if privacy_settings.get("show_email", False) or current_user.id == user_id:
         response_data["email"] = profile.user.email
     
-    return UserProfileResponse(**response_data) 
+    return UserProfileResponse(**response_data)

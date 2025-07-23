@@ -88,8 +88,9 @@ class PhysicalEducationAI:
     def _init_ml_models(self):
         """Initialize ML models for analysis"""
         try:
-            # Initialize models directory
-            self.models_dir = Path("/app/app/models")
+            # Initialize models directory - use local path instead of Docker path
+            base_dir = Path(__file__).parent.parent.parent
+            self.models_dir = base_dir / "models"
             self.models_dir.mkdir(parents=True, exist_ok=True)
             
             # Load or create movement analysis model
