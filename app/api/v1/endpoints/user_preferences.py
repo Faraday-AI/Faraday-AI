@@ -9,6 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.core.security import (
+    require_permission, 
+    require_any_permission,
+    Permission
+)
 from app.models.core.user import User
 from app.services.user.user_preferences_service import UserPreferencesService, get_user_preferences_service
 from app.schemas.user_preferences import (
@@ -30,7 +35,7 @@ router = APIRouter()
 
 @router.get("/preferences", response_model=UserPreferencesResponse)
 async def get_user_preferences(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Get current user's preferences."""
@@ -44,7 +49,7 @@ async def get_user_preferences(
 @router.put("/preferences", response_model=UserPreferencesResponse)
 async def update_user_preferences(
     preferences_data: UserPreferencesUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Update user preferences."""
@@ -54,7 +59,7 @@ async def update_user_preferences(
 
 @router.get("/preferences/complete", response_model=UserPreferencesComplete)
 async def get_complete_preferences(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Get complete user preferences with all settings."""
@@ -74,7 +79,7 @@ async def get_complete_preferences(
 
 @router.get("/preferences/theme", response_model=ThemeSettings)
 async def get_theme_settings(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Get user theme settings."""
@@ -84,7 +89,7 @@ async def get_theme_settings(
 @router.put("/preferences/theme", response_model=Dict[str, Any])
 async def update_theme_settings(
     theme_settings: ThemeSettings,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Update user theme settings."""
@@ -94,7 +99,7 @@ async def update_theme_settings(
 @router.patch("/preferences/theme")
 async def update_theme_preference(
     theme_update: ThemePreferenceUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Update specific theme preference."""
@@ -108,7 +113,7 @@ async def update_theme_preference(
 
 @router.get("/preferences/notifications", response_model=NotificationSettings)
 async def get_notification_settings(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Get user notification settings."""
@@ -118,7 +123,7 @@ async def get_notification_settings(
 @router.put("/preferences/notifications", response_model=Dict[str, Any])
 async def update_notification_settings(
     notification_settings: NotificationSettings,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Update user notification settings."""
@@ -128,7 +133,7 @@ async def update_notification_settings(
 @router.patch("/preferences/notifications")
 async def update_notification_preference(
     notification_update: NotificationPreferenceUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Update specific notification preference."""
@@ -146,7 +151,7 @@ async def update_notification_preference(
 
 @router.get("/preferences/accessibility", response_model=AccessibilitySettings)
 async def get_accessibility_settings(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Get user accessibility settings."""
@@ -156,7 +161,7 @@ async def get_accessibility_settings(
 @router.put("/preferences/accessibility", response_model=Dict[str, Any])
 async def update_accessibility_settings(
     accessibility_settings: AccessibilitySettings,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Update user accessibility settings."""
@@ -166,7 +171,7 @@ async def update_accessibility_settings(
 @router.patch("/preferences/accessibility")
 async def update_accessibility_preference(
     accessibility_update: AccessibilityPreferenceUpdate,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Update specific accessibility preference."""
@@ -180,7 +185,7 @@ async def update_accessibility_preference(
 
 @router.get("/preferences/language", response_model=Dict[str, str])
 async def get_language_settings(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Get user language and timezone settings."""
@@ -191,7 +196,7 @@ async def get_language_settings(
 async def update_language_settings(
     language: str,
     timezone: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Update user language and timezone settings."""
@@ -200,7 +205,7 @@ async def update_language_settings(
 
 @router.post("/preferences/reset", response_model=UserPreferencesResponse)
 async def reset_preferences_to_default(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Reset user preferences to default values."""
@@ -210,7 +215,7 @@ async def reset_preferences_to_default(
 
 @router.get("/preferences/export", response_model=Dict[str, Any])
 async def export_preferences(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Export user preferences for backup."""
@@ -220,7 +225,7 @@ async def export_preferences(
 @router.post("/preferences/import", response_model=UserPreferencesResponse)
 async def import_preferences(
     preferences_data: Dict[str, Any],
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.EDIT_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Import user preferences from backup."""
@@ -230,7 +235,7 @@ async def import_preferences(
 
 @router.get("/preferences/summary", response_model=UserPreferencesSummary)
 async def get_preferences_summary(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.VIEW_USER_PREFERENCES)),
     preferences_service: UserPreferencesService = Depends(get_user_preferences_service)
 ):
     """Get summary of user preferences."""
