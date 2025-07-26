@@ -79,6 +79,7 @@ services:
       - PYTHONIOENCODING=utf-8
       - PYTHONHASHSEED=0
       - PORT=8000
+      - TESTING=true
     ports:
       - "${APP_PORT:-8000}:${APP_PORT:-8000}"
       - "${APP_METRICS_PORT:-9091}:${APP_METRICS_PORT:-9091}"

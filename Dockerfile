@@ -110,8 +110,13 @@ RUN apt-get update && \
     locale-gen C.UTF-8 && \
     update-locale LANG=C.UTF-8
 
-# Copy virtual environment from builder
-COPY --from=builder /opt/venv /opt/venv
+# Copy requirements and install dependencies globally
+COPY --from=builder /app/requirements.txt /app/requirements.txt
+
+# Install dependencies globally
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir gunicorn pyotp authlib qrcode
 
 # Create all required directories first
 RUN mkdir -p \
@@ -140,9 +145,7 @@ RUN chmod +x /app/start.sh
 USER appuser
 
 # Set environment variables in a single layer after Python is fully installed
-ENV PATH="/opt/venv/bin:$PATH" \
-    PYTHONHOME=/opt/venv \
-    PYTHONPATH=/app:/app/models:/app/models/physical_education:/app/models/physical_education/pe_enums:/app/models/core:/app/models/movement_analysis \
+ENV PYTHONPATH=/app:/app/models:/app/models/physical_education:/app/models/physical_education/pe_enums:/app/models/core:/app/models/movement_analysis \
     PYTHONUNBUFFERED=1 \
     PYTHONIOENCODING=utf-8 \
     LANG=C.UTF-8 \

@@ -9,10 +9,11 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 
 from app.models.organization.team import Team, TeamMember
 from app.models.core.user import User
+from app.core.database import get_db
 from app.schemas.team_management import (
     TeamCreate,
     TeamUpdate,
@@ -301,6 +302,6 @@ class TeamManagementService:
         return results
 
 
-def get_team_management_service(db: Session) -> TeamManagementService:
+def get_team_management_service(db: Session = Depends(get_db)) -> TeamManagementService:
     """Dependency to get team management service."""
     return TeamManagementService(db) 

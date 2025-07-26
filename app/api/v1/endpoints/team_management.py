@@ -17,6 +17,7 @@ from app.schemas.team_management import (
     TeamResponse,
     TeamMemberCreate,
     TeamMemberUpdate,
+    TeamMemberResponse,
     TeamSummary,
     TeamSearch,
     TeamFilter,

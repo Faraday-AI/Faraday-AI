@@ -9,10 +9,11 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 
 from app.models.user_management.user.user_management import Role, UserRole
 from app.models.core.user import User
+from app.core.database import get_db
 from app.schemas.role_management import (
     RoleCreate,
     RoleUpdate,
@@ -271,6 +272,6 @@ class RoleManagementService:
         return results
 
 
-def get_role_management_service(db: Session) -> RoleManagementService:
+def get_role_management_service(db: Session = Depends(get_db)) -> RoleManagementService:
     """Dependency to get role management service."""
     return RoleManagementService(db) 

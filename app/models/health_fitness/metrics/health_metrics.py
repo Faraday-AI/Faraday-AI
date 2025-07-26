@@ -75,7 +75,7 @@ class HealthMetric(Base):
 
 class GeneralHealthMetricThreshold(Base):
     """Model for storing acceptable ranges for health metrics."""
-    __tablename__ = "health_metric_thresholds"
+    __tablename__ = "health_fitness_metric_thresholds"
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)

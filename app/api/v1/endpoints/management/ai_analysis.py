@@ -1,10 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends, File, UploadFile, WebSocket, Header, Body, Request
 from typing import List, Dict, Any, Optional
-from app.services.ai.ai_analytics import get_ai_analytics_service, AIAnalytics
+from app.services.ai.ai_analytics import AIAnalyticsService
 from app.services.ai.ai_vision import get_ai_vision_service, AIVisionAnalysis
 from app.services.ai.ai_voice import get_ai_voice_service, AIVoiceAnalysis
 from app.services.ai.ai_emotion import get_ai_emotion_service, AIEmotionAnalysis
 from app.services.ai.ai_group import get_ai_group_service, AIGroupAnalysis
+from app.core.database import get_db
+from sqlalchemy.orm import Session
 import json
 import numpy as np
 from pydantic import BaseModel, validator
@@ -15,6 +17,10 @@ from collections import defaultdict
 import time
 
 logger = logging.getLogger(__name__)
+
+# Dependency function for AI Analytics Service
+def get_ai_analytics_service(db: Session = Depends(get_db)) -> AIAnalyticsService:
+    return AIAnalyticsService(db)
 
 # Rate limiting configuration
 RATE_LIMIT_REQUESTS = 100  # requests per window
@@ -135,7 +141,7 @@ class GroupAnalysisRequest(BaseModel):
 @router.post("/analytics/performance")
 async def analyze_student_performance(
     request: PerformanceRequest,
-    ai_service: AIAnalytics = Depends(get_ai_analytics_service)
+    ai_service: AIAnalyticsService = Depends(get_ai_analytics_service)
 ) -> Dict[str, Any]:
     """
     Analyze student performance and provide AI-powered recommendations.
@@ -156,7 +162,7 @@ async def analyze_student_performance(
 async def analyze_behavior_patterns(
     student_data: Dict[str, Any],
     classroom_data: Dict[str, Any],
-    ai_service: AIAnalytics = Depends(get_ai_analytics_service)
+    ai_service: AIAnalyticsService = Depends(get_ai_analytics_service)
 ) -> Dict[str, Any]:
     """
     Analyze student behavior patterns and engagement levels.
@@ -177,7 +183,7 @@ async def analyze_behavior_patterns(
 async def generate_progress_report(
     student_data: Dict[str, Any],
     time_period: str,
-    ai_service: AIAnalytics = Depends(get_ai_analytics_service)
+    ai_service: AIAnalyticsService = Depends(get_ai_analytics_service)
 ) -> Dict[str, Any]:
     """
     Generate comprehensive AI-enhanced progress reports.
@@ -250,7 +256,7 @@ async def generate_form_feedback(
 async def perform_batch_analysis(
     student_data: List[Dict[str, Any]],
     analysis_type: str,
-    ai_service: AIAnalytics = Depends(get_ai_analytics_service)
+    ai_service: AIAnalyticsService = Depends(get_ai_analytics_service)
 ) -> Dict[str, Any]:
     """
     Perform batch analysis on multiple students.
@@ -446,7 +452,7 @@ async def analyze_group_dynamics(
     request: Request,
     analysis_request: GroupAnalysisRequest,
     client_id: str = Depends(check_rate_limit),
-    ai_analytics: AIAnalytics = Depends(get_ai_analytics_service)
+    ai_analytics: AIAnalyticsService = Depends(get_ai_analytics_service)
 ) -> Dict[str, Any]:
     """Analyze group dynamics and learning patterns.
     

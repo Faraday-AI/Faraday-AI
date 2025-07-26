@@ -7,7 +7,6 @@ This module defines security policy models.
 from datetime import datetime
 from typing import Optional, List
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, Text, JSON, Boolean
-from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict
 
@@ -29,10 +28,10 @@ class SecurityPolicy(SharedBase, TimestampMixin, StatusMixin):
     name = Column(String(100), nullable=False)
     description = Column(Text)
     policy_type = Column(String(50), nullable=False)
-    rules = Column(JSONB, nullable=False)
+    rules = Column(JSON, nullable=False)
     priority = Column(Integer, default=1)
     is_active = Column(Boolean, default=True)
-    policy_metadata = Column(JSONB)
+    policy_metadata = Column(JSON)
 
     # Relationships
     rules_rel = relationship("app.models.security.policy.security.SecurityRule", back_populates="policy", cascade="all, delete-orphan")
@@ -70,10 +69,10 @@ class SecurityRule(SharedBase, TimestampMixin, StatusMixin):
     description = Column(Text)
     rule_type = Column(String(50), nullable=False)
     severity = Column(String(20), nullable=False)
-    conditions = Column(JSONB, nullable=False)
-    actions = Column(JSONB, nullable=False)
+    conditions = Column(JSON, nullable=False)
+    actions = Column(JSON, nullable=False)
     is_active = Column(Boolean, default=True)
-    rule_metadata = Column(JSONB)
+    rule_metadata = Column(JSON)
     priority = Column(Integer, default=0)
 
     # Relationships
@@ -110,8 +109,8 @@ class SecurityAudit(SharedBase, TimestampMixin):
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     audit_type = Column(String(50), nullable=False)
     status = Column(String(20), nullable=False)
-    details = Column(JSONB, nullable=False)
-    audit_metadata = Column(JSONB)
+    details = Column(JSON, nullable=False)
+    audit_metadata = Column(JSON)
 
     # Relationships
     policy = relationship("app.models.security.policy.security.SecurityPolicy", back_populates="audits")
@@ -133,7 +132,7 @@ class SecurityIncident(SharedBase, TimestampMixin, StatusMixin):
     severity = Column(String(20), nullable=False)
     description = Column(Text, nullable=False)
     resolution = Column(Text)
-    incident_metadata = Column(JSONB)
+    incident_metadata = Column(JSON)
 
     # Relationships
     policy = relationship("app.models.security.policy.security.SecurityPolicy", back_populates="incidents")

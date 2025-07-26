@@ -9,7 +9,8 @@ from app.models.organization.projects.project_management import (
     ProjectMember,
     ProjectRole,
     ProjectSettings,
-    ProjectResource
+    ProjectResource,
+    ProjectComment
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     'ProjectMember',
     'ProjectRole',
     'ProjectSettings',
-    'ProjectResource'
+    'ProjectResource',
+    'ProjectComment'
 ] 

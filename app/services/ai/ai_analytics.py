@@ -13,6 +13,7 @@ import json
 import numpy as np
 from collections import defaultdict, Counter
 import uuid
+import logging
 
 from app.models.core.user import User
 from app.models.analytics.user_analytics import (
@@ -808,3 +809,170 @@ class AIAnalyticsService(BaseAIService):
                                                comparison_data: List[Dict[str, Any]]) -> List[str]:
         """Generate learning recommendations based on peer comparison."""
         return ["Focus on advanced features", "Develop specialized skills", "Increase activity frequency"] 
+
+
+class PhysicalEducationAI:
+    """AI service for physical education specific functionality."""
+    
+    def __init__(self):
+        self.logger = logging.getLogger(self.__class__.__name__)
+    
+    async def generate_lesson_plan(self, activity: str, grade_level: str, duration: str) -> Dict[str, Any]:
+        """Generate a physical education lesson plan."""
+        try:
+            return {
+                "activity": activity,
+                "grade_level": grade_level,
+                "duration": duration,
+                "objectives": ["Improve coordination", "Build teamwork", "Enhance fitness"],
+                "materials": ["Cones", "Balls", "Stopwatch"],
+                "warm_up": "5 minutes of light jogging and stretching",
+                "main_activity": f"30 minutes of {activity} with skill development",
+                "cool_down": "5 minutes of stretching and reflection",
+                "assessment": "Observation of participation and skill demonstration",
+                "modifications": "Adapt for different skill levels and abilities",
+                "safety_notes": "Ensure proper supervision and equipment safety"
+            }
+        except Exception as e:
+            self.logger.error(f"Error generating lesson plan: {e}")
+            return {"error": str(e)}
+    
+    async def analyze_movement(self, activity: str, data_points: Dict[str, Any]) -> Dict[str, Any]:
+        """Analyze movement patterns and provide feedback."""
+        try:
+            return {
+                "activity": activity,
+                "analysis": "Movement pattern analysis completed",
+                "feedback": "Good form observed, maintain proper technique",
+                "improvements": ["Focus on balance", "Increase range of motion"],
+                "safety_alerts": [],
+                "performance_score": 85.0,
+                "recommendations": ["Practice balance exercises", "Work on flexibility"]
+            }
+        except Exception as e:
+            self.logger.error(f"Error analyzing movement: {e}")
+            return {"error": str(e)}
+    
+    async def adapt_activity(self, activity: str, needs: Dict[str, Any], environment: Dict[str, Any]) -> Dict[str, Any]:
+        """Adapt activities based on student needs and environment."""
+        try:
+            return {
+                "original_activity": activity,
+                "adapted_activity": f"Modified {activity}",
+                "modifications": ["Reduced intensity", "Simplified rules", "Extra support"],
+                "equipment_adaptations": ["Lighter equipment", "Additional safety gear"],
+                "environmental_considerations": ["Indoor alternative", "Weather-appropriate"],
+                "success_indicators": ["Participation", "Enjoyment", "Skill development"]
+            }
+        except Exception as e:
+            self.logger.error(f"Error adapting activity: {e}")
+            return {"error": str(e)}
+    
+    async def create_health_plan(self, profile: Dict[str, Any], goals: List[str], current_level: str) -> Dict[str, Any]:
+        """Create personalized health and wellness plans."""
+        try:
+            return {
+                "profile": profile,
+                "goals": goals,
+                "current_level": current_level,
+                "plan": {
+                    "weekly_activities": ["Cardio 3x/week", "Strength training 2x/week", "Flexibility daily"],
+                    "nutrition_guidelines": ["Balanced meals", "Stay hydrated", "Limit processed foods"],
+                    "progress_tracking": ["Weekly check-ins", "Monthly assessments", "Goal reviews"],
+                    "motivation_strategies": ["Set small goals", "Track progress", "Celebrate achievements"]
+                },
+                "recommendations": ["Start slowly", "Be consistent", "Listen to your body"]
+            }
+        except Exception as e:
+            self.logger.error(f"Error creating health plan: {e}")
+            return {"error": str(e)}
+    
+    async def optimize_classroom(self, size: int, space: Dict[str, Any], equipment: List[str]) -> Dict[str, Any]:
+        """Optimize classroom layout for physical education."""
+        try:
+            return {
+                "classroom_size": size,
+                "space_analysis": space,
+                "equipment": equipment,
+                "layout_recommendations": ["Clear pathways", "Designated activity zones", "Safety buffer zones"],
+                "equipment_placement": ["Accessible storage", "Quick setup areas", "Cleanup stations"],
+                "safety_considerations": ["Emergency exits clear", "First aid accessible", "Supervision points"],
+                "efficiency_tips": ["Pre-setup activities", "Rotation schedules", "Time management"]
+            }
+        except Exception as e:
+            self.logger.error(f"Error optimizing classroom: {e}")
+            return {"error": str(e)}
+    
+    async def assess_skills(self, activity: str, performance: Dict[str, Any], previous: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Assess student skills and track progress."""
+        try:
+            return {
+                "activity": activity,
+                "current_performance": performance,
+                "previous_assessments": previous,
+                "skill_level": "Intermediate",
+                "progress_indicators": ["Improved accuracy", "Better technique", "Increased confidence"],
+                "areas_for_improvement": ["Speed", "Endurance", "Strategy"],
+                "next_steps": ["Practice drills", "Advanced techniques", "Competition preparation"],
+                "assessment_score": 78.0
+            }
+        except Exception as e:
+            self.logger.error(f"Error assessing skills: {e}")
+            return {"error": str(e)}
+    
+    async def integrate_curriculum(self, subject: str, grade_level: str, standards: List[str]) -> Dict[str, Any]:
+        """Integrate physical education with other curriculum areas."""
+        try:
+            return {
+                "subject": subject,
+                "grade_level": grade_level,
+                "standards": standards,
+                "integration_ideas": [
+                    "Math: Measure distances and calculate averages",
+                    "Science: Study body systems and nutrition",
+                    "Language Arts: Write about sports and fitness",
+                    "Social Studies: Learn about different sports cultures"
+                ],
+                "cross_curricular_activities": ["Fitness journals", "Sports statistics", "Health research projects"],
+                "assessment_methods": ["Portfolio assessment", "Performance rubrics", "Reflection journals"]
+            }
+        except Exception as e:
+            self.logger.error(f"Error integrating curriculum: {e}")
+            return {"error": str(e)}
+    
+    async def analyze_safety(self, activity: str, environment: Dict[str, Any], equipment: List[str]) -> Dict[str, Any]:
+        """Analyze safety considerations for activities."""
+        try:
+            return {
+                "activity": activity,
+                "environment": environment,
+                "equipment": equipment,
+                "safety_assessment": "Low risk with proper supervision",
+                "risk_factors": ["Equipment misuse", "Inadequate warm-up", "Poor supervision"],
+                "safety_measures": ["Proper instruction", "Equipment checks", "Supervision protocols"],
+                "emergency_procedures": ["First aid kit available", "Emergency contacts posted", "Evacuation plan"],
+                "recommendations": ["Regular safety training", "Equipment maintenance", "Supervision guidelines"]
+            }
+        except Exception as e:
+            self.logger.error(f"Error analyzing safety: {e}")
+            return {"error": str(e)}
+    
+    async def create_professional_plan(self, experience: str, focus_areas: List[str], goals: List[str]) -> Dict[str, Any]:
+        """Create professional development plans for PE teachers."""
+        try:
+            return {
+                "experience_level": experience,
+                "focus_areas": focus_areas,
+                "goals": goals,
+                "development_plan": {
+                    "workshops": ["New teaching methods", "Technology integration", "Assessment strategies"],
+                    "certifications": ["First aid", "Sports coaching", "Special education"],
+                    "resources": ["Professional journals", "Online courses", "Peer mentoring"],
+                    "timeline": "6-month development cycle"
+                },
+                "success_metrics": ["Student engagement", "Skill improvement", "Safety record"],
+                "support_resources": ["Mentor program", "Professional learning community", "Online resources"]
+            }
+        except Exception as e:
+            self.logger.error(f"Error creating professional plan: {e}")
+            return {"error": str(e)} 

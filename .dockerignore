@@ -51,7 +51,7 @@ docker-compose.yml
 .dockerignore
 
 # Test
-tests/
+# tests/  # Commented out to allow tests in container
 .coverage
 htmlcov/
 .pytest_cache/

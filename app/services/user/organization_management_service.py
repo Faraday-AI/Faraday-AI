@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 
 from app.models.organization.base.organization_management import (
     Organization,
@@ -19,6 +19,7 @@ from app.models.organization.base.organization_management import (
     DepartmentMember
 )
 from app.models.core.user import User
+from app.core.database import get_db
 from app.schemas.organization_management import (
     OrganizationCreate,
     OrganizationUpdate,
@@ -357,6 +358,6 @@ class OrganizationManagementService:
         }
 
 
-def get_organization_management_service(db: Session) -> OrganizationManagementService:
+def get_organization_management_service(db: Session = Depends(get_db)) -> OrganizationManagementService:
     """Dependency to get organization management service."""
     return OrganizationManagementService(db) 

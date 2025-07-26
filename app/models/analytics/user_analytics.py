@@ -11,7 +11,7 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, Text, JSON, Boo
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-from app.db.base_class import Base
+from app.models.shared_base import SharedBase as Base
 
 
 class UserActivity(Base):
@@ -227,7 +227,7 @@ class AnalyticsEvent(Base):
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     source = Column(String(100), nullable=True)  # web, mobile, api, etc.
     version = Column(String(20), nullable=True)
-    metadata = Column(JSON, nullable=True)
+    event_metadata = Column(JSON, nullable=True)
     
     # Relationships
     user = relationship("User", back_populates="analytics_events")
@@ -243,7 +243,7 @@ class AnalyticsEvent(Base):
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
             "source": self.source,
             "version": self.version,
-            "metadata": self.metadata
+            "event_metadata": self.event_metadata
         }
 
 
