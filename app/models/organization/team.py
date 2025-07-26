@@ -8,9 +8,10 @@ from sqlalchemy import Column, String, DateTime, ForeignKey, Boolean, JSON, Inte
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from app.models.core.base import BaseModel, TimestampedMixin, StatusMixin, MetadataMixin
+from app.models.shared_base import SharedBase as Base
+from app.models.mixins import StatusMixin, MetadataMixin, AuditableModel
 
-class Team(BaseModel, TimestampedMixin, StatusMixin, MetadataMixin):
+class Team(Base, StatusMixin, MetadataMixin):
     """Model for team collaboration."""
     __tablename__ = "teams"
     __table_args__ = {'extend_existing': True}
@@ -23,10 +24,11 @@ class Team(BaseModel, TimestampedMixin, StatusMixin, MetadataMixin):
 
     # Relationships
     projects = relationship("OrganizationProject", back_populates="team")
-    organization_projects = relationship("app.models.organization.projects.project_management.OrganizationProject", back_populates="team", overlaps="projects")
+    organization_projects = relationship("OrganizationProject", back_populates="team", overlaps="projects")
     members = relationship("TeamMember", back_populates="team")
+    feedback_projects = relationship("FeedbackProject", back_populates="team")
 
-class TeamMember(BaseModel, TimestampedMixin, StatusMixin, MetadataMixin):
+class TeamMember(Base, StatusMixin, MetadataMixin):
     """Model for team membership."""
     __tablename__ = "team_members"
     __table_args__ = {'extend_existing': True}

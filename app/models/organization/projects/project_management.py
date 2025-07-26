@@ -8,11 +8,11 @@ from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, JSON, DateT
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
-from app.models.shared_base import SharedBase
+from app.models.shared_base import SharedBase as Base
 from app.models.mixins import TimestampedMixin, StatusMixin, MetadataMixin
 from app.models.organization.team import Team
 
-class ProjectResource(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
+class ProjectResource(Base, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for project resources."""
     __tablename__ = "project_resources"
     __table_args__ = {'extend_existing': True}
@@ -31,7 +31,7 @@ class ProjectResource(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
     def __repr__(self):
         return f"<ProjectResource {self.name}>"
 
-class ProjectSettings(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
+class ProjectSettings(Base, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for project settings."""
     __tablename__ = "project_settings"
     __table_args__ = {'extend_existing': True}
@@ -73,7 +73,7 @@ class ProjectSettings(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
     def __repr__(self):
         return f"<ProjectSettings for {self.project.name if self.project else 'Unknown Project'}>"
 
-class ProjectRole(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
+class ProjectRole(Base, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for project roles."""
     __tablename__ = "project_roles"
     __table_args__ = {'extend_existing': True}
@@ -92,7 +92,7 @@ class ProjectRole(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
     def __repr__(self):
         return f"<ProjectRole {self.name}>"
 
-class OrganizationProject(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
+class OrganizationProject(Base, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for organizing GPT activities and projects."""
     __tablename__ = "organization_projects"
     __table_args__ = {'extend_existing': True}
@@ -122,7 +122,7 @@ class OrganizationProject(SharedBase, TimestampedMixin, StatusMixin, MetadataMix
     def __repr__(self):
         return f"<OrganizationProject {self.name}>"
 
-class ProjectMember(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
+class ProjectMember(Base, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for project members."""
     __tablename__ = "project_members"
     __table_args__ = {'extend_existing': True}
@@ -141,7 +141,7 @@ class ProjectMember(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
     def __repr__(self):
         return f"<ProjectMember {self.role.name if self.role else 'No Role'}>"
 
-class ProjectTask(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
+class ProjectTask(Base, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for project tasks."""
     __tablename__ = "project_tasks"
     __table_args__ = {'extend_existing': True}
@@ -162,7 +162,7 @@ class ProjectTask(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
     def __repr__(self):
         return f"<ProjectTask {self.name}>"
 
-class ProjectComment(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin):
+class ProjectComment(Base, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for project comments."""
     __tablename__ = "project_comments"
     __table_args__ = {'extend_existing': True}

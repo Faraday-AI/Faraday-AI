@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from app.models.gpt import GPTRole, GPTInteraction
 from app.models.core.user import Teacher
-from app.models.memory import UserMemory
+from app.models.memory import SimpleUserMemory
 from app.schemas.gpt import GPTRoleCreate, GPTRoleUpdate, GPTInteractionCreate
 
 class GPTService:
@@ -61,16 +61,16 @@ class GPTService:
         self.db.refresh(interaction)
         return interaction
 
-    def get_shared_memories(self, user_id: str, gpt_name: str) -> List[UserMemory]:
+    def get_shared_memories(self, user_id: str, gpt_name: str) -> List[SimpleUserMemory]:
         """Get memories that are accessible to a specific GPT."""
-        return self.db.query(UserMemory).filter(
-            UserMemory.user_id == user_id,
-            UserMemory.gpt_access.contains([gpt_name])
+        return self.db.query(SimpleUserMemory).filter(
+            SimpleUserMemory.user_id == user_id,
+            SimpleUserMemory.gpt_access.contains([gpt_name])
         ).all()
 
-    def share_memory(self, memory_id: int, gpt_names: List[str]) -> Optional[UserMemory]:
+    def share_memory(self, memory_id: int, gpt_names: List[str]) -> Optional[SimpleUserMemory]:
         """Share a memory with specific GPTs."""
-        memory = self.db.query(UserMemory).filter(UserMemory.id == memory_id).first()
+        memory = self.db.query(SimpleUserMemory).filter(SimpleUserMemory.id == memory_id).first()
         if memory:
             current_access = memory.gpt_access or []
             new_access = list(set(current_access + gpt_names))

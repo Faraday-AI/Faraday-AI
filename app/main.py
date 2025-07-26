@@ -30,7 +30,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.services.collaboration.realtime_collaboration_service import RealtimeCollaborationService
 from app.services.utilities.file_processing_service import FileProcessingService
-from app.services.ai.ai_analytics import AIAnalytics
+from app.services.ai.ai_analytics import AIAnalyticsService
 from app.api.v1.endpoints.management.ai_analysis import router as ai_analysis_router
 from app.api.v1.endpoints.management.activity_management import router as activity_management
 from app.api.v1.endpoints.physical_education import physical_education
@@ -151,7 +151,11 @@ app.include_router(ai_analysis_router, prefix="/api")
 app.include_router(debug_router)
 app.include_router(activity_management, prefix="/api/v1/activities", tags=["activities"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
-app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["analytics"])
+# app.include_router(api_router)  # Commented out to avoid duplicate routes with analytics.router
+# Include user analytics router separately to avoid conflicts
+from app.api.v1.endpoints.user_analytics import router as user_analytics_router
+app.include_router(user_analytics_router, prefix="/api/v1/analytics", tags=["user-analytics"])
+app.include_router(analytics.router, prefix="/api/v1/dashboard/analytics", tags=["analytics"])
 app.include_router(compatibility.router, prefix="/api/v1/compatibility", tags=["compatibility"])
 app.include_router(gpt_context.router, prefix="/api/v1/gpt-context", tags=["gpt-context"])
 app.include_router(gpt_manager.router, prefix="/api/v1/gpt-manager", tags=["gpt-manager"])
@@ -564,19 +568,16 @@ def get_file_processing_service() -> FileProcessingService:
             _file_processing_service = MockFileService()
     return _file_processing_service
 
-def get_ai_analytics_service() -> AIAnalytics:
-    global _ai_analytics_service
-    if _ai_analytics_service is None:
-        try:
-            _ai_analytics_service = AIAnalytics()
-        except Exception as e:
-            logger.error(f"Failed to create AIAnalytics: {e}")
-            # Return a mock service that handles errors gracefully
-            class MockAIAnalytics:
-                async def analyze(self, *args, **kwargs):
-                    return {"status": "service_unavailable", "message": "AI Analytics service is temporarily unavailable"}
-            _ai_analytics_service = MockAIAnalytics()
-    return _ai_analytics_service
+def get_ai_analytics_service(db: Session = Depends(get_db)) -> AIAnalyticsService:
+    try:
+        return AIAnalyticsService(db)
+    except Exception as e:
+        logger.error(f"Failed to create AIAnalyticsService: {e}")
+        # Return a mock service that handles errors gracefully
+        class MockAIAnalyticsService:
+            async def analyze(self, *args, **kwargs):
+                return {"status": "service_unavailable", "message": "AI Analytics service is temporarily unavailable"}
+        return MockAIAnalyticsService()
 
 # Serve static files
 # app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -3612,4 +3613,6 @@ async def shutdown_event():
     if _realtime_collaboration_service is not None:
         await _realtime_collaboration_service.cleanup()
         _realtime_collaboration_service = None
+
+
 

@@ -17,9 +17,11 @@ from app.schemas.organization_management import (
     OrganizationResponse,
     OrganizationMemberCreate,
     OrganizationMemberUpdate,
+    OrganizationMemberResponse,
     DepartmentCreate,
     DepartmentUpdate,
     DepartmentResponse,
+    DepartmentMemberResponse,
     OrganizationSummary,
     OrganizationSearch,
     OrganizationFilter

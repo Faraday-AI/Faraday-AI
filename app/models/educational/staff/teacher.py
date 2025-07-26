@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from sqlalchemy import Column, String, DateTime, JSON, ForeignKey, Boolean, Integer, Enum as SQLEnum
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
 from app.models.core.base import BaseModel, NamedMixin, TimestampedMixin, StatusMixin, MetadataMixin
@@ -17,10 +17,10 @@ class Teacher(BaseModel, NamedMixin, TimestampedMixin, StatusMixin):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     school = Column(String(255), nullable=True)
     department = Column(String(100), nullable=True)
-    subjects = Column(JSONB, nullable=True)
-    grade_levels = Column(JSONB, nullable=True)
-    certifications = Column(JSONB, nullable=True)
-    specialties = Column(JSONB, nullable=True)
+    subjects = Column(JSON, nullable=True)
+    grade_levels = Column(JSON, nullable=True)
+    certifications = Column(JSON, nullable=True)
+    specialties = Column(JSON, nullable=True)
     bio = Column(String, nullable=True)
     last_login = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

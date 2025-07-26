@@ -1,7 +1,7 @@
 """Assessment models for physical education."""
 from sqlalchemy import Column, Integer, String, Float, JSON, ForeignKey, DateTime, Boolean, Text, CheckConstraint, Enum as SQLEnum
 from sqlalchemy.orm import relationship, backref
-from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 from app.models.shared_base import SharedBase
 from app.models.core.base import BaseModel, NamedMixin, TimestampedMixin, StatusMixin, MetadataMixin
 from datetime import datetime
@@ -32,7 +32,7 @@ class Assessment(SharedBase, TimestampedMixin, StatusMixin):
     assessment_type = Column(SQLEnum(AssessmentType, name='assessment_type_enum'), nullable=False)
     score = Column(Float, nullable=True)
     notes = Column(Text)
-    assessment_metadata = Column(JSONB)
+    assessment_metadata = Column(JSON)
 
     # Relationships
     # student = relationship("app.models.physical_education.student.models.Student", 
@@ -59,7 +59,7 @@ class SkillAssessment(SharedBase, TimestampedMixin, StatusMixin):
     assessor_notes = Column(Text)
     assessment_date = Column(TIMESTAMP(timezone=True), nullable=False)
     overall_score = Column(Float)
-    assessment_metadata = Column(JSONB)
+    assessment_metadata = Column(JSON)
 
     # Relationships
     student = relationship("app.models.physical_education.student.models.Student", back_populates="skill_assessments", foreign_keys=[student_id])
@@ -87,7 +87,7 @@ class AssessmentCriteria(SharedBase, NamedMixin, TimestampedMixin):
     id = Column(Integer, primary_key=True, index=True)
     description = Column(Text)
     criteria_type = Column(String(50), nullable=False)
-    rubric = Column(JSONB, nullable=False)
+    rubric = Column(JSON, nullable=False)
     weight = Column(Float, nullable=False)
     min_score = Column(Float, nullable=False)
     max_score = Column(Float, nullable=False)
@@ -128,7 +128,7 @@ class AssessmentResult(SharedBase, TimestampedMixin):
     criteria_id = Column(Integer, ForeignKey("skill_assessment_assessment_criteria.id"), nullable=False)
     score = Column(Float, nullable=False)
     notes = Column(Text)
-    evidence = Column(JSONB)
+    evidence = Column(JSON)
 
     # Relationships
     assessment = relationship("app.models.skill_assessment.assessment.assessment.SkillAssessment", back_populates="results")
@@ -153,8 +153,8 @@ class AssessmentHistory(SharedBase, TimestampedMixin):
     id = Column(Integer, primary_key=True, index=True)
     assessment_id = Column(Integer, ForeignKey("skill_assessment_skill_assessments.id"), nullable=False)
     change_type = Column(String(50), nullable=False)
-    previous_state = Column(JSONB)
-    new_state = Column(JSONB)
+    previous_state = Column(JSON)
+    new_state = Column(JSON)
     reason = Column(Text, nullable=False)
 
     # Relationships
@@ -180,10 +180,10 @@ class SkillProgress(SharedBase, TimestampedMixin):
     student_id = Column(Integer, ForeignKey("students.id", ondelete='CASCADE'), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id", ondelete='CASCADE'), nullable=False)
     skill_level = Column(String(50), nullable=False)
-    progress_data = Column(JSONB, nullable=False)
+    progress_data = Column(JSON, nullable=False)
     last_assessment_date = Column(TIMESTAMP(timezone=True))
     next_assessment_date = Column(TIMESTAMP(timezone=True))
-    goals = Column(JSONB)
+    goals = Column(JSON)
 
     # Relationships
     student = relationship("app.models.physical_education.student.models.Student", back_populates="skill_progress")
@@ -220,7 +220,7 @@ class AssessmentMetrics(SharedBase, TimestampedMixin):
     # Additional metrics
     performance_level = Column(String(50))
     progress_level = Column(String(50))
-    metrics_data = Column(JSONB)
+    metrics_data = Column(JSON)
     
     # Relationships
     assessment = relationship("app.models.skill_assessment.assessment.assessment.SkillAssessment", back_populates="metrics")

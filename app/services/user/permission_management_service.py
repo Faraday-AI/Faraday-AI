@@ -9,10 +9,11 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any, Set
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends
 
 from app.models.user_management.user.user_management import Permission, Role
 from app.models.core.user import User
+from app.core.database import get_db
 from app.schemas.permission_management import (
     PermissionCreate,
     PermissionUpdate,
@@ -306,6 +307,6 @@ class PermissionManagementService:
         return permissions
 
 
-def get_permission_management_service(db: Session) -> PermissionManagementService:
+def get_permission_management_service(db: Session = Depends(get_db)) -> PermissionManagementService:
     """Dependency to get permission management service."""
     return PermissionManagementService(db) 

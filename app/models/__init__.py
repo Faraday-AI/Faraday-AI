@@ -259,6 +259,7 @@ from .organization import (
     ProjectRole,
     ProjectSettings,
     ProjectResource,
+    ProjectComment,
     ProjectFeedback,
     FeedbackCategory,
     FeedbackResponse,
@@ -282,6 +283,7 @@ from .user_management.preferences.user_preferences_management import (
 )
 
 # Dashboard models
+from app.models.dashboard import CoreDashboardWidget, DashboardTheme, DashboardShareConfig, DashboardFilterConfig, DashboardExport, DashboardSearch
 from app.dashboard.models.user_preferences import UserPreferences
 from app.dashboard.models.tool_registry import Tool, UserTool, user_tools
 from app.dashboard.models.user import DashboardUser

@@ -59,7 +59,7 @@ from app.models.resource_management.resource_management import (
 from app.models.gpt.subscription.models import CoreGPTSubscription
 from app.models.organization.projects.project_management import OrganizationProject
 from app.models.feedback import Feedback
-from app.models.organization.feedback.project_feedback_management import Feedback as OrganizationFeedback
+from app.models.organization.feedback.project_feedback_management import OrganizationFeedback
 from app.models.audit_log import AuditLog
 from app.dashboard.models.ai_suite import AISuite
 from app.dashboard.models.ai_tool import AITool
@@ -157,6 +157,20 @@ from app.models.health_fitness.nutrition.nutrition import NutritionPlan
 # Import avatar models to ensure Avatar is available for Tool relationships
 from app.models.user_management.avatar.base import Avatar
 from app.models.user_management.avatar.models import UserAvatar, AvatarCustomization, AvatarTemplate
+
+# Import analytics models to ensure analytics tables are available
+from app.models.analytics.user_analytics import (
+    UserActivity,
+    UserBehavior,
+    UserPerformance,
+    UserEngagement,
+    UserPrediction,
+    UserRecommendation,
+    AnalyticsEvent,
+    UserInsight,
+    UserTrend,
+    UserComparison
+)
 
 # Import optimization models to ensure they're available for User relationships
 from app.models.resource_management.optimization import ResourceOptimizationThreshold, ResourceOptimizationRecommendation, ResourceOptimizationEvent

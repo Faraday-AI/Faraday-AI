@@ -19,13 +19,18 @@ from app.models.organization.projects import (
     ProjectMember,
     ProjectRole,
     ProjectSettings,
-    ProjectResource
+    ProjectResource,
+    ProjectComment
 )
 from app.models.organization.feedback import (
     ProjectFeedback,
     FeedbackCategory,
     FeedbackResponse,
     FeedbackAction
+)
+from app.models.organization.team import (
+    Team,
+    TeamMember
 )
 
 __all__ = [
@@ -45,10 +50,15 @@ __all__ = [
     'ProjectRole',
     'ProjectSettings',
     'ProjectResource',
+    'ProjectComment',
     
     # Feedback models
     'ProjectFeedback',
     'FeedbackCategory',
     'FeedbackResponse',
-    'FeedbackAction'
+    'FeedbackAction',
+    
+    # Team models
+    'Team',
+    'TeamMember'
 ] 

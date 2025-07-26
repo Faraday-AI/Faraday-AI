@@ -116,6 +116,7 @@ class Organization(CoreBase, TimestampedMixin, StatusMixin, MetadataMixin):
     context_summaries = relationship("app.models.gpt.context.models.ContextSummary", back_populates="organization")
     context_backups = relationship("app.models.gpt.context.models.ContextBackup", back_populates="organization")
     shared_contexts = relationship("app.models.gpt.context.models.SharedContext", back_populates="shared_with_organization")
+    feedback_projects = relationship("FeedbackProject", back_populates="organization")
 
     def __repr__(self):
         return f"<Organization {self.name}>"

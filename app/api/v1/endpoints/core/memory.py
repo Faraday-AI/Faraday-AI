@@ -6,7 +6,8 @@ from datetime import datetime
 from app.core.database import get_db
 from app.core.auth import get_current_user
 from app.dashboard.models import DashboardUser as User
-from app.models.memory import UserMemory, MemoryInteraction, UserMemoryResponse, MemoryInteractionResponse
+from app.models.memory import SimpleUserMemory, SimpleMemoryInteraction, UserMemoryResponse, MemoryInteractionResponse
+from app.services.memory.memory_service import MemoryService
 from pydantic import BaseModel
 
 router = APIRouter()

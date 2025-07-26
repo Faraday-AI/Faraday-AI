@@ -9,7 +9,7 @@ from app.models.organization.feedback.project_feedback_management import (
     FeedbackCategory,
     FeedbackResponse,
     FeedbackAction,
-    Feedback
+    OrganizationFeedback
 )
 
 __all__ = [
@@ -17,5 +17,5 @@ __all__ = [
     'FeedbackCategory',
     'FeedbackResponse',
     'FeedbackAction',
-    'Feedback'
+    'OrganizationFeedback'
 ] 

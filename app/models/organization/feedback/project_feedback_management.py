@@ -9,8 +9,11 @@ from sqlalchemy import Column, String, Integer, Float, ForeignKey, DateTime, JSO
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
-from app.db.base_class import Base
+from app.models.shared_base import SharedBase as Base
 from app.models.mixins import StatusMixin, MetadataMixin, AuditableModel
+from app.models.core.user import User
+from app.models.organization.team import Team
+from app.models.organization.base.organization_management import Organization
 
 # Project Management Enums
 class ProjectStatus(str, enum.Enum):
@@ -106,16 +109,17 @@ class FeedbackProject(Base, StatusMixin, MetadataMixin):
     parent_project_id = Column(Integer, ForeignKey("feedback_projects.id"), nullable=True)
     
     # Relationships
-    owner = relationship("User", foreign_keys=[owner_id], back_populates="owned_feedback_projects")
+    # owner = relationship("User", foreign_keys=[owner_id], back_populates="owned_feedback_projects")
     team = relationship("Team", back_populates="feedback_projects")
     organization = relationship("Organization", back_populates="feedback_projects")
     parent_project = relationship("FeedbackProject", remote_side=[id], back_populates="sub_projects")
     sub_projects = relationship("FeedbackProject", back_populates="parent_project")
-    members = relationship("ProjectMember", back_populates="project")
-    feedback = relationship("Feedback", back_populates="project")
-    comments = relationship("Comment", back_populates="project")
-    resources = relationship("ProjectResource", back_populates="project")
-    tasks = relationship("ProjectTask", back_populates="project")
+    members = relationship("FeedbackProjectMember", back_populates="project")
+    feedback = relationship("OrganizationFeedback", back_populates="project")
+    project_feedback = relationship("ProjectFeedback", back_populates="project")
+    comments = relationship("FeedbackProjectComment", back_populates="project")
+    resources = relationship("FeedbackProjectResource", back_populates="project")
+    tasks = relationship("FeedbackProjectTask", back_populates="project")
     milestones = relationship("ProjectMilestone", back_populates="project")
 
     def dict(self):
@@ -143,9 +147,39 @@ class FeedbackProject(Base, StatusMixin, MetadataMixin):
             "parent_project_id": self.parent_project_id
         }
 
-class ProjectMember(Base, StatusMixin, MetadataMixin):
-    """Model for managing project memberships."""
-    __tablename__ = "project_members"
+class FeedbackProjectComment(Base, MetadataMixin):
+    """Model for managing feedback project comments."""
+    __tablename__ = "feedback_project_comments"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("feedback_projects.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    is_internal = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    project = relationship("FeedbackProject", back_populates="comments")
+    # user = relationship("User", back_populates="project_comments")
+
+    def dict(self):
+        """Convert model to dictionary."""
+        return {
+            **super().dict(),
+            "id": self.id,
+            "project_id": self.project_id,
+            "user_id": self.user_id,
+            "content": self.content,
+            "is_internal": self.is_internal,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
+class FeedbackProjectMember(Base, StatusMixin, MetadataMixin):
+    """Model for managing feedback project memberships."""
+    __tablename__ = "feedback_project_members"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("feedback_projects.id"), nullable=False)
@@ -157,7 +191,7 @@ class ProjectMember(Base, StatusMixin, MetadataMixin):
     
     # Relationships
     project = relationship("FeedbackProject", back_populates="members")
-    user = relationship("User", back_populates="project_memberships")
+    # user = relationship("User", back_populates="project_memberships")
 
     def dict(self):
         """Convert model to dictionary."""
@@ -172,9 +206,10 @@ class ProjectMember(Base, StatusMixin, MetadataMixin):
             "last_active": self.last_active.isoformat() if self.last_active else None
         }
 
-class ProjectResource(Base, StatusMixin, MetadataMixin):
-    """Model for managing project resources."""
-    __tablename__ = "project_resources"
+class FeedbackProjectResource(Base, StatusMixin, MetadataMixin):
+    """Model for managing feedback project resources."""
+    __tablename__ = "feedback_project_resources"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("feedback_projects.id"), nullable=False)
@@ -200,9 +235,10 @@ class ProjectResource(Base, StatusMixin, MetadataMixin):
             "metadata": self.metadata_data
         }
 
-class ProjectTask(Base, StatusMixin, MetadataMixin):
-    """Model for managing project tasks."""
-    __tablename__ = "project_tasks"
+class FeedbackProjectTask(Base, StatusMixin, MetadataMixin):
+    """Model for managing feedback project tasks."""
+    __tablename__ = "feedback_project_tasks"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("feedback_projects.id"), nullable=False)
@@ -215,7 +251,7 @@ class ProjectTask(Base, StatusMixin, MetadataMixin):
     
     # Relationships
     project = relationship("FeedbackProject", back_populates="tasks")
-    assignee = relationship("User", back_populates="assigned_tasks")
+    assignee = relationship("User", back_populates="assigned_feedback_tasks")
 
     def dict(self):
         """Convert model to dictionary."""
@@ -234,6 +270,7 @@ class ProjectTask(Base, StatusMixin, MetadataMixin):
 class ProjectMilestone(Base, StatusMixin, MetadataMixin):
     """Model for managing project milestones."""
     __tablename__ = "project_milestones"
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     project_id = Column(Integer, ForeignKey("feedback_projects.id"), nullable=False)
@@ -258,8 +295,8 @@ class ProjectMilestone(Base, StatusMixin, MetadataMixin):
         }
 
 # Feedback Management Models
-class Feedback(Base, StatusMixin, MetadataMixin):
-    """Model for managing user feedback."""
+class OrganizationFeedback(Base, StatusMixin, MetadataMixin):
+    """Model for managing organization user feedback."""
     __tablename__ = "organization_feedback"
 
     id = Column(Integer, primary_key=True)
@@ -287,9 +324,9 @@ class Feedback(Base, StatusMixin, MetadataMixin):
     closed_at = Column(DateTime, nullable=True)
     
     # Relationships
-    user = relationship("User", back_populates="feedback")
+    user = relationship("User", back_populates="organization_feedback")
     project = relationship("FeedbackProject", back_populates="feedback")
-    gpt = relationship("app.models.gpt.base.gpt.GPTDefinition", back_populates="feedback")
+    gpt = relationship("app.models.gpt.base.gpt.CoreGPTDefinition", back_populates="feedback")
     category = relationship("FeedbackCategory", back_populates="feedback")
     responses = relationship("FeedbackResponse", back_populates="feedback")
     actions = relationship("FeedbackAction", back_populates="feedback")
@@ -324,13 +361,13 @@ class FeedbackComment(Base, MetadataMixin):
     __tablename__ = "feedback_comments"
 
     id = Column(Integer, primary_key=True)
-    feedback_id = Column(Integer, ForeignKey("feedback.id"), nullable=False)
+    feedback_id = Column(Integer, ForeignKey("organization_feedback.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
     is_internal = Column(Boolean, default=False)
     
     # Relationships
-    feedback = relationship("Feedback", back_populates="comments")
+    feedback = relationship("OrganizationFeedback", back_populates="comments")
     user = relationship("User", back_populates="feedback_comments")
 
     def dict(self):
@@ -349,7 +386,7 @@ class FeedbackAttachment(Base, MetadataMixin):
     __tablename__ = "feedback_attachments"
 
     id = Column(Integer, primary_key=True)
-    feedback_id = Column(Integer, ForeignKey("feedback.id"), nullable=False)
+    feedback_id = Column(Integer, ForeignKey("organization_feedback.id"), nullable=False)
     file_name = Column(String, nullable=False)
     file_type = Column(String, nullable=False)
     file_size = Column(Integer, nullable=False)
@@ -357,7 +394,7 @@ class FeedbackAttachment(Base, MetadataMixin):
     metadata_data = Column(JSON, nullable=True)
     
     # Relationships
-    feedback = relationship("Feedback", back_populates="attachments")
+    feedback = relationship("OrganizationFeedback", back_populates="attachments")
 
     def dict(self):
         """Convert model to dictionary."""
@@ -403,8 +440,6 @@ class ProjectFeedback(Base, StatusMixin, MetadataMixin):
     project = relationship("FeedbackProject", back_populates="project_feedback")
     user = relationship("User", back_populates="project_feedback")
     category = relationship("FeedbackCategory", back_populates="project_feedback")
-    comments = relationship("FeedbackComment", back_populates="project_feedback")
-    attachments = relationship("FeedbackAttachment", back_populates="project_feedback")
 
     def dict(self):
         """Convert model to dictionary."""
@@ -440,7 +475,7 @@ class FeedbackCategory(Base, StatusMixin, MetadataMixin):
     settings = Column(JSON, nullable=True)
     
     # Relationships
-    feedback = relationship("Feedback", back_populates="category")
+    feedback = relationship("OrganizationFeedback", back_populates="category")
     project_feedback = relationship("ProjectFeedback", back_populates="category")
 
     def dict(self):
@@ -460,7 +495,7 @@ class FeedbackResponse(Base, StatusMixin, MetadataMixin):
     __tablename__ = "feedback_responses"
 
     id = Column(Integer, primary_key=True)
-    feedback_id = Column(Integer, ForeignKey("feedback.id"), nullable=False)
+    feedback_id = Column(Integer, ForeignKey("organization_feedback.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
     is_internal = Column(Boolean, default=False)
@@ -473,9 +508,8 @@ class FeedbackResponse(Base, StatusMixin, MetadataMixin):
     updated_at = Column(DateTime, onupdate=datetime.utcnow)
     
     # Relationships
-    feedback = relationship("Feedback", back_populates="responses")
+    feedback = relationship("OrganizationFeedback", back_populates="responses")
     user = relationship("User", back_populates="feedback_responses")
-    attachments = relationship("FeedbackAttachment", back_populates="response")
 
     def dict(self):
         """Convert model to dictionary."""
@@ -498,7 +532,7 @@ class FeedbackAction(Base, StatusMixin, MetadataMixin):
     __tablename__ = "feedback_actions"
 
     id = Column(Integer, primary_key=True)
-    feedback_id = Column(Integer, ForeignKey("feedback.id"), nullable=False)
+    feedback_id = Column(Integer, ForeignKey("organization_feedback.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     action_type = Column(String, nullable=False)  # e.g., "assign", "close", "reopen", "change_priority"
     action_data = Column(JSON, nullable=True)  # Additional data specific to the action type
@@ -508,7 +542,7 @@ class FeedbackAction(Base, StatusMixin, MetadataMixin):
     performed_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships
-    feedback = relationship("Feedback", back_populates="actions")
+    feedback = relationship("OrganizationFeedback", back_populates="actions")
     user = relationship("User", back_populates="feedback_actions")
 
     def dict(self):

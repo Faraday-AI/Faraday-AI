@@ -57,7 +57,7 @@ class CoreGPTDefinition(BaseModel, StatusMixin, MetadataMixin):
     organization = relationship("Organization", back_populates="core_gpt_definitions")
     integrations = relationship("app.models.gpt.integration.models.CoreGPTIntegration", back_populates="gpt_definition")
     performance_metrics = relationship("app.models.gpt.performance.models.CoreGPTPerformance", back_populates="model")
-    # feedback = relationship("app.models.organization.feedback.project_feedback_management.Feedback", back_populates="gpt")
+    feedback = relationship("app.models.organization.feedback.project_feedback_management.OrganizationFeedback", back_populates="gpt")
 
     def dict(self):
         """Convert model to dictionary."""
