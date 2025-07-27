@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
 from typing import Optional
-from app.dashboard.models import DashboardUser as User
+from app.models.core.user import User
 from app.core.config import get_settings
 from sqlalchemy.orm import Session
 from app.core.database import get_db

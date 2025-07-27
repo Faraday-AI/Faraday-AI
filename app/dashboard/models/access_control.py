@@ -5,7 +5,8 @@ from app.models.security.access_control.access_control_management import (
     AccessControlRole as Role,
     UserRole as RoleAssignment,
     RoleHierarchy,
-    RoleTemplate
+    RoleTemplate,
+    RolePermission
 )
 from app.models.security.preferences.security_preferences_management import PermissionOverride
 
@@ -18,5 +19,6 @@ __all__ = [
     'RoleAssignment',
     'PermissionOverride',
     'RoleHierarchy',
-    'RoleTemplate'
+    'RoleTemplate',
+    'RolePermission'
 ] 

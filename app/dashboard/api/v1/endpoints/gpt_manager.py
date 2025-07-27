@@ -38,23 +38,8 @@ async def get_user_tools(
     manager_service = GPTManagerService(db)
     tools = await manager_service.get_user_tools(current_user["id"])
     
-    result = {"tools": tools}
-    
-    if include_metrics:
-        result["metrics"] = {
-            "tool_count": len(tools),
-            "active_tools": await manager_service.get_active_tools(current_user["id"]),
-            "tool_usage": await manager_service.get_tool_usage(current_user["id"]),
-            "tool_performance": await manager_service.get_tool_performance(current_user["id"])
-        }
-    
-    if include_integrations:
-        result["integrations"] = {
-            tool: await manager_service.get_tool_integrations(tool)
-            for tool in tools
-        }
-    
-    return result
+    # Return tools directly since response_model is List[str]
+    return tools
 
 @router.post("/tools/add", response_model=ToolResponse)
 async def add_tool(
@@ -75,21 +60,12 @@ async def add_tool(
     manager_service = GPTManagerService(db)
     result = await manager_service.add_tool(current_user["id"], tool_name)
     
-    if include_validation:
-        result["validation"] = {
-            "tool_exists": await manager_service.validate_tool_exists(tool_name),
-            "subscription_valid": await manager_service.validate_subscription(current_user["id"], tool_name),
-            "compatibility": await manager_service.validate_tool_compatibility(tool_name)
-        }
-    
-    if include_metrics:
-        result["metrics"] = {
-            "tool_count": await manager_service.get_tool_count(current_user["id"]),
-            "active_tools": await manager_service.get_active_tools(current_user["id"]),
-            "tool_usage": await manager_service.get_tool_usage(current_user["id"])
-        }
-    
-    return result
+    # Return only the fields expected by ToolResponse schema
+    return {
+        "status": result["status"],
+        "message": result["message"],
+        "tool_id": result.get("tool_id")
+    }
 
 @router.post("/tools/remove", response_model=ToolResponse)
 async def remove_tool(
@@ -110,21 +86,12 @@ async def remove_tool(
     manager_service = GPTManagerService(db)
     result = await manager_service.remove_tool(current_user["id"], tool_name)
     
-    if include_validation:
-        result["validation"] = {
-            "tool_exists": await manager_service.validate_tool_exists(tool_name),
-            "subscription_active": await manager_service.validate_subscription_active(current_user["id"], tool_name),
-            "dependencies": await manager_service.check_tool_dependencies(tool_name)
-        }
-    
-    if include_metrics:
-        result["metrics"] = {
-            "tool_count": await manager_service.get_tool_count(current_user["id"]),
-            "active_tools": await manager_service.get_active_tools(current_user["id"]),
-            "tool_usage": await manager_service.get_tool_usage(current_user["id"])
-        }
-    
-    return result
+    # Return only the fields expected by ToolResponse schema
+    return {
+        "status": result["status"],
+        "message": result["message"],
+        "tool_id": result.get("tool_id")
+    }
 
 @router.get("/tools/specs", response_model=List[Dict])
 async def get_function_specs(
@@ -145,27 +112,8 @@ async def get_function_specs(
     manager_service = GPTManagerService(db)
     specs = await manager_service.get_function_specs(current_user["id"])
     
-    result = {"specs": specs}
-    
-    if include_metadata:
-        result["metadata"] = {
-            spec["name"]: await manager_service.get_function_metadata(spec["name"])
-            for spec in specs
-        }
-    
-    if include_validation:
-        result["validation"] = {
-            spec["name"]: await manager_service.validate_function_spec(spec)
-            for spec in specs
-        }
-    
-    if include_metrics:
-        result["metrics"] = {
-            spec["name"]: await manager_service.get_function_metrics(spec["name"])
-            for spec in specs
-        }
-    
-    return result
+    # Return specs directly since response_model is List[Dict]
+    return specs
 
 @router.post("/command", response_model=CommandResponse)
 async def handle_command(
@@ -191,25 +139,13 @@ async def handle_command(
         command.command
     )
     
-    if include_validation:
-        result["validation"] = {
-            "command_valid": await manager_service.validate_command(command.command),
-            "tools_available": await manager_service.validate_tools_available(command.command),
-            "permissions": await manager_service.validate_command_permissions(current_user["id"], command.command)
-        }
-    
-    if include_metrics:
-        result["metrics"] = {
-            "execution_time": await manager_service.get_command_execution_time(command.command),
-            "resource_usage": await manager_service.get_command_resource_usage(command.command),
-            "success_rate": await manager_service.get_command_success_rate(command.command),
-            "error_rate": await manager_service.get_command_error_rate(command.command)
-        }
-    
-    if include_trace:
-        result["trace"] = await manager_service.get_command_execution_trace(command.command)
-    
-    return result
+    # Return only the fields expected by CommandResponse schema
+    return {
+        "status": result["status"],
+        "action": result.get("action"),
+        "message": result.get("message"),
+        "result": result.get("result")
+    }
 
 @router.get("/tools/metrics", response_model=ToolMetrics)
 async def get_tool_metrics(

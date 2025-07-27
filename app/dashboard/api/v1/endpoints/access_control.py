@@ -12,11 +12,12 @@ from app.dashboard.schemas.access_control import (
     PermissionOverrideCreate, PermissionOverrideUpdate, PermissionOverrideResponse,
     ResourceType, ActionType,
     BulkPermissionCheck,
-    RoleHierarchyUpdate,
+    RoleHierarchyCreate, RoleHierarchyUpdate,
     RoleHierarchyResponse,
     PermissionCheckRequest, PermissionCheckResponse,
     BulkPermissionCheckRequest, BulkPermissionCheckResponse,
-    RoleTemplateCreate, RoleTemplateResponse
+    RoleTemplateCreate, RoleTemplateResponse,
+    PermissionOverrideCreateRequest
 )
 from pydantic import BaseModel
 import logging
@@ -38,6 +39,8 @@ async def create_permission(
     try:
         service = AccessControlService(db)
         return await service.create_permission(permission)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error creating permission: {str(e)}")
         raise HTTPException(
@@ -132,6 +135,8 @@ async def list_permissions(
     try:
         service = AccessControlService(db)
         return await service.list_permissions(resource_type, action, scope)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error listing permissions: {str(e)}")
         raise HTTPException(
@@ -333,15 +338,22 @@ async def get_user_roles(
 @router.post("/permissions/{permission_id}/overrides", response_model=PermissionOverrideResponse, status_code=status.HTTP_201_CREATED)
 async def create_permission_override(
     permission_id: str,
-    override: PermissionOverrideCreate,
+    override: PermissionOverrideCreateRequest,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin)
 ):
     """Create a permission override. Requires admin access."""
     try:
         service = AccessControlService(db)
-        override.permission_id = permission_id
-        return await service.create_permission_override(override)
+        # Create the full override object with permission_id
+        full_override = PermissionOverrideCreate(
+            user_id=override.user_id,
+            permission_id=permission_id,
+            is_allowed=override.is_allowed,
+            reason=override.reason,
+            expires_at=override.expires_at
+        )
+        return await service.create_permission_override(full_override)
     except Exception as e:
         logger.error(f"Error creating permission override: {str(e)}")
         raise HTTPException(
@@ -423,25 +435,23 @@ async def check_bulk_permissions(
     """Check multiple permissions for a user."""
     service = AccessControlService(db)
     results = []
-    for permission in request.permissions:
+    for check in request.checks:
         has_permission = await service.check_permission(
-            request.user_id,
-            permission.resource_type,
-            permission.action,
-            permission.resource_id
+            check.user_id,
+            check.resource_type,
+            check.action,
+            check.resource_id
         )
-        results.append({
-            "resource_type": permission.resource_type,
-            "action": permission.action,
-            "resource_id": permission.resource_id,
-            "has_permission": has_permission
-        })
+        results.append(PermissionCheckResponse(
+            has_permission=has_permission,
+            reason="Role-based access" if has_permission else "No permission"
+        ))
     return BulkPermissionCheckResponse(results=results)
 
 # Role Hierarchy Management
 @router.post("/role-hierarchy", response_model=RoleHierarchyResponse, status_code=status.HTTP_201_CREATED)
 async def update_role_hierarchy(
-    hierarchy: RoleHierarchyUpdate,
+    hierarchy: RoleHierarchyCreate,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin)
 ):
@@ -449,6 +459,8 @@ async def update_role_hierarchy(
     try:
         service = AccessControlService(db)
         return await service.update_role_hierarchy(hierarchy)
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error updating role hierarchy: {str(e)}")
         raise HTTPException(

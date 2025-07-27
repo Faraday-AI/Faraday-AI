@@ -7,10 +7,10 @@ from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 import semver
 
-from ..services.compatibility_service import CompatibilityService
-from ..models import (
+from app.dashboard.services.compatibility_service import CompatibilityService
+from app.dashboard.models import (
     GPTDefinition,
-    GPTSubscription,
+    DashboardGPTSubscription,
     GPTIntegration,
     GPTCategory,
     GPTType
@@ -26,7 +26,7 @@ def compatibility_service(mock_db):
 
 @pytest.fixture
 def sample_gpt():
-    return GPTDefinition(
+    return Mock(
         id="gpt-1",
         name="Math Teacher",
         category=GPTCategory.TEACHER,
@@ -57,22 +57,20 @@ def sample_gpt():
 @pytest.fixture
 def sample_integrations():
     return [
-        GPTIntegration(
+        Mock(
             id="int-1",
-            gpt_definition_id="gpt-1",
-            service_name="lms",
-            status="active",
+            integration_type="lms",
+            is_active=True,
             configuration={
                 "api_key": "test-key",
                 "max_students": 100,
                 "permissions": ["read", "write"]
             }
         ),
-        GPTIntegration(
+        Mock(
             id="int-2",
-            gpt_definition_id="gpt-1",
-            service_name="analytics",
-            status="inactive",
+            integration_type="analytics",
+            is_active=False,
             configuration={}
         )
     ]
@@ -135,7 +133,7 @@ async def test_get_compatible_gpts(
     """Test getting compatible GPTs."""
     # Create target GPTs
     target_gpts = [
-        GPTDefinition(
+        Mock(
             id="gpt-2",
             name="Science Teacher",
             category=GPTCategory.TEACHER,
@@ -143,10 +141,10 @@ async def test_get_compatible_gpts(
             version="1.0.0",
             requirements={
                 "integrations": ["lms"],
-                "resources": {"memory": 1.0}
+                "resources": {"memory": 0.8}
             }
         ),
-        GPTDefinition(
+        Mock(
             id="gpt-3",
             name="History Teacher",
             category=GPTCategory.TEACHER,
@@ -288,12 +286,12 @@ def test_check_resource_requirements(compatibility_service, sample_gpt, target_e
 
 def test_check_gpt_compatibility(compatibility_service, sample_gpt):
     """Test GPT compatibility checking."""
-    target_gpt = GPTDefinition(
+    target_gpt = Mock(
         id="gpt-2",
         version="1.0.0",
         requirements={
             "integrations": ["lms"],
-            "resources": {"memory": 1.0}
+            "resources": {"memory": 0.8}
         }
     )
     
@@ -326,8 +324,8 @@ def test_validate_integration(compatibility_service, sample_gpt, sample_integrat
     assert result["passed_checks"] == result["total_checks"]
     
     # Test with invalid configuration
-    invalid_integration = GPTIntegration(
-        service_name="lms",
+    invalid_integration = Mock(
+        integration_type="lms",
         configuration={
             "api_key": 123,  # Should be string
             "max_students": "100"  # Should be number

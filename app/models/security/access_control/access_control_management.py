@@ -83,6 +83,9 @@ class AccessControlPermission(BaseModel, TimestampedMixin, StatusMixin, Metadata
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    resource_type = Column(String, nullable=False)
+    action = Column(String, nullable=False)
+    scope = Column(String, nullable=True)
     permission_type = Column(String, nullable=False)
     permission_metadata = Column(JSON, nullable=True)
 
@@ -90,6 +93,8 @@ class AccessControlPermission(BaseModel, TimestampedMixin, StatusMixin, Metadata
     roles = relationship("AccessControlRole", secondary="access_control_role_permissions", back_populates="permissions", overlaps="role_permissions")
     role_permissions = relationship("RolePermission", back_populates="permission", overlaps="permissions,roles")
     overrides = relationship("app.models.security.preferences.security_preferences_management.PermissionOverride", back_populates="permission")
+    
+
 
 class RoleHierarchy(BaseModel, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for role hierarchy."""

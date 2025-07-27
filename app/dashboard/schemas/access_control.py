@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, validator
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Union
 from datetime import datetime
 from enum import Enum
 from pydantic import ConfigDict
@@ -32,6 +32,7 @@ class PermissionBase(BaseModel):
     resource_type: ResourceType
     action: ActionType
     scope: Optional[str] = None
+    permission_type: str = "system"
 
 class RoleBase(BaseModel):
     """Base schema for roles."""
@@ -42,23 +43,23 @@ class RoleBase(BaseModel):
 
 class RoleAssignmentBase(BaseModel):
     """Base schema for role assignments."""
-    user_id: str
-    role_id: str
+    user_id: Union[str, int]
+    role_id: Union[str, int]
     assigned_by: str
     expires_at: Optional[datetime] = None
 
 class PermissionOverrideBase(BaseModel):
     """Base schema for permission overrides."""
-    user_id: str
-    permission_id: str
+    user_id: Union[str, int]
+    permission_id: Union[str, int]
     is_allowed: bool
     reason: Optional[str] = None
     expires_at: Optional[datetime] = None
 
 class RoleHierarchyBase(BaseModel):
     """Base schema for role hierarchy."""
-    parent_role_id: str
-    child_role_id: str
+    parent_role_id: Union[str, int]
+    child_role_id: Union[str, int]
     is_active: bool = True
 
 class RoleTemplateBase(BaseModel):
@@ -83,6 +84,13 @@ class RoleAssignmentCreate(RoleAssignmentBase):
 class PermissionOverrideCreate(PermissionOverrideBase):
     """Schema for creating a permission override."""
     pass
+
+class PermissionOverrideCreateRequest(BaseModel):
+    """Schema for creating a permission override request (without permission_id)."""
+    user_id: str
+    is_allowed: bool
+    reason: Optional[str] = None
+    expires_at: Optional[datetime] = None
 
 class RoleHierarchyCreate(RoleHierarchyBase):
     """Schema for creating a role hierarchy."""
@@ -135,7 +143,7 @@ class RoleTemplateUpdate(BaseModel):
 
 class PermissionResponse(PermissionBase):
     """Schema for permission response."""
-    id: str
+    id: Union[str, int]
     is_active: bool
     created_at: datetime
     updated_at: datetime

@@ -183,6 +183,14 @@ class Settings(BaseSettings):
     WS_HEARTBEAT_INTERVAL: int = Field(default=30)
     WS_MAX_CONNECTIONS: int = Field(default=1000)
     
+    # SMTP Settings
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "localhost")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USERNAME: str = os.getenv("SMTP_USERNAME", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+    SMTP_FROM_EMAIL: str = os.getenv("SMTP_FROM_EMAIL", "noreply@faraday.ai")
+    
     # Notification Rate Limits
     SMTP_RATE_LIMIT: int = 100  # Max emails per time window
     SMTP_RATE_WINDOW: int = 3600  # 1 hour in seconds

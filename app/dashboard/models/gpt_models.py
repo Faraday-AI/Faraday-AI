@@ -72,6 +72,8 @@ class GPTDefinition(SharedBase):
     model_type = Column(String, nullable=False)  # e.g., 'gpt-4', 'gpt-3.5-turbo'
     version = Column(String, nullable=False)
     description = Column(Text, nullable=True)
+    category = Column(Enum(GPTCategory), nullable=True)
+    type = Column(Enum(GPTType), nullable=True)
     
     # Configuration
     max_tokens = Column(Integer, nullable=False)
@@ -106,6 +108,7 @@ class GPTDefinition(SharedBase):
     contexts = relationship("app.dashboard.models.context.GPTContext", secondary=dashboard_context_gpts, back_populates="active_gpts")
     performance_metrics = relationship("GPTPerformance", back_populates="model")
     context_data = relationship("app.models.gpt.context.models.ContextData", back_populates="gpt")
+    subscriptions = relationship("DashboardGPTSubscription", back_populates="gpt_definition")
     
     # Additional metadata
     meta_data = Column(JSON)
@@ -122,6 +125,7 @@ class DashboardGPTSubscription(SharedBase):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("dashboard_users.id"), nullable=False)
     organization_id = Column(Integer, ForeignKey("organizations.id"))
+    gpt_definition_id = Column(Integer, ForeignKey("gpt_definitions.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(String)
     model = Column(String, nullable=False)
@@ -133,6 +137,7 @@ class DashboardGPTSubscription(SharedBase):
     # Relationships
     user = relationship("app.dashboard.models.user.DashboardUser", back_populates="dashboard_gpt_subscriptions")
     organization = relationship("Organization", back_populates="dashboard_gpt_subscriptions")
+    gpt_definition = relationship("GPTDefinition", back_populates="subscriptions")
     # shared_with = relationship("app.dashboard.models.user.DashboardUser", secondary=gpt_sharing, back_populates="shared_gpts")
     usage = relationship("GPTUsage", back_populates="subscription")
     analytics = relationship("GPTAnalytics", back_populates="subscription")

@@ -34,7 +34,9 @@ from .gpt_models import (
     GPTAnalytics,
     GPTFeedback,
     GPTPerformance,
-    GPTUsageHistory
+    GPTUsageHistory,
+    GPTCategory,
+    GPTType
 )
 from .feedback import Feedback
 from .project import DashboardProject
@@ -131,6 +133,8 @@ __all__ = [
     'GPTFeedback',
     'GPTPerformance',
     'GPTUsageHistory',
+    'GPTCategory',
+    'GPTType',
     'GPTContext',
     'ContextInteraction',
     'SharedContext',

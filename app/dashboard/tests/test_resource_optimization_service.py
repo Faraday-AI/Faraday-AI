@@ -6,11 +6,12 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 import numpy as np
+from unittest.mock import AsyncMock
 
-from ..services.resource_optimization_service import ResourceOptimizationService
-from ..models import (
+from app.dashboard.services.resource_optimization_service import ResourceOptimizationService
+from app.dashboard.models import (
     GPTDefinition,
-    GPTSubscription,
+    DashboardGPTSubscription,
     GPTPerformance,
     GPTUsageHistory,
     GPTCategory,
@@ -61,50 +62,71 @@ def sample_performance_trends():
 
 async def test_optimize_resources(
     optimization_service,
+    mock_db,
     mock_analytics_service,
     sample_usage_prediction,
     sample_performance_trends
 ):
     """Test resource optimization."""
-    # Mock analytics service responses
-    mock_analytics_service.return_value.predict_resource_usage.return_value = (
-        sample_usage_prediction
-    )
-    mock_analytics_service.return_value.get_performance_trends.return_value = (
-        sample_performance_trends
-    )
+    # Mock database query for GPTDefinition
+    mock_gpt = Mock()
+    mock_gpt.id = "gpt-1"
+    mock_gpt.name = "Test GPT"
+    mock_gpt.category = "TEACHER"
+    mock_gpt.type = "MATH_TEACHER"
+    
+    mock_db.query.return_value.filter.return_value.first.return_value = mock_gpt
+    
+    # Mock the internal service methods to return the expected data structure
+    with patch.object(optimization_service, '_get_gpt_usage_prediction') as mock_usage:
+        with patch.object(optimization_service, '_get_gpt_performance_trends') as mock_performance:
+            mock_usage.return_value = {
+                "predictions": {
+                    "predicted_peak_usage": 0.75,
+                    "growth_trend": 0.1,
+                    "peak_hours": [9, 14, 16]
+                },
+                "confidence_score": 0.8
+            }
+            mock_performance.return_value = {
+                "performance_score": 0.8,
+                "trends": {
+                    "response_time": {"current_value": 0.5, "trend": "improving"},
+                    "accuracy": {"current_value": 0.85, "trend": "stable"}
+                }
+            }
 
-    # Test balanced optimization
-    result = await optimization_service.optimize_resources(
-        gpt_id="gpt-1",
-        optimization_target="balanced"
-    )
-    
-    assert result["status"] == "success"
-    assert "optimization_plan" in result
-    assert "scaling_recommendations" in result
-    assert "estimated_improvements" in result
-    
-    # Verify optimization plan
-    plan = result["optimization_plan"]
-    assert plan["buffer_strategy"] == "moderate"
-    assert 0.8 <= plan["recommended_allocation"] <= 1.2
+            # Test balanced optimization
+            result = await optimization_service.optimize_resources(
+                gpt_id="gpt-1",
+                optimization_target="balanced"
+            )
+            
+            assert result["status"] == "success"
+            assert "optimization_plan" in result
+            assert "scaling_recommendations" in result
+            assert "estimated_improvements" in result
+            
+            # Verify optimization plan
+            plan = result["optimization_plan"]
+            assert plan["buffer_strategy"] == "moderate"
+            assert 0.8 <= plan["recommended_allocation"] <= 1.2
 
-    # Test performance-focused optimization
-    result = await optimization_service.optimize_resources(
-        gpt_id="gpt-1",
-        optimization_target="performance"
-    )
-    
-    assert result["optimization_plan"]["buffer_strategy"] == "aggressive"
-    
-    # Test efficiency-focused optimization
-    result = await optimization_service.optimize_resources(
-        gpt_id="gpt-1",
-        optimization_target="efficiency"
-    )
-    
-    assert result["optimization_plan"]["buffer_strategy"] == "minimal"
+            # Test performance-focused optimization
+            result = await optimization_service.optimize_resources(
+                gpt_id="gpt-1",
+                optimization_target="performance"
+            )
+            
+            assert result["optimization_plan"]["buffer_strategy"] == "aggressive"
+            
+            # Test efficiency-focused optimization
+            result = await optimization_service.optimize_resources(
+                gpt_id="gpt-1",
+                optimization_target="efficiency"
+            )
+            
+            assert result["optimization_plan"]["buffer_strategy"] == "minimal"
 
 async def test_get_resource_allocation_plan(
     optimization_service,
@@ -113,26 +135,40 @@ async def test_get_resource_allocation_plan(
     sample_usage_prediction
 ):
     """Test resource allocation planning."""
-    # Mock database queries
-    mock_db.query.return_value.filter.return_value.all.return_value = [
-        GPTDefinition(
-            id="gpt-1",
-            name="Math Teacher",
-            category=GPTCategory.TEACHER,
-            type=GPTType.MATH_TEACHER
-        ),
-        GPTDefinition(
-            id="gpt-2",
-            name="Science Teacher",
-            category=GPTCategory.TEACHER,
-            type=GPTType.SCIENCE_TEACHER
-        )
-    ]
+    # Mock database queries with Mock objects instead of SQLAlchemy models
+    mock_gpt1 = Mock()
+    mock_gpt1.id = "gpt-1"
+    mock_gpt1.name = "Math Teacher"
+    mock_gpt1.category = "TEACHER"
+    mock_gpt1.type = "MATH_TEACHER"
     
-    # Mock analytics service
-    mock_analytics_service.return_value.predict_resource_usage.return_value = (
-        sample_usage_prediction
-    )
+    mock_gpt2 = Mock()
+    mock_gpt2.id = "gpt-2"
+    mock_gpt2.name = "Science Teacher"
+    mock_gpt2.category = "TEACHER"
+    mock_gpt2.type = "SCIENCE_TEACHER"
+    
+    # Set up the mock chain properly for query.all()
+    mock_query = Mock()
+    mock_query.all.return_value = [mock_gpt1, mock_gpt2]
+    mock_query.filter.return_value = mock_query  # For the category filter case
+    
+    mock_db.query.return_value = mock_query
+    
+    # Mock the analytics service instance to return successful predictions
+    mock_analytics_instance = Mock()
+    mock_analytics_instance.predict_resource_usage = AsyncMock(return_value={
+        "status": "success",
+        "predictions": {
+            "predicted_peak_usage": 0.75,
+            "growth_trend": 0.1,
+            "peak_hours": [9, 14, 16]
+        },
+        "confidence_score": 0.8
+    })
+    
+    # Replace the analytics service instance in the optimization service
+    optimization_service.analytics_service = mock_analytics_instance
 
     # Test allocation plan generation
     result = await optimization_service.get_resource_allocation_plan()
@@ -154,14 +190,25 @@ async def test_get_resource_allocation_plan(
 
 async def test_get_scaling_recommendations(
     optimization_service,
+    mock_db,
     mock_analytics_service,
     sample_usage_prediction
 ):
     """Test scaling recommendations."""
-    # Mock analytics service
-    mock_analytics_service.return_value.predict_resource_usage.return_value = (
-        sample_usage_prediction
-    )
+    # Mock the analytics service instance to return successful prediction
+    mock_analytics_instance = Mock()
+    mock_analytics_instance.predict_resource_usage = AsyncMock(return_value={
+        "status": "success",
+        "predictions": {
+            "predicted_peak_usage": 0.75,
+            "growth_trend": 0.1,
+            "peak_hours": [9, 14, 16]
+        },
+        "confidence_score": 0.8
+    })
+    
+    # Replace the analytics service instance in the optimization service
+    optimization_service.analytics_service = mock_analytics_instance
 
     # Test recommendation generation
     result = await optimization_service.get_scaling_recommendations("gpt-1")

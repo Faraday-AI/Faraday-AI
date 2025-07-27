@@ -166,6 +166,15 @@ from app.models.physical_education.nutrition import (
     NutritionEducationResponse,
 )
 
+from app.models.physical_education.activity_plan import (
+    ActivityPlan,
+    ActivityPlanActivity,
+    ActivityPlanCreate,
+    ActivityPlanUpdate,
+    ActivityPlanResponse,
+    ClassPlan
+)
+
 # from app.models.physical_education.health.models import (
 #     HealthMetric,
 #     HealthMetricCreate,
@@ -314,4 +323,12 @@ __all__ = [
     'NutritionEducationCreate',
     'NutritionEducationUpdate',
     'NutritionEducationResponse',
+    
+    # Activity Plan models
+    'ActivityPlan',
+    'ActivityPlanActivity',
+    'ActivityPlanCreate',
+    'ActivityPlanUpdate',
+    'ActivityPlanResponse',
+    'ClassPlan',
 ] 

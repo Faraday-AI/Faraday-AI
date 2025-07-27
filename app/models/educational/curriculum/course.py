@@ -10,7 +10,6 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from app.models.physical_education.base.base_class import Base
-from app.dashboard.models import DashboardUser
 
 # Association table for course enrollments
 course_enrollments = Table(
@@ -37,7 +36,7 @@ class Course(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    creator = relationship("DashboardUser", foreign_keys=[created_by])
-    participants = relationship("DashboardUser", secondary=course_enrollments, backref="enrolled_courses")
+    creator = relationship("DashboardUser", foreign_keys=[created_by], lazy="select")
+    participants = relationship("DashboardUser", secondary=course_enrollments, backref="enrolled_courses", lazy="select")
     assignments = relationship("Assignment", back_populates="course")
     message_boards = relationship("MessageBoard", back_populates="course") 

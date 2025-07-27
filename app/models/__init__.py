@@ -284,7 +284,6 @@ from .user_management.preferences.user_preferences_management import (
 
 # Dashboard models
 from app.models.dashboard import CoreDashboardWidget, DashboardTheme, DashboardShareConfig, DashboardFilterConfig, DashboardExport, DashboardSearch
-from app.dashboard.models.user_preferences import UserPreferences
 from app.dashboard.models.tool_registry import Tool, UserTool, user_tools
 from app.dashboard.models.user import DashboardUser
 from app.dashboard.models.project import DashboardProject
@@ -404,6 +403,36 @@ from .educational import (
     Instructor
 )
 
+# Analytics Models
+from .analytics import (
+    UserActivity,
+    UserBehavior,
+    UserPerformance,
+    UserEngagement,
+    UserPrediction,
+    UserRecommendation,
+    AnalyticsEvent,
+    UserInsight,
+    UserTrend,
+    UserComparison
+)
+
+# Assessment Models
+from .assessment import (
+    GeneralAssessment,
+    AssessmentCriteria,
+    AssessmentChange,
+    AssessmentHistory,
+    SkillAssessment,
+    SkillProgress
+)
+
+# Movement Analysis Models
+from .movement_analysis import (
+    MovementAnalysis,
+    MovementPattern
+)
+
 # Import missing association tables and models that are failing to create
 from .user_management.preferences.user_preferences_management import user_preference_template_assignments
 from app.dashboard.models.association_tables import dashboard_context_gpts
@@ -512,6 +541,15 @@ __all__ = [
 
     # Educational Models
     'Grade', 'Assignment', 'Rubric', 'Message', 'MessageBoard', 'MessageBoardPost', 'Curriculum', 'LessonPlan', 'Subject', 'Course', 'SubjectCategory', 'EducationalClass', 'EducationalClassStudent', 'Teacher', 'Instructor',
+
+    # Analytics Models
+    'UserActivity', 'UserBehavior', 'UserPerformance', 'UserEngagement', 'UserPrediction', 'UserRecommendation', 'AnalyticsEvent', 'UserInsight', 'UserTrend', 'UserComparison',
+
+    # Assessment Models
+    'GeneralAssessment', 'AssessmentCriteria', 'AssessmentChange', 'AssessmentHistory', 'SkillAssessment', 'SkillProgress',
+    
+    # Movement Analysis Models
+    'MovementAnalysis', 'MovementPattern',
 
     # Missing models and association tables
     'user_preference_template_assignments', 'dashboard_context_gpts', 'gpt_categories',

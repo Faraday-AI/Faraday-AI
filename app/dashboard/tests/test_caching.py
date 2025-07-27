@@ -8,9 +8,9 @@ import redis
 import json
 from datetime import datetime, timedelta
 
-from ..services.monitoring_service import MonitoringService
-from ..services.compatibility_service import CompatibilityService
-from ..models.gpt_models import GPTDefinition, GPTCategory, GPTType
+from app.dashboard.services.monitoring_service import MonitoringService
+from app.dashboard.services.compatibility_service import CompatibilityService
+from app.dashboard.models.gpt_models import GPTDefinition, GPTCategory, GPTType
 
 @pytest.fixture
 def mock_redis():
@@ -25,24 +25,39 @@ def mock_db():
 
 @pytest.fixture
 def monitoring_service(mock_db, mock_redis):
-    return MonitoringService(mock_db, redis_url="redis://localhost:6379")
+    with patch('redis.from_url', return_value=mock_redis):
+        return MonitoringService(mock_db, redis_url="redis://localhost:6379")
 
 @pytest.fixture
-def compatibility_service(mock_db):
-    return CompatibilityService(mock_db)
+def compatibility_service(mock_db, mock_redis):
+    with patch('redis.from_url', return_value=mock_redis):
+        return CompatibilityService(mock_db, redis_url="redis://localhost:6379")
 
 @pytest.fixture
 def sample_metrics_data():
     return {
-        "total_interactions": 100,
         "active_contexts": 5,
-        "gpt_switches": 20,
-        "context_shares": 15,
         "average_context_duration": 300.5,
+        "context_shares": 15,
+        "gpt_switches": 20,
+        "total_interactions": 100,
         "performance_metrics": {
             "accuracy": 0.95,
             "response_time": 0.85,
-            "user_satisfaction": 0.90
+            "user_satisfaction": 0.9
+        }
+    }
+
+@pytest.fixture
+def compatibility_data():
+    return {
+        "status": "success",
+        "compatibility_score": 0.95,
+        "checks": {
+            "dependencies": {"status": "passed"},
+            "version": {"status": "passed"},
+            "integrations": {"status": "passed"},
+            "resources": {"status": "passed"}
         }
     }
 
@@ -54,8 +69,11 @@ async def test_cache_metrics(monitoring_service, mock_redis, sample_metrics_data
     await monitoring_service._cache_metrics(cache_key, sample_metrics_data)
     mock_redis.setex.assert_called_once()
     
-    # Verify cache TTL
-    assert mock_redis.setex.call_args[1]["time"] == 300  # 5 minutes TTL
+    # Verify cache TTL - setex takes (key, time, value) arguments
+    call_args = mock_redis.setex.call_args
+    assert call_args[0][0] == cache_key  # key
+    assert call_args[0][1] == 300  # time (5 minutes TTL)
+    assert call_args[0][2] == json.dumps(sample_metrics_data)  # value
 
 async def test_get_cached_metrics(monitoring_service, mock_redis, sample_metrics_data):
     """Test retrieving cached metrics."""
@@ -74,31 +92,20 @@ async def test_get_cached_metrics(monitoring_service, mock_redis, sample_metrics
     cached_data = await monitoring_service._get_cached_metrics(cache_key)
     assert cached_data is None
 
-async def test_cache_compatibility_results(compatibility_service, mock_redis):
-    """Test caching of compatibility check results."""
+async def test_cache_compatibility_results(compatibility_service, mock_redis, compatibility_data):
+    """Test caching of compatibility results."""
     gpt_id = "gpt-1"
-    compatibility_data = {
-        "status": "success",
-        "compatibility_score": 0.95,
-        "checks": {
-            "dependencies": {"status": "passed"},
-            "version": {"status": "passed"},
-            "integrations": {"status": "passed"},
-            "resources": {"status": "passed"}
-        }
-    }
-    
     cache_key = f"compatibility:{gpt_id}"
     
     # Test setting cache
-    await compatibility_service._cache_compatibility_results(
-        gpt_id,
-        compatibility_data
-    )
+    await compatibility_service._cache_compatibility_results(gpt_id, compatibility_data)
     mock_redis.setex.assert_called_once()
     
-    # Verify cache data and TTL
-    assert mock_redis.setex.call_args[1]["time"] == 300
+    # Verify cache TTL - setex takes (key, time, value) arguments
+    call_args = mock_redis.setex.call_args
+    assert call_args[0][0] == cache_key  # key
+    assert call_args[0][1] == 300  # time (5 minutes TTL)
+    assert call_args[0][2] == json.dumps(compatibility_data)  # value
 
 async def test_get_cached_compatibility(compatibility_service, mock_redis):
     """Test retrieving cached compatibility results."""

@@ -13,7 +13,6 @@ from typing import Optional, Dict, Any
 from app.models.core.base import CoreBase, BaseModel, MetadataMixin
 from app.db.mixins import StatusMixin
 from app.models.user_management.preferences.types import PreferenceType
-from app.dashboard.models.user_preferences import UserPreferences
 
 # Many-to-many relationship table for user preference templates
 user_preference_template_assignments = Table(
@@ -23,8 +22,8 @@ user_preference_template_assignments = Table(
     Column('template_id', Integer, ForeignKey('user_preference_templates.id'))
 )
 
-# Re-export the UserPreferences class
-__all__ = ['UserPreferences', 'UserPreference', 'UserPreferenceCategory', 'UserPreferenceTemplate']
+# Re-export the UserPreference classes
+__all__ = ['UserPreference', 'UserPreferenceCategory', 'UserPreferenceTemplate']
 
 class UserPreference(CoreBase):
     """Model for user preferences."""

@@ -12,6 +12,7 @@ from prometheus_client import Counter, Histogram, Gauge
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 import redis
+import json
 
 from ..models import (
     ContextInteraction,
@@ -106,7 +107,7 @@ class MonitoringService:
         try:
             # Get recent performance metrics
             metrics = self.db.query(GPTPerformance).filter(
-                GPTPerformance.gpt_definition_id == gpt_id,
+                GPTPerformance.model_id == gpt_id,
                 GPTPerformance.timestamp >= datetime.utcnow() - timedelta(days=1)
             ).all()
 
@@ -178,7 +179,7 @@ class MonitoringService:
         # Calculate summary
         try:
             metrics = self.db.query(GPTPerformance).filter(
-                GPTPerformance.gpt_definition_id == gpt_id,
+                GPTPerformance.model_id == gpt_id,
                 GPTPerformance.timestamp >= datetime.utcnow() - timedelta(days=7)
             ).all()
 
@@ -1019,6 +1020,39 @@ class MonitoringService:
         
         self.redis.setex(cache_key, self.cache_ttl, str(benchmark))
         return benchmark
+
+    async def _cache_metrics(self, cache_key: str, data: Dict) -> None:
+        """Cache monitoring metrics."""
+        try:
+            self.redis.setex(cache_key, 300, json.dumps(data))  # 5 minutes TTL
+        except Exception:
+            pass  # Silently fail if caching fails
+
+    async def _get_cached_metrics(self, cache_key: str) -> Optional[Dict]:
+        """Get cached monitoring metrics."""
+        try:
+            cached_data = self.redis.get(cache_key)
+            if cached_data:
+                return json.loads(cached_data)
+            return None
+        except Exception:
+            return None
+
+    async def _invalidate_cache(self, cache_key: str) -> None:
+        """Invalidate a specific cache key."""
+        try:
+            self.redis.delete(cache_key)
+        except Exception:
+            pass  # Silently fail if cache invalidation fails
+
+    async def _invalidate_cache_pattern(self, pattern: str) -> None:
+        """Invalidate cache keys matching a pattern."""
+        try:
+            keys = self.redis.keys(pattern)
+            if keys:
+                self.redis.delete(*keys)
+        except Exception:
+            pass  # Silently fail if cache invalidation fails
 
     def _get_time_range_start(self, time_range: str) -> datetime:
         """Get start time for a time range."""

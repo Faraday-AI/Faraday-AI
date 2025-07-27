@@ -19,7 +19,7 @@ from ..models.gpt_models import (
     GPTAnalytics,
     GPTFeedback
 )
-from ..models.context import GPTContext, ContextInteraction, SharedContext
+from ..models.context import GPTContext, ContextInteraction, SharedContext, ContextSummary
 
 class GPTCoordinationService:
     def __init__(self, db: Session):
