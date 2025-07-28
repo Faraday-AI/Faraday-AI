@@ -1171,6 +1171,15 @@ class ActivityService:
             self.db.rollback()
             raise e
 
+    async def list_activities(self) -> List[Activity]:
+        """
+        Retrieve all activities.
+        
+        Returns:
+            List[Activity]: List of all activities
+        """
+        return self.db.query(Activity).all()
+
     async def _get_safety_incident_data(self, activity_id: str) -> List[Dict[str, Any]]:
         """
         Helper method to get safety incident data for an activity.

@@ -1,5 +1,5 @@
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -359,4 +359,19 @@ class RiskAssessmentManager:
             return {
                 "success": 0,
                 "failure": len(assessment_ids)
+            }
+
+    async def check_health(self) -> Dict[str, Any]:
+        """Check risk assessment manager health."""
+        try:
+            return {
+                "status": "healthy",
+                "message": "Risk assessment manager is operational",
+                "timestamp": datetime.utcnow()
+            }
+        except Exception as e:
+            return {
+                "status": "unhealthy",
+                "message": f"Risk assessment manager error: {str(e)}",
+                "timestamp": datetime.utcnow()
             } 

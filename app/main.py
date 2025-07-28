@@ -33,7 +33,7 @@ from app.services.utilities.file_processing_service import FileProcessingService
 from app.services.ai.ai_analytics import AIAnalyticsService
 from app.api.v1.endpoints.management.ai_analysis import router as ai_analysis_router
 from app.api.v1.endpoints.management.activity_management import router as activity_management
-from app.api.v1.endpoints.physical_education import physical_education
+from app.api.v1.endpoints.physical_education import pe_router
 from app.api.v1.endpoints.physical_education.health_fitness import router as health_fitness_router
 from app.core.database import initialize_engines, get_db, engine, init_db
 from app.core.enums import Region
@@ -165,6 +165,7 @@ app.include_router(resource_sharing.router, prefix="/api/v1/resource-sharing", t
 app.include_router(optimization_monitoring.router, prefix="/api/v1/optimization-monitoring", tags=["optimization-monitoring"])
 app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])  # Add new router
 app.include_router(educational.router, prefix="/api/v1/educational", tags=["educational"])
+app.include_router(pe_router, prefix="/api/v1/phys-ed", tags=["physical-education"])
 app.include_router(health_fitness_router, prefix="/api/v1/physical-education", tags=["physical-education"])
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(rbac_management_router, prefix="/api/v1/rbac-management", tags=["rbac-management"])

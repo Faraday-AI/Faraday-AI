@@ -138,7 +138,8 @@ class ServiceIntegration:
                         self.logger.info(f"Initialized service: {service_name}")
                     except Exception as e:
                         self.logger.error(f"Error initializing service {service_name}: {str(e)}")
-                        raise
+                        # Continue with other services even if one fails
+                        continue
             
             self._initialized = True
             self.logger.info("Service integration layer initialized successfully")
@@ -150,7 +151,19 @@ class ServiceIntegration:
     def get_service(self, service_name: str) -> Any:
         """Get a service by name."""
         if not self._initialized:
-            raise RuntimeError("Service integration layer not initialized")
+            # Try to initialize if not already done
+            try:
+                import asyncio
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    # If we're in an async context, we can't initialize here
+                    raise RuntimeError("Service integration layer not initialized")
+                else:
+                    # Initialize synchronously
+                    loop.run_until_complete(self.initialize())
+            except Exception as e:
+                raise RuntimeError(f"Service integration layer not initialized: {str(e)}")
+        
         if service_name not in self.services:
             raise ValueError(f"Service not found: {service_name}")
         return self.services[service_name]

@@ -21,8 +21,7 @@ from starlette.middleware.cors import CORSMiddleware
 import redis
 from app.core.config import settings
 import uuid
-from app.core.auth import get_current_user
-from app.models.core.user import User
+from app.core.auth_models import User
 
 # Try to import pyotp, but make it optional
 try:

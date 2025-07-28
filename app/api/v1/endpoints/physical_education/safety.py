@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, validator, confloat, conint, ConfigDict
 import logging
 from functools import lru_cache
 from app.api.v1.middleware.auth import oauth2_scheme, get_current_active_user
-from app.middleware.rate_limit import limiter
+from app.core.rate_limit import rate_limit
 from app.services.physical_education.safety_manager import SafetyManager
 from app.services.physical_education.equipment_manager import EquipmentManager
 from app.services.physical_education.safety_incident_manager import SafetyIncidentManager
@@ -17,7 +17,7 @@ from app.core.cache import cache_manager
 import asyncio
 from sqlalchemy.orm import Session
 
-from app.api.v1.models.safety import SafetyIncident, SafetyIncidentCreate, SafetyIncidentUpdate
+from app.schemas.safety import SafetyIncidentResponse as SafetyIncident, SafetyIncidentCreate, SafetyIncidentUpdate
 from app.core.database import get_db
 
 # Configure logging
@@ -46,11 +46,11 @@ RATE_LIMIT = {
     "metrics": {"requests": 1, "period": 60}
 }
 
-# Initialize managers with caching
-safety_manager = SafetyManager(cache_manager=cache_manager)
-equipment_manager = EquipmentManager(cache_manager=cache_manager)
-incident_manager = SafetyIncidentManager(cache_manager=cache_manager)
-risk_manager = RiskAssessmentManager(cache_manager=cache_manager)
+# Initialize managers
+safety_manager = SafetyManager()
+equipment_manager = EquipmentManager()
+incident_manager = SafetyIncidentManager()
+risk_manager = RiskAssessmentManager()
 
 # Enhanced Pydantic models with stricter validation
 class RiskAssessmentRequest(BaseModel):
@@ -119,6 +119,107 @@ class SafetyIncidentRequest(BaseModel):
                 "time_of_incident": "2024-03-15T10:30:00Z",
                 "witnesses": ["STU-002", "STU-003"],
                 "follow_up_required": True
+            }
+        }
+    )
+
+class EmergencyProcedureRequest(BaseModel):
+    """Request model for creating an emergency procedure."""
+    class_id: str = Field(..., min_length=1, max_length=50)
+    procedure_type: str = Field(..., description="Type of emergency procedure")
+    description: str = Field(..., min_length=10, max_length=1000)
+    steps: List[str] = Field(..., min_items=1, description="Step-by-step procedure")
+    contact_info: Optional[Dict[str, str]] = Field(None, description="Emergency contact information")
+
+    @validator('procedure_type')
+    def validate_procedure_type(cls, v):
+        valid_types = ['fire', 'medical', 'weather', 'security', 'other']
+        if v.lower() not in valid_types:
+            raise ValueError(f"Procedure type must be one of: {', '.join(valid_types)}")
+        return v.lower()
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "class_id": "PE-2024-001",
+                "procedure_type": "medical",
+                "description": "Emergency medical response procedure",
+                "steps": [
+                    "Assess the situation",
+                    "Call emergency services",
+                    "Administer first aid if qualified",
+                    "Evacuate other students if necessary"
+                ],
+                "contact_info": {
+                    "nurse": "555-0123",
+                    "emergency": "911",
+                    "principal": "555-0124"
+                }
+            }
+        }
+    )
+
+class EnvironmentalCheckRequest(BaseModel):
+    """Request model for recording an environmental check."""
+    class_id: str = Field(..., min_length=1, max_length=50)
+    check_type: str = Field(..., description="Type of environmental check")
+    temperature: Optional[float] = Field(None, description="Temperature in Celsius")
+    humidity: Optional[float] = Field(None, description="Humidity percentage")
+    air_quality: Optional[str] = Field(None, description="Air quality assessment")
+    lighting: Optional[str] = Field(None, description="Lighting conditions")
+    surface_condition: Optional[str] = Field(None, description="Surface condition assessment")
+    weather_conditions: Optional[Dict[str, Any]] = Field(None, description="Weather conditions")
+    additional_notes: Optional[str] = Field(None, max_length=500)
+
+    @validator('check_type')
+    def validate_check_type(cls, v):
+        valid_types = ['indoor', 'outdoor', 'weather', 'air_quality', 'lighting', 'surface']
+        if v.lower() not in valid_types:
+            raise ValueError(f"Check type must be one of: {', '.join(valid_types)}")
+        return v.lower()
+
+    @validator('air_quality')
+    def validate_air_quality(cls, v):
+        if v is not None:
+            valid_levels = ['excellent', 'good', 'fair', 'poor', 'hazardous']
+            if v.lower() not in valid_levels:
+                raise ValueError(f"Air quality must be one of: {', '.join(valid_levels)}")
+            return v.lower()
+        return v
+
+    @validator('lighting')
+    def validate_lighting(cls, v):
+        if v is not None:
+            valid_levels = ['excellent', 'good', 'fair', 'poor', 'insufficient']
+            if v.lower() not in valid_levels:
+                raise ValueError(f"Lighting must be one of: {', '.join(valid_levels)}")
+            return v.lower()
+        return v
+
+    @validator('surface_condition')
+    def validate_surface_condition(cls, v):
+        if v is not None:
+            valid_levels = ['excellent', 'good', 'fair', 'poor', 'unsafe']
+            if v.lower() not in valid_levels:
+                raise ValueError(f"Surface condition must be one of: {', '.join(valid_levels)}")
+            return v.lower()
+        return v
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "class_id": "PE-2024-001",
+                "check_type": "indoor",
+                "temperature": 22.5,
+                "humidity": 45.0,
+                "air_quality": "good",
+                "lighting": "excellent",
+                "surface_condition": "good",
+                "weather_conditions": {
+                    "condition": "clear",
+                    "wind_speed": 5.0
+                },
+                "additional_notes": "Gymnasium conditions optimal for physical activity"
             }
         }
     )
@@ -194,7 +295,7 @@ class AuthorizationError(SafetyError):
         500: {"description": "Internal server error"}
     }
 )
-@limiter(requests=RATE_LIMIT["risk_assessment"]["requests"], period=RATE_LIMIT["risk_assessment"]["period"])
+@rate_limit(requests=RATE_LIMIT["risk_assessment"]["requests"], period=RATE_LIMIT["risk_assessment"]["period"])
 async def conduct_risk_assessment(
     request: RiskAssessmentRequest,
     token: str = Depends(oauth2_scheme),
@@ -584,7 +685,7 @@ class SafetyIncidentResponse(BaseModel):
         500: {"description": "Internal server error"}
     }
 )
-@limiter(requests=RATE_LIMIT["incidents"]["requests"], period=RATE_LIMIT["incidents"]["period"])
+@rate_limit(requests=RATE_LIMIT["incidents"]["requests"], period=RATE_LIMIT["incidents"]["period"])
 async def record_incident(
     request: SafetyIncidentRequest,
     token: str = Depends(oauth2_scheme),

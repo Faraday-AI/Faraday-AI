@@ -7,12 +7,12 @@ from typing import Optional
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from app.api.v1.models.security import TokenData, User
+from app.core.auth_models import TokenData, User
 from app.core.database import get_db
 from app.core.config import settings
 
 # Security configuration
-SECRET_KEY = "your-secret-key"  # TODO: Move to environment variables
+SECRET_KEY = os.getenv("JWT_SECRET_KEY", "your-secret-key")  # Get from environment variables
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 REFRESH_TOKEN_EXPIRE_DAYS = 7
@@ -68,6 +68,48 @@ async def get_current_active_user(
 ):
     if current_user.disabled:
         raise HTTPException(status_code=400, detail="Inactive user")
+    return current_user
+
+async def get_user(username: str) -> Optional[User]:
+    """Get user by username."""
+    # For now, return a mock user
+    # In a real implementation, this would query the database
+    if username == "admin":
+        return User(
+            username="admin",
+            email="admin@example.com",
+            full_name="Administrator",
+            disabled=False,
+            scopes=["activities:read", "activities:write", "admin"]
+        )
+    elif username == "teacher":
+        return User(
+            username="teacher",
+            email="teacher@example.com",
+            full_name="Teacher",
+            disabled=False,
+            scopes=["activities:read", "activities:write"]
+        )
+    else:
+        return User(
+            username=username,
+            email=f"{username}@example.com",
+            full_name=f"User {username}",
+            disabled=False,
+            scopes=["activities:read"]
+        )
+
+async def get_current_admin_user(
+    current_user: User = Security(get_current_user, scopes=["admin"])
+):
+    """Get current admin user."""
+    if current_user.disabled:
+        raise HTTPException(status_code=400, detail="Inactive user")
+    if "admin" not in current_user.scopes:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
     return current_user
 
 async def add_authentication(request: Request, call_next):

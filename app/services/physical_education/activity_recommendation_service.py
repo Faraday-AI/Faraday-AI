@@ -18,19 +18,12 @@ from app.models.physical_education.activity.models import (
 from app.api.v1.models.activity import (
     ActivityRecommendationRequest,
     ActivityRecommendationResponse,
-    ActivityCategory
+    ActivityRecommendation
 )
 from app.services.physical_education.recommendation_engine import RecommendationEngine
-from app.utils.logging import get_logger
+from app.core.logging import get_logger
 from app.models.physical_education.pe_enums.pe_types import (
-    ActivityType,
-    DifficultyLevel,
-    EquipmentRequirement,
-    ActivityCategoryType,
-    RecommendationType,
-    RecommendationStatus,
-    RecommendationAction,
-    RecommendationTrigger
+    ActivityCategoryType
 )
 
 logger = get_logger(__name__)

@@ -8,14 +8,14 @@ import logging
 import asyncio
 from sqlalchemy.orm import Session
 
-from ....core.auth import get_current_active_user, oauth2_scheme
-from ....core.rate_limit import rate_limit
-from ....core.cache import cache_manager
-from ....services.physical_education.services.student_manager import StudentManager
-from ....services.physical_education.services.assessment_system import AssessmentSystem
+from app.core.auth import get_current_active_user, oauth2_scheme
+from app.core.rate_limit import rate_limit
+from app.core.cache import cache_manager
+from app.core.database import get_db
+from app.services.physical_education.student_manager import StudentManager
+from app.services.physical_education.assessment_system import AssessmentSystem
 from app.models.physical_education.student import (
     Student,
-    HealthMetric,
     StudentHealthFitnessGoal,
     StudentHealthGoalProgress,
     StudentHealthGoalRecommendation
@@ -24,7 +24,7 @@ from app.models.health_fitness.metrics.health import HealthMetric
 from app.models.physical_education.progress import (
     Progress,
     ProgressGoal,
-    ProgressNote
+    PhysicalEducationProgressNote as ProgressNote
 )
 
 # Configure logging

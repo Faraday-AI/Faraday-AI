@@ -50,6 +50,18 @@ class SafetyIncidentBase(BaseModel):
 class SafetyIncidentCreate(SafetyIncidentBase):
     pass
 
+class SafetyIncidentUpdate(BaseModel):
+    activity_id: Optional[int] = None
+    student_id: Optional[int] = None
+    incident_type: Optional[IncidentType] = None
+    severity: Optional[IncidentSeverity] = None
+    description: Optional[str] = None
+    response_taken: Optional[str] = None
+    location: Optional[str] = None
+    equipment_involved: Optional[Dict[str, Any]] = None
+    witnesses: Optional[List[str]] = None
+    follow_up_required: Optional[bool] = None
+
 class SafetyIncidentResponse(SafetyIncidentBase):
     id: int
     created_at: datetime

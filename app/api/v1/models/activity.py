@@ -65,7 +65,15 @@ class ActivityCategory(BaseModel):
             raise ValueError(f'Category must be one of: {", ".join(valid_categories)}')
         return v.lower()
 
-class ActivityType(BaseModel):
+class ActivityType(str, Enum):
+    STRENGTH = "strength"
+    CARDIO = "cardio"
+    FLEXIBILITY = "flexibility"
+    BALANCE = "balance"
+    COORDINATION = "coordination"
+    ENDURANCE = "endurance"
+
+class ActivityTypeModel(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     name: str = Field(..., description="Name of the activity type")
     category: str = Field(..., description="Category this type belongs to")
@@ -166,6 +174,28 @@ class ActivityProgress(BaseModel):
         if v.lower() not in valid_trends:
             raise ValueError(f'Trend must be one of: {", ".join(valid_trends)}')
         return v.lower()
+
+class ActivityRecommendationRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    student_id: int = Field(..., description="ID of the student")
+    class_id: int = Field(..., description="ID of the class")
+    preferences: Optional[Dict[str, Any]] = Field(None, description="Student preferences")
+    limit: Optional[int] = Field(5, description="Maximum number of recommendations to return")
+
+class ActivityRecommendationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int = Field(..., description="Recommendation ID")
+    student_id: int = Field(..., description="ID of the student")
+    class_id: int = Field(..., description="ID of the class")
+    activity_id: int = Field(..., description="ID of the recommended activity")
+    recommendation_score: float = Field(..., description="Recommendation score (0.0 to 1.0)", ge=0.0, le=1.0)
+    score_breakdown: Dict[str, float] = Field(..., description="Detailed breakdown of the recommendation score")
+    created_at: datetime = Field(..., description="Timestamp of recommendation")
+
+class DifficultyLevel(str, Enum):
+    BEGINNER = "beginner"
+    INTERMEDIATE = "intermediate"
+    ADVANCED = "advanced"
 
 class ActivityRecommendation(BaseModel):
     model_config = ConfigDict(from_attributes=True)

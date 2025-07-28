@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field, validator
 
-from app.db.session import get_db
+from app.core.database import get_db
 from app.api.v1.models.activity import (
     ActivityRecommendationRequest,
     ActivityRecommendationResponse,

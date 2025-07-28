@@ -31,10 +31,10 @@ from .student import (
     StudentResponse as StudentHealthResponse
 )
 
-# from .health_metric import (
-#     HealthMetric,
-#     HealthMetricHistory
-# )
+from .health_metric import (
+    HealthMetric,
+    HealthMetricHistory
+)
 
 __all__ = [
     # Main Student models
@@ -63,6 +63,6 @@ __all__ = [
     'StudentHealthResponse',
     
     # Health metric models
-    # 'HealthMetric',
-    # 'HealthMetricHistory',
+    'HealthMetric',
+    'HealthMetricHistory',
 ] 

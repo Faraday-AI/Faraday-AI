@@ -5,11 +5,28 @@ from pydantic import BaseModel
 import json
 
 from ..safety import router as safety_router
+from app.models.physical_education.activity.models import Activity
 
 router = APIRouter()
 router.include_router(safety_router, prefix="/safety", tags=["safety"])
 
 pe_ai = PhysicalEducationAI()
+
+@router.get("/health")
+async def health_check():
+    """Health check endpoint for Physical Education system."""
+    return {
+        "status": "healthy",
+        "service": "physical_education",
+        "version": "1.0.0",
+        "features": [
+            "activity_management",
+            "movement_analysis",
+            "safety_monitoring",
+            "student_progress",
+            "lesson_planning"
+        ]
+    }
 
 class LessonPlanRequest(BaseModel):
     activity: str
@@ -160,6 +177,57 @@ async def create_professional_plan(request: ProfessionalDevelopmentRequest):
             request.focus_areas,
             request.goals
         )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Simple activity management endpoints
+@router.post("/activities/simple")
+async def create_simple_activity(activity_data: Dict[str, Any]):
+    """Create a simple physical education activity."""
+    try:
+        from app.services.physical_education.activity_service import ActivityService
+        from app.core.database import get_db
+        
+        db = next(get_db())
+        activity_service = ActivityService(db)
+        
+        # Create the activity
+        activity = activity_service.create_activity(activity_data)
+        
+        return {
+            "status": "success",
+            "activity_id": activity.id,
+            "name": activity.name,
+            "message": "Activity created successfully"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/activities/simple")
+async def list_simple_activities():
+    """List all simple physical education activities."""
+    try:
+        from app.services.physical_education.activity_service import ActivityService
+        from app.core.database import get_db
+        
+        db = next(get_db())
+        activity_service = ActivityService(db)
+        
+        # Get all activities
+        activities = db.query(Activity).all()
+        
+        return {
+            "status": "success",
+            "activities": [
+                {
+                    "id": activity.id,
+                    "name": activity.name,
+                    "description": activity.description,
+                    "type": str(activity.type) if activity.type else None
+                }
+                for activity in activities
+            ]
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

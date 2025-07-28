@@ -34,6 +34,7 @@ class User(CoreBase, TimestampedMixin, StatusMixin, MetadataMixin):
     last_name = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
     is_superuser = Column(Boolean, default=False)
+    disabled = Column(Boolean, default=False)  # Alias for is_active for compatibility
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     last_login = Column(DateTime, nullable=True)

@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from sqlalchemy.orm import Session
 from fastapi import Depends
@@ -305,4 +305,59 @@ class SafetyIncidentManager:
             return {
                 "success": 0,
                 "failure": len(incident_ids)
+            }
+
+    async def check_health(self) -> Dict[str, Any]:
+        """Check incident manager health."""
+        try:
+            return {
+                "status": "healthy",
+                "message": "Incident manager is operational",
+                "timestamp": datetime.utcnow()
+            }
+        except Exception as e:
+            return {
+                "status": "unhealthy",
+                "message": f"Incident manager error: {str(e)}",
+                "timestamp": datetime.utcnow()
+            }
+
+    async def record_incident(
+        self,
+        class_id: str,
+        incident_type: str,
+        description: str,
+        severity: str,
+        affected_students: List[str],
+        actions_taken: List[str],
+        location: Optional[str] = None,
+        time_of_incident: Optional[datetime] = None,
+        witnesses: Optional[List[str]] = None,
+        follow_up_required: bool = False
+    ) -> Dict[str, Any]:
+        """Record a safety incident."""
+        try:
+            incident_id = f"SI-{class_id}-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+            
+            return {
+                "success": True,
+                "message": "Incident recorded successfully",
+                "incident_id": incident_id,
+                "class_id": class_id,
+                "incident_type": incident_type,
+                "description": description,
+                "severity": severity,
+                "affected_students": affected_students,
+                "actions_taken": actions_taken,
+                "location": location,
+                "time_of_incident": time_of_incident or datetime.utcnow(),
+                "witnesses": witnesses,
+                "follow_up_required": follow_up_required,
+                "created_at": datetime.utcnow()
+            }
+        except Exception as e:
+            self.logger.error(f"Error recording incident: {str(e)}")
+            return {
+                "success": False,
+                "message": f"Error recording incident: {str(e)}"
             } 

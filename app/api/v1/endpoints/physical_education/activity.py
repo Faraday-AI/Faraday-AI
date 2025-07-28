@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 
-from app.db.session import get_db
+from app.core.database import get_db
 from app.services.physical_education.recommendation_engine import RecommendationEngine
 from app.api.v1.models.activity import ActivityRecommendationRequest, ActivityRecommendation
 

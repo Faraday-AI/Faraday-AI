@@ -6,11 +6,11 @@ from app.core.database import get_db
 from app.models.student import Student
 from app.models.activity import Activity
 from app.models.routine import Routine
-from app.services.physical_education.models.assessment import Assessment
+from app.models.physical_education.assessment import Assessment
 from app.api.v1.models.activity import ActivityRecommendation
 from app.schemas.physical_education.student import StudentPreferences
 from app.core.config import settings
-from app.utils.logging import get_logger
+from app.core.logging import get_logger
 from app.models.physical_education.activity.models import (
     StudentActivityPerformance,
     StudentActivityPreference

@@ -1,16 +1,25 @@
 from typing import Dict, Any, List, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.v1.models.security import Token, SecurityRequest, SecurityResponse, ThreatAssessmentRequest, ThreatAssessmentResponse
+from app.core.auth_models import User
 from app.api.v1.middleware.auth import (
     get_current_user,
     get_current_active_user,
     get_current_admin_user
 )
 from app.core.database import get_db
+from app.core.auth import (
+    authenticate_user,
+    create_access_token,
+    create_refresh_token,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    SECRET_KEY,
+    ALGORITHM
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder

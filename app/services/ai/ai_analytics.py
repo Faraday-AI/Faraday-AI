@@ -15,7 +15,7 @@ from collections import defaultdict, Counter
 import uuid
 import logging
 
-from app.models.core.user import User
+from app.core.auth_models import User
 from app.models.analytics.user_analytics import (
     UserActivity,
     UserBehavior,

@@ -9,7 +9,7 @@ import logging
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.core.database import get_db
-from app.core.auth import get_current_active_user, oauth2_scheme
+from app.api.v1.middleware.auth import get_current_active_user, oauth2_scheme
 from app.core.rate_limit import rate_limit
 from app.core.cache import cache_manager
 from app.services.physical_education.health_metrics_manager import health_metrics_manager
