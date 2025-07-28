@@ -1,3 +1,4 @@
+import os
 from fastapi import Request, HTTPException, status, Security, Depends
 from fastapi.security import SecurityScopes
 from fastapi.security.oauth2 import OAuth2PasswordBearer

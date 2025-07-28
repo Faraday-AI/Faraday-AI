@@ -11,14 +11,14 @@ from app.models.physical_education.safety import (
     EnvironmentalCheck,
     SafetyCheck,
     SafetyProtocol,
-    SafetyAlert,
-    Safety
+    SafetyAlert
 )
-from app.models.physical_education.safety import (
+from app.models.physical_education.pe_enums.pe_types import (
     IncidentSeverity,
     RiskLevel,
     CheckType,
-    AlertType
+    AlertType,
+    IncidentType
 )
 
 @pytest.fixture
