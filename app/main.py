@@ -90,6 +90,110 @@ from app.models.core.core_models import Region
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
+# User streaks tracking
+USER_STREAKS = {}
+
+def update_user_streak(user_id: str, activity_type: str = "general") -> Dict[str, Any]:
+    """Update user streak for various activities."""
+    if user_id not in USER_STREAKS:
+        USER_STREAKS[user_id] = {
+            "current_streak": 0,
+            "longest_streak": 0,
+            "last_activity": None,
+            "activity_count": 0,
+            "streak_start": None
+        }
+    
+    user_data = USER_STREAKS[user_id]
+    current_time = datetime.now()
+    
+    # Check if this is a consecutive day
+    if user_data["last_activity"]:
+        time_diff = current_time - user_data["last_activity"]
+        if time_diff.days == 1:  # Consecutive day
+            user_data["current_streak"] += 1
+        elif time_diff.days > 1:  # Streak broken
+            user_data["current_streak"] = 1
+            user_data["streak_start"] = current_time
+        # If same day, don't change streak
+    else:
+        # First activity
+        user_data["current_streak"] = 1
+        user_data["streak_start"] = current_time
+    
+    # Update longest streak if current is longer
+    if user_data["current_streak"] > user_data["longest_streak"]:
+        user_data["longest_streak"] = user_data["current_streak"]
+    
+    user_data["last_activity"] = current_time
+    user_data["activity_count"] += 1
+    
+    return {
+        "user_id": user_id,
+        "current_streak": user_data["current_streak"],
+        "longest_streak": user_data["longest_streak"],
+        "activity_count": user_data["activity_count"],
+        "last_activity": user_data["last_activity"].isoformat(),
+        "streak_start": user_data["streak_start"].isoformat() if user_data["streak_start"] else None
+    }
+
+def calculate_streak_bonus(user_id: str, base_score: float = 100.0) -> float:
+    """Calculate bonus score based on user streak."""
+    if user_id not in USER_STREAKS:
+        return base_score
+    
+    user_data = USER_STREAKS[user_id]
+    streak = user_data["current_streak"]
+    
+    # Bonus calculation: 5% per day of streak, max 50%
+    bonus_multiplier = min(1.0 + (streak * 0.05), 1.5)
+    
+    return base_score * bonus_multiplier
+
+def generate_learning_path(user_id: str, subject: str, difficulty: str = "medium") -> Dict[str, Any]:
+    """Generate a personalized learning path for a user."""
+    try:
+        # Mock learning path generation
+        path = {
+            "user_id": user_id,
+            "subject": subject,
+            "difficulty": difficulty,
+            "modules": [
+                {
+                    "id": f"module_1_{subject}",
+                    "title": f"Introduction to {subject}",
+                    "duration": "2 hours",
+                    "prerequisites": [],
+                    "completed": False
+                },
+                {
+                    "id": f"module_2_{subject}",
+                    "title": f"Core Concepts in {subject}",
+                    "duration": "3 hours",
+                    "prerequisites": [f"module_1_{subject}"],
+                    "completed": False
+                },
+                {
+                    "id": f"module_3_{subject}",
+                    "title": f"Advanced {subject} Topics",
+                    "duration": "4 hours",
+                    "prerequisites": [f"module_2_{subject}"],
+                    "completed": False
+                }
+            ],
+            "estimated_completion": "2 weeks",
+            "created_at": datetime.now().isoformat()
+        }
+        
+        return path
+    except Exception as e:
+        logger.error(f"Error generating learning path: {str(e)}")
+        return {
+            "user_id": user_id,
+            "subject": subject,
+            "error": str(e)
+        }
+
 # Dynamic port configuration
 def find_available_port(start_port=8000, max_port=9000):
     """Find an available port in the given range."""
@@ -3614,6 +3718,51 @@ async def shutdown_event():
     if _realtime_collaboration_service is not None:
         await _realtime_collaboration_service.cleanup()
         _realtime_collaboration_service = None
+
+def calculate_tier_bonus(user_id: str, tier: str) -> float:
+    """Calculate bonus based on user tier."""
+    # Mock implementation for now
+    tier_bonuses = {
+        "bronze": 0.05,
+        "silver": 0.10,
+        "gold": 0.15,
+        "platinum": 0.20
+    }
+    return tier_bonuses.get(tier, 0.0)
+
+def get_ai_recommendations(user_id: str, context: dict = None) -> list:
+    """Get AI-powered recommendations for a user."""
+    # Mock implementation for now
+    return [
+        {"type": "course", "title": "Advanced Python", "confidence": 0.85},
+        {"type": "activity", "title": "Code Review Practice", "confidence": 0.72},
+        {"type": "resource", "title": "Design Patterns Guide", "confidence": 0.68}
+    ]
+
+def get_leaderboard(limit: int = 10) -> list:
+    """Get leaderboard data."""
+    # Mock implementation for now
+    return [
+        {"user_id": "user1", "score": 1500, "rank": 1},
+        {"user_id": "user2", "score": 1400, "rank": 2},
+        {"user_id": "user3", "score": 1300, "rank": 3}
+    ][:limit]
+
+def get_topic_similarity(topic1: str, topic2: str) -> float:
+    """Get similarity between two topics."""
+    # Mock implementation for now
+    if topic1.lower() == topic2.lower():
+        return 1.0
+    elif topic1.lower() in topic2.lower() or topic2.lower() in topic1.lower():
+        return 0.7
+    else:
+        return 0.2
+
+def update_leaderboard(user_id: str, score: int) -> bool:
+    """Update leaderboard with user score."""
+    # Mock implementation for now
+    logger.info(f"Updating leaderboard for user {user_id} with score {score}")
+    return True
 
 
 

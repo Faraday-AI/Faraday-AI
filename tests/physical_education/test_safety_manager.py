@@ -4,7 +4,7 @@ from typing import Dict, Any, List
 from unittest.mock import Mock, patch
 from sqlalchemy.orm import Session
 from app.services.physical_education.safety_manager import SafetyManager
-from app.models.physical_education.safety import (
+from app.models.physical_education.safety.models import (
     RiskAssessment,
     SafetyIncident,
     EquipmentCheck,

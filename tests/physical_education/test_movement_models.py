@@ -6,7 +6,7 @@ import json
 import os
 from pathlib import Path
 from datetime import datetime, timedelta
-from app.services.physical_education.models.movement_analysis.movement_models import MovementModels
+from app.models.physical_education.movement_analysis.movement_models import MovementModels
 
 class TestMovementModels(unittest.TestCase):
     def setUp(self):

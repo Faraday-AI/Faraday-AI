@@ -21,7 +21,7 @@ from app.core.database import get_db, get_session_factory, initialize_engines, S
 
 from app.services.physical_education.activity_manager import ActivityManager
 from app.models.shared_base import SharedBase
-from app.models.core.user import Teacher
+from app.models.core.user import User
 from app.models.security.api_key import APIKey
 from app.models.security.rate_limit import RateLimit, RateLimitPolicy, RateLimitMetrics
 from app.models.physical_education.activity.models import Activity
@@ -67,7 +67,7 @@ def setup_test_db(engine):
             db = SessionLocal()
             
             # Create test user first with simple string ID
-            test_user = Teacher(
+            test_user = User(
                 id=1,  # Integer ID
                 email="test@example.com",
                 first_name="Test",

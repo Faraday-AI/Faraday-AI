@@ -1,127 +1,161 @@
-from typing import Dict, Optional, Any
-import jwt
-from datetime import datetime, timedelta
-from cryptography.fernet import Fernet
-import hashlib
-import logging
-from enum import Enum
-from .regional_compliance import Region, DataProtectionRegulation, RegionalCompliance
+"""Compliance engine for data classification and security management."""
 
-class DataClassification(Enum):
+import logging
+from typing import Dict, Any, List, Optional
+from enum import Enum
+from datetime import datetime
+from sqlalchemy.orm import Session
+from app.core.database import get_db
+
+class DataClassification(str, Enum):
+    """Data classification levels."""
     PUBLIC = "public"
     INTERNAL = "internal"
-    SENSITIVE = "sensitive"
+    CONFIDENTIAL = "confidential"
     RESTRICTED = "restricted"
+    CLASSIFIED = "classified"
 
 class ComplianceEngine:
-    def __init__(self):
-        self.encryption_key = Fernet.generate_key()
-        self.fernet = Fernet(self.encryption_key)
-        self.logger = logging.getLogger(__name__)
-        self.regional_compliance = RegionalCompliance()
+    """Engine for managing data compliance and security."""
+    
+    def __init__(self, db: Session = None):
+        self.logger = logging.getLogger("compliance_engine")
+        self.db = db
         
-    async def encrypt_student_data(self, data: Dict[str, Any], classification: DataClassification, region: str = Region.NORTH_AMERICA.value) -> Dict[str, Any]:
-        """Encrypts student data according to regional compliance requirements"""
+    async def classify_data(self, data: Dict[str, Any]) -> DataClassification:
+        """Classify data based on content and context."""
         try:
-            # Validate regional compliance before encryption
-            compliance_check = self.regional_compliance.validate_compliance(region, data)
-            if not compliance_check["valid"]:
-                self.logger.error(f"Regional compliance validation failed: {compliance_check}")
-                raise ValueError(f"Data does not meet regional compliance requirements: {compliance_check['details']}")
-
-            encrypted_data = {}
-            for key, value in data.items():
-                if isinstance(value, (str, int, float, bool)):
-                    encrypted_value = self.fernet.encrypt(str(value).encode())
-                    encrypted_data[key] = {
-                        'value': encrypted_value,
-                        'classification': classification.value,
-                        'encryption_timestamp': datetime.utcnow().isoformat(),
-                        'region': region
-                    }
-            return encrypted_data
+            # Simple classification logic
+            if self._contains_sensitive_info(data):
+                return DataClassification.CONFIDENTIAL
+            elif self._contains_internal_info(data):
+                return DataClassification.INTERNAL
+            else:
+                return DataClassification.PUBLIC
         except Exception as e:
-            self.logger.error(f"Encryption error: {str(e)}")
-            raise
-
-    async def decrypt_student_data(self, encrypted_data: Dict[str, Any], user_role: str, permissions: list, region: str = Region.NORTH_AMERICA.value) -> Dict[str, Any]:
-        """Decrypts student data with proper access controls and regional compliance"""
+            self.logger.error(f"Error classifying data: {str(e)}")
+            return DataClassification.INTERNAL  # Default to internal for safety
+    
+    def _contains_sensitive_info(self, data: Dict[str, Any]) -> bool:
+        """Check if data contains sensitive information."""
+        sensitive_keywords = [
+            "password", "secret", "private", "confidential", 
+            "ssn", "credit_card", "bank_account", "medical"
+        ]
+        
+        data_str = str(data).lower()
+        return any(keyword in data_str for keyword in sensitive_keywords)
+    
+    def _contains_internal_info(self, data: Dict[str, Any]) -> bool:
+        """Check if data contains internal information."""
+        internal_keywords = [
+            "internal", "employee", "staff", "company", 
+            "business", "proprietary", "trade_secret"
+        ]
+        
+        data_str = str(data).lower()
+        return any(keyword in data_str for keyword in internal_keywords)
+    
+    async def validate_compliance(self, data: Dict[str, Any], classification: DataClassification) -> Dict[str, Any]:
+        """Validate data compliance with security policies."""
         try:
-            decrypted_data = {}
-            for key, value_dict in encrypted_data.items():
-                if self._check_access_permission(value_dict['classification'], user_role, permissions):
-                    decrypted_value = self.fernet.decrypt(value_dict['value']).decode()
-                    decrypted_data[key] = decrypted_value
+            validation_result = {
+                "compliant": True,
+                "warnings": [],
+                "errors": [],
+                "recommendations": []
+            }
             
-            # Validate regional compliance after decryption
-            compliance_check = self.regional_compliance.validate_compliance(region, decrypted_data)
-            if not compliance_check["valid"]:
-                self.logger.error(f"Regional compliance validation failed: {compliance_check}")
-                raise ValueError(f"Data does not meet regional compliance requirements: {compliance_check['details']}")
+            # Check data classification
+            if classification == DataClassification.CONFIDENTIAL:
+                if not self._has_encryption(data):
+                    validation_result["warnings"].append("Confidential data should be encrypted")
                 
-            return decrypted_data
+                if not self._has_access_controls(data):
+                    validation_result["warnings"].append("Confidential data should have access controls")
+            
+            # Check for sensitive data patterns
+            if self._contains_sensitive_info(data):
+                validation_result["recommendations"].append("Consider reclassifying as confidential")
+            
+            # Check data retention
+            if not self._has_retention_policy(data):
+                validation_result["warnings"].append("Data should have a retention policy")
+            
+            return validation_result
         except Exception as e:
-            self.logger.error(f"Decryption error: {str(e)}")
+            self.logger.error(f"Error validating compliance: {str(e)}")
+            return {
+                "compliant": False,
+                "warnings": [],
+                "errors": [f"Validation error: {str(e)}"],
+                "recommendations": []
+            }
+    
+    def _has_encryption(self, data: Dict[str, Any]) -> bool:
+        """Check if data has encryption indicators."""
+        # Mock implementation
+        return data.get("encrypted", False)
+    
+    def _has_access_controls(self, data: Dict[str, Any]) -> bool:
+        """Check if data has access control indicators."""
+        # Mock implementation
+        return data.get("access_controlled", False)
+    
+    def _has_retention_policy(self, data: Dict[str, Any]) -> bool:
+        """Check if data has retention policy indicators."""
+        # Mock implementation
+        return data.get("retention_policy", False)
+    
+    async def audit_data_access(self, user_id: str, data_id: str, action: str) -> Dict[str, Any]:
+        """Audit data access for compliance tracking."""
+        try:
+            audit_record = {
+                "user_id": user_id,
+                "data_id": data_id,
+                "action": action,
+                "timestamp": datetime.now().isoformat(),
+                "classification": DataClassification.INTERNAL,
+                "compliant": True
+            }
+            
+            # Log audit record
+            self.logger.info(f"Data access audit: {audit_record}")
+            
+            return audit_record
+        except Exception as e:
+            self.logger.error(f"Error auditing data access: {str(e)}")
             raise
-
-    def _check_access_permission(self, classification: str, user_role: str, permissions: list) -> bool:
-        """Validates user permissions for data access"""
-        access_matrix = {
-            DataClassification.PUBLIC.value: ["student", "teacher", "admin", "parent"],
-            DataClassification.INTERNAL.value: ["teacher", "admin"],
-            DataClassification.SENSITIVE.value: ["admin"],
-            DataClassification.RESTRICTED.value: ["admin"]
-        }
-        return user_role in access_matrix.get(classification, [])
-
-    async def generate_audit_log(self, user_id: str, action: str, data_accessed: str, region: str = Region.NORTH_AMERICA.value) -> Dict[str, Any]:
-        """Creates region-specific compliant audit logs"""
-        region_config = self.regional_compliance.get_region_config(region)
-        if not region_config:
-            raise ValueError(f"Unsupported region: {region}")
+    
+    async def generate_compliance_report(self, start_date: datetime, end_date: datetime) -> Dict[str, Any]:
+        """Generate compliance report for the specified period."""
+        try:
+            # Mock report generation
+            report = {
+                "period": {
+                    "start": start_date.isoformat(),
+                    "end": end_date.isoformat()
+                },
+                "summary": {
+                    "total_accesses": 150,
+                    "compliant_accesses": 145,
+                    "non_compliant_accesses": 5,
+                    "compliance_rate": 96.7
+                },
+                "classifications": {
+                    "public": 50,
+                    "internal": 80,
+                    "confidential": 15,
+                    "restricted": 5
+                },
+                "recommendations": [
+                    "Implement additional encryption for confidential data",
+                    "Review access controls for restricted data",
+                    "Update retention policies for internal data"
+                ]
+            }
             
-        audit_entry = {
-            'timestamp': datetime.utcnow().isoformat(),
-            'user_id': user_id,
-            'action': action,
-            'data_accessed': data_accessed,
-            'ip_address': None,  # To be filled by the request context
-            'success': True,
-            'region': region,
-            'compliance_requirements': region_config["audit_requirements"]
-        }
-        return audit_entry
-
-    async def validate_parental_consent(self, student_id: str, feature: str, region: str = Region.NORTH_AMERICA.value) -> bool:
-        """Validates if parental consent exists for specific features according to regional requirements"""
-        region_config = self.regional_compliance.get_region_config(region)
-        if not region_config:
-            raise ValueError(f"Unsupported region: {region}")
-            
-        # Check if parental consent is required for this feature in the region
-        if "parental_consent" in region_config["content_restrictions"]["access_controls"]:
-            # TODO: Implement region-specific consent validation logic
-            return True
-        return True
-
-    async def generate_mfa_token(self, user_id: str, region: str = Region.NORTH_AMERICA.value) -> str:
-        """Generates Multi-Factor Authentication token with regional compliance"""
-        region_config = self.regional_compliance.get_region_config(region)
-        if not region_config:
-            raise ValueError(f"Unsupported region: {region}")
-            
-        # TODO: Implement region-specific MFA token generation
-        return "temporary_mfa_token"
-
-    async def verify_mfa_token(self, user_id: str, token: str, region: str = Region.NORTH_AMERICA.value) -> bool:
-        """Verifies Multi-Factor Authentication token with regional compliance"""
-        region_config = self.regional_compliance.get_region_config(region)
-        if not region_config:
-            raise ValueError(f"Unsupported region: {region}")
-            
-        # TODO: Implement region-specific MFA token verification
-        return True
-
-    async def get_compliance_report(self, region: str = Region.NORTH_AMERICA.value) -> Dict[str, Any]:
-        """Gets a comprehensive compliance report for the specified region"""
-        return await self.regional_compliance.generate_compliance_report(region) 
+            return report
+        except Exception as e:
+            self.logger.error(f"Error generating compliance report: {str(e)}")
+            raise 

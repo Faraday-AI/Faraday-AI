@@ -21,6 +21,21 @@ Base = declarative_base()
 # Database configuration
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/faraday")
 
+def get_region_db_url(region: str) -> str:
+    """Get database URL for a specific region."""
+    base_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/faraday")
+    if region and region != "default":
+        # Modify the URL to include region-specific database
+        if "postgresql://" in base_url:
+            # Extract components and modify database name
+            parts = base_url.split("/")
+            if len(parts) >= 4:
+                db_name = parts[-1]
+                new_db_name = f"{db_name}_{region}"
+                parts[-1] = new_db_name
+                return "/".join(parts)
+    return base_url
+
 # Create SQLAlchemy engine with connection pooling and SSL configuration
 engine = create_engine(
     DATABASE_URL,
@@ -40,6 +55,10 @@ engine = create_engine(
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Initialize engines dictionary for regional failover
+engines = {}
+async_engines = {}
 
 def get_session_factory():
     """Get the session factory."""

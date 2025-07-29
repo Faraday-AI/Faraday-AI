@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.physical_education.services.activity_assessment_manager import ActivityAssessmentManager
+from app.services.physical_education.activity_assessment_manager import ActivityAssessmentManager
 from datetime import datetime, timedelta
 import numpy as np
 

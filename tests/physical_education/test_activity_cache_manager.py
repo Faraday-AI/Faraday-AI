@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
-from app.services.physical_education.services.activity_cache_manager import ActivityCacheManager
+from app.services.physical_education.activity_cache_manager import ActivityCacheManager
 from app.services.physical_education.activity_manager import ActivityManager
 
 @pytest.fixture

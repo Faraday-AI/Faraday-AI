@@ -24,6 +24,9 @@ from app.models.physical_education.progress.models import (
     ProgressAssessment
 )
 
+# Create alias for backward compatibility
+ProgressNote = PhysicalEducationProgressNote
+
 __all__ = [
     'Progress',
     'ProgressBase',
@@ -41,5 +44,6 @@ __all__ = [
     'ProgressNoteUpdate',
     'ProgressNoteResponse',
     'ProgressMilestone',
-    'ProgressAssessment'
+    'ProgressAssessment',
+    'ProgressNote'  # Alias for PhysicalEducationProgressNote
 ] 

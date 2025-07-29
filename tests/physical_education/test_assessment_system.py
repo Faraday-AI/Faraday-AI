@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
-from app.services.physical_education.services.assessment_system import AssessmentSystem
+from app.services.physical_education.assessment_system import AssessmentSystem
 
 class TestAssessmentSystem(unittest.TestCase):
     def setUp(self):

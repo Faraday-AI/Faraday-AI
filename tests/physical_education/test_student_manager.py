@@ -1,10 +1,11 @@
 import pytest
+import unittest
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock, Mock
 import json
-from app.services.physical_education.services.student_manager import StudentManager
-from app.services.physical_education.services.assessment_system import AssessmentSystem
-from app.services.physical_education.services.lesson_planner import LessonPlanner
+from app.services.physical_education.student_manager import StudentManager
+from app.services.physical_education.assessment_system import AssessmentSystem
+from app.services.physical_education.lesson_planner import LessonPlanner
 from sqlalchemy.orm import Session
 from app.models.physical_education.class_ import PhysicalEducationClass
 from app.models.physical_education.student import Student
@@ -353,7 +354,7 @@ async def test_generate_recommendations(student_manager, sample_student_data, sa
     assert "flexibility" in result["areas_for_improvement"]
     assert len(result["suggested_activities"]) == 2
 
-@patch("builtins.open", new_callable=unittest.mock.mock_open)
+@patch("builtins.open", new_callable=Mock)
 @patch("json.dump")
 def test_save_student_data(mock_json_dump, mock_open, student_manager, sample_student_data):
     """Test saving student data to a file."""
@@ -366,7 +367,7 @@ def test_save_student_data(mock_json_dump, mock_open, student_manager, sample_st
     mock_open.assert_called_once_with(filename, 'w')
     mock_json_dump.assert_called_once()
 
-@patch("builtins.open", new_callable=unittest.mock.mock_open)
+@patch("builtins.open", new_callable=Mock)
 @patch("json.dump")
 def test_save_class_data(mock_json_dump, mock_open, student_manager, sample_class_data):
     """Test saving class data to a file."""

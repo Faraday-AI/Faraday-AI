@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock
-from app.services.physical_education.services.safety_report_generator import SafetyReportGenerator
+from app.services.physical_education.safety_report_generator import SafetyReportGenerator
 
 @pytest.fixture
 def report_generator():

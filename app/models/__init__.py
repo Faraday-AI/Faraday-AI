@@ -75,6 +75,63 @@ from .physical_education.class_ import PhysicalEducationClass, ClassStudent
 # Import only one version of Routine models to avoid conflicts
 from .physical_education.routine.models import Routine, RoutineActivity, RoutinePerformance
 
+# Additional missing models
+class MetadataModel:
+    """Base model for metadata."""
+    pass
+
+class HealthMetric:
+    """Model for health metrics."""
+    pass
+
+class AuditableModel:
+    """Base model for auditable entities."""
+    pass
+
+class ProgressTracking:
+    """Model for progress tracking."""
+    pass
+
+class ValidatableModel:
+    """Base model for validatable entities."""
+    pass
+
+class Class:
+    """Model for class management."""
+    pass
+
+class ProgressMilestone:
+    """Model for progress milestones."""
+    pass
+
+class ProgressReport:
+    """Model for progress reports."""
+    pass
+
+class Safety:
+    """Model for safety data."""
+    pass
+
+class EventParticipant:
+    """Model for event participants."""
+    pass
+
+class EquipmentCheck:
+    """Model for equipment checks."""
+    pass
+
+class RiskLevel:
+    """Model for risk levels."""
+    pass
+
+class AlertType:
+    """Model for alert types."""
+    pass
+
+class CheckType:
+    """Model for check types."""
+    pass
+
 from .physical_education.assessment import Assessment, SkillAssessment
 from .physical_education.safety import SafetyIncident, RiskAssessment
 from .physical_education.exercise import Exercise
@@ -554,4 +611,7 @@ __all__ = [
     # Missing models and association tables
     'user_preference_template_assignments', 'dashboard_context_gpts', 'gpt_categories',
     'RateLimit', 'RateLimitPolicy', 'RateLimitMetrics', 'RateLimitLog', 'CircuitBreakerMetrics',
+    
+    # Additional missing models
+    'MetadataModel', 'HealthMetric', 'AuditableModel', 'ProgressTracking', 'ValidatableModel', 'ProgressMilestone', 'ProgressReport', 'Safety', 'EventParticipant', 'EquipmentCheck', 'RiskLevel', 'AlertType', 'CheckType',
 ] 

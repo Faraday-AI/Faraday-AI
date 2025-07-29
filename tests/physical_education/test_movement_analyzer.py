@@ -2,9 +2,9 @@ import pytest
 import numpy as np
 from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock, AsyncMock, Mock
-from app.services.physical_education.services.movement_analyzer import MovementAnalyzer
-from app.services.physical_education.models.movement_analysis.movement_models import MovementModels
-from app.services.physical_education.models.skill_assessment.skill_assessment_models import SkillModels
+from app.services.physical_education.movement_analyzer import MovementAnalyzer
+from app.models.physical_education.movement_analysis.movement_models import MovementModels
+from app.models.physical_education.skill_assessment.skill_assessment_models import SkillModels
 
 @pytest.fixture
 async def initialized_movement_analyzer():

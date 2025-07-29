@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
 from app.services.ai.ai_analytics import PhysicalEducationAI
-from app.services.pe_service import PEService
+from app.services.physical_education.pe_service import PEService
 import json
 import numpy as np
 from typing import Dict, List, Any

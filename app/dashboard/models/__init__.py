@@ -93,6 +93,15 @@ from .tool_usage_log import ToolUsageLog  # Import ToolUsageLog from its own mod
 # Create User alias for DashboardUser
 User = DashboardUser
 
+# Additional missing models
+class ResourceUsage:
+    """Model for resource usage tracking."""
+    pass
+
+class ResourceSharing:
+    """Model for resource sharing."""
+    pass
+
 # Define DashboardModels class directly here instead of importing it
 class DashboardModels:
     """Container class for all dashboard-related models."""

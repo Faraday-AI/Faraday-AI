@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import patch, MagicMock, AsyncMock
 from datetime import datetime, timedelta
 import numpy as np
-from app.services.physical_education.services.assessment_system import AssessmentSystem, AssessmentState, RealTimeMetrics
+from app.services.physical_education.assessment_system import AssessmentSystem, AssessmentState, RealTimeMetrics
 
 class TestRealTimeAssessment(unittest.TestCase):
     def setUp(self):

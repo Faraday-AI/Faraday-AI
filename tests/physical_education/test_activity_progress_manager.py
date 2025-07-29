@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.physical_education.services.activity_progress_manager import ActivityProgressManager
+from app.services.physical_education.progress_service import ProgressService
 from datetime import datetime, timedelta
 import numpy as np
 
@@ -20,7 +20,7 @@ def mock_progress_model():
 
 @pytest.fixture
 def progress_manager(mock_db, mock_activity_manager, mock_progress_model):
-    return ActivityProgressManager(db=mock_db, activity_manager=mock_activity_manager)
+    return ProgressService(db=mock_db, activity_manager=mock_activity_manager)
 
 @pytest.mark.asyncio
 async def test_track_activity_progress(progress_manager, mock_activity_manager):

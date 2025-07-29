@@ -152,4 +152,18 @@ tzdata==2023.3
 chardet==5.2.0
 
 # Core protobuf dependency to resolve version conflicts
-protobuf>=4.25.3,<5.0.0 
+protobuf>=4.25.3,<5.0.0
+
+# Machine Learning and AI Libraries
+torch>=2.0.0
+transformers>=4.30.0
+spacy==3.7.2
+gensim>=4.0.0
+aioredis>=2.0.0
+SpeechRecognition>=3.8.0
+gTTS>=2.3.0
+beautifulsoup4>=4.12.0
+scrapy>=2.5.0
+xgboost>=1.7.0
+lightgbm>=4.0.0
+optuna>=3.0.0 

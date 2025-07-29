@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.physical_education.services.activity_notification_manager import ActivityNotificationManager
+from app.services.physical_education.notification_service import NotificationService
 from datetime import datetime, timedelta
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def mock_notification_service():
 
 @pytest.fixture
 def notification_manager(mock_db, mock_activity_manager, mock_notification_service):
-    return ActivityNotificationManager(db=mock_db, activity_manager=mock_activity_manager)
+    return NotificationService(db=mock_db, activity_manager=mock_activity_manager)
 
 @pytest.mark.asyncio
 async def test_send_activity_reminder(notification_manager, mock_notification_service):

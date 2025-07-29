@@ -196,6 +196,7 @@ class Settings(BaseSettings):
     SMTP_RATE_WINDOW: int = 3600  # 1 hour in seconds
     SLACK_RATE_LIMIT: int = 20  # Max Slack messages per time window
     SLACK_RATE_WINDOW: int = 60  # 1 minute in seconds
+    SLACK_DEFAULT_WEBHOOK: str = os.getenv("SLACK_DEFAULT_WEBHOOK", "")
     WEBHOOK_RATE_LIMIT: int = 50  # Max webhook calls per time window
     WEBHOOK_RATE_WINDOW: int = 300  # 5 minutes in seconds
     

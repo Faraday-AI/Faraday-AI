@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.physical_education.services.activity_safety_manager import ActivitySafetyManager
+from app.services.physical_education.safety_manager import SafetyManager
 from datetime import datetime, timedelta
 import numpy as np
 
@@ -20,7 +20,7 @@ def mock_safety_model():
 
 @pytest.fixture
 def safety_manager(mock_db, mock_activity_manager, mock_safety_model):
-    return ActivitySafetyManager(db=mock_db, activity_manager=mock_activity_manager)
+    return SafetyManager(db=mock_db, activity_manager=mock_activity_manager)
 
 @pytest.mark.asyncio
 async def test_assess_safety_risks(safety_manager, mock_activity_manager, mock_safety_model):

@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
-from app.services.physical_education.services.activity_scheduling_manager import ActivitySchedulingManager
+from app.services.physical_education.activity_scheduling_manager import ActivitySchedulingManager
 from datetime import datetime, timedelta
 
 @pytest.fixture

@@ -6,6 +6,13 @@ from datetime import datetime
 import numpy as np
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+from enum import Enum
+
+class CircuitState(Enum):
+    """Circuit breaker states."""
+    CLOSED = "closed"
+    OPEN = "open"
+    HALF_OPEN = "half-open"
 
 # Import models
 from app.models.activity import (
@@ -63,9 +70,25 @@ class ActivityCircuitBreakerManager:
         
         # Circuit breaker components
         self.circuit_breakers = {}
-        self.breaker_metrics = {}
         self.failure_history = []
         self.state_history = []
+        
+        # Initialize breaker metrics
+        self.breaker_metrics = {
+            "failures": {
+                "count": 0,
+                "rate": 0.0,
+                "window_start": datetime.now().isoformat()
+            },
+            "trips": {
+                "count": 0,
+                "rate": 0.0
+            },
+            "resets": {
+                "count": 0,
+                "rate": 0.0
+            }
+        }
     
     async def initialize(self):
         """Initialize the circuit breaker manager."""

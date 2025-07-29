@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.models.activity import Activity
-from app.services.physical_education.models.activity_plan import ActivityPlan, ActivityPlanActivity
+from app.models.physical_education.activity_plan.models import ActivityPlan, ActivityPlanActivity
 from app.services.physical_education.activity_manager import ActivityManager
 
 @pytest.fixture

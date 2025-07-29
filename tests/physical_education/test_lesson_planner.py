@@ -3,8 +3,8 @@ from datetime import datetime
 from unittest.mock import patch, MagicMock, AsyncMock
 import json
 
-from app.services.physical_education.services.lesson_planner import LessonPlanner
-from app.services.physical_education.services.assessment_system import AssessmentSystem
+from app.services.physical_education.lesson_planner import LessonPlanner
+from app.services.physical_education.assessment_system import AssessmentSystem
 
 @pytest.fixture
 def mock_assessment_system():

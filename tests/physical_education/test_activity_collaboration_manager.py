@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
-from app.services.physical_education.services.activity_collaboration_manager import ActivityCollaborationManager
+from app.services.physical_education.activity_collaboration_manager import ActivityCollaborationManager
 
 @pytest.fixture
 def collaboration_manager():

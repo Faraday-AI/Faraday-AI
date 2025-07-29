@@ -1,9 +1,9 @@
 import pytest
 import mediapipe as mp
 from unittest.mock import patch, MagicMock, AsyncMock
-from app.services.physical_education.services.pe_service import PEService
-from app.services.physical_education.services.video_processor import VideoProcessor
-from app.services.physical_education.services.movement_analyzer import MovementAnalyzer
+from app.services.physical_education.pe_service import PEService
+from app.services.physical_education.video_processor import VideoProcessor
+from app.services.physical_education.movement_analyzer import MovementAnalyzer
 
 @pytest.fixture
 def pe_service():
