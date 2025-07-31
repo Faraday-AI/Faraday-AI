@@ -10,12 +10,15 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Floa
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict
 
-from app.models.base import Base, BaseModel as SQLBaseModel
+from app.models.core.base import CoreBase
 from app.models.mixins import TimestampedMixin
 
 # Re-export for backward compatibility
-BaseModelMixin = SQLBaseModel
+BaseModelMixin = CoreBase
 TimestampMixin = TimestampedMixin
+
+# Import Activity model to ensure it's registered with SQLAlchemy
+from app.models.physical_education.activity.models import Activity
 
 class EnvironmentalCondition(BaseModelMixin, TimestampMixin):
     """Model for environmental conditions."""
@@ -33,7 +36,9 @@ class EnvironmentalCondition(BaseModelMixin, TimestampMixin):
     condition_metadata = Column(JSON)
     
     # Relationships
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="environmental_conditions")
+    activity = relationship("Activity", back_populates="environmental_conditions")
+    impacts = relationship("ActivityEnvironmentalImpact", back_populates="condition")
+    alerts = relationship("EnvironmentalAlert", back_populates="condition")
 
 class EnvironmentalConditionCreate(BaseModel):
     """Pydantic model for creating environmental conditions."""
@@ -86,7 +91,7 @@ class ActivityEnvironmentalImpact(BaseModelMixin, TimestampMixin):
     impact_metadata = Column(JSON)  # Renamed from metadata
     
     # Relationships
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="environmental_impacts")
+    activity = relationship("Activity", back_populates="environmental_impacts")
     condition = relationship("EnvironmentalCondition", back_populates="impacts")
 
 class EnvironmentalAlert(BaseModelMixin, TimestampMixin):

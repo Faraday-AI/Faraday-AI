@@ -104,6 +104,7 @@ class Goal(SharedBase, NamedMixin, StatusMixin):
     milestones = relationship("GoalMilestone", back_populates="goal", cascade="all, delete-orphan")
     activities = relationship("GoalActivity", back_populates="goal", cascade="all, delete-orphan")
     progress_records = relationship("HealthFitnessGoalProgress", back_populates="goal", cascade="all, delete-orphan")
+    progress = relationship("app.models.physical_education.student.health.StudentHealthGoalProgress", back_populates="goal")
     sub_goals = relationship("Goal", backref="parent", remote_side=[id])
     dependencies = relationship("Goal",
                               secondary=goal_dependencies,

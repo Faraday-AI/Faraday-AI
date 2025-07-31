@@ -12,6 +12,7 @@ class BaseStatus(str, Enum):
     ACTIVE = "active"
     INACTIVE = "inactive"
     PENDING = "pending"
+    SCHEDULED = "scheduled"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     ON_HOLD = "on_hold"

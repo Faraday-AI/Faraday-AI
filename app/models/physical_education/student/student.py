@@ -46,7 +46,7 @@ class StudentHealthProfile(SharedBase):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    health_records = relationship("HealthRecord", back_populates="student")
+    health_records = relationship("app.models.physical_education.student.student.HealthRecord", back_populates="student")
     fitness_assessments = relationship("FitnessAssessment", back_populates="student")
     health_skill_assessments = relationship("StudentHealthSkillAssessment", back_populates="student")
     activity_preferences = relationship("ActivityPreference", back_populates="student")
@@ -55,7 +55,7 @@ class StudentHealthProfile(SharedBase):
     activity_adaptations = relationship("app.models.activity_adaptation.activity.activity_adaptation.ActivityAdaptation", back_populates="student")
     student_activity_adaptations = relationship("app.models.activity_adaptation.student.activity_student.ActivityAdaptation", back_populates="student")
     student_health_fitness_goals = relationship("StudentHealthFitnessGoal", back_populates="student")
-    health_thresholds = relationship("HealthMetricThreshold", back_populates="student")
+    health_thresholds = relationship("app.models.physical_education.student.student.HealthMetricThreshold", back_populates="student")
     
     # Adaptation-related relationships
     adapted_workouts = relationship("app.models.activity_adaptation.exercise.exercise.AdaptedWorkout", back_populates="student")

@@ -235,7 +235,11 @@ def get_password_hash(password: str) -> str:
     except Exception as e:
         logger.error(f"Error hashing password: {str(e)}")
         # Fallback to simple hash if bcrypt fails
-        return hashlib.sha256(password.encode('utf-8')).hexdigest()
+        # If password is already bytes, use it directly, otherwise encode
+        if isinstance(password, bytes):
+            return hashlib.sha256(password).hexdigest()
+        else:
+            return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""

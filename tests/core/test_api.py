@@ -21,7 +21,7 @@ def test_generate_document():
         "content": "This is a test report content",
         "output_format": "docx"
     }
-    response = client.post("/generate-document", json=request_data)
+    response = client.post("/generate-document", data=request_data)
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/octet-stream"
     assert "Test Report.docx" in response.headers["content-disposition"]
@@ -33,7 +33,7 @@ def test_generate_document_invalid_format():
         "content": "This is a test report content",
         "output_format": "invalid"
     }
-    response = client.post("/generate-document", json=request_data)
+    response = client.post("/generate-document", data=request_data)
     assert response.status_code == 400
     assert "Unsupported format" in response.json()["detail"]
 
@@ -42,6 +42,6 @@ def test_generate_text():
         "prompt": "Test prompt",
         "structured_output": False
     }
-    response = client.post("/generate-text", json=request_data)
+    response = client.post("/generate-text", data=request_data)
     # Note: This will fail without valid OpenAI API key
     assert response.status_code in [200, 500]  # 500 if no API key 

@@ -67,8 +67,8 @@ class HealthMetric(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    student = relationship("Student", back_populates="health_metrics", overlaps="student,health_metrics")
-    history = relationship("HealthMetricHistory", back_populates="metric", cascade="all, delete-orphan")
+    student = relationship("Student", back_populates="fitness_health_metrics", overlaps="student,fitness_health_metrics")
+    history = relationship("app.models.health_fitness.metrics.health_metrics.HealthMetricHistory", back_populates="metric", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<HealthMetric {self.metric_type} - {self.value} {self.unit}>"
@@ -105,8 +105,8 @@ class HealthMetricHistory(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    metric = relationship("HealthMetric", back_populates="history")
-    student = relationship("Student", back_populates="health_metric_history", overlaps="student,health_metric_history")
+    metric = relationship("app.models.health_fitness.metrics.health_metrics.HealthMetric", back_populates="history")
+    student = relationship("Student", back_populates="fitness_health_metric_history", overlaps="student,fitness_health_metric_history")
 
     def __repr__(self):
         return f"<HealthMetricHistory {self.metric_id} - {self.old_value} -> {self.new_value}>"

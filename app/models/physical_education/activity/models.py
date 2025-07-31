@@ -76,6 +76,32 @@ class Activity(SharedBase):
     assessment_metrics = relationship("app.models.skill_assessment.assessment.assessment.AssessmentMetrics", back_populates="activity")
     movement_analyses = relationship("app.models.movement_analysis.analysis.movement_analysis.MovementAnalysis", back_populates="activity", overlaps="activity,movement_analyses")
     circuit_breakers = relationship("app.models.circuit_breaker.CircuitBreaker", back_populates="activity", overlaps="activity,circuit_breakers")
+    # Progress relationships temporarily disabled to fix seeding issues
+    # progress_goals = relationship("ProgressGoal", back_populates="activity")
+    
+    # Equipment usage relationship using string reference
+    equipment_usage = relationship(
+        "EquipmentUsage",
+        foreign_keys="EquipmentUsage.activity_id",
+        viewonly=True
+    )
+    
+    # Environmental relationships
+    environmental_conditions = relationship("EnvironmentalCondition", back_populates="activity")
+    environmental_impacts = relationship("ActivityEnvironmentalImpact", back_populates="activity")
+    
+    # Injury prevention relationships
+    prevention_assessments = relationship("app.models.physical_education.injury_prevention.PreventionAssessment", back_populates="activity")
+    injury_preventions = relationship("app.models.physical_education.injury_prevention.ActivityInjuryPrevention", back_populates="activity")
+    
+    # Safety relationships
+    risk_assessments = relationship("app.models.physical_education.safety.models.RiskAssessment", back_populates="activity", overlaps="activity,risk_assessments")
+    skill_assessment_risk_assessments = relationship("app.models.skill_assessment.safety.safety.RiskAssessment", back_populates="activity", overlaps="activity,skill_assessment_risk_assessments")
+    safety_alerts = relationship("app.models.physical_education.safety.models.SafetyAlert", back_populates="activity", overlaps="activity,safety_alerts")
+    skill_assessment_safety_alerts = relationship("app.models.skill_assessment.safety.safety.SafetyAlert", back_populates="activity", overlaps="activity,skill_assessment_safety_alerts")
+    safety = relationship("app.models.skill_assessment.safety.safety.Safety", back_populates="activity", overlaps="activity,safety")
+    safety_checks = relationship("app.models.physical_education.safety.models.SafetyCheck", back_populates="activity", overlaps="activity,safety_checks")
+    skill_assessment_safety_checks = relationship("app.models.skill_assessment.safety.safety.SafetyCheck", back_populates="activity", overlaps="activity,skill_assessment_safety_checks")
     
     def __repr__(self):
         return f"<Activity {self.name} - {self.difficulty_level}>"

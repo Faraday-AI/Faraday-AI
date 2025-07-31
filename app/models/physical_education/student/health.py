@@ -10,12 +10,15 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Floa
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict
 
-from app.models.base import Base, BaseModel as SQLBaseModel
+from app.models.core.base import CoreBase
 from app.models.mixins import TimestampedMixin
 
 # Re-export for backward compatibility
-BaseModelMixin = SQLBaseModel
+BaseModelMixin = CoreBase
 TimestampMixin = TimestampedMixin
+
+# Import Student model to ensure it's registered with SQLAlchemy
+from app.models.physical_education.student.models import Student
 
 class HealthRecord(BaseModelMixin, TimestampMixin):
     """Model for student health records."""
@@ -51,7 +54,7 @@ class MedicalCondition(BaseModelMixin, TimestampMixin):
     condition_metadata = Column(JSON)
     
     # Relationships
-    student = relationship("Student", back_populates="medical_conditions")
+    student = relationship("Student", back_populates="student_medical_conditions")
 
 class EmergencyContact(BaseModelMixin, TimestampMixin):
     """Model for student emergency contacts."""
@@ -109,7 +112,7 @@ class HealthRecordResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class HealthMetric(Base):
+class HealthMetric(CoreBase):
     """Model for student health metrics."""
     __tablename__ = "health_metrics"
     __table_args__ = {'extend_existing': True}
@@ -123,15 +126,16 @@ class HealthMetric(Base):
     metric_metadata = Column(JSON, nullable=True)
 
     # Relationships
-    student = relationship("Student", back_populates="health_metrics")
-    thresholds = relationship("HealthMetricThreshold", back_populates="metrics")
+    student = relationship("Student", back_populates="student_health_metrics")
+    thresholds = relationship("app.models.physical_education.student.health.HealthMetricThreshold", back_populates="metrics")
 
-class HealthMetricThreshold(Base):
+class HealthMetricThreshold(CoreBase):
     """Model for health metric thresholds."""
     __tablename__ = "health_metric_thresholds"
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
+    metric_id = Column(Integer, ForeignKey("health_metrics.id"), nullable=False)
     metric_type = Column(String, nullable=False)
     min_value = Column(Float, nullable=True)
     max_value = Column(Float, nullable=True)
@@ -139,9 +143,9 @@ class HealthMetricThreshold(Base):
     threshold_metadata = Column(JSON, nullable=True)
 
     # Relationships
-    metrics = relationship("HealthMetric", back_populates="thresholds")
+    metrics = relationship("app.models.physical_education.student.health.HealthMetric", back_populates="thresholds")
 
-class FitnessGoal(Base):
+class FitnessGoal(CoreBase):
     """Model for student fitness goals."""
     __tablename__ = "physical_education_student_fitness_goals"
     __table_args__ = {'extend_existing': True}
@@ -155,24 +159,24 @@ class FitnessGoal(Base):
     goal_metadata = Column(JSON, nullable=True)
 
     # Relationships
-    student = relationship("Student", back_populates="fitness_goals")
-    progress = relationship("FitnessGoalProgress", back_populates="goal")
+    student = relationship("Student", back_populates="pe_fitness_goals")
+    progress = relationship("app.models.physical_education.student.health.FitnessGoalProgress", back_populates="goal")
 
-class FitnessGoalProgress(Base):
+class FitnessGoalProgress(CoreBase):
     """Model for tracking fitness goal progress."""
     __tablename__ = "physical_education_student_fitness_goal_progress"
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    goal_id = Column(Integer, ForeignKey("health_fitness_goals.id"), nullable=False)
+    goal_id = Column(Integer, ForeignKey("physical_education_student_fitness_goals.id"), nullable=False)
     current_value = Column(Float, nullable=False)
     progress_date = Column(DateTime, nullable=False)
     progress_metadata = Column(JSON, nullable=True)
 
     # Relationships
-    goal = relationship("FitnessGoal", back_populates="progress")
+    goal = relationship("app.models.physical_education.student.health.FitnessGoal", back_populates="progress")
 
-class StudentHealthGoalProgress(Base):
+class StudentHealthGoalProgress(CoreBase):
     """Model for tracking goal progress."""
     __tablename__ = "student_health_goal_progress"
     __table_args__ = {'extend_existing': True}
@@ -199,9 +203,19 @@ class GoalRecommendation(BaseModelMixin, TimestampMixin):
     recommendation_metadata = Column(JSON)  # Renamed from metadata
     
     # Relationships
-    student = relationship("Student", back_populates="goal_recommendations")
+    student = relationship("Student", back_populates="pe_goal_recommendations")
 
 class StudentHealth(BaseModelMixin, TimestampMixin):
     """Model for student health records."""
     
-    # ... existing code ... 
+    __tablename__ = "student_health"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    health_status = Column(String(50))
+    health_notes = Column(Text)
+    health_metadata = Column(JSON)
+    
+    # Relationships
+    student = relationship("Student", back_populates="student_health") 

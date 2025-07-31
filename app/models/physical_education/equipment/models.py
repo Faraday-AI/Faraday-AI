@@ -10,15 +10,22 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Floa
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict
 
-from app.models.base import Base, BaseModel as SQLBaseModel
+from app.models.core.base import CoreBase
 from app.models.mixins import TimestampedMixin
 from app.models.physical_education.pe_enums.pe_types import (
     EquipmentType,
     EquipmentStatus
 )
 
+
+
+# Import Activity model to ensure it's registered with SQLAlchemy
+from app.models.physical_education.activity.models import Activity
+# Import User model to ensure it's registered with SQLAlchemy
+from app.models.core.user import User
+
 # Re-export for backward compatibility
-BaseModelMixin = SQLBaseModel
+BaseModelMixin = CoreBase
 TimestampMixin = TimestampedMixin
 
 class Equipment(BaseModelMixin, TimestampMixin):
@@ -32,13 +39,21 @@ class Equipment(BaseModelMixin, TimestampMixin):
     description = Column(Text)
     category = Column(String(50))
     quantity = Column(Integer, default=0)
-    condition = Column(String(20))
+    condition = Column(String(20))  # Keep for backward compatibility
+    condition_id = Column(Integer, ForeignKey('equipment_conditions.id'))  # New foreign key
     location = Column(String(100))
     equipment_metadata = Column(JSON)
+    category_id = Column(Integer, ForeignKey('equipment_categories.id'))
     
     # Relationships
-    maintenance_records = relationship("EquipmentMaintenance", back_populates="equipment")
-    usage_records = relationship("EquipmentUsage", back_populates="equipment")
+    maintenance_records = relationship("app.models.physical_education.equipment.models.EquipmentMaintenance", back_populates="equipment")
+    maintenance_records_alt = relationship("app.models.physical_education.equipment.models.MaintenanceRecord", back_populates="equipment")
+    usage_records = relationship("app.models.physical_education.equipment.models.EquipmentUsage", back_populates="equipment")
+    category = relationship("EquipmentCategory", back_populates="equipment")
+    condition_relation = relationship("EquipmentCondition", back_populates="equipment")
+    safety_alerts = relationship("app.models.skill_assessment.safety.safety.SafetyAlert", back_populates="equipment", overlaps="equipment,safety_alerts")
+    safety_checks = relationship("app.models.skill_assessment.safety.safety.EquipmentCheck", back_populates="equipment", overlaps="equipment,safety_checks")
+    safety_reports = relationship("app.models.skill_assessment.safety.safety.SafetyReport", back_populates="equipment", overlaps="equipment,safety_reports")
 
 class EquipmentMaintenance(BaseModelMixin, TimestampMixin):
     """Model for equipment maintenance records."""
@@ -47,7 +62,7 @@ class EquipmentMaintenance(BaseModelMixin, TimestampMixin):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=False)
+    equipment_id = Column(Integer, ForeignKey("physical_education_equipment.id"), nullable=False)
     maintenance_date = Column(DateTime, nullable=False)
     maintenance_type = Column(String(50), nullable=False)
     description = Column(Text)
@@ -56,7 +71,7 @@ class EquipmentMaintenance(BaseModelMixin, TimestampMixin):
     maintenance_metadata = Column(JSON)
     
     # Relationships
-    equipment = relationship("Equipment", back_populates="maintenance_records")
+    equipment = relationship("app.models.physical_education.equipment.models.Equipment", back_populates="maintenance_records")
 
 class EquipmentUsage(BaseModelMixin, TimestampMixin):
     """Model for equipment usage records."""
@@ -65,7 +80,7 @@ class EquipmentUsage(BaseModelMixin, TimestampMixin):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=False)
+    equipment_id = Column(Integer, ForeignKey("physical_education_equipment.id"), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
     usage_date = Column(DateTime, nullable=False)
     quantity_used = Column(Integer)
@@ -73,8 +88,21 @@ class EquipmentUsage(BaseModelMixin, TimestampMixin):
     usage_metadata = Column(JSON)
     
     # Relationships
-    equipment = relationship("Equipment", back_populates="usage_records")
-    activity = relationship("app.models.physical_education.activity.models.Activity")
+    equipment = relationship("app.models.physical_education.equipment.models.Equipment", back_populates="usage_records")
+    
+    # Activity relationship temporarily disabled to fix mapper initialization
+    # activity = relationship(
+    #     "Activity",
+    #     foreign_keys=[activity_id],
+    #     lazy="dynamic",
+    #     viewonly=True
+    # )
+    
+    # Bridge relationship to avoid circular imports
+    def get_activity(self):
+        """Get the associated activity through a lazy relationship."""
+        from app.models.physical_education.activity.models import Activity
+        return Activity.query.get(self.activity_id)
 
 class EquipmentCreate(BaseModel):
     """Pydantic model for creating equipment."""
@@ -126,7 +154,7 @@ class EquipmentCategory(BaseModelMixin, TimestampMixin):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    equipment = relationship('Equipment', back_populates='category')
+    equipment = relationship('app.models.physical_education.equipment.models.Equipment', back_populates='category')
     parent = relationship('EquipmentCategory', remote_side=[id], backref='children')
 
 class EquipmentCategoryCreate(BaseModel):
@@ -167,7 +195,7 @@ class EquipmentCondition(BaseModelMixin, TimestampMixin):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    equipment = relationship('Equipment', back_populates='condition')
+    equipment = relationship('app.models.physical_education.equipment.models.Equipment', back_populates='condition_relation')
 
 class EquipmentConditionCreate(BaseModel):
     """Pydantic model for creating equipment conditions."""
@@ -272,15 +300,16 @@ class MaintenanceRecord(BaseModelMixin, TimestampMixin):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True)
-    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=False)
+    equipment_id = Column(Integer, ForeignKey("physical_education_equipment.id"), nullable=False)
     maintenance_date = Column(DateTime, nullable=False)
     maintenance_type = Column(String(50), nullable=False)
     description = Column(Text)
-    performed_by = Column(String(100))
+    performed_by = Column(String(100))  # Keep for backward compatibility
+    maintainer_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Foreign key to users table
     cost = Column(Float)
     record_metadata = Column(JSON)  # Renamed from metadata
     next_maintenance_date = Column(DateTime)
     
     # Relationships
-    equipment = relationship("Equipment", back_populates="maintenance_records")
-    maintainer = relationship("User", back_populates="performed_maintenance") 
+    equipment = relationship("app.models.physical_education.equipment.models.Equipment", back_populates="maintenance_records_alt")
+    maintainer = relationship(User, back_populates="performed_maintenance") 

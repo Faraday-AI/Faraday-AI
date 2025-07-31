@@ -75,7 +75,7 @@ class NutritionPlan(SharedBase):
     # Relationships
     student = relationship("Student")  # , back_populates="nutrition_plans")
     meals = relationship("MealPlan", back_populates="nutrition_plan")
-    goals = relationship("NutritionGoal", back_populates="nutrition_plan")
+    goals = relationship("app.models.health_fitness.nutrition.nutrition.NutritionGoal", back_populates="nutrition_plan")
 
     def __repr__(self):
         return f"<NutritionPlan {self.title} - {self.student_id}>"
@@ -97,7 +97,7 @@ class NutritionGoal(SharedBase):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    nutrition_plan = relationship("NutritionPlan", back_populates="goals")
+    nutrition_plan = relationship("app.models.health_fitness.nutrition.nutrition.NutritionPlan", back_populates="goals")
 
     def __repr__(self):
         return f"<NutritionGoal {self.description}>"

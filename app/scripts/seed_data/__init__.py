@@ -40,7 +40,7 @@ from app.core.database import SessionLocal
 
 from app.core.config import settings
 from app.models.physical_education.movement_analysis.movement_models import (
-    MovementAnalysis, MovementPattern
+    MovementAnalysisRecord, MovementPattern
 )
 from app.models.physical_education.skill_assessment.skill_assessment_models import (
     SkillAssessment

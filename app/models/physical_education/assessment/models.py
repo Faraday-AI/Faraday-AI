@@ -47,8 +47,8 @@ class Assessment(BaseModelMixin, TimestampMixin):
         'polymorphic_on': 'type'
     }
 
-# Initialize relationships
-setup_assessment_relationships(Assessment)
+# Initialize relationships - temporarily commented out to fix mapper issues
+# setup_assessment_relationships(Assessment)
 
 # Pydantic models for API
 class AssessmentCreate(BaseModel):

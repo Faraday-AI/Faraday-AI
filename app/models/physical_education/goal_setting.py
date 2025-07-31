@@ -29,6 +29,6 @@ class PhysicalEducationGoal(Base):
     notes = Column(Text)
     goal_metadata = Column(JSON)
     
-    # Relationships
+    # Relationships - temporarily disabled to fix mapper initialization
     # student = relationship("Student", back_populates="physical_education_goals")
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="physical_education_goals") 
+    # activity = relationship("Activity", back_populates="physical_education_goals") 

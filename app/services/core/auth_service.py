@@ -32,7 +32,7 @@ class AuthService:
         user = db.query(User).filter(User.email == username).first()
         if not user:
             return None
-        if not self.verify_password(password, user.hashed_password):
+        if not self.verify_password(password, user.password_hash):
             return None
         return user
 
@@ -54,7 +54,7 @@ class AuthService:
             # For now, we're just decoding the JWT
             payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
             return payload
-        except jwt.JWTError as e:
+        except jwt.PyJWTError as e:
             logger.error(f"JWT verification failed: {str(e)}")
             return None
 
@@ -68,7 +68,8 @@ class AuthService:
                 # Create new user
                 user = User(
                     email=email,
-                    name=name,
+                    first_name=name.split()[0] if name else "",
+                    last_name=" ".join(name.split()[1:]) if name and len(name.split()) > 1 else "",
                     is_active=True,
                     created_at=datetime.utcnow()
                 )
@@ -108,7 +109,7 @@ class AuthService:
                 "user": {
                     "id": str(user.id),
                     "email": user.email,
-                    "name": user.name
+                    "name": f"{user.first_name or ''} {user.last_name or ''}".strip()
                 }
             }
         except SQLAlchemyError as e:
@@ -125,7 +126,7 @@ class AuthService:
                 user = self.db.query(User).filter(User.id == user_id).first()
                 return user
             return None
-        except jwt.JWTError as e:
+        except jwt.PyJWTError as e:
             logger.error(f"Session verification failed: {str(e)}")
             return None
 
@@ -155,8 +156,8 @@ class AuthService:
     async def logout(self, user: User) -> bool:
         """Handle user logout."""
         try:
-            # Update last logout time
-            user.last_logout = datetime.utcnow()
+            # Update last login time (since last_logout doesn't exist on User model)
+            user.last_login = datetime.utcnow()
             self.db.commit()
             return True
         except SQLAlchemyError as e:

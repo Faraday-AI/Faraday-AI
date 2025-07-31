@@ -12,7 +12,7 @@ import mediapipe as mp
 from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, Text, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import JSONB
-from app.core.database import Base
+from app.models.core.base import CoreBase
 
 # This file has been moved to app/models/movement_analysis.py
 # Please import MovementModels and other movement-related models from there instead.
@@ -25,7 +25,7 @@ from app.core.database import Base
 #     MovementSequence
 # )
 
-from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis, MovementPattern
+# from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis, MovementPattern
 
 __all__ = [
     'MovementModels',
@@ -36,7 +36,7 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-class MovementAnalysis(Base):
+class MovementAnalysisRecord(CoreBase):
     """Stores movement analysis data for student activities."""
     __tablename__ = "movement_analysis"
 
@@ -52,14 +52,14 @@ class MovementAnalysis(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # Relationships
-    student = relationship("Student", back_populates="movement_analyses")
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="movement_analyses")
-    patterns = relationship("MovementPattern", back_populates="analysis", cascade="all, delete-orphan")
+    student = relationship("Student", back_populates="movement_analysis_records")
+    activity = relationship("app.models.physical_education.activity.models.Activity")
+    patterns = relationship("app.models.physical_education.movement_analysis.movement_models.MovementPattern", back_populates="analysis", cascade="all, delete-orphan")
 
     def __repr__(self):
-        return f"<MovementAnalysis {self.id} - {self.analysis_type}>"
+        return f"<MovementAnalysisRecord {self.id} - {self.analysis_type}>"
 
-class MovementPattern(Base):
+class MovementPattern(CoreBase):
     """Records identified movement patterns from analysis."""
     __tablename__ = "physical_education_movement_pattern_models"
     __table_args__ = {'extend_existing': True}
@@ -81,7 +81,7 @@ class MovementPattern(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # Relationships
-    analysis = relationship("MovementAnalysis", back_populates="patterns")
+    analysis = relationship("MovementAnalysisRecord", back_populates="patterns")
 
 class MovementModels:
     def __init__(self, config_path: Optional[str] = None):

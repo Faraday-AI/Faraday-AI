@@ -110,6 +110,78 @@ from app.models.physical_education.exercise import (
     ExerciseWorkoutExercise
 )
 
+# Progress models imported at the end to ensure all other models are loaded first
+
+from app.models.physical_education.goal_setting import (
+    PhysicalEducationGoal
+)
+
+# Temporarily commented out to fix mapper initialization issues
+# from app.models.physical_education.nutrition import (
+#     NutritionPlan,
+#     NutritionPlanCreate,
+#     NutritionPlanUpdate,
+#     NutritionPlanResponse,
+#     Meal,
+#     MealCreate,
+#     MealUpdate,
+#     MealResponse,
+#     MealFood,
+#     MealFoodCreate,
+#     MealFoodUpdate,
+#     MealFoodResponse,
+#     Food,
+#     FoodCreate,
+#     FoodUpdate,
+#     FoodResponse,
+#     NutritionGoal,
+#     PhysicalEducationNutritionLog,
+#     PhysicalEducationNutritionLogCreate,
+#     PhysicalEducationNutritionLogUpdate,
+#     PhysicalEducationNutritionLogResponse,
+#     PhysicalEducationNutritionRecommendation,
+#     PhysicalEducationNutritionRecommendationCreate,
+#     PhysicalEducationNutritionRecommendationUpdate,
+#     PhysicalEducationNutritionRecommendationResponse,
+#     NutritionEducation,
+#     NutritionEducationCreate,
+#     NutritionEducationUpdate,
+#     NutritionEducationResponse,
+# )
+
+from app.models.physical_education.activity_plan import (
+    ActivityPlan,
+    ActivityPlanActivity,
+    ActivityPlanCreate,
+    ActivityPlanUpdate,
+    ActivityPlanResponse,
+    ClassPlan
+)
+
+from app.models.physical_education.health.models import (
+    HealthMetric,
+    HealthMetricCreate,
+    HealthMetricUpdate,
+    HealthMetricResponse,
+    HealthCondition,
+    HealthConditionCreate,
+    HealthConditionUpdate,
+    HealthConditionResponse,
+    HealthAlert,
+    HealthAlertCreate,
+    HealthAlertUpdate,
+    HealthAlertResponse,
+    HealthCheck,
+    HealthCheckCreate,
+    HealthCheckUpdate,
+    HealthCheckResponse,
+    HealthMetricHistory,
+    HealthMetricHistoryCreate,
+    HealthMetricHistoryUpdate,
+    HealthMetricHistoryResponse
+)
+
+# Import progress models at the end to ensure all other models are loaded first
 from app.models.physical_education.progress import (
     Progress,
     ProgressBase,
@@ -117,7 +189,6 @@ from app.models.physical_education.progress import (
     ProgressUpdate,
     ProgressResponse,
     ProgressGoal,
-    ProgressGoalBase,
     ProgressGoalCreate,
     ProgressGoalUpdate,
     ProgressGoalResponse,
@@ -130,73 +201,9 @@ from app.models.physical_education.progress import (
     ProgressAssessment
 )
 
-from app.models.physical_education.goal_setting import (
-    PhysicalEducationGoal
-)
-
-from app.models.physical_education.nutrition import (
-    NutritionPlan,
-    NutritionPlanCreate,
-    NutritionPlanUpdate,
-    NutritionPlanResponse,
-    Meal,
-    MealCreate,
-    MealUpdate,
-    MealResponse,
-    MealFood,
-    MealFoodCreate,
-    MealFoodUpdate,
-    MealFoodResponse,
-    Food,
-    FoodCreate,
-    FoodUpdate,
-    FoodResponse,
-    NutritionGoal,
-    PhysicalEducationNutritionLog,
-    PhysicalEducationNutritionLogCreate,
-    PhysicalEducationNutritionLogUpdate,
-    PhysicalEducationNutritionLogResponse,
-    PhysicalEducationNutritionRecommendation,
-    PhysicalEducationNutritionRecommendationCreate,
-    PhysicalEducationNutritionRecommendationUpdate,
-    PhysicalEducationNutritionRecommendationResponse,
-    NutritionEducation,
-    NutritionEducationCreate,
-    NutritionEducationUpdate,
-    NutritionEducationResponse,
-)
-
-from app.models.physical_education.activity_plan import (
-    ActivityPlan,
-    ActivityPlanActivity,
-    ActivityPlanCreate,
-    ActivityPlanUpdate,
-    ActivityPlanResponse,
-    ClassPlan
-)
-
-# from app.models.physical_education.health.models import (
-#     HealthMetric,
-#     HealthMetricCreate,
-#     HealthMetricUpdate,
-#     HealthMetricResponse,
-#     HealthCondition,
-#     HealthConditionCreate,
-#     HealthConditionUpdate,
-#     HealthConditionResponse,
-#     HealthAlert,
-#     HealthAlertCreate,
-#     HealthAlertUpdate,
-#     HealthAlertResponse,
-#     HealthCheck,
-#     HealthCheckCreate,
-#     HealthCheckUpdate,
-#     HealthCheckResponse,
-#     HealthMetricHistory,
-#     HealthMetricHistoryCreate,
-#     HealthMetricHistoryUpdate,
-#     HealthMetricHistoryResponse
-# )
+# Create aliases for easier relationship resolution
+ProgressGoalModel = ProgressGoal
+ProgressModel = Progress
 
 __all__ = [
     # Base models and utilities
@@ -304,7 +311,7 @@ __all__ = [
     'MealResponse',
     'MealFood',
     'MealFoodCreate',
-    'MealFoodUpdate',
+        'MealFoodUpdate',
     'MealFoodResponse',
     'Food',
     'FoodCreate',
@@ -331,4 +338,31 @@ __all__ = [
     'ActivityPlanUpdate',
     'ActivityPlanResponse',
     'ClassPlan',
-] 
+    
+    # Health models
+    'HealthMetric',
+    'HealthMetricCreate',
+    'HealthMetricUpdate',
+    'HealthMetricResponse',
+    'HealthCondition',
+    'HealthConditionCreate',
+    'HealthConditionUpdate',
+    'HealthConditionResponse',
+    'HealthAlert',
+    'HealthAlertCreate',
+    'HealthAlertUpdate',
+    'HealthAlertResponse',
+    'HealthCheck',
+    'HealthCheckCreate',
+    'HealthCheckUpdate',
+    'HealthCheckResponse',
+    'HealthMetricHistory',
+    'HealthMetricHistoryCreate',
+    'HealthMetricHistoryUpdate',
+    'HealthMetricHistoryResponse',
+]
+
+def setup_physical_education_relationships():
+    """Setup relationships after all models are loaded to avoid circular imports."""
+    from .relationship_setup import setup_all_physical_education_relationships
+    setup_all_physical_education_relationships() 

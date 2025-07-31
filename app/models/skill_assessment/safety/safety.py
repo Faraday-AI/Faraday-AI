@@ -4,9 +4,15 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
 
-from app.models.physical_education.base.sqlalchemy_base import BaseModelMixin
+from app.models.core.base import CoreBase
 from app.db.mixins import TimestampMixin, StatusMixin
-from app.models.physical_education.base.base_class import PEBase
+
+# Re-export for backward compatibility
+BaseModelMixin = CoreBase
+
+# Import models to ensure they're registered with SQLAlchemy
+from app.models.physical_education.activity.models import Activity
+from app.models.core.user import User
 
 class IncidentSeverity(enum.Enum):
     LOW = "low"
@@ -45,8 +51,10 @@ class SkillAssessmentSafetyIncident(BaseModelMixin, TimestampMixin):
     __tablename__ = "skill_assessment_safety_incidents"
     __table_args__ = {'extend_existing': True}
     
+    id = Column(Integer, primary_key=True)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=True)
+    safety_id = Column(Integer, ForeignKey("safety.id"), nullable=True)
     incident_type = Column(SQLEnum(IncidentType, name='incident_type_enum'), nullable=False)
     severity = Column(SQLEnum(IncidentSeverity, name='incident_severity_enum'), nullable=False)
     description = Column(String(1000), nullable=False)
@@ -59,6 +67,9 @@ class SkillAssessmentSafetyIncident(BaseModelMixin, TimestampMixin):
     follow_up_notes = Column(String, nullable=True)
     date = Column(DateTime, nullable=True)
 
+    # Relationships
+    safety = relationship("Safety", back_populates="incidents", overlaps="safety,incidents")
+
     def __repr__(self):
         return f"<SafetyIncident {self.incident_type} - {self.severity}>"
 
@@ -68,6 +79,7 @@ class RiskAssessment(BaseModelMixin, TimestampMixin):
     __tablename__ = "skill_assessment_risk_assessments"
     __table_args__ = {'extend_existing': True}
     
+    id = Column(Integer, primary_key=True)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
     risk_level = Column(SQLEnum(RiskLevel, name='risk_level_enum'), nullable=False)
     factors = Column(JSON, nullable=False)  # List of risk factors
@@ -79,8 +91,8 @@ class RiskAssessment(BaseModelMixin, TimestampMixin):
     assessed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Relationships
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="risk_assessments", overlaps="activity,risk_assessments")
-    assessor = relationship("User", back_populates="conducted_assessments", overlaps="user,conducted_assessments")
+    activity = relationship("Activity", back_populates="skill_assessment_risk_assessments", overlaps="activity,skill_assessment_risk_assessments")
+    assessor = relationship("User", back_populates="skill_assessment_risk_assessments", overlaps="user,skill_assessment_risk_assessments")
 
 class SafetyAlert(BaseModelMixin, TimestampMixin):
     """Model for safety alerts and notifications."""
@@ -88,20 +100,21 @@ class SafetyAlert(BaseModelMixin, TimestampMixin):
     __tablename__ = "skill_assessment_safety_alerts"
     __table_args__ = {'extend_existing': True}
     
+    id = Column(Integer, primary_key=True)
     alert_type = Column(SQLEnum(AlertType, name='alert_type_enum'), nullable=False)
     severity = Column(SQLEnum(IncidentSeverity, name='alert_incident_severity_enum'), nullable=False)
     message = Column(String(1000), nullable=False)
     recipients = Column(JSON, nullable=False)  # List of user IDs
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=True)
-    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=True)
+    equipment_id = Column(Integer, ForeignKey("physical_education_equipment.id"), nullable=True)
     resolved_at = Column(DateTime, nullable=True)
     resolution_notes = Column(String(1000), nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Relationships
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="safety_alerts", overlaps="activity,safety_alerts")
-    equipment = relationship("Equipment", back_populates="safety_alerts", overlaps="equipment,safety_alerts")
-    creator = relationship("User", back_populates="created_alerts", overlaps="user,created_alerts")
+    activity = relationship("Activity", back_populates="skill_assessment_safety_alerts", overlaps="activity,skill_assessment_safety_alerts")
+    equipment = relationship("app.models.physical_education.equipment.models.Equipment", back_populates="safety_alerts", overlaps="equipment,safety_alerts")
+    creator = relationship("User", back_populates="skill_assessment_safety_alerts", overlaps="user,skill_assessment_safety_alerts")
 
 class SafetyProtocol(BaseModelMixin, TimestampMixin):
     """Model for storing safety protocols."""
@@ -109,6 +122,7 @@ class SafetyProtocol(BaseModelMixin, TimestampMixin):
     __tablename__ = "skill_assessment_safety_protocols"
     __table_args__ = {'extend_existing': True}
     
+    id = Column(Integer, primary_key=True)
     description = Column(String(1000), nullable=False)
     activity_type = Column(String(100), nullable=True)
     protocol_type = Column(String(100), nullable=False)  # e.g., "pre_activity", "emergency", "equipment"
@@ -116,11 +130,12 @@ class SafetyProtocol(BaseModelMixin, TimestampMixin):
     required_equipment = Column(JSON, nullable=True)
     emergency_contacts = Column(JSON, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    safety_id = Column(Integer, ForeignKey("safety.id"), nullable=True)
     last_reviewed = Column(DateTime, nullable=True)
     next_review = Column(DateTime, nullable=True)
     
     # Relationships
-    creator = relationship("User", back_populates="created_protocols", overlaps="user,created_protocols")
+    creator = relationship("User", back_populates="skill_assessment_safety_protocols", overlaps="user,skill_assessment_safety_protocols")
     safety = relationship("Safety", back_populates="protocols", overlaps="safety,protocols")
 
 class SafetyCheck(BaseModelMixin, TimestampMixin):
@@ -129,9 +144,11 @@ class SafetyCheck(BaseModelMixin, TimestampMixin):
     __tablename__ = "skill_assessment_safety_checks"
     __table_args__ = {'extend_existing': True}
     
+    id = Column(Integer, primary_key=True)
     check_type = Column(SQLEnum(CheckType, name='check_type_enum'), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
     performed_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    safety_id = Column(Integer, ForeignKey("safety.id"), nullable=True)
     status = Column(String(50), nullable=False)  # passed, failed, needs_attention
     notes = Column(String(1000))
     issues_found = Column(JSON)  # List of issues found
@@ -140,11 +157,11 @@ class SafetyCheck(BaseModelMixin, TimestampMixin):
     follow_up_notes = Column(String(1000))
     
     # Relationships
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="safety_checks", overlaps="activity,safety_checks")
-    performer = relationship("User", back_populates="performed_checks", overlaps="user,performed_checks")
+    activity = relationship("Activity", back_populates="skill_assessment_safety_checks", overlaps="activity,skill_assessment_safety_checks")
+    performer = relationship("User", back_populates="skill_assessment_performed_checks", overlaps="user,skill_assessment_performed_checks")
     safety = relationship("Safety", back_populates="checks", overlaps="safety,checks")
-    environmental_details = relationship("EnvironmentalCheck", back_populates="safety_check", cascade="all, delete-orphan", overlaps="safety_check,environmental_details")
-    equipment_details = relationship("EquipmentCheck", back_populates="safety_check", cascade="all, delete-orphan", overlaps="safety_check,equipment_details")
+    environmental_details = relationship("app.models.skill_assessment.safety.safety.EnvironmentalCheck", back_populates="safety_check", cascade="all, delete-orphan", overlaps="safety_check,environmental_details")
+    equipment_details = relationship("app.models.skill_assessment.safety.safety.EquipmentCheck", back_populates="safety_check", cascade="all, delete-orphan", overlaps="safety_check,equipment_details")
 
 class EnvironmentalCheck(BaseModelMixin, TimestampMixin):
     """Model for environmental safety checks."""
@@ -152,7 +169,8 @@ class EnvironmentalCheck(BaseModelMixin, TimestampMixin):
     __tablename__ = "skill_assessment_environmental_checks"
     __table_args__ = {'extend_existing': True}
     
-    safety_check_id = Column(Integer, ForeignKey("safety_checks.id"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    safety_check_id = Column(Integer, ForeignKey("skill_assessment_safety_checks.id"), nullable=False)
     temperature = Column(Integer)  # in Celsius
     humidity = Column(Integer)  # percentage
     lighting_level = Column(String(50))  # adequate, inadequate
@@ -162,16 +180,17 @@ class EnvironmentalCheck(BaseModelMixin, TimestampMixin):
     weather_conditions = Column(JSON)  # Current weather conditions
     
     # Relationships
-    safety_check = relationship("SafetyCheck", back_populates="environmental_details", overlaps="safety_check,environmental_details")
+    safety_check = relationship("app.models.skill_assessment.safety.safety.SafetyCheck", back_populates="environmental_details", overlaps="safety_check,environmental_details")
 
 class EquipmentCheck(BaseModelMixin, TimestampMixin):
     """Model for equipment safety checks."""
     
-    __tablename__ = "equipment_checks"
+    __tablename__ = "skill_assessment_equipment_checks"
     __table_args__ = {'extend_existing': True}
     
-    safety_check_id = Column(Integer, ForeignKey("safety_checks.id"), nullable=False)
-    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    safety_check_id = Column(Integer, ForeignKey("skill_assessment_safety_checks.id"), nullable=False)
+    equipment_id = Column(Integer, ForeignKey("physical_education_equipment.id"), nullable=False)
     condition = Column(String(50))  # good, fair, poor, damaged
     maintenance_needed = Column(Boolean, default=False)
     maintenance_type = Column(String(100))
@@ -182,8 +201,8 @@ class EquipmentCheck(BaseModelMixin, TimestampMixin):
     replacement_needed = Column(Boolean, default=False)
     
     # Relationships
-    safety_check = relationship("SafetyCheck", back_populates="equipment_details", overlaps="safety_check,equipment_details")
-    equipment = relationship("Equipment", back_populates="safety_checks", overlaps="equipment,safety_checks")
+    safety_check = relationship("app.models.skill_assessment.safety.safety.SafetyCheck", back_populates="equipment_details", overlaps="safety_check,equipment_details")
+    equipment = relationship("app.models.physical_education.equipment.models.Equipment", back_populates="safety_checks", overlaps="equipment,safety_checks")
 
 class Safety(BaseModelMixin, TimestampMixin, StatusMixin):
     """Base model for safety management."""
@@ -191,16 +210,17 @@ class Safety(BaseModelMixin, TimestampMixin, StatusMixin):
     __tablename__ = "safety"
     __table_args__ = {'extend_existing': True}
     
+    id = Column(Integer, primary_key=True)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
     risk_level = Column(SQLEnum(RiskLevel, name='risk_level_enum'), nullable=False)
     safety_notes = Column(String(1000))
     safety_metadata = Column(JSON)
     
     # Relationships
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="safety", overlaps="activity,safety")
-    incidents = relationship("SafetyIncident", back_populates="safety", overlaps="safety,incidents")
-    protocols = relationship("SafetyProtocol", back_populates="safety", overlaps="safety,protocols")
-    checks = relationship("SafetyCheck", back_populates="safety", overlaps="safety,checks")
+    activity = relationship("Activity", back_populates="safety", overlaps="activity,safety")
+    incidents = relationship("app.models.skill_assessment.safety.safety.SkillAssessmentSafetyIncident", back_populates="safety", overlaps="safety,incidents")
+    protocols = relationship("app.models.skill_assessment.safety.safety.SafetyProtocol", back_populates="safety", overlaps="safety,protocols")
+    checks = relationship("app.models.skill_assessment.safety.safety.SafetyCheck", back_populates="safety", overlaps="safety,checks")
 
     def __repr__(self):
         return f"<Safety {self.id} - {self.safety_status}>"
@@ -211,7 +231,8 @@ class SafetyReport(BaseModelMixin, TimestampMixin):
     __tablename__ = "safety_reports"
     __table_args__ = {'extend_existing': True}
     
-    equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=False)
+    id = Column(Integer, primary_key=True)
+    equipment_id = Column(Integer, ForeignKey("physical_education_equipment.id"), nullable=False)
     reported_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     report_type = Column(String(50), nullable=False)  # maintenance, damage, inspection
     severity = Column(SQLEnum(IncidentSeverity, name='final_incident_severity_enum'), nullable=False)
@@ -224,7 +245,7 @@ class SafetyReport(BaseModelMixin, TimestampMixin):
     report_metadata = Column(JSON, nullable=True)
     
     # Relationships
-    equipment = relationship("Equipment", back_populates="safety_reports", overlaps="equipment,safety_reports")
+    equipment = relationship("app.models.physical_education.equipment.models.Equipment", back_populates="safety_reports", overlaps="equipment,safety_reports")
     reporter = relationship("User", back_populates="safety_reports", overlaps="user,safety_reports")
 
     def __repr__(self):

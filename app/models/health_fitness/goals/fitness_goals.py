@@ -92,7 +92,7 @@ class FitnessGoalProgressGeneral(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    goal = relationship("FitnessGoal", back_populates="progress_records")
+    goal = relationship("app.models.health_fitness.goals.fitness_goals.FitnessGoal", back_populates="progress_records")
 
 class GoalAdjustment(Base):
     """Model for tracking adjustments to fitness goals."""
@@ -111,7 +111,7 @@ class GoalAdjustment(Base):
     additional_data = Column(JSON, nullable=True)
 
     # Relationships
-    goal = relationship("FitnessGoal")
+    goal = relationship("app.models.health_fitness.goals.fitness_goals.FitnessGoal")
 
 class GoalRecommendation(Base):
     """Model for fitness goal recommendations."""
@@ -154,8 +154,8 @@ class FitnessGoalProgress(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    fitness_goal = relationship("FitnessGoal", back_populates="fitness_progress_records")
-    student = relationship("Student", back_populates="fitness_goal_progress")
+    fitness_goal = relationship("app.models.health_fitness.goals.fitness_goals.FitnessGoal", back_populates="fitness_progress_records")
+    student = relationship("app.models.physical_education.student.models.Student", back_populates="fitness_goal_progress")
 
     def __repr__(self):
         return f"<FitnessGoalProgress {self.fitness_goal_id} - {self.progress_percentage}%>" 

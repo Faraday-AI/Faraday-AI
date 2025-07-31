@@ -25,6 +25,13 @@ from app.db.mixins import TimestampMixin
 from app.models.physical_education.base.base_class import PEBase
 from app.models.physical_education.relationships import setup_progress_relationships
 
+# Import Activity model to ensure it's available for relationships
+from app.models.physical_education.activity.models import Activity
+
+# Note: Student model is imported via string-based relationships to avoid circular imports
+
+# Note: Using string-based relationships to avoid circular imports
+
 # Re-export for backward compatibility
 BaseModelMixin = SQLBaseModel
 TimestampMixin = TimestampedMixin
@@ -74,9 +81,7 @@ class PhysicalEducationProgressNote(ProgressNoteBase):
     
     __mapper_args__ = {
         'polymorphic_identity': 'progress_note',
-        'inherit_condition': ProgressNoteBase.id == id,
-        'inherit_condition': id == ProgressNoteBase.id,
-        'concrete': True
+        'inherit_condition': ProgressNoteBase.id == id
     }
     
     # Relationships will be set up by setup_progress_relationships
@@ -101,9 +106,9 @@ class ProgressGoalBase(BaseModelMixin, TimestampMixin):
     goal_notes = Column(Text)
     type = Column(String(50))  # Polymorphic discriminator
     
-    # Relationships
-    student = relationship("Student", back_populates="progress_goals")
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="progress_goals")
+    # Progress relationships temporarily disabled to fix seeding issues
+    # student = relationship("Student", back_populates="progress_goals")
+    # activity = relationship("Activity", back_populates="progress_goals")
     
     __mapper_args__ = {
         'polymorphic_identity': 'progress_goal_base',
@@ -183,9 +188,9 @@ class Progress(Base, TimestampMixin):
     progress_notes = Column(Text)
     progress_metadata = Column(JSON)
     
-    # Relationships
-    student = relationship("Student", back_populates="progress")
-    activity = relationship("app.models.physical_education.activity.models.Activity")
+    # Progress relationships temporarily disabled to fix seeding issues
+    # student = relationship("Student", back_populates="progress")
+    # activity = relationship("Activity")
     metrics = relationship("ProgressMetric", back_populates="progress")
 
     def __repr__(self):

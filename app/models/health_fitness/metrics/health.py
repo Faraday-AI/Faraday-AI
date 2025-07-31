@@ -10,10 +10,12 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 
-from app.models.core.base import BaseModel, NamedMixin, TimestampedMixin, StatusMixin, MetadataMixin
-from app.models.base import Base
+from app.models.core.base import BaseModel, NamedMixin, TimestampedMixin, StatusMixin, MetadataMixin, CoreBase
 
-class HealthMetric(Base, TimestampedMixin, MetadataMixin):
+# Import Student model to ensure it's registered with SQLAlchemy
+from app.models.physical_education.student.models import Student
+
+class HealthMetric(CoreBase, TimestampedMixin, MetadataMixin):
     """Model for tracking general health metrics."""
     
     __tablename__ = "general_health_metrics"
@@ -28,7 +30,7 @@ class HealthMetric(Base, TimestampedMixin, MetadataMixin):
     
     # Relationships
     student = relationship("Student", back_populates="health_metrics", overlaps="student,health_metrics")
-    history = relationship("HealthMetricHistory", back_populates="metric", cascade="all, delete-orphan", overlaps="metric,history")
+    history = relationship("app.models.health_fitness.metrics.health.HealthMetricHistory", back_populates="metric", cascade="all, delete-orphan", overlaps="metric,history")
     
     def dict(self) -> Dict[str, Any]:
         """Convert model to dictionary."""
@@ -41,19 +43,19 @@ class HealthMetric(Base, TimestampedMixin, MetadataMixin):
             "notes": self.notes
         }
 
-class HealthMetricHistory(Base, TimestampedMixin):
+class HealthMetricHistory(CoreBase, TimestampedMixin):
     """Model for tracking general health metric history."""
     __tablename__ = 'general_health_metric_history'
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    metric_id = Column(Integer, ForeignKey("fitness_health_metrics.id", ondelete="CASCADE"), nullable=False)
+    metric_id = Column(Integer, ForeignKey("general_health_metrics.id", ondelete="CASCADE"), nullable=False)
     value = Column(Float, nullable=False)
     recorded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     notes = Column(String, nullable=True)
     
     # Relationships
-    metric = relationship("HealthMetric", back_populates="history", overlaps="metric,history")
+    metric = relationship("app.models.health_fitness.metrics.health.HealthMetric", back_populates="history", overlaps="metric,history")
     
     def dict(self) -> Dict[str, Any]:
         """Convert model to dictionary."""
@@ -65,7 +67,7 @@ class HealthMetricHistory(Base, TimestampedMixin):
             "notes": self.notes
         }
 
-class HealthCondition(Base, NamedMixin, TimestampedMixin, StatusMixin, MetadataMixin):
+class HealthCondition(CoreBase, NamedMixin, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for tracking student health conditions."""
     
     __tablename__ = "health_fitness_health_conditions"
@@ -80,7 +82,7 @@ class HealthCondition(Base, NamedMixin, TimestampedMixin, StatusMixin, MetadataM
     notes = Column(String, nullable=True)
     
     # Relationships
-    student = relationship("Student", back_populates="health_conditions", overlaps="student,health_conditions")
+    student = relationship("Student", back_populates="health_conditions")
     
     def dict(self) -> Dict[str, Any]:
         """Convert model to dictionary."""
@@ -94,7 +96,7 @@ class HealthCondition(Base, NamedMixin, TimestampedMixin, StatusMixin, MetadataM
             "notes": self.notes
         }
 
-class HealthAlert(Base, TimestampedMixin, StatusMixin, MetadataMixin):
+class HealthAlert(CoreBase, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for tracking health-related alerts."""
     
     __tablename__ = "health_fitness_health_alerts"
@@ -110,7 +112,7 @@ class HealthAlert(Base, TimestampedMixin, StatusMixin, MetadataMixin):
     notes = Column(String, nullable=True)
     
     # Relationships
-    student = relationship("Student", back_populates="health_alerts", overlaps="student,health_alerts")
+    student = relationship("Student", back_populates="health_fitness_alerts", overlaps="student,health_fitness_alerts")
     
     def dict(self) -> Dict[str, Any]:
         """Convert model to dictionary."""
@@ -125,7 +127,7 @@ class HealthAlert(Base, TimestampedMixin, StatusMixin, MetadataMixin):
             "notes": self.notes
         }
 
-class HealthCheck(Base, TimestampedMixin, StatusMixin, MetadataMixin):
+class HealthCheck(CoreBase, TimestampedMixin, StatusMixin, MetadataMixin):
     """Model for tracking routine health checks."""
     
     __tablename__ = "health_fitness_health_checks"
@@ -139,7 +141,7 @@ class HealthCheck(Base, TimestampedMixin, StatusMixin, MetadataMixin):
     recommendations = Column(String, nullable=True)
     
     # Relationships
-    student = relationship("Student", back_populates="health_checks", overlaps="student,health_checks")
+    student = relationship("Student", back_populates="health_fitness_checks", overlaps="student,health_fitness_checks")
     
     def dict(self) -> Dict[str, Any]:
         """Convert model to dictionary."""

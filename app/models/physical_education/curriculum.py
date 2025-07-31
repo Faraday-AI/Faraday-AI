@@ -10,12 +10,15 @@ from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enu
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict
 
-from app.models.base import Base, BaseModel as SQLBaseModel
+from app.models.core.base import CoreBase
 from app.models.mixins import TimestampedMixin
 
 # Re-export for backward compatibility
-BaseModelMixin = SQLBaseModel
+BaseModelMixin = CoreBase
 TimestampMixin = TimestampedMixin
+
+# Import models to ensure they're registered with SQLAlchemy
+from app.models.physical_education.activity.models import Activity
 
 class Curriculum(BaseModelMixin, TimestampMixin):
     """Model for physical education curriculum."""
@@ -30,15 +33,14 @@ class Curriculum(BaseModelMixin, TimestampMixin):
     curriculum_metadata = Column(JSON, nullable=True)
     
     # Relationships
-    units = relationship("CurriculumUnit", back_populates="curriculum")
-    objectives = relationship("CurriculumObjective", back_populates="curriculum")
+    units = relationship("app.models.physical_education.curriculum.CurriculumUnit", back_populates="curriculum")
 
     def __repr__(self):
         return f"<Curriculum {self.name} - {self.grade_level}>"
 
 class CurriculumUnit(BaseModelMixin, TimestampMixin):
     """Model for curriculum units."""
-    __tablename__ = "curriculum_units"
+    __tablename__ = "physical_education_curriculum_units"
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True)
@@ -49,8 +51,9 @@ class CurriculumUnit(BaseModelMixin, TimestampMixin):
     unit_metadata = Column(JSON, nullable=True)
     
     # Relationships
-    curriculum = relationship("Curriculum", back_populates="units")
-    lessons = relationship("CurriculumLesson", back_populates="unit")
+    curriculum = relationship("app.models.physical_education.curriculum.Curriculum", back_populates="units")
+    lessons = relationship("app.models.physical_education.curriculum.CurriculumLesson", back_populates="unit")
+    standards = relationship("app.models.physical_education.curriculum.CurriculumStandard", back_populates="unit")
 
     def __repr__(self):
         return f"<CurriculumUnit {self.name} - Unit {self.sequence}>"
@@ -61,22 +64,21 @@ class CurriculumLesson(BaseModelMixin, TimestampMixin):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True)
-    unit_id = Column(Integer, ForeignKey("curriculum_units.id"), nullable=False)
+    unit_id = Column(Integer, ForeignKey("physical_education_curriculum_units.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     duration = Column(Integer, nullable=True)  # in minutes
     lesson_metadata = Column(JSON, nullable=True)
     
     # Relationships
-    unit = relationship("CurriculumUnit", back_populates="lessons")
-    activities = relationship("CurriculumActivity", back_populates="lesson")
+    unit = relationship("app.models.physical_education.curriculum.CurriculumUnit", back_populates="lessons")
 
 class CurriculumStandard(BaseModelMixin, TimestampMixin):
     """Model for curriculum standards."""
     __tablename__ = 'curriculum_standards'
 
     id = Column(Integer, primary_key=True)
-    unit_id = Column(Integer, ForeignKey('curriculum_units.id'), nullable=False)
+    unit_id = Column(Integer, ForeignKey('physical_education_curriculum_units.id'), nullable=False)
     code = Column(String(50), nullable=False)
     description = Column(Text, nullable=False)
     category = Column(String(50), nullable=False)
@@ -85,7 +87,7 @@ class CurriculumStandard(BaseModelMixin, TimestampMixin):
     extra_data = Column(JSON, nullable=True)
 
     # Relationships
-    unit = relationship("CurriculumUnit", back_populates="standards")
+    unit = relationship("app.models.physical_education.curriculum.CurriculumUnit", back_populates="standards")
 
     def __repr__(self):
         return f"<CurriculumStandard {self.code} - {self.category}>"

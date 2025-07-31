@@ -24,13 +24,12 @@ def setup_student_relationships(Student):
 def setup_assessment_relationships(Assessment):
     """Setup relationships for the Assessment model."""
     Assessment.student = relationship('Student', 
-                                   back_populates='assessments',
-                                   primaryjoin="assessment_base.student_id == students.id")
+                                   back_populates='assessments')
 
 def setup_progress_relationships(Progress):
     """Setup relationships for the Progress model."""
     Progress.student = relationship('Student', back_populates='progress')
-    Progress.activity = relationship('app.models.physical_education.activity.models.Activity', back_populates='progress_records')
+    Progress.activity = relationship('Activity', back_populates='progress_records')
     Progress.milestones = relationship('ProgressMilestone', back_populates='progress', cascade='all, delete-orphan')
     Progress.goals = relationship('ProgressGoal', back_populates='progress', cascade='all, delete-orphan')
     Progress.notes = relationship('ProgressNote', back_populates='progress', cascade='all, delete-orphan')

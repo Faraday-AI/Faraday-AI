@@ -37,13 +37,13 @@ class TestStudentClassRelationship:
         class_ = PhysicalEducationClass(
             name="Test Physical Education Class",
             description="A test class for PE",
+            class_type="regular",
+            teacher_id=1,
+            start_date=datetime.utcnow(),
             grade_level="9th",
             max_students=30,
             schedule="MWF 10:00-11:00",
-            location="Main Gym",
-            status=ClassStatus.ACTIVE,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            location="Main Gym"
         )
         db.add(class_)
         db.commit()
@@ -60,6 +60,7 @@ class TestStudentClassRelationship:
             first_name="Test",
             last_name="Student",
             email="test.student@example.com",
+            date_of_birth=datetime(2005, 1, 1),  # Required field
             grade_level="9th",
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow()
@@ -220,6 +221,8 @@ def test_create_class_student_relationship(db: Session):
     student = StudentModel(
         first_name="John",
         last_name="Doe",
+        email="john.doe@example.com",
+        date_of_birth=datetime(2005, 1, 1),
         grade_level="9th"
     )
     db.add(student)
@@ -257,6 +260,8 @@ def test_class_student_cascade_delete(db: Session):
     student = StudentModel(
         first_name="John",
         last_name="Doe",
+        email="john.doe@example.com",
+        date_of_birth=datetime(2005, 1, 1),
         grade_level="9th"
     )
     db.add(student)
@@ -295,6 +300,8 @@ def test_student_class_relationship(db: Session):
     student = StudentModel(
         first_name="John",
         last_name="Doe",
+        email="john.doe@example.com",
+        date_of_birth=datetime(2005, 1, 1),
         grade_level="9th"
     )
     db.add(student)

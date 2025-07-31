@@ -19,6 +19,10 @@ from .models import (
     MovementFeedbackResponse
 )
 
+# Import movement_models to ensure all classes are registered with SQLAlchemy
+from . import movement_models
+from .movement_models import MovementAnalysisRecord, MovementPattern as MovementPatternRecord
+
 __all__ = [
     'MovementAnalysis',
     'MovementAnalysisCreate',
@@ -31,5 +35,7 @@ __all__ = [
     'MovementFeedback',
     'MovementFeedbackCreate',
     'MovementFeedbackUpdate',
-    'MovementFeedbackResponse'
+    'MovementFeedbackResponse',
+    'MovementAnalysisRecord',
+    'MovementPatternRecord'
 ] 

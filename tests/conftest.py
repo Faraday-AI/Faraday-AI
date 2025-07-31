@@ -40,6 +40,8 @@ def setup_test_env():
         except:
             pass
 
+# Model relationships are now handled with full module paths - no dynamic setup needed
+
 @pytest.fixture(scope="session")
 def engine():
     """Create a test database engine."""
@@ -61,10 +63,14 @@ def test_schema(engine):
     """Create and use test schema."""
     if not get_test_db_url().startswith("sqlite"):
         schema_name = os.getenv("TEST_SCHEMA", "test_schema")
-        engine.execute(f"CREATE SCHEMA IF NOT EXISTS {schema_name}")
-        engine.execute(f"SET search_path TO {schema_name}")
+        with engine.connect() as conn:
+            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}"))
+            conn.execute(text(f"SET search_path TO {schema_name}"))
+            conn.commit()
         yield schema_name
-        engine.execute(f"DROP SCHEMA IF EXISTS {schema_name} CASCADE")
+        with engine.connect() as conn:
+            conn.execute(text(f"DROP SCHEMA IF EXISTS {schema_name} CASCADE"))
+            conn.commit()
     else:
         yield None
 

@@ -224,11 +224,30 @@ def seed_database():
             # Step 1: Drop all tables and recreate them (simplified approach)
             print("Dropping and recreating tables...")
             try:
-                # Drop all tables with CASCADE to handle foreign key dependencies
-                session.execute(text("DROP SCHEMA public CASCADE"))
-                session.execute(text("CREATE SCHEMA public"))
-                session.execute(text("GRANT ALL ON SCHEMA public TO faraday_admin"))
-                session.execute(text("GRANT ALL ON SCHEMA public TO public"))
+                # Get all table names first
+                result = session.execute(text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'"))
+                existing_tables = [row[0] for row in result.fetchall()]
+                
+                if existing_tables:
+                    print(f"Found {len(existing_tables)} existing tables, dropping them in batches...")
+                    
+                    # Drop tables in smaller batches to avoid memory issues
+                    batch_size = 10
+                    for i in range(0, len(existing_tables), batch_size):
+                        batch = existing_tables[i:i + batch_size]
+                        print(f"Dropping batch {i//batch_size + 1}: {batch}")
+                        
+                        for table_name in batch:
+                            try:
+                                session.execute(text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
+                                print(f"Dropped table: {table_name}")
+                            except Exception as e:
+                                print(f"Warning: Could not drop table {table_name}: {e}")
+                        
+                        session.commit()
+                        print(f"Completed batch {i//batch_size + 1}")
+                else:
+                    print("No existing tables found")
                 
                 # Also drop any remaining indexes that might persist
                 try:
@@ -238,7 +257,7 @@ def seed_database():
                     print(f"Note: Some indexes may already be dropped: {e}")
                 
                 session.commit()
-                print("Dropped all existing tables with CASCADE")
+                print("Completed dropping existing tables")
                 
                 # Create all tables directly using SharedBase metadata
                 print("Creating all tables...")

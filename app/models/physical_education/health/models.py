@@ -37,8 +37,8 @@ class HealthMetric(BaseModelMixin, TimestampMixin):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships using simple class names since they are already imported
-    student = relationship('Student', back_populates='health_metrics')
-    history = relationship('HealthMetricHistory', back_populates='metric')
+    student = relationship('Student', back_populates='pe_health_metrics')
+    history = relationship('app.models.physical_education.health.models.HealthMetricHistory', back_populates='metric')
 
 class HealthMetricCreate(BaseModel):
     """Pydantic model for creating health metrics."""
@@ -92,8 +92,8 @@ class HealthCondition(BaseModelMixin, TimestampMixin):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    student = relationship('Student', back_populates='health_conditions')
-    alerts = relationship('HealthAlert', back_populates='condition')
+    student = relationship('Student', back_populates='pe_health_conditions')
+    alerts = relationship('app.models.physical_education.health.models.HealthAlert', back_populates='condition')
 
 class HealthConditionCreate(BaseModel):
     """Pydantic model for creating health conditions."""
@@ -153,8 +153,8 @@ class HealthAlert(BaseModelMixin, TimestampMixin):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    student = relationship('Student', back_populates='health_alerts')
-    condition = relationship('HealthCondition', back_populates='alerts')
+    student = relationship('app.models.physical_education.student.models.Student', back_populates='health_alerts')
+    condition = relationship('app.models.physical_education.health.models.HealthCondition', back_populates='alerts')
 
 class HealthAlertCreate(BaseModel):
     """Pydantic model for creating health alerts."""
@@ -212,8 +212,8 @@ class HealthCheck(BaseModelMixin, TimestampMixin):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    student = relationship('Student', back_populates='health_checks')
-    teacher = relationship('User', back_populates='health_checks')
+    student = relationship('app.models.physical_education.student.models.Student', back_populates='health_checks')
+    teacher = relationship('app.models.core.user.User', back_populates='health_checks')
 
 class HealthCheckCreate(BaseModel):
     """Pydantic model for creating health checks."""
@@ -256,7 +256,7 @@ class HealthMetricHistory(BaseModelMixin, TimestampMixin):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    metric_id = Column(Integer, ForeignKey('fitness_health_metrics.id'), nullable=False)
+    metric_id = Column(Integer, ForeignKey('health_metrics.id'), nullable=False)
     value = Column(Float, nullable=False)
     recorded_at = Column(DateTime, nullable=False)
     notes = Column(Text)
@@ -264,7 +264,7 @@ class HealthMetricHistory(BaseModelMixin, TimestampMixin):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships using full module path to avoid circular imports
-    metric = relationship('HealthMetric', back_populates='history')
+    metric = relationship('app.models.physical_education.health.models.HealthMetric', back_populates='history')
 
 class HealthMetricHistoryCreate(BaseModel):
     """Pydantic model for creating health metric history entries."""

@@ -102,9 +102,9 @@ class Curriculum(CurriculumBaseModel, NamedMixin, StatusMixin):
     feedback_data = Column(JSON, nullable=True)
     
     # Relationships
-    units = relationship("CurriculumUnit", back_populates="curriculum", cascade="all, delete-orphan", overlaps="curriculum,units")
+    units = relationship("app.models.educational.curriculum.curriculum.CurriculumUnit", back_populates="curriculum", cascade="all, delete-orphan", overlaps="curriculum,units")
     assessments = relationship("Assessment", back_populates="curriculum", overlaps="curriculum,assessments")
-    standards = relationship("CurriculumStandard", secondary="curriculum_standard_association", overlaps="curriculum,standards")
+    standards = relationship("app.models.educational.curriculum.curriculum.CurriculumStandard", secondary="curriculum_standard_association", overlaps="curriculum,standards")
 
 class CurriculumUnit(CurriculumBaseModel, NamedMixin):
     """Model for curriculum units."""
@@ -144,7 +144,7 @@ class CurriculumUnit(CurriculumBaseModel, NamedMixin):
     assessment_methods = Column(JSON, nullable=True)
     
     # Relationships
-    curriculum = relationship("Curriculum", back_populates="units", overlaps="curriculum,units")
+    curriculum = relationship("app.models.educational.curriculum.curriculum.Curriculum", back_populates="units", overlaps="curriculum,units")
 
 class CurriculumStandard(CurriculumBaseModel, NamedMixin):
     """Model for curriculum standards."""
@@ -173,7 +173,7 @@ class CurriculumStandard(CurriculumBaseModel, NamedMixin):
     evaluation_rubrics = Column(JSON, nullable=True)
     
     # Relationships
-    curricula = relationship("Curriculum", secondary="curriculum_standard_association", overlaps="curriculum,standards")
+    curricula = relationship("app.models.educational.curriculum.curriculum.Curriculum", secondary="curriculum_standard_association", overlaps="curriculum,standards")
 
 # Association table for curriculum standards
 curriculum_standard_association = Table(

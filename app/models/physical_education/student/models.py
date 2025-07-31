@@ -31,9 +31,13 @@ from app.models.physical_education.pe_enums.pe_types import (
 )
 from app.models.system.relationships.relationships import setup_student_relationships
 
+# Import movement analysis models to ensure they're registered with SQLAlchemy
+from app.models.physical_education.movement_analysis import movement_models
+
 # Import goal-related classes
-from app.models.physical_education.nutrition.models import NutritionGoal, PhysicalEducationNutritionLog, PhysicalEducationNutritionRecommendation
-from app.models.physical_education.progress.models import ProgressGoal
+# Temporarily commented out to fix mapper initialization issues
+# from app.models.physical_education.nutrition.models import NutritionGoal, PhysicalEducationNutritionLog, PhysicalEducationNutritionRecommendation
+# from app.models.physical_education.progress.models import ProgressGoal, Progress  # Removed to fix circular import
 
 class Student(SharedBase):
     """Model for student profiles in physical education."""
@@ -80,24 +84,45 @@ class Student(SharedBase):
     
     # Health and fitness metric relationships
     health_metrics = relationship("app.models.health_fitness.metrics.health.HealthMetric", back_populates="student")
-    health_metric_history = relationship("app.models.health_fitness.metrics.health.HealthMetricHistory", back_populates="student")
+    pe_health_metrics = relationship("app.models.physical_education.health.models.HealthMetric", back_populates="student")
+    fitness_health_metrics = relationship("app.models.health_fitness.metrics.health_metrics.HealthMetric", back_populates="student")
     fitness_metrics = relationship("app.models.health_fitness.metrics.health_metrics.FitnessMetric", back_populates="student")
     fitness_metric_history = relationship("app.models.health_fitness.metrics.health_metrics.FitnessMetricHistory", back_populates="student")
+    fitness_health_metric_history = relationship("app.models.health_fitness.metrics.health_metrics.HealthMetricHistory", back_populates="student")
+    
+    # Health condition relationships
+    health_conditions = relationship("app.models.health_fitness.metrics.health.HealthCondition", back_populates="student")
+    pe_health_conditions = relationship("app.models.physical_education.health.models.HealthCondition", back_populates="student")
+    
+    # Health alert and check relationships
+    health_alerts = relationship("app.models.physical_education.health.models.HealthAlert", back_populates="student")
+    health_fitness_alerts = relationship("app.models.health_fitness.metrics.health.HealthAlert", back_populates="student")
+    health_checks = relationship("app.models.physical_education.health.models.HealthCheck", back_populates="student")
+    health_fitness_checks = relationship("app.models.health_fitness.metrics.health.HealthCheck", back_populates="student")
+    health_records = relationship("app.models.physical_education.student.health.HealthRecord", back_populates="student")
+    student_medical_conditions = relationship("app.models.physical_education.student.health.MedicalCondition", back_populates="student")
+    emergency_contacts = relationship("app.models.physical_education.student.health.EmergencyContact", back_populates="student")
+    student_health_metrics = relationship("app.models.physical_education.student.health.HealthMetric", back_populates="student", overlaps="pe_health_metrics")
     
     # Goal-related relationships
     goals = relationship("app.models.health_fitness.goals.goal_setting.Goal", back_populates="student")
     goal_progress = relationship("app.models.health_fitness.goals.goal_setting.HealthFitnessGoalProgress", back_populates="student")
     fitness_goals = relationship("app.models.health_fitness.goals.fitness_goals.FitnessGoal", back_populates="student")
     fitness_goal_progress = relationship("app.models.health_fitness.goals.fitness_goals.FitnessGoalProgress", back_populates="student")
+    pe_fitness_goals = relationship("app.models.physical_education.student.health.FitnessGoal", back_populates="student")
     goal_recommendations = relationship("app.models.health_fitness.goals.fitness_goals.GoalRecommendation", back_populates="student")
+    pe_goal_recommendations = relationship("app.models.physical_education.student.health.GoalRecommendation", back_populates="student", overlaps="goal_recommendations")
+    student_health = relationship("app.models.physical_education.student.health.StudentHealth", back_populates="student")
     nutrition_logs = relationship("app.models.health_fitness.nutrition.nutrition.NutritionLog", back_populates="student")
     nutrition_recommendations = relationship("app.models.health_fitness.nutrition.nutrition.NutritionRecommendation", back_populates="student")
     meals = relationship("app.models.health_fitness.nutrition.nutrition.Meal", back_populates="student")
     # physical_education_nutrition_recommendations = relationship(PhysicalEducationNutritionRecommendation, back_populates="student")
     # physical_education_nutrition_logs = relationship(PhysicalEducationNutritionLog, back_populates="student")
     # physical_education_goals = relationship("app.models.physical_education.goal_setting.PhysicalEducationGoal", back_populates="student")
-    # nutrition_goals = relationship("app.models.physical_education.nutrition.models.NutritionGoal", back_populates="student")
-    # progress_goals = relationship("app.models.physical_education.progress.models.ProgressGoal", back_populates="student")
+    nutrition_goals = relationship("app.models.physical_education.nutrition.models.NutritionGoal", back_populates="student")
+    # Progress relationships temporarily disabled to fix seeding issues
+    # progress_goals = relationship("ProgressGoal", back_populates="student")
+    # progress = relationship("Progress", back_populates="student")
     
     # Routine-related relationships
     routine_performance_metrics = relationship("app.models.physical_education.routine.routine_performance_models.RoutinePerformanceMetrics", back_populates="student")
@@ -111,6 +136,10 @@ class Student(SharedBase):
     # Assessment relationships
     assessments = relationship("app.models.assessment.GeneralAssessment", back_populates="student", overlaps="student,assessments")
     general_skill_progress = relationship("app.models.assessment.SkillProgress", back_populates="student", overlaps="student,skill_progress")
+    
+    # Movement analysis relationships
+    movement_analyses = relationship("app.models.physical_education.movement_analysis.models.MovementAnalysis", back_populates="student")
+    movement_analysis_records = relationship("MovementAnalysisRecord", back_populates="student")
 
 class StudentCreate(BaseModel):
     """Pydantic model for creating student profiles."""

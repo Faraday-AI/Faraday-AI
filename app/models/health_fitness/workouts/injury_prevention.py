@@ -72,8 +72,8 @@ class InjuryRiskFactor(InjuryPreventionBaseModel, NamedMixin, StatusMixin):
     
     # Relationships
     assessments = relationship("InjuryRiskAssessment", back_populates="risk_factor", cascade="all, delete-orphan")
-    prevention_measures = relationship("PreventionMeasure", back_populates="risk_factor", cascade="all, delete-orphan")
-    prevention_program = relationship("InjuryPrevention", back_populates="risk_factors")
+    prevention_measures = relationship("app.models.health_fitness.workouts.injury_prevention.PreventionMeasure", back_populates="risk_factor", cascade="all, delete-orphan")
+    prevention_program = relationship("app.models.health_fitness.workouts.injury_prevention.InjuryPrevention", back_populates="risk_factors")
     safety_guidelines = relationship("SafetyGuideline", secondary=injury_risk_factor_safety_guidelines, back_populates="risk_factors")
 
 class PreventionMeasure(InjuryPreventionBaseModel, NamedMixin, StatusMixin):
@@ -114,8 +114,8 @@ class PreventionMeasure(InjuryPreventionBaseModel, NamedMixin, StatusMixin):
     review_schedule = Column(JSON, nullable=True)
     
     # Relationships
-    risk_factor = relationship("InjuryRiskFactor", back_populates="prevention_measures")
-    assessments = relationship("PreventionAssessment", back_populates="measure", cascade="all, delete-orphan")
+    risk_factor = relationship("app.models.health_fitness.workouts.injury_prevention.InjuryRiskFactor", back_populates="prevention_measures")
+    assessments = relationship("app.models.health_fitness.workouts.injury_prevention.PreventionAssessment", back_populates="measure", cascade="all, delete-orphan")
 
 class PreventionAssessment(InjuryPreventionBaseModel, StatusMixin):
     """Model for assessing prevention measure effectiveness."""
@@ -156,7 +156,7 @@ class PreventionAssessment(InjuryPreventionBaseModel, StatusMixin):
     limitations = Column(JSON, nullable=True)
     
     # Relationships
-    measure = relationship("PreventionMeasure", back_populates="assessments")
+    measure = relationship("app.models.health_fitness.workouts.injury_prevention.PreventionMeasure", back_populates="assessments")
 
 class InjuryRiskAssessment(InjuryPreventionBaseModel, StatusMixin):
     """Model for conducting risk assessments."""
@@ -201,7 +201,7 @@ class InjuryRiskAssessment(InjuryPreventionBaseModel, StatusMixin):
     next_review_date = Column(DateTime, nullable=True)
     
     # Relationships
-    risk_factor = relationship("InjuryRiskFactor", back_populates="assessments")
+    risk_factor = relationship("app.models.health_fitness.workouts.injury_prevention.InjuryRiskFactor", back_populates="assessments")
     activity = relationship("app.models.physical_education.activity.models.Activity")
 
 class InjuryPrevention(InjuryPreventionBaseModel, NamedMixin, StatusMixin):
@@ -232,7 +232,7 @@ class InjuryPrevention(InjuryPreventionBaseModel, NamedMixin, StatusMixin):
     reporting_requirements = Column(JSON, nullable=True)
     
     # Relationships
-    risk_factors = relationship("InjuryRiskFactor", back_populates="prevention_program")
+    risk_factors = relationship("app.models.health_fitness.workouts.injury_prevention.InjuryRiskFactor", back_populates="prevention_program")
     assessments = relationship("InjuryPreventionRiskAssessment", back_populates="prevention_program")
 
     def __repr__(self):
@@ -274,7 +274,7 @@ class InjuryPreventionRiskAssessment(InjuryPreventionBaseModel, StatusMixin):
     monitoring_plan = Column(JSON, nullable=True)
     
     # Relationships
-    prevention_program = relationship("InjuryPrevention", back_populates="assessments")
+    prevention_program = relationship("app.models.health_fitness.workouts.injury_prevention.InjuryPrevention", back_populates="assessments")
 
     def __repr__(self):
         return f"<InjuryPreventionRiskAssessment {self.id} - Score: {self.overall_risk_score}>"
@@ -309,7 +309,7 @@ class SafetyGuideline(InjuryPreventionBaseModel, NamedMixin, StatusMixin):
     contact_information = Column(JSON, nullable=True)
     
     # Relationships
-    risk_factors = relationship("InjuryRiskFactor", secondary=injury_risk_factor_safety_guidelines, back_populates="safety_guidelines")
+    risk_factors = relationship("app.models.health_fitness.workouts.injury_prevention.InjuryRiskFactor", secondary=injury_risk_factor_safety_guidelines, back_populates="safety_guidelines")
 
     def __repr__(self):
         return f"<SafetyGuideline {self.name} - {self.category}>" 

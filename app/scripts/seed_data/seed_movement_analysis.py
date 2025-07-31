@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
-from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis, MovementPattern
+from app.models.physical_education.movement_analysis.movement_models import MovementAnalysisRecord, MovementPattern
 from app.models.student import Student
 from app.models.activity import Activity
 import json
@@ -66,7 +66,7 @@ async def seed_movement_analysis(session: AsyncSession):
             }
             
             # Create movement analysis record
-            analysis = MovementAnalysis(
+            analysis = MovementAnalysisRecord(
                 student_id=student_id,
                 activity_id=activity_id,
                 timestamp=datetime.utcnow(),
@@ -105,11 +105,10 @@ async def seed_movement_analysis(session: AsyncSession):
             pattern_type=random.choice(["jumping", "running", "throwing", "catching"]),
             confidence_score=random.uniform(0.7, 1.0),
             pattern_data=pattern_data,
+            duration=random.uniform(2.0, 10.0),
             repetitions=random.randint(5, 20),
             quality_score=random.uniform(0.6, 1.0),
-            notes="Good form overall, needs improvement in landing technique",
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            notes="Good form overall, needs improvement in landing technique"
         )
         movement_patterns.append(pattern)
     

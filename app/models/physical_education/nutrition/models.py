@@ -10,11 +10,11 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Floa
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict
 
-from app.models.base import Base, BaseModel as SQLBaseModel
+from app.models.core.base import CoreBase
 from app.models.mixins import TimestampedMixin
 
 # Re-export for backward compatibility
-BaseModelMixin = SQLBaseModel
+BaseModelMixin = CoreBase
 TimestampMixin = TimestampedMixin
 
 from app.models.physical_education.pe_enums.pe_types import (
@@ -23,10 +23,13 @@ from app.models.physical_education.pe_enums.pe_types import (
     NutritionCategory
 )
 
-class NutritionPlan(BaseModelMixin, TimestampMixin):
-    """Model for nutrition plans."""
+# Import Student model to ensure it's registered with SQLAlchemy
+from app.models.physical_education.student.models import Student
+
+class PhysicalEducationNutritionPlan(BaseModelMixin, TimestampMixin):
+    """Model for physical education nutrition plans."""
     
-    __tablename__ = "nutrition_plans"
+    __tablename__ = "physical_education_nutrition_plans"
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
@@ -43,10 +46,10 @@ class NutritionPlan(BaseModelMixin, TimestampMixin):
     
     # Relationships
     student = relationship("Student")
-    meals = relationship("Meal", back_populates="nutrition_plan")
+    meals = relationship("PhysicalEducationMeal", back_populates="nutrition_plan")
 
-class NutritionPlanCreate(BaseModel):
-    """Pydantic model for creating nutrition plans."""
+class PhysicalEducationNutritionPlanCreate(BaseModel):
+    """Pydantic model for creating physical education nutrition plans."""
     
     student_id: int
     plan_name: str
@@ -59,8 +62,8 @@ class NutritionPlanCreate(BaseModel):
     plan_notes: Optional[str] = None
     plan_metadata: Optional[dict] = None
 
-class NutritionPlanUpdate(BaseModel):
-    """Pydantic model for updating nutrition plans."""
+class PhysicalEducationNutritionPlanUpdate(BaseModel):
+    """Pydantic model for updating physical education nutrition plans."""
     
     plan_name: Optional[str] = None
     end_date: Optional[datetime] = None
@@ -71,8 +74,8 @@ class NutritionPlanUpdate(BaseModel):
     plan_notes: Optional[str] = None
     plan_metadata: Optional[dict] = None
 
-class NutritionPlanResponse(BaseModel):
-    """Pydantic model for nutrition plan responses."""
+class PhysicalEducationNutritionPlanResponse(BaseModel):
+    """Pydantic model for physical education nutrition plan responses."""
     
     id: int
     student_id: int
@@ -90,14 +93,14 @@ class NutritionPlanResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class Meal(BaseModelMixin, TimestampMixin):
-    """Model for meals."""
+class PhysicalEducationMeal(BaseModelMixin, TimestampMixin):
+    """Model for physical education meals."""
     
-    __tablename__ = "meals"
+    __tablename__ = "physical_education_meals"
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    nutrition_plan_id = Column(Integer, ForeignKey("nutrition_plans.id"), nullable=False)
+    nutrition_plan_id = Column(Integer, ForeignKey("physical_education_nutrition_plans.id"), nullable=False)
     meal_type = Column(String(50), nullable=False)
     meal_time = Column(DateTime, nullable=False)
     calories = Column(Integer)
@@ -108,11 +111,11 @@ class Meal(BaseModelMixin, TimestampMixin):
     meal_metadata = Column(JSON)
     
     # Relationships
-    nutrition_plan = relationship("NutritionPlan", back_populates="meals")
-    foods = relationship("MealFood", back_populates="meal")
+    nutrition_plan = relationship("PhysicalEducationNutritionPlan", back_populates="meals")
+    foods = relationship("PhysicalEducationMealFood", back_populates="meal")
 
-class MealCreate(BaseModel):
-    """Pydantic model for creating meals."""
+class PhysicalEducationMealCreate(BaseModel):
+    """Pydantic model for creating physical education meals."""
     
     name: str
     description: Optional[str] = None
@@ -123,8 +126,8 @@ class MealCreate(BaseModel):
     fat_grams: int
     nutrition_plan_id: int
 
-class MealUpdate(BaseModel):
-    """Pydantic model for updating meals."""
+class PhysicalEducationMealUpdate(BaseModel):
+    """Pydantic model for updating physical education meals."""
     
     name: Optional[str] = None
     description: Optional[str] = None
@@ -134,8 +137,8 @@ class MealUpdate(BaseModel):
     carbs_grams: Optional[int] = None
     fat_grams: Optional[int] = None
 
-class MealResponse(BaseModel):
-    """Pydantic model for meal responses."""
+class PhysicalEducationMealResponse(BaseModel):
+    """Pydantic model for physical education meal responses."""
     
     id: int
     name: str
@@ -151,14 +154,14 @@ class MealResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class MealFood(BaseModelMixin, TimestampMixin):
-    """Model for foods in meals."""
+class PhysicalEducationMealFood(BaseModelMixin, TimestampMixin):
+    """Model for foods in physical education meals."""
     
-    __tablename__ = "meal_foods"
+    __tablename__ = "physical_education_meal_foods"
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    meal_id = Column(Integer, ForeignKey("meals.id"), nullable=False)
+    meal_id = Column(Integer, ForeignKey("physical_education_meals.id"), nullable=False)
     food_name = Column(String(100), nullable=False)
     quantity = Column(Float)
     unit = Column(String(20))
@@ -170,73 +173,11 @@ class MealFood(BaseModelMixin, TimestampMixin):
     food_metadata = Column(JSON)
     
     # Relationships
-    meal = relationship("Meal", back_populates="foods")
+    meal = relationship("PhysicalEducationMeal", back_populates="foods")
 
-class Food(BaseModelMixin, TimestampMixin):
-    """Model for foods."""
-    __tablename__ = "foods"
-    __table_args__ = {'extend_existing': True}
-    
-    id = Column(Integer, primary_key=True, index=True)
-    meal_id = Column(Integer, ForeignKey("meals.id"), nullable=False)
-    name = Column(String(100), nullable=False)
-    quantity = Column(Float, nullable=False)
-    unit = Column(String(20), nullable=False)
-    calories = Column(Float)
-    protein = Column(Float)
-    carbs = Column(Float)
-    fat = Column(Float)
-    food_metadata = Column(JSON)  # Renamed from metadata
-    
-    # Relationships
-    meal = relationship("Meal", back_populates="foods")
+# Removed duplicate Food class - using MealFood instead
 
-class FoodCreate(BaseModel):
-    """Pydantic model for creating foods."""
-    
-    name: str
-    description: Optional[str] = None
-    serving_size: str
-    calories: int
-    protein_grams: int
-    carbs_grams: int
-    fat_grams: int
-    fiber_grams: int
-    sugar_grams: int
-    sodium_mg: int
-
-class FoodUpdate(BaseModel):
-    """Pydantic model for updating foods."""
-    
-    name: Optional[str] = None
-    description: Optional[str] = None
-    serving_size: Optional[str] = None
-    calories: Optional[int] = None
-    protein_grams: Optional[int] = None
-    carbs_grams: Optional[int] = None
-    fat_grams: Optional[int] = None
-    fiber_grams: Optional[int] = None
-    sugar_grams: Optional[int] = None
-    sodium_mg: Optional[int] = None
-
-class FoodResponse(BaseModel):
-    """Pydantic model for food responses."""
-    
-    id: int
-    name: str
-    description: Optional[str] = None
-    serving_size: str
-    calories: int
-    protein_grams: int
-    carbs_grams: int
-    fat_grams: int
-    fiber_grams: int
-    sugar_grams: int
-    sodium_mg: int
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(from_attributes=True)
+# Removed duplicate Food Pydantic models - using MealFood models instead
 
 class NutritionGoal(BaseModelMixin, TimestampMixin):
     """Model for nutrition goals."""
@@ -432,8 +373,8 @@ class NutritionEducationResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-class MealFoodCreate(BaseModel):
-    """Pydantic model for creating meal foods."""
+class PhysicalEducationMealFoodCreate(BaseModel):
+    """Pydantic model for creating physical education meal foods."""
     
     meal_id: int
     food_name: str
@@ -446,8 +387,8 @@ class MealFoodCreate(BaseModel):
     food_notes: Optional[str] = None
     food_metadata: Optional[dict] = None
 
-class MealFoodUpdate(BaseModel):
-    """Pydantic model for updating meal foods."""
+class PhysicalEducationMealFoodUpdate(BaseModel):
+    """Pydantic model for updating physical education meal foods."""
     
     food_name: Optional[str] = None
     quantity: Optional[float] = None
@@ -459,8 +400,8 @@ class MealFoodUpdate(BaseModel):
     food_notes: Optional[str] = None
     food_metadata: Optional[dict] = None
 
-class MealFoodResponse(BaseModel):
-    """Pydantic model for meal food responses."""
+class PhysicalEducationMealFoodResponse(BaseModel):
+    """Pydantic model for physical education meal food responses."""
     
     id: int
     meal_id: int
@@ -472,6 +413,66 @@ class MealFoodResponse(BaseModel):
     carbs: Optional[float] = None
     fat: Optional[float] = None
     food_notes: Optional[str] = None
+    food_metadata: Optional[dict] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+# Food models for backward compatibility
+class Food(BaseModelMixin, TimestampMixin):
+    """Model for food items."""
+    __tablename__ = "foods"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text)
+    calories_per_100g = Column(Float)
+    protein_per_100g = Column(Float)
+    carbs_per_100g = Column(Float)
+    fat_per_100g = Column(Float)
+    food_category = Column(String(50))
+    food_metadata = Column(JSON)
+    
+    def __repr__(self):
+        return f"<Food {self.name} - {self.calories_per_100g} cal/100g>"
+
+class FoodCreate(BaseModel):
+    """Pydantic model for creating food items."""
+    
+    name: str
+    description: Optional[str] = None
+    calories_per_100g: Optional[float] = None
+    protein_per_100g: Optional[float] = None
+    carbs_per_100g: Optional[float] = None
+    fat_per_100g: Optional[float] = None
+    food_category: Optional[str] = None
+    food_metadata: Optional[dict] = None
+
+class FoodUpdate(BaseModel):
+    """Pydantic model for updating food items."""
+    
+    name: Optional[str] = None
+    description: Optional[str] = None
+    calories_per_100g: Optional[float] = None
+    protein_per_100g: Optional[float] = None
+    carbs_per_100g: Optional[float] = None
+    fat_per_100g: Optional[float] = None
+    food_category: Optional[str] = None
+    food_metadata: Optional[dict] = None
+
+class FoodResponse(BaseModel):
+    """Pydantic model for food item responses."""
+    
+    id: int
+    name: str
+    description: Optional[str] = None
+    calories_per_100g: Optional[float] = None
+    protein_per_100g: Optional[float] = None
+    carbs_per_100g: Optional[float] = None
+    fat_per_100g: Optional[float] = None
+    food_category: Optional[str] = None
     food_metadata: Optional[dict] = None
     created_at: datetime
     updated_at: datetime

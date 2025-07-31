@@ -10,17 +10,20 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Enum, Text
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict
 
-from app.models.base import Base, BaseModel as SQLBaseModel
+from app.models.core.base import CoreBase
 from app.models.mixins import TimestampedMixin
 
 # Re-export for backward compatibility
-BaseModelMixin = SQLBaseModel
+BaseModelMixin = CoreBase
 TimestampMixin = TimestampedMixin
 
 from app.models.physical_education.pe_enums.pe_types import (
     PerformanceLevel,
     SkillLevel
 )
+
+# Import Student model to ensure it's registered with SQLAlchemy
+# from app.models.physical_education.student.models import Student
 
 class MovementAnalysis(BaseModelMixin, TimestampMixin):
     """Model for movement analysis."""
@@ -38,8 +41,9 @@ class MovementAnalysis(BaseModelMixin, TimestampMixin):
     analysis_metadata = Column(JSON)
     
     # Relationships
-    student = relationship("Student", back_populates="movement_analyses")
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="movement_analyses")
+    student = relationship("app.models.physical_education.student.models.Student")
+    activity = relationship("app.models.physical_education.activity.models.Activity")
+    metrics = relationship("app.models.physical_education.movement_analysis.models.MovementMetric", back_populates="analysis")
 
 class MovementMetric(BaseModelMixin, TimestampMixin):
     """Model for movement metrics."""
@@ -47,14 +51,14 @@ class MovementMetric(BaseModelMixin, TimestampMixin):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True)
-    analysis_id = Column(Integer, ForeignKey("movement_analysis_analyses.id"), nullable=False)
+    analysis_id = Column(Integer, ForeignKey("physical_education_movement_analyses.id"), nullable=False)
     metric_name = Column(String(100), nullable=False)
     value = Column(Float)
     unit = Column(String(20))
     metric_metadata = Column(JSON)  # Renamed from metadata
     
     # Relationships
-    analysis = relationship("MovementAnalysis", back_populates="metrics")
+    analysis = relationship("app.models.physical_education.movement_analysis.models.MovementAnalysis", back_populates="metrics")
 
 class MovementPattern(BaseModelMixin, TimestampMixin):
     """Model for movement patterns."""
@@ -68,7 +72,8 @@ class MovementPattern(BaseModelMixin, TimestampMixin):
     pattern_metadata = Column(JSON)  # Renamed from metadata
     
     # Relationships
-    analyses = relationship("MovementAnalysis", back_populates="pattern")
+    # No direct relationship to MovementAnalysis - this is a standalone pattern definition
+    feedback = relationship('app.models.physical_education.movement_analysis.models.MovementFeedback', back_populates='pattern')
 
 class MovementAnalysisCreate(BaseModel):
     """Pydantic model for creating movement analyses."""
@@ -149,7 +154,7 @@ class MovementFeedback(BaseModelMixin, TimestampMixin):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
-    pattern_id = Column(Integer, ForeignKey('movement_patterns.id'), nullable=False)
+    pattern_id = Column(Integer, ForeignKey('physical_education_movement_patterns.id'), nullable=False)
     feedback_type = Column(String(100), nullable=False)
     feedback_text = Column(Text, nullable=False)
     severity = Column(String(20))
@@ -158,7 +163,7 @@ class MovementFeedback(BaseModelMixin, TimestampMixin):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    pattern = relationship('MovementPattern', back_populates='feedback')
+    pattern = relationship('app.models.physical_education.movement_analysis.models.MovementPattern', back_populates='feedback')
 
 class MovementFeedbackCreate(BaseModel):
     """Pydantic model for creating movement feedback."""

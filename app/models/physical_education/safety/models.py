@@ -42,11 +42,11 @@ class SafetyIncident(SharedBase):
     # Relationships
     student = relationship("Student", back_populates="safety_incidents")
     activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="safety_incidents")
-    protocol = relationship("SafetyProtocol", back_populates="incidents")
+    protocol = relationship("app.models.physical_education.safety.models.SafetyProtocol", back_populates="incidents")
     measures = relationship("SafetyMeasure", back_populates="incident")
     risk_assessments = relationship("app.models.physical_education.safety.models.RiskAssessment", back_populates="incident", lazy="joined")
     teacher = relationship("User", back_populates="safety_incidents", foreign_keys=[teacher_id])
-    equipment = relationship("Equipment", back_populates="pe_safety_incidents", foreign_keys=[equipment_id])
+    equipment = relationship("app.models.physical_education.safety.models.Equipment", back_populates="pe_safety_incidents", foreign_keys=[equipment_id])
 
 class SafetyMeasure(SharedBase):
     """Model for safety measures."""
@@ -113,7 +113,7 @@ class SafetyIncidentBase(SharedBase):
     # Relationships
     student = relationship("Student", back_populates="safety_incident_bases")
     teacher = relationship("User", back_populates="reported_incidents")
-    equipment = relationship("Equipment", back_populates="safety_incidents")
+    equipment = relationship("app.models.physical_education.safety.models.Equipment", back_populates="safety_incidents")
 
 class SafetyIncidentCreate(BaseModel):
     """Pydantic model for creating safety incidents."""
@@ -193,9 +193,9 @@ class Equipment(EquipmentBase):
     # Relationships
     safety_incidents = relationship("SafetyIncidentBase", back_populates="equipment", lazy="joined")
     pe_safety_incidents = relationship("app.models.physical_education.safety.models.SafetyIncident", back_populates="equipment", foreign_keys="[app.models.physical_education.safety.models.SafetyIncident.equipment_id]", lazy="joined")
-    safety_checks = relationship("SafetyCheck", back_populates="equipment", lazy="joined")
-    safety_alerts = relationship("SafetyAlert", back_populates="equipment", lazy="joined")
-    maintenance_records = relationship("EquipmentMaintenance", back_populates="equipment", lazy="joined")
+    safety_checks = relationship("app.models.physical_education.safety.models.SafetyCheck", back_populates="equipment", lazy="joined")
+    safety_alerts = relationship("app.models.physical_education.safety.models.SafetyAlert", back_populates="equipment", lazy="joined")
+    maintenance_records = relationship("app.models.physical_education.safety.models.EquipmentMaintenance", back_populates="equipment", lazy="joined")
     
     __mapper_args__ = {
         'polymorphic_identity': 'equipment',
@@ -263,7 +263,7 @@ class EquipmentMaintenance(SharedBase):
     notes = Column(Text)
 
     # Relationships
-    equipment = relationship('Equipment', back_populates='maintenance_records')
+    equipment = relationship('app.models.physical_education.safety.models.Equipment', back_populates='maintenance_records')
 
 class RiskAssessment(SharedBase):
     """Model for tracking risk assessments."""
@@ -344,6 +344,7 @@ class SafetyCheck(SharedBase):
     id = Column(Integer, primary_key=True, index=True)
     equipment_id = Column(Integer, ForeignKey("equipment.id"), nullable=True)  # Made optional for class-based checks
     class_id = Column(Integer, ForeignKey("physical_education_classes.id"), nullable=True)  # For class-based checks
+    activity_id = Column(Integer, ForeignKey("activities.id"), nullable=True)  # For activity-based checks
     check_type = Column(String(50), nullable=True)  # Type of safety check
     check_date = Column(DateTime, nullable=False)
     checked_by = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -354,10 +355,11 @@ class SafetyCheck(SharedBase):
     check_metadata = Column(JSON, nullable=True)  # Additional metadata about the check
     
     # Relationships
-    equipment = relationship("Equipment", back_populates="safety_checks")
+    equipment = relationship("app.models.physical_education.safety.models.Equipment", back_populates="safety_checks")
     class_ = relationship("PhysicalEducationClass", back_populates="safety_checks")
-    checker = relationship("User", back_populates="conducted_checks", foreign_keys="[SafetyCheck.checked_by]")
-    performer = relationship("User", back_populates="performed_checks", foreign_keys="[SafetyCheck.performed_by]")
+    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="safety_checks")
+    checker = relationship("User", back_populates="conducted_checks", foreign_keys="[app.models.physical_education.safety.models.SafetyCheck.checked_by]")
+    performer = relationship("User", back_populates="performed_checks", foreign_keys="[app.models.physical_education.safety.models.SafetyCheck.performed_by]")
 
 class SafetyCheckCreate(BaseModel):
     """Pydantic model for creating safety checks."""
@@ -487,8 +489,8 @@ class SafetyProtocol(SharedBase):
     created_by = Column(Integer, ForeignKey("users.id"))
     
     # Relationships
-    reviewer = relationship("User", back_populates="reviewed_protocols", foreign_keys="[SafetyProtocol.reviewed_by]")
-    creator = relationship("User", back_populates="created_protocols", foreign_keys="[SafetyProtocol.created_by]")
+    reviewer = relationship("User", back_populates="reviewed_protocols", foreign_keys="[app.models.physical_education.safety.models.SafetyProtocol.reviewed_by]")
+    creator = relationship("User", back_populates="created_protocols", foreign_keys="[app.models.physical_education.safety.models.SafetyProtocol.created_by]")
     incidents = relationship("SafetyIncident", back_populates="protocol")
 
 class SafetyAlert(SharedBase):
@@ -509,7 +511,7 @@ class SafetyAlert(SharedBase):
     
     # Relationships
     activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="safety_alerts")
-    equipment = relationship("Equipment", back_populates="safety_alerts")
+    equipment = relationship("app.models.physical_education.safety.models.Equipment", back_populates="safety_alerts")
     creator = relationship("User", back_populates="created_alerts")
 
 class SafetyAlertCreate(BaseModel):

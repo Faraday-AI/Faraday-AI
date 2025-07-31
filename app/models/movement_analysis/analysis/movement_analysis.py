@@ -85,7 +85,7 @@ class MovementMetrics(SharedBase, TimestampedMixin):
     confidence_score = Column(Float, nullable=False)
     
     # Relationships
-    analysis = relationship("MovementAnalysis", back_populates="metrics")
+    analysis = relationship("app.models.movement_analysis.analysis.movement_analysis.MovementAnalysis", back_populates="metrics")
     
     def __repr__(self):
         return f"<MovementMetrics {self.metric_type}: {self.value} {self.unit}>"
@@ -131,7 +131,7 @@ class MovementFeedback(SharedBase, TimestampedMixin, StatusMixin, MetadataMixin)
     follow_up_required = Column(Boolean, default=False)
     
     # Relationships
-    analysis = relationship("MovementAnalysis")
+    analysis = relationship("app.models.movement_analysis.analysis.movement_analysis.MovementAnalysis")
     
     def dict(self) -> Dict[str, Any]:
         """Convert model to dictionary."""
@@ -160,7 +160,7 @@ class MovementSequence(SharedBase, TimestampedMixin):
     performance_metrics = Column(JSON)  # Performance metrics for the sequence
     
     # Relationships
-    analysis = relationship("MovementAnalysis", back_populates="sequences")
+    analysis = relationship("app.models.movement_analysis.analysis.movement_analysis.MovementAnalysis", back_populates="sequences")
     
     def __repr__(self):
         return f"<MovementSequence {self.sequence_type}>" 

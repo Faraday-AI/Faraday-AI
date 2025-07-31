@@ -10,12 +10,15 @@ from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Floa
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict
 
-from app.models.base import Base, BaseModel as SQLBaseModel
+from app.models.core.base import CoreBase
 from app.models.mixins import TimestampedMixin
 
 # Re-export for backward compatibility
-BaseModelMixin = SQLBaseModel
+BaseModelMixin = CoreBase
 TimestampMixin = TimestampedMixin
+
+# Import Activity model to ensure it's registered with SQLAlchemy
+from app.models.physical_education.activity.models import Activity
 
 class InjuryRiskFactor(BaseModelMixin, TimestampMixin):
     """Model for injury risk factors."""
@@ -30,7 +33,7 @@ class InjuryRiskFactor(BaseModelMixin, TimestampMixin):
     factor_metadata = Column(JSON)
     
     # Relationships
-    activities = relationship("ActivityInjuryPrevention", back_populates="risk_factor")
+    assessments = relationship("app.models.physical_education.injury_prevention.PreventionAssessment", back_populates="risk_factor")
 
 class PreventionMeasure(BaseModelMixin, TimestampMixin):
     """Model for prevention measures."""
@@ -45,7 +48,7 @@ class PreventionMeasure(BaseModelMixin, TimestampMixin):
     measure_metadata = Column(JSON)
     
     # Relationships
-    activities = relationship("ActivityInjuryPrevention", back_populates="prevention_measure")
+    assessments = relationship("app.models.physical_education.injury_prevention.PreventionAssessment", back_populates="prevention_measure")
 
 class PreventionAssessment(BaseModelMixin, TimestampMixin):
     """Model for prevention assessments."""
@@ -63,9 +66,9 @@ class PreventionAssessment(BaseModelMixin, TimestampMixin):
     assessment_metadata = Column(JSON)
     
     # Relationships
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="prevention_assessments")
-    risk_factor = relationship("InjuryRiskFactor", back_populates="assessments")
-    prevention_measure = relationship("PreventionMeasure", back_populates="assessments")
+    activity = relationship("Activity", back_populates="prevention_assessments")
+    risk_factor = relationship("app.models.physical_education.injury_prevention.InjuryRiskFactor", back_populates="assessments")
+    prevention_measure = relationship("app.models.physical_education.injury_prevention.PreventionMeasure", back_populates="assessments")
 
 class InjuryPrevention(BaseModelMixin, TimestampMixin):
     """Model for injury prevention measures."""
@@ -80,7 +83,7 @@ class InjuryPrevention(BaseModelMixin, TimestampMixin):
     prevention_metadata = Column(JSON)
     
     # Relationships
-    activities = relationship("ActivityInjuryPrevention", back_populates="prevention")
+    activities = relationship("app.models.physical_education.injury_prevention.ActivityInjuryPrevention", back_populates="prevention")
 
 class ActivityInjuryPrevention(BaseModelMixin, TimestampMixin):
     """Model for linking activities to injury prevention measures."""
@@ -95,8 +98,8 @@ class ActivityInjuryPrevention(BaseModelMixin, TimestampMixin):
     prevention_metadata = Column(JSON)
     
     # Relationships
-    activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="injury_preventions")
-    prevention = relationship("InjuryPrevention", back_populates="activities")
+    activity = relationship("Activity", back_populates="injury_preventions")
+    prevention = relationship("app.models.physical_education.injury_prevention.InjuryPrevention", back_populates="activities")
 
 # Pydantic models for API
 class InjuryRiskFactorCreate(BaseModel):
