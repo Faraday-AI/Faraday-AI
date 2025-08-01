@@ -116,6 +116,23 @@ class RateLimiter:
             self.requests[key].append(now)
             return True
         return False
+    
+    def is_rate_limited(self, key: str) -> bool:
+        """Check if a key is currently rate limited."""
+        return not self.is_allowed(key)
+    
+    def get_remaining_requests(self, key: str) -> int:
+        """Get the number of remaining requests for a key."""
+        now = datetime.utcnow()
+        window_start = now - timedelta(seconds=self.time_window)
+        
+        # Clean up old requests
+        self.requests[key] = [
+            req_time for req_time in self.requests[key]
+            if req_time > window_start
+        ]
+        
+        return max(0, self.max_requests - len(self.requests[key]))
 
 class NotificationBatch:
     """Batch notifications for efficient sending."""

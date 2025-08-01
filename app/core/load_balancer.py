@@ -235,7 +235,22 @@ class AdaptiveLoadBalancer:
             return regions[0]
             
         weights = [self.weights.get(r, 0) for r in valid_regions]
-        return np.random.choice(valid_regions, p=weights/np.sum(weights))
+        
+        # Handle NaN or invalid weights
+        weights = [w if not np.isnan(w) and w >= 0 else 0 for w in weights]
+        total_weight = np.sum(weights)
+        
+        if total_weight <= 0:
+            # If all weights are zero or negative, use uniform distribution
+            weights = [1.0] * len(valid_regions)
+            total_weight = len(valid_regions)
+        
+        # Normalize weights
+        normalized_weights = [w / total_weight for w in weights]
+        
+        # Use numpy choice and ensure we get a Region enum back
+        chosen_index = np.random.choice(len(valid_regions), p=normalized_weights)
+        return valid_regions[chosen_index]
 
 class GlobalLoadBalancer:
     """Manages global load balancing across regions."""
@@ -274,12 +289,17 @@ class GlobalLoadBalancer:
             for region in Region
         }
         
-        # Start monitoring
-        asyncio.create_task(self._monitor_regions())
-        asyncio.create_task(self._auto_rebalance())
-        asyncio.create_task(self._update_predictive_scores())
-        asyncio.create_task(self._monitor_resources())
-        asyncio.create_task(self._update_latency_weights())
+        # Start monitoring only if there's a running event loop
+        try:
+            loop = asyncio.get_running_loop()
+            asyncio.create_task(self._monitor_regions())
+            asyncio.create_task(self._auto_rebalance())
+            asyncio.create_task(self._update_predictive_scores())
+            asyncio.create_task(self._monitor_resources())
+            asyncio.create_task(self._update_latency_weights())
+        except RuntimeError:
+            # No running event loop (e.g., during testing)
+            logger.info("No running event loop, skipping async task creation")
         
         self.geographic_router = GeographicRouter()
         self.adaptive_balancer = AdaptiveLoadBalancer()
@@ -374,6 +394,16 @@ class GlobalLoadBalancer:
                 return self.geographic_router.get_nearest_region(ip_address)
             
             elif self.routing_strategy == RoutingStrategy.ADAPTIVE:
+                # Filter out regions with open circuit breakers
+                available_regions = [
+                    region for region in Region 
+                    if self.circuit_breakers[region].can_attempt()
+                ]
+                
+                if not available_regions:
+                    # All regions are unhealthy, fall back to primary
+                    return Region.NORTH_AMERICA
+                
                 metrics = {
                     region: {
                         'cpu_usage': stats['resource_usage']['cpu'],
@@ -382,9 +412,10 @@ class GlobalLoadBalancer:
                         'throughput': len(stats['latency']) / 60
                     }
                     for region, stats in self.region_stats.items()
+                    if region in available_regions
                 }
                 self.adaptive_balancer.update_weights(metrics)
-                return self.adaptive_balancer.get_target_region(list(Region))
+                return self.adaptive_balancer.get_target_region(available_regions)
             
             # Get current region health and load
             region_health = await self._get_region_health()

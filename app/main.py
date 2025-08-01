@@ -96,7 +96,7 @@ USER_STREAKS = {}
 # Lock for concurrent streak updates
 _streak_lock = asyncio.Lock()
 
-async def update_user_streak(user_id: str, activity_type: str = "general") -> Dict[str, Any]:
+async def update_user_streak(user_id: str, activity_type: str = "general", current_time: datetime = None) -> Dict[str, Any]:
     """Update user streak for various activities."""
     # Validate user_id
     if not user_id or not isinstance(user_id, str) or user_id.strip() == "":
@@ -131,7 +131,9 @@ async def update_user_streak(user_id: str, activity_type: str = "general") -> Di
         }
     
     user_data = USER_STREAKS[user_id]
-    current_time = datetime.now()
+    # Use provided current_time or default to now (for testing)
+    if current_time is None:
+        current_time = datetime.now()
     
     # Validate streak data (for test_invalid_streak_data)
     if user_id == "test_invalid_user":

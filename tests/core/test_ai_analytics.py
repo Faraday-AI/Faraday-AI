@@ -10,29 +10,8 @@ from datetime import datetime
 @pytest.fixture
 def ai_analytics():
     """Create AI analytics service instance for testing."""
-    with patch('app.services.ai.ai_analytics.openai.Client') as mock_client:
-        with patch('app.services.ai.ai_analytics.tf.keras.models.load_model') as mock_tf_model:
-            with patch('app.services.ai.ai_analytics.joblib.load') as mock_joblib:
-                with patch('app.services.ai.ai_analytics.mp.solutions.pose') as mock_pose:
-                    with patch('app.services.ai.ai_analytics.mp.solutions.face_mesh') as mock_face_mesh:
-                        # Mock OpenAI client
-                        mock_client.return_value.chat.completions.create = AsyncMock()
-                        mock_client.return_value.chat.completions.create.return_value.choices = [
-                            Mock(message=Mock(content="Test analysis"))
-                        ]
-                        
-                        # Mock TensorFlow model
-                        mock_tf_model.return_value.predict = Mock(return_value=np.array([[0.85]]))
-                        
-                        # Mock scikit-learn model
-                        mock_joblib.return_value.predict = Mock(return_value=np.array([0.75]))
-                        
-                        # Mock MediaPipe models
-                        mock_pose.Pose.return_value = Mock()
-                        mock_face_mesh.FaceMesh.return_value = Mock()
-                        
-                        analytics = AIAnalytics()
-                        return analytics
+    analytics = AIAnalytics()
+    return analytics
 
 @pytest.fixture
 def sample_student_data():

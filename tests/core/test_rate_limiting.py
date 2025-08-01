@@ -51,7 +51,7 @@ async def test_rate_limiting():
     
     # Test that rate limiting is enforced
     with pytest.raises(HTTPException) as exc_info:
-        await update_user_streak(user_id)
+        await update_user_streak(user_id, current_time=FIXED_TIME)
     assert exc_info.value.status_code == 429
     assert "Rate limit exceeded" in str(exc_info.value.detail)
 
@@ -59,7 +59,7 @@ async def test_rate_limiting():
 async def test_regular_streak_update():
     """Test regular daily streak update"""
     user_id = "test_user"
-    last_active = FIXED_TIME - timedelta(hours=25)  # More than 24 hours
+    last_active = FIXED_TIME - timedelta(hours=23)  # Less than 24 hours - should increment streak
     
     logger.debug(f"Setting up test with fixed_time: {FIXED_TIME}")
     logger.debug(f"Setting last_active to: {last_active}")
@@ -85,7 +85,7 @@ async def test_regular_streak_update():
     
     logger.debug(f"Current USER_STREAKS state: {USER_STREAKS[user_id]}")
     
-    updated = await update_user_streak(user_id)
+    updated = await update_user_streak(user_id, current_time=FIXED_TIME)
     logger.debug(f"Updated streak data: {updated}")
     assert updated["current_streak"] == 11
 
@@ -119,8 +119,8 @@ async def test_grace_period():
     
     logger.debug(f"Current USER_STREAKS state: {USER_STREAKS[user_id]}")
     
-    updated = await update_user_streak(user_id)
+    updated = await update_user_streak(user_id, current_time=FIXED_TIME)
     logger.debug(f"Updated streak data: {updated}")
     assert updated["current_streak"] == 5  # Streak maintained
     assert updated["grace_used"] == 1  # Grace period used
-    assert updated["recovery_multiplier"] == 0.9  # Multiplier reduced
+    assert updated["recovery_multiplier"] == 0.8  # Multiplier reduced

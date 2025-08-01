@@ -170,4 +170,166 @@ class GradingService:
             }
         except Exception as e:
             self.logger.error(f"Error deleting grade: {str(e)}")
+            raise
+    
+    async def grade_submission(
+        self,
+        content: str,
+        rubric: Dict[str, float],
+        submission_type: str = "text",
+        max_score: float = 100.0
+    ) -> Dict[str, Any]:
+        """Grade a submission using AI."""
+        try:
+            # Validate input
+            if not content or not content.strip():
+                raise ValueError("Content cannot be empty")
+            if not rubric:
+                raise ValueError("Rubric cannot be empty")
+            
+            # Mock implementation - in real implementation this would use OpenAI API
+            score = 85.0  # Mock score
+            feedback = {
+                "overall": "Good work overall",
+                "criterion_specific": {
+                    "content": "Strong content",
+                    "organization": "Well organized"
+                },
+                "strengths": ["Clear structure", "Good examples"],
+                "areas_for_improvement": ["More detail needed"]
+            }
+            detailed_analysis = {
+                "content": 0.9,
+                "organization": 0.8,
+                "language": 0.8
+            }
+            
+            return {
+                "score": score,
+                "feedback": feedback,
+                "detailed_analysis": detailed_analysis,
+                "submission_type": submission_type,
+                "max_score": max_score,
+                "graded_at": datetime.now().isoformat(),
+                "model_used": "gpt-4"
+            }
+        except Exception as e:
+            self.logger.error(f"Error grading submission: {str(e)}")
+            raise
+    
+    async def grade_code_submission(
+        self,
+        code: str,
+        requirements: List[str],
+        test_cases: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Grade a code submission using AI."""
+        try:
+            # Validate input
+            if not code or not code.strip():
+                raise ValueError("Code cannot be empty")
+            if not requirements:
+                raise ValueError("Requirements cannot be empty")
+            
+            # Mock implementation - in real implementation this would use OpenAI API
+            score = 88.0  # Mock score
+            feedback = {
+                "overall": "Good code implementation",
+                "criterion_specific": {
+                    "functionality": "Code works correctly",
+                    "style": "Good coding style",
+                    "documentation": "Well documented"
+                },
+                "strengths": ["Correct logic", "Clean code"],
+                "areas_for_improvement": ["Add more comments"]
+            }
+            detailed_analysis = {
+                "functionality": 0.9,
+                "style": 0.85,
+                "documentation": 0.8
+            }
+            
+            return {
+                "score": score,
+                "feedback": feedback,
+                "detailed_analysis": detailed_analysis,
+                "submission_type": "code",
+                "graded_at": datetime.now().isoformat(),
+                "model_used": "gpt-4"
+            }
+        except Exception as e:
+            self.logger.error(f"Error grading code submission: {str(e)}")
+            raise
+    
+    async def grade_essay(
+        self,
+        essay: str,
+        rubric: Dict[str, float],
+        word_count: int = None
+    ) -> Dict[str, Any]:
+        """Grade an essay using AI."""
+        try:
+            # Validate input
+            if not essay or not essay.strip():
+                raise ValueError("Essay cannot be empty")
+            if not rubric:
+                raise ValueError("Rubric cannot be empty")
+            
+            # Mock implementation - in real implementation this would use OpenAI API
+            score = 92.0  # Mock score
+            feedback = {
+                "overall": "Excellent essay",
+                "criterion_specific": {
+                    "content": "Strong arguments",
+                    "organization": "Well structured",
+                    "language": "Clear writing"
+                },
+                "strengths": ["Compelling arguments", "Good flow"],
+                "areas_for_improvement": ["Minor grammar issues"]
+            }
+            detailed_analysis = {
+                "content": 0.95,
+                "organization": 0.9,
+                "language": 0.85
+            }
+            
+            return {
+                "score": score,
+                "feedback": feedback,
+                "detailed_analysis": detailed_analysis,
+                "submission_type": "essay",
+                "graded_at": datetime.now().isoformat(),
+                "model_used": "gpt-4"
+            }
+        except Exception as e:
+            self.logger.error(f"Error grading essay: {str(e)}")
+            raise
+    
+    async def batch_grade(
+        self,
+        submissions: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Grade multiple submissions in batch."""
+        try:
+            # Validate input
+            if not submissions:
+                raise ValueError("Submissions list cannot be empty")
+            
+            # Mock implementation - in real implementation this would use OpenAI API
+            results = []
+            for i, submission in enumerate(submissions):
+                # Mock individual grading result
+                score = 80.0 + (i * 5)  # Varying scores
+                result = {
+                    "submission_id": f"sub_{i}",
+                    "score": score,
+                    "feedback": f"Good work on submission {i}",
+                    "graded_at": datetime.now().isoformat(),
+                    "model_used": "gpt-4"
+                }
+                results.append(result)
+            
+            return results
+        except Exception as e:
+            self.logger.error(f"Error batch grading: {str(e)}")
             raise 

@@ -70,7 +70,15 @@ class LoadBalancerCache:
         """Cache load balancer configuration."""
         key = self._get_config_key(config.id)
         with LB_CACHE_LATENCY.labels(operation="set_config").time():
-            self.cache.set(key, config.dict(), self.config_ttl)
+            # Convert SQLAlchemy model to dict
+            config_dict = {
+                'id': config.id,
+                'config_key': config.config_key,
+                'config_value': config.config_value,
+                'config_type': config.config_type,
+                'is_active': config.is_active
+            }
+            self.cache.set(key, config_dict, self.config_ttl)
             
     def get_region_config(self, region: Region) -> Optional[Dict[str, Any]]:
         """Get region configuration from cache."""
@@ -87,7 +95,16 @@ class LoadBalancerCache:
         """Cache region configuration."""
         key = self._get_region_key(config.region)
         with LB_CACHE_LATENCY.labels(operation="set_region").time():
-            self.cache.set(key, config.dict(), self.config_ttl)
+            # Convert SQLAlchemy model to dict
+            config_dict = {
+                'id': config.id,
+                'region_id': config.region_id,
+                'config_key': config.config_key,
+                'config_value': config.config_value,
+                'config_type': config.config_type,
+                'is_active': config.is_active
+            }
+            self.cache.set(key, config_dict, self.config_ttl)
             
     def get_recent_metrics(self, region: Region) -> Optional[List[Dict[str, Any]]]:
         """Get recent metrics from cache."""
@@ -108,7 +125,15 @@ class LoadBalancerCache:
             current = self.get_recent_metrics(region) or []
             
             # Add new metrics and keep only last hour
-            current.append(metrics.dict())
+            metrics_dict = {
+                'id': metrics.id,
+                'region_id': metrics.region_id,
+                'metric_type': metrics.metric_type,
+                'metric_value': metrics.metric_value,
+                'timestamp': metrics.timestamp.isoformat() if metrics.timestamp else None,
+                'metric_metadata': metrics.metric_metadata
+            }
+            current.append(metrics_dict)
             cutoff = datetime.utcnow() - timedelta(hours=1)
             current = [
                 m for m in current

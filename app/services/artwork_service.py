@@ -5,6 +5,10 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from sqlalchemy.orm import Session
 from app.core.database import get_db
+import aiohttp
+import base64
+from PIL import Image
+import io
 
 class ArtworkService:
     """Service for managing educational artwork and graphics."""
@@ -114,4 +118,106 @@ class ArtworkService:
             }
         except Exception as e:
             self.logger.error(f"Error deleting artwork: {str(e)}")
+            raise
+    
+    async def generate_artwork(
+        self,
+        prompt: str,
+        size: str = "1024x1024",
+        style: str = "natural",
+        variations: int = 1
+    ) -> List[Dict[str, Any]]:
+        """Generate artwork using AI."""
+        try:
+            # Mock implementation - in real implementation this would use OpenAI API
+            results = []
+            for i in range(variations):
+                results.append({
+                    "image": f"generated_image_{i}.png",
+                    "prompt": f"{prompt} in {style} style",
+                    "style": style,
+                    "size": size,
+                    "url": f"https://example.com/generated_image_{i}.png",
+                    "generated_at": datetime.now().isoformat()
+                })
+            return results
+        except Exception as e:
+            self.logger.error(f"Error generating artwork: {str(e)}")
+            raise
+    
+    async def edit_artwork(
+        self,
+        image_path: str,
+        prompt: str,
+        mask_path: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Edit existing artwork using AI."""
+        try:
+            # Mock implementation - in real implementation this would use OpenAI API
+            return {
+                "image": "edited_image.png",
+                "prompt": prompt,
+                "original_image": image_path,
+                "mask_path": mask_path,
+                "url": "https://example.com/edited_image.png",
+                "edited_at": datetime.now().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error editing artwork: {str(e)}")
+            raise
+    
+    async def generate_variations(
+        self,
+        image_path: str,
+        variations: int = 1
+    ) -> List[Dict[str, Any]]:
+        """Generate variations of existing artwork."""
+        try:
+            # Mock implementation - in real implementation this would use OpenAI API
+            results = []
+            for i in range(variations):
+                results.append({
+                    "image": f"variation_{i}.png",
+                    "original_image": image_path,
+                    "url": f"https://example.com/variation_{i}.png",
+                    "generated_at": datetime.now().isoformat()
+                })
+            return results
+        except Exception as e:
+            self.logger.error(f"Error generating variations: {str(e)}")
+            raise
+    
+    async def download_image(self, url: str) -> bytes:
+        """Download image from URL."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        return await response.read()
+                    else:
+                        raise Exception(f"Failed to download image: {response.status}")
+        except Exception as e:
+            self.logger.error(f"Error downloading image: {str(e)}")
+            raise
+    
+    async def generate_artwork_batch(
+        self,
+        prompts: List[str],
+        size: str = "1024x1024",
+        style: str = "natural"
+    ) -> List[Dict[str, Any]]:
+        """Generate multiple artworks from a list of prompts."""
+        try:
+            results = []
+            for prompt in prompts:
+                prompt_results = await self.generate_artwork(
+                    prompt=prompt,
+                    size=size,
+                    style=style,
+                    variations=1
+                )
+                results.extend(prompt_results)
+            return results
+        except Exception as e:
+            self.logger.error(f"Error generating artwork batch: {str(e)}")
             raise 
