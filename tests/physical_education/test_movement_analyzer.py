@@ -100,8 +100,14 @@ async def test_cleanup(movement_analyzer):
     """Test cleanup of MovementAnalyzer."""
     mock_movement_models = AsyncMock(spec=MovementModels)
     mock_skill_models = AsyncMock(spec=SkillModels)
-    with patch.object(movement_analyzer, 'movement_models', mock_movement_models), \
-         patch.object(movement_analyzer, 'skill_models', mock_skill_models):
+    
+    # Ensure the mock objects have the cleanup method
+    mock_movement_models.cleanup = AsyncMock()
+    mock_skill_models.cleanup = AsyncMock()
+    
+    # Patch the _load methods to return our mocks
+    with patch.object(movement_analyzer, '_load_movement_models', return_value=mock_movement_models), \
+         patch.object(movement_analyzer, '_load_skill_models', return_value=mock_skill_models):
 
         await movement_analyzer.initialize()
         await movement_analyzer.cleanup()
