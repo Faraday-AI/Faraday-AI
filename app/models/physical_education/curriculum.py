@@ -47,6 +47,7 @@ class CurriculumUnit(BaseModelMixin, TimestampMixin):
     curriculum_id = Column(Integer, ForeignKey("curriculum.id"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    sequence = Column(Integer, nullable=False, default=1)  # Sequence number for ordering
     duration = Column(Integer, nullable=True)  # in weeks
     unit_metadata = Column(JSON, nullable=True)
     

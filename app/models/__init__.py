@@ -130,7 +130,11 @@ class AuditableModel:
 
 class ProgressTracking:
     """Model for progress tracking."""
-    pass
+    
+    def __init__(self, **kwargs):
+        """Initialize progress tracking with optional parameters."""
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 class ValidatableModel:
     """Base model for validatable entities."""

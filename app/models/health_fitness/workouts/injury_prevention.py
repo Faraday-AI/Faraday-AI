@@ -115,7 +115,7 @@ class PreventionMeasure(InjuryPreventionBaseModel, NamedMixin, StatusMixin):
     
     # Relationships
     risk_factor = relationship("app.models.health_fitness.workouts.injury_prevention.InjuryRiskFactor", back_populates="prevention_measures")
-    assessments = relationship("app.models.health_fitness.workouts.injury_prevention.PreventionAssessment", back_populates="measure", cascade="all, delete-orphan")
+    assessments = relationship("app.models.health_fitness.workouts.injury_prevention.PreventionAssessment", back_populates="measure", cascade="all, delete-orphan", overlaps="assessments,measure")
 
 class PreventionAssessment(InjuryPreventionBaseModel, StatusMixin):
     """Model for assessing prevention measure effectiveness."""
@@ -156,7 +156,7 @@ class PreventionAssessment(InjuryPreventionBaseModel, StatusMixin):
     limitations = Column(JSON, nullable=True)
     
     # Relationships
-    measure = relationship("app.models.health_fitness.workouts.injury_prevention.PreventionMeasure", back_populates="assessments")
+    measure = relationship("app.models.health_fitness.workouts.injury_prevention.PreventionMeasure", back_populates="assessments", overlaps="assessments,measure")
 
 class InjuryRiskAssessment(InjuryPreventionBaseModel, StatusMixin):
     """Model for conducting risk assessments."""

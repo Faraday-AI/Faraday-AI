@@ -48,7 +48,7 @@ class PreventionMeasure(BaseModelMixin, TimestampMixin):
     measure_metadata = Column(JSON)
     
     # Relationships
-    assessments = relationship("app.models.physical_education.injury_prevention.PreventionAssessment", back_populates="prevention_measure")
+    assessments = relationship("app.models.physical_education.injury_prevention.PreventionAssessment", back_populates="prevention_measure", overlaps="assessments,measure")
 
 class PreventionAssessment(BaseModelMixin, TimestampMixin):
     """Model for prevention assessments."""
@@ -68,7 +68,7 @@ class PreventionAssessment(BaseModelMixin, TimestampMixin):
     # Relationships
     activity = relationship("Activity", back_populates="prevention_assessments")
     risk_factor = relationship("app.models.physical_education.injury_prevention.InjuryRiskFactor", back_populates="assessments")
-    prevention_measure = relationship("app.models.physical_education.injury_prevention.PreventionMeasure", back_populates="assessments")
+    prevention_measure = relationship("app.models.physical_education.injury_prevention.PreventionMeasure", back_populates="assessments", overlaps="assessments,measure")
 
 class InjuryPrevention(BaseModelMixin, TimestampMixin):
     """Model for injury prevention measures."""

@@ -83,8 +83,8 @@ class Student(SharedBase):
     health_fitness_workout_plans = relationship("app.models.health_fitness.workouts.workout.HealthFitnessWorkoutPlan", back_populates="student", overlaps="workout_plans")
     
     # Health and fitness metric relationships
-    health_metrics = relationship("app.models.health_fitness.metrics.health.HealthMetric", back_populates="student")
-    pe_health_metrics = relationship("app.models.physical_education.health.models.HealthMetric", back_populates="student")
+    health_metrics = relationship("app.models.health_fitness.metrics.health.HealthMetric", back_populates="student", overlaps="pe_health_metrics,student_health_metrics")
+    pe_health_metrics = relationship("app.models.physical_education.health.models.HealthMetric", back_populates="student", overlaps="health_metrics,student_health_metrics")
     fitness_health_metrics = relationship("app.models.health_fitness.metrics.health_metrics.HealthMetric", back_populates="student")
     fitness_metrics = relationship("app.models.health_fitness.metrics.health_metrics.FitnessMetric", back_populates="student")
     fitness_metric_history = relationship("app.models.health_fitness.metrics.health_metrics.FitnessMetricHistory", back_populates="student")
@@ -102,7 +102,7 @@ class Student(SharedBase):
     health_records = relationship("app.models.physical_education.student.health.HealthRecord", back_populates="student")
     student_medical_conditions = relationship("app.models.physical_education.student.health.MedicalCondition", back_populates="student")
     emergency_contacts = relationship("app.models.physical_education.student.health.EmergencyContact", back_populates="student")
-    student_health_metrics = relationship("app.models.physical_education.student.health.HealthMetric", back_populates="student", overlaps="pe_health_metrics")
+    student_health_metrics = relationship("app.models.physical_education.student.health.HealthMetric", back_populates="student", overlaps="health_metrics,pe_health_metrics")
     
     # Goal-related relationships
     goals = relationship("app.models.health_fitness.goals.goal_setting.Goal", back_populates="student")
@@ -110,7 +110,7 @@ class Student(SharedBase):
     fitness_goals = relationship("app.models.health_fitness.goals.fitness_goals.FitnessGoal", back_populates="student")
     fitness_goal_progress = relationship("app.models.health_fitness.goals.fitness_goals.FitnessGoalProgress", back_populates="student")
     pe_fitness_goals = relationship("app.models.physical_education.student.health.FitnessGoal", back_populates="student")
-    goal_recommendations = relationship("app.models.health_fitness.goals.fitness_goals.GoalRecommendation", back_populates="student")
+    goal_recommendations = relationship("app.models.health_fitness.goals.fitness_goals.GoalRecommendation", back_populates="student", overlaps="pe_goal_recommendations")
     pe_goal_recommendations = relationship("app.models.physical_education.student.health.GoalRecommendation", back_populates="student", overlaps="goal_recommendations")
     student_health = relationship("app.models.physical_education.student.health.StudentHealth", back_populates="student")
     nutrition_logs = relationship("app.models.health_fitness.nutrition.nutrition.NutritionLog", back_populates="student")
