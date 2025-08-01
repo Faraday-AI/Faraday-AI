@@ -89,6 +89,7 @@ services:
       - ./models:/app/models
       - ./static:/app/static
       - ./exports:/app/exports
+      - ./tests:/app/tests
     depends_on:
       db:
         condition: service_healthy

@@ -35,12 +35,14 @@ class TemplateManager:
     def _get_fallback_content(self, template_name: str, data: Dict[str, Any], format_type: str) -> str:
         """Get fallback content when template rendering fails."""
         if template_name == 'alert':
+            title = data.get('title', data.get('message', 'Unknown Alert'))
+            message = data.get('message', 'No message provided')
             if format_type == 'plain':
-                return f"Alert: {data.get('title', 'Unknown Alert')}\n{data.get('message', 'No message provided')}"
+                return f"Alert: {title}\n{message}"
             elif format_type == 'html':
-                return f"<h2>Alert: {data.get('title', 'Unknown Alert')}</h2><p>{data.get('message', 'No message provided')}</p>"
+                return f"<h2>Alert: {title}</h2><p>{message}</p>"
             elif format_type == 'slack':
-                return f"*Alert: {data.get('title', 'Unknown Alert')}*\n{data.get('message', 'No message provided')}"
+                return f"*Alert: {title}*\n{message}"
         elif template_name == 'digest':
             if format_type == 'plain':
                 return f"Digest: {data.get('title', 'Daily Digest')}\n{data.get('summary', 'No summary provided')}"

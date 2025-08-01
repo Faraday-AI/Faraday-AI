@@ -296,7 +296,7 @@ class BatchingEmailNotifier(EmailNotifier):
                     # Process each email in batch
                     for email in self.batch.get_batch():
                         # Add recipient to BCC
-                        if 'To' not in msg:
+                        if 'Bcc' not in msg or msg['Bcc'] is None:
                             msg['Bcc'] = email['to']
                         else:
                             msg['Bcc'] += f", {email['to']}"
@@ -521,15 +521,13 @@ class WebhookNotifier:
                 'User-Agent': 'Faraday-LoadBalancer/1.0'
             }
             
-            async with aiohttp.ClientSession(
-                timeout=self.timeout,
-                headers=headers
-            ) as session:
+            async with aiohttp.ClientSession(timeout=self.timeout) as session:
                 with NOTIFICATION_LATENCY.labels(channel='webhook').time():
                     async with session.request(
                         method,
                         url,
                         json=payload,
+                        headers=headers,
                         ssl=verify_ssl
                     ) as response:
                         success = 200 <= response.status < 300
@@ -554,9 +552,11 @@ class NotificationHistory:
     async def add(self, notification: Dict[str, Any]):
         """Add a notification to history."""
         async with self.lock:
+            # Use provided timestamp or current time
+            timestamp = notification.get('timestamp', datetime.utcnow().isoformat())
             self.notifications.append({
                 **notification,
-                'timestamp': datetime.utcnow().isoformat()
+                'timestamp': timestamp
             })
             # Trim if over max size
             if len(self.notifications) > self.max_size:
