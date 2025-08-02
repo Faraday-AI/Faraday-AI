@@ -8,7 +8,7 @@ from app.services.physical_education.movement_analyzer import MovementAnalyzer
 @pytest.fixture
 def pe_service():
     """Create PEService instance for testing."""
-    return PEService("physical_education")
+    return PEService()
 
 @pytest.fixture
 def mock_video_processor():

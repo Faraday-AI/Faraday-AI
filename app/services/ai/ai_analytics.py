@@ -1135,7 +1135,14 @@ class PhysicalEducationAI:
                 "progress_indicators": ["Improved accuracy", "Better technique", "Increased confidence"],
                 "areas_for_improvement": ["Speed", "Endurance", "Strategy"],
                 "next_steps": ["Practice drills", "Advanced techniques", "Competition preparation"],
-                "assessment_score": 78.0
+                "assessment_score": 78.0,
+                "assessment": {
+                    "base_score": 78.0,
+                    "detailed_analysis": "Good overall performance with room for improvement in speed and endurance",
+                    "progress_tracking": "Showing consistent improvement over time",
+                    "goal_recommendations": ["Focus on speed drills", "Increase endurance training", "Practice advanced techniques"]
+                },
+                "timestamp": "2024-03-20T10:30:00Z"
             }
         except Exception as e:
             self.logger.error(f"Error assessing skills: {e}")
