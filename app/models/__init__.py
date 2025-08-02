@@ -68,6 +68,25 @@ from .physical_education.progress import (
     ProgressNoteUpdate,
     ProgressNoteResponse
 )
+
+# Use the health_fitness Progress model as ProgressTracking for backward compatibility
+from .health_fitness.progress.progress_tracking import Progress as HealthFitnessProgress
+ProgressTracking = HealthFitnessProgress
+
+# Add missing property to ProgressTracking
+@property
+def is_on_track(self):
+    """Check if progress is on track."""
+    if hasattr(self, 'progress_metrics') and self.progress_metrics:
+        # Simple logic: if any metric is above 70%, consider on track
+        for metric, value in self.progress_metrics.items():
+            if isinstance(value, (int, float)) and value > 70:
+                return True
+    return False
+
+# Add the property to the ProgressTracking class
+HealthFitnessProgress.is_on_track = is_on_track
+
 from .physical_education.activity import Activity
 from .physical_education.student.models import Student
 from .physical_education.class_ import PhysicalEducationClass, ClassStudent
@@ -75,7 +94,29 @@ from .physical_education.class_ import PhysicalEducationClass, ClassStudent
 # Import only one version of Routine models to avoid conflicts
 from .physical_education.routine.models import Routine, RoutineActivity, RoutinePerformance
 
+# Goal models
+from .health_fitness.goals.goal_setting import Goal, GoalMilestone, GoalActivity, HealthFitnessGoalProgress
+
+# Progress milestone and report models (using Progress as base)
+ProgressMilestone = ProgressGoal
+ProgressReport = PhysicalEducationProgressNote
+
+# Safety models
+from .physical_education.safety.models import (
+    SafetyIncident, RiskAssessment, SafetyAlert, SafetyProtocol, SafetyCheck
+)
+
+# Environmental and equipment models
+from .physical_education.safety.models import EnvironmentalCheck, EquipmentCheck
+
+# Enum imports
+from .physical_education.pe_enums.pe_types import (
+    IncidentType, IncidentSeverity, EquipmentStatus
+)
+
 # Additional missing models
+from datetime import datetime
+
 class MetadataModel:
     """Base model for metadata."""
     
@@ -100,14 +141,15 @@ class MetadataModel:
                 'version': self.version,
                 'key': key,
                 'old_value': self.metadata[key],
-                'timestamp': '2025-01-01T00:00:00Z'
+                'new_value': value,
+                'timestamp': datetime.utcnow().isoformat()
             })
+            self.version += 1
         
         self.metadata[key] = value
-        self.version += 1
 
 class HealthMetric:
-    """Model for health metrics."""
+    """Health metric model."""
     
     def __init__(self, **kwargs):
         for key, value in kwargs.items():
@@ -120,73 +162,115 @@ class AuditableModel:
         """Add an audit entry."""
         if not hasattr(self, 'audit_trail'):
             self.audit_trail = []
+        
         audit_entry = {
             'action': action,
-            'user_id': user,
-            'timestamp': '2025-01-01T00:00:00Z',
+            'user': user,
+            'timestamp': datetime.utcnow().isoformat(),
             'details': details or {}
         }
         self.audit_trail.append(audit_entry)
-
-class ProgressTracking:
-    """Model for progress tracking."""
-    
-    def __init__(self, **kwargs):
-        """Initialize progress tracking with optional parameters."""
-        for key, value in kwargs.items():
-            setattr(self, key, value)
 
 class ValidatableModel:
     """Base model for validatable entities."""
     
     def validate(self, validation_rules=None):
         """Validate the model."""
+        self.validation_errors = []
         if validation_rules:
-            self.validation_errors = ["Validation failed"]
-            return False
-        return True
+            for field_name, rule in validation_rules.items():
+                if hasattr(self, field_name):
+                    value = getattr(self, field_name)
+                    if not rule['validator'](value):
+                        self.validation_errors.append(rule['message'])
+        return len(self.validation_errors) == 0
     
     def validate_not_empty(self, field_name: str, value):
         """Validate that a field is not empty."""
-        if not value:
-            raise ValueError(f"{field_name} cannot be empty")
+        if not value or (isinstance(value, str) and not value.strip()):
+            self.validation_errors.append(f"{field_name} cannot be empty")
+            return False
         return True
+    
+    def common_validation_rules(self):
+        """Get common validation rules."""
+        return {
+            'name': {
+                'validator': lambda x: self.validate_not_empty('name', x),
+                'message': 'Name cannot be empty'
+            },
+            'heart_rate': {
+                'validator': lambda x: isinstance(x, (int, float)) and 40 <= x <= 220,
+                'message': 'Heart rate must be between 40 and 220'
+            },
+            'blood_pressure_systolic': {
+                'validator': lambda x: isinstance(x, (int, float)) and 70 <= x <= 200,
+                'message': 'Systolic blood pressure must be between 70 and 200'
+            }
+        }
 
 class Class:
-    """Model for class management."""
-    pass
-
-class ProgressMilestone:
-    """Model for progress milestones."""
-    pass
-
-class ProgressReport:
-    """Model for progress reports."""
+    """Class model."""
     pass
 
 class Safety:
-    """Model for safety data."""
-    pass
+    """Safety model."""
+    def __init__(self, **kwargs):
+        self.incidents = []
+        self.protocols = []
+        self.checks = []
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 class EventParticipant:
-    """Model for event participants."""
+    """Event participant model."""
     pass
 
-class EquipmentCheck:
-    """Model for equipment checks."""
-    pass
-
+# Enum classes with missing values
 class RiskLevel:
-    """Model for risk levels."""
-    pass
+    """Risk level enum."""
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
 
 class AlertType:
-    """Model for alert types."""
-    pass
+    """Alert type enum."""
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    EMERGENCY = "emergency"
 
 class CheckType:
-    """Model for check types."""
-    pass
+    """Check type enum."""
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    QUARTERLY = "quarterly"
+    ANNUAL = "annual"
+    EQUIPMENT = "equipment"
+
+# Missing models
+class EnvironmentalCondition:
+    """Environmental condition model."""
+    def __init__(self, **kwargs):
+        self.risk_level = None
+        self.safety_concerns = []
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+class InjuryRiskFactor:
+    """Injury risk factor model."""
+    def __init__(self, **kwargs):
+        self.prevention_measures = []
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+class PreventionMeasure:
+    """Prevention measure model."""
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            setattr(self, key, value)
 
 from .physical_education.assessment import Assessment, SkillAssessment
 from .physical_education.safety import SafetyIncident, RiskAssessment
