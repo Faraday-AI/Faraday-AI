@@ -90,7 +90,7 @@ class AssessmentResponse(BaseModel):
 
 class SkillAssessment(Assessment):
     """Model for skill assessments."""
-    __tablename__ = 'skill_assessments'
+    __tablename__ = 'physical_education_skill_assessments'  # Changed to avoid conflicts
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, ForeignKey('assessment_base.id'), primary_key=True)

@@ -20,7 +20,7 @@ TimestampMixin = TimestampedMixin
 
 class SkillAssessment(Base):
     """Model for skill assessments."""
-    __tablename__ = "physical_education_skill_assessments"
+    __tablename__ = "pe_skill_assessment_records"
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True)
@@ -32,10 +32,10 @@ class SkillAssessment(Base):
     criteria_data = Column(JSON, name='criteria')  # Explicitly map to 'criteria' column
     assessment_metadata = Column(JSON, nullable=True)
     
-    # Relationships
-    student = relationship("app.models.physical_education.student.models.Student", back_populates="skill_assessments")
-    skill = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.Skill", back_populates="assessments")
-    assessment_criteria = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.AssessmentCriteria", back_populates="assessment")  # Renamed from criteria
+    # Relationships - use string references to avoid circular imports
+    student = relationship("Student", back_populates="skill_assessments")
+    skill = relationship("Skill", back_populates="assessments")
+    assessment_criteria = relationship("AssessmentCriteria", back_populates="assessment")
 
 class AssessmentCriteria(BaseModelMixin, TimestampMixin):
     """Model for assessment criteria."""
@@ -43,14 +43,14 @@ class AssessmentCriteria(BaseModelMixin, TimestampMixin):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True)
-    assessment_id = Column(Integer, ForeignKey("skill_assessments.id"), nullable=False)
+    assessment_id = Column(Integer, ForeignKey("pe_skill_assessment_records.id"), nullable=False)
     criterion = Column(Text, nullable=False)
     score = Column(Float)
     notes = Column(Text)
     criteria_metadata = Column(JSONB)  # Renamed from metadata
     
     # Relationships
-    assessment = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.SkillAssessment", back_populates="assessment_criteria")
+    assessment = relationship("SkillAssessment", back_populates="assessment_criteria")
 
 class Skill(Base):
     """Model for skills."""
@@ -64,9 +64,9 @@ class Skill(Base):
     skill_metadata = Column(JSON, nullable=True)
     
     # Relationships
-    assessments = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.SkillAssessment", back_populates="skill")
-    progressions = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.SkillProgression", back_populates="skill")
-    criteria = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.SkillCriteria", back_populates="skill")
+    assessments = relationship("SkillAssessment", back_populates="skill")
+    progressions = relationship("SkillProgression", back_populates="skill")
+    criteria = relationship("SkillCriteria", back_populates="skill")
 
 class SkillProgression(BaseModelMixin, TimestampMixin):
     """Model for skill progressions."""
@@ -81,7 +81,7 @@ class SkillProgression(BaseModelMixin, TimestampMixin):
     progression_metadata = Column(JSONB)  # Renamed from metadata
     
     # Relationships
-    skill = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.Skill", back_populates="progressions")
+    skill = relationship("Skill", back_populates="progressions")
 
 class SkillCriteria(Base):
     """Model for skill assessment criteria."""
@@ -96,7 +96,7 @@ class SkillCriteria(Base):
     criteria_metadata = Column(JSON, nullable=True)
 
     # Relationships
-    skill = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.Skill", back_populates="criteria")
+    skill = relationship("Skill", back_populates="criteria")
 
 class SkillLevel(Base):
     """Model for skill levels."""
@@ -111,7 +111,7 @@ class SkillLevel(Base):
     level_metadata = Column(JSON, nullable=True)
 
     # Relationships
-    skill = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.Skill", back_populates="levels")
+    skill = relationship("Skill", back_populates="levels")
 
 class SkillModels:
     """Service for managing skill assessment models and operations."""

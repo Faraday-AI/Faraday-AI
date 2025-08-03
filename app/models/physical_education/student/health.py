@@ -17,8 +17,8 @@ from app.models.mixins import TimestampedMixin
 BaseModelMixin = CoreBase
 TimestampMixin = TimestampedMixin
 
-# Import Student model to ensure it's registered with SQLAlchemy
-from app.models.physical_education.student.models import Student
+# Remove circular import - use string references instead
+# from app.models.physical_education.student.models import Student
 
 class HealthRecord(BaseModelMixin, TimestampMixin):
     """Model for student health records."""

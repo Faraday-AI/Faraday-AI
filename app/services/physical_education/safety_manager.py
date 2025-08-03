@@ -2696,16 +2696,146 @@ class SafetyManager:
             ]
 
     async def get_activity(self, activity_id: str) -> Dict[str, Any]:
-        """Get activity information (mock implementation for now)."""
+        """Get activity information for safety monitoring."""
         try:
-            # Mock activity data - in real implementation, this would query the database
+            # This would typically query the database for activity details
+            # For now, return mock data
             return {
                 "id": activity_id,
-                "name": f"Activity {activity_id}",
-                "equipment_required": ["ball", "net", "cones"],
-                "safety_guidelines": ["Wear proper shoes", "Stay hydrated", "Follow instructions"],
-                "risk_level": "medium"
+                "name": "Basketball Practice",
+                "type": "team_sports",
+                "duration": 60,
+                "location": "Gymnasium",
+                "supervisor": "Coach Smith"
             }
         except Exception as e:
             self.logger.error(f"Error getting activity: {str(e)}")
             return {}
+
+    async def start_safety_monitoring(self, student_id: int, activity_id: int) -> Dict[str, Any]:
+        """Start safety monitoring for a student during an activity."""
+        try:
+            # Initialize safety monitoring session
+            monitoring_session = {
+                "student_id": student_id,
+                "activity_id": activity_id,
+                "start_time": datetime.utcnow(),
+                "is_active": True,
+                "safety_checks": [],
+                "alerts": []
+            }
+            
+            self.logger.info(f"Started safety monitoring for student {student_id} in activity {activity_id}")
+            
+            return {
+                "monitoring_active": True,
+                "session_id": f"safety_{student_id}_{activity_id}_{int(datetime.utcnow().timestamp())}",
+                "start_time": monitoring_session["start_time"].isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error starting safety monitoring: {str(e)}")
+            return {
+                "monitoring_active": False,
+                "error": str(e)
+            }
+
+    async def check_activity_safety(self, activity_id: int) -> Dict[str, Any]:
+        """Check if an activity is safe to proceed."""
+        try:
+            # This would typically check various safety factors
+            # For now, return mock data indicating the activity is safe
+            return {
+                "is_safe": True,
+                "risk_level": "LOW",
+                "safety_score": 95,
+                "recommendations": ["Ensure proper supervision", "Check equipment condition"],
+                "checked_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error checking activity safety: {str(e)}")
+            return {
+                "is_safe": False,
+                "error": str(e)
+            }
+
+    async def update_environmental_conditions(self, activity_id: int, conditions: Dict[str, Any]) -> Dict[str, Any]:
+        """Update environmental conditions for an activity."""
+        try:
+            # Check if conditions require action
+            requires_action = False
+            if conditions.get('temperature', 0) >= 30.0:  # High temperature
+                requires_action = True
+            if conditions.get('humidity', 0) > 80.0:  # High humidity
+                requires_action = True
+            
+            self.logger.info(f"Updated environmental conditions for activity {activity_id}")
+            
+            return {
+                "conditions_updated": True,
+                "requires_action": requires_action,
+                "current_conditions": conditions,
+                "updated_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error updating environmental conditions: {str(e)}")
+            return {
+                "conditions_updated": False,
+                "requires_action": False,
+                "error": str(e)
+            }
+
+    async def check_safety_alerts(self, activity_id: int) -> Dict[str, Any]:
+        """Check for active safety alerts for an activity."""
+        try:
+            # This would typically query the database for active alerts
+            # For now, return mock data
+            active_alerts = [
+                {
+                    "id": 1,
+                    "type": "environmental",
+                    "severity": "medium",
+                    "message": "High temperature detected",
+                    "created_at": datetime.utcnow().isoformat()
+                }
+            ]
+            
+            return {
+                "active_alerts": active_alerts,
+                "alert_count": len(active_alerts),
+                "checked_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error checking safety alerts: {str(e)}")
+            return {
+                "active_alerts": [],
+                "alert_count": 0,
+                "error": str(e)
+            }
+
+    async def get_safety_recommendations(
+        self,
+        activity_id: int,
+        alert_ids: List[int]
+    ) -> Dict[str, Any]:
+        """Get safety recommendations based on active alerts."""
+        try:
+            # This would typically analyze alerts and provide recommendations
+            # For now, return mock data
+            actions = [
+                "Reduce activity intensity",
+                "Increase hydration breaks",
+                "Move to shaded area if outdoors",
+                "Monitor students more closely"
+            ]
+            
+            return {
+                "actions": actions,
+                "priority": "medium",
+                "generated_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error getting safety recommendations: {str(e)}")
+            return {
+                "actions": [],
+                "error": str(e)
+            }

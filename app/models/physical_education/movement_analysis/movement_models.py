@@ -38,14 +38,14 @@ logger = logging.getLogger(__name__)
 
 class MovementAnalysisRecord(CoreBase):
     """Stores movement analysis data for student activities."""
-    __tablename__ = "movement_analysis"
+    __tablename__ = "physical_education_movement_analysis"  # Changed to avoid conflicts
 
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id", ondelete="CASCADE"), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id", ondelete="CASCADE"), nullable=False)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
-    movement_data = Column(JSONB, nullable=False)  # Stores the raw movement data and metrics
-    analysis_results = Column(JSONB, nullable=False)  # Stores analysis results and recommendations
+    movement_data = Column(JSON, nullable=False)  # Changed from JSONB to JSON for SQLite compatibility
+    analysis_results = Column(JSON, nullable=False)  # Changed from JSONB to JSON for SQLite compatibility
     confidence_score = Column(Float, nullable=False)
     is_completed = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
@@ -65,10 +65,10 @@ class MovementPattern(CoreBase):
     __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True, index=True)
-    analysis_id = Column(Integer, ForeignKey("movement_analysis.id", ondelete="CASCADE"), nullable=False)
+    analysis_id = Column(Integer, ForeignKey("physical_education_movement_analysis.id", ondelete="CASCADE"), nullable=False)  # Updated foreign key
     pattern_type = Column(String(50), nullable=False)  # e.g., "jumping", "running", "throwing"
     confidence_score = Column(Float, nullable=False)
-    pattern_data = Column(JSONB, nullable=False)  # Stores pattern-specific data
+    pattern_data = Column(JSON, nullable=False)  # Changed from JSONB to JSON for SQLite compatibility
     
     # Pattern characteristics
     duration = Column(Float, nullable=False)  # Duration in seconds

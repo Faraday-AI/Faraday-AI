@@ -96,6 +96,7 @@ from .physical_education.routine.models import Routine, RoutineActivity, Routine
 
 # Goal models
 from .health_fitness.goals.goal_setting import Goal, GoalMilestone, GoalActivity, HealthFitnessGoalProgress
+from .health_fitness.goals.fitness_goals import FitnessGoal, FitnessGoalProgress, GoalRecommendation
 
 # Progress milestone and report models (using Progress as base)
 ProgressMilestone = ProgressGoal
@@ -109,10 +110,24 @@ from .physical_education.safety.models import (
 # Environmental and equipment models
 from .physical_education.safety.models import EnvironmentalCheck, EquipmentCheck
 
+# Use the physical_education EnvironmentalCondition to avoid conflicts
+from .physical_education.environmental import EnvironmentalCondition
+
 # Enum imports
 from .physical_education.pe_enums.pe_types import (
     IncidentType, IncidentSeverity, EquipmentStatus
 )
+
+# Assessment models - Use the physical_education version to avoid conflicts
+from .physical_education.assessment.models import (
+    Assessment, SkillAssessment, FitnessAssessment, MovementAssessment
+)
+
+# Create alias for SkillAssessment to avoid conflicts
+PhysicalEducationSkillAssessment = SkillAssessment
+
+# Explicitly exclude the conflicting skill_assessment module imports
+# This prevents the mapper conflict between different SkillAssessment classes
 
 # Additional missing models
 from datetime import datetime
@@ -147,13 +162,6 @@ class MetadataModel:
             self.version += 1
         
         self.metadata[key] = value
-
-class HealthMetric:
-    """Health metric model."""
-    
-    def __init__(self, **kwargs):
-        for key, value in kwargs.items():
-            setattr(self, key, value)
 
 class AuditableModel:
     """Base model for auditable entities."""
@@ -251,14 +259,6 @@ class CheckType:
     EQUIPMENT = "equipment"
 
 # Missing models
-class EnvironmentalCondition:
-    """Environmental condition model."""
-    def __init__(self, **kwargs):
-        self.risk_level = None
-        self.safety_concerns = []
-        for key, value in kwargs.items():
-            setattr(self, key, value)
-
 class InjuryRiskFactor:
     """Injury risk factor model."""
     def __init__(self, **kwargs):
@@ -378,33 +378,11 @@ from .physical_education.movement_analysis.models import (
 )
 
 # Health and Fitness Models
-from .health_fitness.nutrition.nutrition import (
-    NutritionPlan,
-    NutritionGoal,
-    MealPlan,
-    NutritionRecommendation,
-    NutritionEducation
-)
-from .physical_education.nutrition.models import PhysicalEducationNutritionLog
-from .health_fitness.goals.goal_setting import (
-    Goal,
-    HealthFitnessGoalProgress,
-    GoalMilestone,
-    GoalActivity
-)
-from .health_fitness.goals.fitness_goals import (
-    FitnessGoal,
-    FitnessGoalProgressGeneral,
-    GoalAdjustment,
-    GoalRecommendation,
-    FitnessGoalProgress
-)
-from .physical_education.student.student import (
-    StudentHealthGoalProgress
-)
-from .physical_education.student.health import (
-    StudentHealthGoalProgress as StudentHealthGoalProgressHealth
-)
+from .health_fitness.metrics.health import HealthMetric, HealthMetricHistory
+from .health_fitness.nutrition.nutrition import NutritionPlan
+from .physical_education.nutrition import NutritionGoal
+from .physical_education.safety.models import SafetyIncident
+from .activity_adaptation.routine.routine_performance import AdaptedPerformanceMetrics
 
 # Backward compatibility aliases for existing code
 # These maintain compatibility with code that might be using the old names
@@ -501,40 +479,33 @@ from app.dashboard.models.gpt_models import (
 # Removed dashboard context imports to avoid conflicts with core context models
 from app.models.feedback.tools.user_tool import FeedbackUserTool
 
-# Skill Assessment models
+# Skill Assessment Models (with aliasing to avoid conflicts)
 from .skill_assessment.assessment.assessment import (
-    Assessment as SkillAssessmentModel,
-    SkillAssessment,
-    AssessmentCriteria,
-    AssessmentResult,
-    AssessmentHistory,
-    SkillProgress,
-    AssessmentMetrics
+    SkillAssessment as GeneralSkillAssessment,
+    AssessmentCriteria as GeneralAssessmentCriteria,
+    AssessmentResult as GeneralAssessmentResult,
+    AssessmentHistory as GeneralAssessmentHistory,
+    SkillProgress as GeneralSkillProgress,
+    AssessmentMetrics as GeneralAssessmentMetrics
 )
 
-# Import missing models that are referenced in seed scripts
-from .skill_assessment.assessment.assessment import (
-    SkillAssessment,
-    AssessmentResult,
-    AssessmentHistory,
-    AssessmentCriteria
-)
 from .skill_assessment.safety.safety import (
-    SafetyReport,
-    SkillAssessmentSafetyIncident,
-    RiskAssessment as SkillAssessmentRiskAssessment,
-    SafetyAlert as SkillAssessmentSafetyAlert,
-    SafetyProtocol as SkillAssessmentSafetyProtocol,
-    SafetyCheck as SkillAssessmentSafetyCheck
+    SafetyReport as GeneralSafetyReport,
+    SkillAssessmentSafetyIncident as GeneralSafetyIncident,
+    RiskAssessment as GeneralRiskAssessment,
+    SafetyAlert as GeneralSafetyAlert,
+    SafetyProtocol as GeneralSafetyProtocol,
+    SafetyCheck as GeneralSafetyCheck
 )
+
+# Create aliases for backward compatibility
+PhysicalEducationSkillAssessment = GeneralSkillAssessment
+
+# Physical Education Activity models
 from .physical_education.activity.models import (
     StudentActivityPerformance,
     StudentActivityPreference
 )
-from .security.api_key.api_key import APIKey
-from .health_fitness.nutrition.nutrition import NutritionPlan
-from .physical_education.safety.models import SafetyIncident
-from .activity_adaptation.routine.routine_performance import AdaptedPerformanceMetrics
 
 # Setup relationships after all models are imported
 # Removed automatic relationship setup to avoid circular imports
@@ -551,6 +522,10 @@ from .physical_education.safety.models import (
     SafetyProtocol,
     SafetyAlert
 )
+
+# Make both SkillAssessment classes available
+# Physical Education SkillAssessment (primary) - already imported from .physical_education.assessment
+# General SkillAssessment (secondary) - already imported as GeneralSkillAssessment
 
 # Resource Management Models
 from .resource_management.resource_management import (
@@ -621,9 +596,12 @@ from .assessment import (
     AssessmentCriteria,
     AssessmentChange,
     AssessmentHistory,
-    SkillAssessment,
+    SkillAssessment as GeneralSkillAssessment,
     SkillProgress
 )
+
+# Create alias for the general SkillAssessment
+PhysicalEducationSkillAssessment = GeneralSkillAssessment
 
 # Movement Analysis Models
 from .movement_analysis import (
@@ -735,7 +713,7 @@ __all__ = [
     'GPTAnalytics', 'GPTFeedback', 'GPTPerformance', 'GPTUsageHistory',
 
     # Skill Assessment models
-    'SkillAssessmentModel', 'SkillAssessment', 'AssessmentCriteria', 'AssessmentResult', 'AssessmentHistory', 'SkillProgress', 'AssessmentMetrics',
+    'SkillAssessmentModel', 'PhysicalEducationSkillAssessment', 'AssessmentCriteria', 'AssessmentResult', 'AssessmentHistory', 'SkillProgress', 'AssessmentMetrics',
     'SafetyReport', 'SkillAssessmentSafetyIncident', 'SkillAssessmentRiskAssessment', 'SkillAssessmentSafetyAlert', 'SkillAssessmentSafetyProtocol', 'SkillAssessmentSafetyCheck',
 
     # Physical Education Safety Models
@@ -755,7 +733,7 @@ __all__ = [
     'UserActivity', 'UserBehavior', 'UserPerformance', 'UserEngagement', 'UserPrediction', 'UserRecommendation', 'AnalyticsEvent', 'UserInsight', 'UserTrend', 'UserComparison',
 
     # Assessment Models
-    'GeneralAssessment', 'AssessmentCriteria', 'AssessmentChange', 'AssessmentHistory', 'SkillAssessment', 'SkillProgress',
+    'GeneralAssessment', 'AssessmentCriteria', 'AssessmentChange', 'AssessmentHistory', 'PhysicalEducationSkillAssessment', 'SkillProgress',
     
     # Movement Analysis Models
     'MovementAnalysis', 'MovementPattern',

@@ -181,7 +181,7 @@ class PhysicalEducationMealFood(BaseModelMixin, TimestampMixin):
 
 class NutritionGoal(BaseModelMixin, TimestampMixin):
     """Model for nutrition goals."""
-    __tablename__ = "nutrition_goals"
+    __tablename__ = "physical_education_nutrition_goals"  # Changed to avoid conflicts
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
@@ -319,7 +319,7 @@ class PhysicalEducationNutritionRecommendationResponse(BaseModel):
 
 class NutritionEducation(BaseModelMixin, TimestampMixin):
     """Model for nutrition education materials."""
-    __tablename__ = "nutrition_education"
+    __tablename__ = "physical_education_nutrition_education"  # Changed to avoid conflicts
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)

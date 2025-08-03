@@ -36,6 +36,22 @@ from .health_metric import (
     HealthMetricHistory
 )
 
+from .health import (
+    HealthRecord as StudentHealthRecord,
+    MedicalCondition,
+    EmergencyContact,
+    HealthRecordCreate,
+    HealthRecordUpdate,
+    HealthRecordResponse,
+    HealthMetric as StudentHealthMetric,
+    HealthMetricThreshold as StudentHealthMetricThreshold,
+    FitnessGoal,
+    FitnessGoalProgress,
+    StudentHealthGoalProgress as HealthGoalProgress,
+    GoalRecommendation,
+    StudentHealth
+)
+
 __all__ = [
     # Main Student models
     'Student',
@@ -65,4 +81,19 @@ __all__ = [
     # Health metric models
     'HealthMetric',
     'HealthMetricHistory',
+    
+    # Health models from health.py
+    'StudentHealthRecord',
+    'MedicalCondition',
+    'EmergencyContact',
+    'HealthRecordCreate',
+    'HealthRecordUpdate',
+    'HealthRecordResponse',
+    'StudentHealthMetric',
+    'StudentHealthMetricThreshold',
+    'FitnessGoal',
+    'FitnessGoalProgress',
+    'HealthGoalProgress',
+    'GoalRecommendation',
+    'StudentHealth',
 ] 

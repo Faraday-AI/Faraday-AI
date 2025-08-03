@@ -34,25 +34,33 @@ def track_metrics(func: Callable) -> Callable:
         try:
             result = await func(*args, **kwargs)
             duration = time.time() - start_time
+            # Use function name and module as defaults, don't rely on kwargs
+            method_name = func.__name__
+            module_name = func.__module__.split('.')[-1] if func.__module__ else 'unknown'
+            
             request_latency.labels(
-                method=kwargs.get('method', 'unknown'),
-                endpoint=kwargs.get('endpoint', 'unknown')
+                method=method_name,
+                endpoint=module_name
             ).observe(duration)
             request_count.labels(
-                method=kwargs.get('method', 'unknown'),
-                endpoint=kwargs.get('endpoint', 'unknown'),
+                method=method_name,
+                endpoint=module_name,
                 status='success'
             ).inc()
             return result
         except Exception as e:
             duration = time.time() - start_time
+            # Use function name and module as defaults, don't rely on kwargs
+            method_name = func.__name__
+            module_name = func.__module__.split('.')[-1] if func.__module__ else 'unknown'
+            
             request_latency.labels(
-                method=kwargs.get('method', 'unknown'),
-                endpoint=kwargs.get('endpoint', 'unknown')
+                method=method_name,
+                endpoint=module_name
             ).observe(duration)
             request_count.labels(
-                method=kwargs.get('method', 'unknown'),
-                endpoint=kwargs.get('endpoint', 'unknown'),
+                method=method_name,
+                endpoint=module_name,
                 status='error'
             ).inc()
             error_count.labels(

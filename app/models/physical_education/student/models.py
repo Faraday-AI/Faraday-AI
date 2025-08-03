@@ -131,7 +131,7 @@ class Student(SharedBase):
     # Skill assessment relationships
     skill_progress = relationship("app.models.skill_assessment.assessment.assessment.SkillProgress", back_populates="student")
     assessment_metrics = relationship("app.models.skill_assessment.assessment.assessment.AssessmentMetrics", back_populates="student")
-    skill_assessments = relationship("app.models.skill_assessment.assessment.assessment.SkillAssessment", back_populates="student")
+    skill_assessments = relationship("app.models.physical_education.skill_assessment.skill_assessment_models.SkillAssessment", back_populates="student")
     
     # Assessment relationships
     assessments = relationship("app.models.assessment.GeneralAssessment", back_populates="student", overlaps="student,assessments")

@@ -51,8 +51,9 @@ class ActivityManager:
             cls._instance = super(ActivityManager, cls).__new__(cls)
         return cls._instance
     
-    def __init__(self):
+    def __init__(self, db_session: Optional[Session] = None):
         self.logger = logging.getLogger("activity_manager")
+        self.db_session = db_session
         self.movement_analyzer = None
         self.assessment_system = None
         self.lesson_planner = None
@@ -2536,10 +2537,107 @@ class ActivityManager:
         return fig
 
     def get_categories(self) -> List[str]:
-        """Get all available activity category names from the database."""
-        if not self.categories:
-            categories = self.db.query(ActivityCategoryType.name).all()
-            self.categories = [category[0] for category in categories]
-        return self.categories
+        """Get all available activity categories."""
+        return list(self.activity_types)
+
+    async def start_activity_participation(
+        self,
+        student_id: int,
+        activity_id: int
+    ) -> Dict[str, Any]:
+        """Start activity participation for a student."""
+        try:
+            # Create a participation record
+            participation = {
+                "student_id": student_id,
+                "activity_id": activity_id,
+                "start_time": datetime.utcnow(),
+                "status": "started",
+                "progress": 0.0
+            }
+            
+            self.logger.info(f"Started activity participation for student {student_id} in activity {activity_id}")
+            
+            return {
+                "status": "started",
+                "participation_id": f"{student_id}_{activity_id}_{int(datetime.utcnow().timestamp())}",
+                "start_time": participation["start_time"].isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error starting activity participation: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e)
+            }
+
+    async def update_activity_progress(
+        self,
+        student_id: int,
+        activity_id: int,
+        progress_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update progress for a student's activity participation."""
+        try:
+            # Calculate progress score
+            completion_percentage = progress_data.get("completion_percentage", 0)
+            performance_metrics = progress_data.get("performance_metrics", {})
+            
+            # Determine if on track (simple logic for now)
+            is_on_track = completion_percentage >= 50  # Consider on track if at least 50% complete
+            
+            self.logger.info(f"Updated progress for student {student_id} in activity {activity_id}: {completion_percentage}%")
+            
+            return {
+                "is_on_track": is_on_track,
+                "completion_percentage": completion_percentage,
+                "performance_metrics": performance_metrics,
+                "updated_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error updating activity progress: {str(e)}")
+            return {
+                "is_on_track": False,
+                "error": str(e)
+            }
+
+    async def complete_activity_participation(
+        self,
+        student_id: int,
+        activity_id: int,
+        completion_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Complete activity participation for a student."""
+        try:
+            duration = completion_data.get("duration", 0)
+            intensity = completion_data.get("intensity", "moderate")
+            performance_score = completion_data.get("performance_score", 0.0)
+            
+            # Record completion
+            completion_record = {
+                "student_id": student_id,
+                "activity_id": activity_id,
+                "completion_time": datetime.utcnow(),
+                "duration": duration,
+                "intensity": intensity,
+                "performance_score": performance_score,
+                "status": "completed"
+            }
+            
+            self.logger.info(f"Completed activity participation for student {student_id} in activity {activity_id}")
+            
+            return {
+                "status": "completed",
+                "completion_id": f"comp_{student_id}_{activity_id}_{int(datetime.utcnow().timestamp())}",
+                "duration": duration,
+                "intensity": intensity,
+                "performance_score": performance_score,
+                "completed_at": completion_record["completion_time"].isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error completing activity participation: {str(e)}")
+            return {
+                "status": "error",
+                "error": str(e)
+            }
 
     # ... rest of the existing methods ... 

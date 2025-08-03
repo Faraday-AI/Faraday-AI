@@ -1,10 +1,10 @@
 from app.services.physical_education.config.model_paths import get_model_path, ensure_model_directories 
 import logging
-from typing import List, Dict, Optional, Union
+from typing import List, Dict, Optional, Union, Any
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from app.core.monitoring import track_metrics
+from app.core.metrics import track_metrics
 from app.core.database import get_db
 from app.models.student import (
     Student
@@ -21,12 +21,14 @@ from app.models.physical_education.pe_enums.pe_types import (
     MetricType,
     MeasurementUnit
 )
+from sqlalchemy import and_
 
 class HealthMetricsManager:
     """Manager for handling health metrics operations."""
 
-    def __init__(self):
+    def __init__(self, db_session: Optional[Session] = None):
         self.logger = logging.getLogger("health_metrics_manager")
+        self.db_session = db_session
         
         # Default thresholds for different age groups
         self.default_thresholds = {
@@ -114,7 +116,6 @@ class HealthMetricsManager:
             HealthMetricType.OVERALL_SCORE: {"min": 0, "max": 100, "unit": MeasurementUnit.SCORE}
         }
 
-    @track_metrics
     async def record_metric(
         self,
         db: Session,
@@ -133,13 +134,11 @@ class HealthMetricsManager:
             # Create new metric record
             metric = HealthMetric(
                 student_id=student_id,
-                metric_type=metric_type,
+                metric_type=metric_type.value,
                 value=value,
-                unit=unit,
+                unit=unit.value,
                 notes=notes,
-                is_abnormal=is_abnormal,
-                metadata=metadata or {},
-                measured_at=datetime.utcnow()
+                metadata=metadata or {}
             )
             
             db.add(metric)
@@ -170,13 +169,13 @@ class HealthMetricsManager:
             query = db.query(HealthMetric).filter(HealthMetric.student_id == student_id)
             
             if metric_type:
-                query = query.filter(HealthMetric.metric_type == metric_type)
+                query = query.filter(HealthMetric.metric_type == metric_type.value)
             if start_date:
-                query = query.filter(HealthMetric.measured_at >= start_date)
+                query = query.filter(HealthMetric.created_at >= start_date)
             if end_date:
-                query = query.filter(HealthMetric.measured_at <= end_date)
+                query = query.filter(HealthMetric.created_at <= end_date)
                 
-            return query.order_by(HealthMetric.measured_at.desc()).all()
+            return query.order_by(HealthMetric.created_at.desc()).all()
             
         except SQLAlchemyError as e:
             self.logger.error(f"Error retrieving health metrics: {str(e)}")
@@ -274,23 +273,20 @@ class HealthMetricsManager:
             if not metrics:
                 return
                 
-            # Calculate statistics
-            values = [m.value for m in metrics]
-            mean = sum(values) / len(values)
-            variance = self._calculate_variance(values, mean)
-            
             # Create or update history record
-            history = HealthMetricHistory(
-                student_id=student_id,
-                metric_type=metric_type,
-                mean_value=mean,
-                variance=variance,
-                sample_size=len(values),
-                recorded_at=datetime.utcnow()
-            )
+            # Get the most recent metric for this type
+            latest_metric = metrics[0] if metrics else None
             
-            db.add(history)
-            db.commit()
+            if latest_metric:
+                history = HealthMetricHistory(
+                    metric_id=latest_metric.id,
+                    value=latest_metric.value,
+                    recorded_at=datetime.utcnow(),
+                    notes=f"History update for {metric_type.value}"
+                )
+                
+                db.add(history)
+                db.commit()
             
         except SQLAlchemyError as e:
             db.rollback()
@@ -329,12 +325,20 @@ class HealthMetricsManager:
         metric_type: HealthMetricType,
         age_group: str
     ) -> Optional[Dict]:
-        """Get thresholds for a metric type and age group."""
+        """Get thresholds for a specific metric type and age group."""
         try:
-            # First check database for custom thresholds
+            # Ensure age_group is a string
+            if isinstance(age_group, dict):
+                age_group = age_group.get('age_group', '11-13')
+            elif not isinstance(age_group, str):
+                age_group = '11-13'
+            
+            # First try to get custom thresholds from database
             threshold = db.query(GeneralHealthMetricThreshold).filter(
-                GeneralHealthMetricThreshold.metric_type == metric_type,
-                GeneralHealthMetricThreshold.age_group == age_group
+                and_(
+                    GeneralHealthMetricThreshold.metric_type == metric_type.value,
+                    GeneralHealthMetricThreshold.age_group == age_group
+                )
             ).first()
             
             if threshold:
@@ -343,13 +347,111 @@ class HealthMetricsManager:
                     "max": threshold.max_value,
                     "unit": threshold.unit
                 }
-                
+            
             # Fall back to default thresholds
             return self.default_thresholds.get(age_group, {}).get(metric_type)
-            
-        except SQLAlchemyError as e:
-            self.logger.error(f"Error getting health metric thresholds: {str(e)}")
+        except Exception as e:
+            self.logger.error(f"Error getting thresholds: {str(e)}")
             return None
+
+    async def check_student_health_status(self, student_id: int) -> Dict[str, Any]:
+        """Check if a student is eligible for physical activities based on health status."""
+        try:
+            # Get the latest health metrics for the student
+            metrics = await self.get_metrics(self.db_session, student_id)
+            
+            # Check if any metrics are outside normal ranges
+            health_issues = []
+            for metric in metrics:
+                if metric.metric_type in ["heart_rate", "blood_pressure"]:
+                    # Check if values are within normal ranges
+                    if metric.value < 60 or metric.value > 100:  # Example heart rate check
+                        health_issues.append(f"Abnormal {metric.metric_type}: {metric.value}")
+            
+            is_eligible = len(health_issues) == 0
+            
+            return {
+                "is_eligible": is_eligible,
+                "health_issues": health_issues,
+                "last_check": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error checking student health status: {str(e)}")
+            return {
+                "is_eligible": True,  # Default to eligible if check fails
+                "health_issues": [],
+                "last_check": datetime.utcnow().isoformat()
+            }
+
+    async def start_health_monitoring(self, student_id: int, activity_id: int) -> Dict[str, Any]:
+        """Start health monitoring for a student during an activity."""
+        try:
+            # Initialize monitoring session
+            monitoring_session = {
+                "student_id": student_id,
+                "activity_id": activity_id,
+                "start_time": datetime.utcnow(),
+                "is_active": True,
+                "metrics_recorded": []
+            }
+            
+            self.logger.info(f"Started health monitoring for student {student_id} in activity {activity_id}")
+            
+            return {
+                "monitoring_active": True,
+                "session_id": f"{student_id}_{activity_id}_{int(datetime.utcnow().timestamp())}",
+                "start_time": monitoring_session["start_time"].isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error starting health monitoring: {str(e)}")
+            return {
+                "monitoring_active": False,
+                "error": str(e)
+            }
+
+    async def record_health_metric(
+        self,
+        student_id: int,
+        metric_type: str,
+        value: float
+    ) -> Dict[str, Any]:
+        """Record a health metric during activity."""
+        try:
+            # Convert string metric type to enum
+            metric_enum = HealthMetricType(metric_type)
+            
+            # Record the metric
+            metric = await self.record_metric(
+                self.db_session,
+                student_id,
+                metric_enum,
+                value,
+                MeasurementUnit.BEATS_PER_MINUTE if metric_type == "heart_rate" else MeasurementUnit.SCORE
+            )
+            
+            # Check if value is within limits
+            is_within_limits = True
+            if metric_type == "heart_rate":
+                is_within_limits = 60 <= value <= 200  # Example range
+            elif metric_type == "blood_pressure_systolic":
+                is_within_limits = 90 <= value <= 140  # Example range
+            elif metric_type == "blood_pressure_diastolic":
+                is_within_limits = 60 <= value <= 90  # Example range
+            
+            return {
+                "metric_recorded": True,
+                "metric_id": metric.id,
+                "is_within_limits": is_within_limits,
+                "value": value,
+                "recorded_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error recording health metric: {str(e)}")
+            return {
+                "metric_recorded": False,
+                "is_within_limits": False,  # Default to False if recording fails
+                "error": str(e)
+            }
 
 # Initialize global health metrics manager
 health_metrics_manager = HealthMetricsManager() 

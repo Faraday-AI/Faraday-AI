@@ -36,9 +36,9 @@ class StudentManager:
             cls._instance = super(StudentManager, cls).__new__(cls)
         return cls._instance
     
-    def __init__(self):
+    def __init__(self, db_session: Optional[Session] = None):
         self.logger = logging.getLogger("student_manager")
-        self.db = None
+        self.db = db_session
         self.assessment_system = None
         self.lesson_planner = None
         
@@ -639,8 +639,91 @@ class StudentManager:
     def save_class_data(self):
         """Save class data to persistent storage."""
         try:
-            # TODO: Implement data persistence
+            # TODO: Implement data saving to persistent storage
             self.logger.info("Class data saved successfully")
         except Exception as e:
             self.logger.error(f"Error saving class data: {str(e)}")
-            raise 
+            raise
+
+    async def create_student_goal(
+        self,
+        student_id: int,
+        goal_type: str,
+        target_value: float,
+        timeframe: str = "medium_term",
+        description: str = None
+    ) -> Dict[str, Any]:
+        """Create a new goal for a student."""
+        try:
+            # Create a new health fitness goal
+            goal = StudentHealthFitnessGoal(
+                student_id=student_id,
+                goal_type=GoalType(goal_type),
+                category=GoalCategory.ENDURANCE,  # Add the required category field
+                target_value=target_value,
+                timeframe=GoalTimeframe(timeframe),
+                description=description or f"Goal for {goal_type}",
+                target_date=datetime.utcnow() + timedelta(days=30),  # Add required target_date
+                status=GoalStatus.NOT_STARTED,
+                created_at=datetime.utcnow()
+            )
+            
+            self.db.add(goal)
+            self.db.commit()
+            self.db.refresh(goal)
+            
+            self.logger.info(f"Created goal {goal.id} for student {student_id}")
+            
+            return {
+                "goal_created": True,
+                "goal_id": goal.id,
+                "goal_type": goal_type,
+                "target_value": target_value,
+                "status": goal.status.value
+            }
+        except Exception as e:
+            self.logger.error(f"Error creating student goal: {str(e)}")
+            return {
+                "goal_created": False,
+                "error": str(e)
+            }
+
+    async def update_student_progress(
+        self,
+        student_id: int,
+        activity_id: int,
+        progress_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Update student progress for an activity."""
+        try:
+            # Calculate overall progress score
+            progress_score = 0.0
+            if "skill_improvement" in progress_data:
+                progress_score += progress_data["skill_improvement"] * 0.6
+            if "fitness_gain" in progress_data:
+                progress_score += progress_data["fitness_gain"] * 0.4
+            
+            # Update student's overall progress
+            student = self.db.query(Student).filter(Student.id == student_id).first()
+            if student:
+                # Update student's progress metrics
+                if hasattr(student, 'overall_progress'):
+                    student.overall_progress = min(100.0, (student.overall_progress or 0) + progress_score)
+                
+                self.db.commit()
+            
+            self.logger.info(f"Updated progress for student {student_id} in activity {activity_id}")
+            
+            return {
+                "progress_updated": True,
+                "student_id": student_id,
+                "activity_id": activity_id,
+                "progress_score": progress_score,
+                "updated_at": datetime.utcnow().isoformat()
+            }
+        except Exception as e:
+            self.logger.error(f"Error updating student progress: {str(e)}")
+            return {
+                "progress_updated": False,
+                "error": str(e)
+            } 

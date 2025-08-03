@@ -22,7 +22,8 @@ from app.models.physical_education.pe_enums.pe_types import (
     GoalType,
     GoalCategory,
     GoalTimeframe,
-    ActivityLevel
+    ActivityLevel,
+    GoalStatus
 )
 from app.models.physical_education.relationships import setup_student_health_profile_relationships
 
@@ -192,6 +193,7 @@ class StudentHealthFitnessGoal(SharedBase):
     target_value = Column(Float, nullable=True)  # Target metric value if applicable
     target_date = Column(DateTime, nullable=False)
     completion_date = Column(DateTime, nullable=True)
+    status = Column(Enum(GoalStatus, name='student_health_fitness_goal_status_enum'), nullable=False, default=GoalStatus.NOT_STARTED)
     priority = Column(Integer, default=1)  # 1-5 scale
     notes = Column(Text)
     goal_metadata = Column(JSON)  # Additional goal metadata
