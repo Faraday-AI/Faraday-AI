@@ -396,7 +396,7 @@ app.include_router(ai_analysis_router, prefix="/api")
 app.include_router(debug_router)
 app.include_router(activity_management, prefix="/api/v1/activities", tags=["activities"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
-# app.include_router(api_router)  # Commented out to avoid duplicate routes with analytics.router
+app.include_router(api_router)  # Uncommented for development - needed for user profile endpoints
 # Include user analytics router separately to avoid conflicts
 from app.api.v1.endpoints.user_analytics import router as user_analytics_router
 app.include_router(user_analytics_router, prefix="/api/v1/analytics", tags=["user-analytics"])

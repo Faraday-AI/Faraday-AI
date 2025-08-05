@@ -271,3 +271,156 @@ class ActivityValidationManager:
         except Exception as e:
             logger.error(f"Error generating validation report: {e}")
             return {"report_generated": False, "error": str(e)} 
+
+    async def validate_activity_creation(
+        self,
+        activity_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Validate activity creation data."""
+        try:
+            validation_result = await self.validate_activity_data(activity_data)
+            
+            # Additional creation-specific validations
+            if not activity_data.get("name"):
+                validation_result["errors"].append("Activity name is required")
+                validation_result["validation_passed"] = False
+            
+            if not activity_data.get("type"):
+                validation_result["errors"].append("Activity type is required")
+                validation_result["validation_passed"] = False
+            
+            return {
+                "validated": validation_result["validation_passed"],
+                "errors": validation_result["errors"],
+                "warnings": validation_result["warnings"]
+            }
+        except Exception as e:
+            logger.error(f"Error validating activity creation: {e}")
+            return {"validated": False, "errors": [str(e)]}
+
+    async def validate_activity_update(
+        self,
+        activity_id: str,
+        update_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Validate activity update data."""
+        try:
+            # Check if activity exists
+            if not self.activity_manager:
+                return {"validated": False, "errors": ["Activity manager not available"]}
+            
+            # Mock activity existence check
+            activity_exists = True  # This would normally check the database
+            
+            if not activity_exists:
+                return {"validated": False, "errors": ["Activity not found"]}
+            
+            validation_result = await self.validate_activity_data(update_data)
+            
+            return {
+                "validated": validation_result["validation_passed"],
+                "errors": validation_result["errors"],
+                "warnings": validation_result["warnings"]
+            }
+        except Exception as e:
+            logger.error(f"Error validating activity update: {e}")
+            return {"validated": False, "errors": [str(e)]}
+
+    async def validate_activity_schedule(
+        self,
+        activity_id: str,
+        schedule_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Validate activity schedule."""
+        try:
+            validation_result = {
+                "validated": True,
+                "errors": [],
+                "warnings": []
+            }
+            
+            # Validate start time
+            start_time = schedule_data.get("start_time")
+            if not start_time:
+                validation_result["errors"].append("Start time is required")
+                validation_result["validated"] = False
+            
+            # Validate end time
+            end_time = schedule_data.get("end_time")
+            if not end_time:
+                validation_result["errors"].append("End time is required")
+                validation_result["validated"] = False
+            
+            # Validate time range
+            if start_time and end_time:
+                try:
+                    start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                    end_dt = datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                    
+                    if end_dt <= start_dt:
+                        validation_result["errors"].append("End time must be after start time")
+                        validation_result["validated"] = False
+                    
+                    duration = (end_dt - start_dt).total_seconds() / 60  # minutes
+                    if duration < self.validation_rules["duration"]["min"]:
+                        validation_result["errors"].append(f"Duration too short: {duration} minutes")
+                        validation_result["validated"] = False
+                    elif duration > self.validation_rules["duration"]["max"]:
+                        validation_result["warnings"].append(f"Duration long: {duration} minutes")
+                        
+                except ValueError:
+                    validation_result["errors"].append("Invalid date format")
+                    validation_result["validated"] = False
+            
+            return validation_result
+        except Exception as e:
+            logger.error(f"Error validating activity schedule: {e}")
+            return {"validated": False, "errors": [str(e)]}
+
+    async def validate_activity_participants(
+        self,
+        activity_id: str,
+        participant_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Validate activity participants."""
+        try:
+            validation_result = {
+                "validated": True,
+                "errors": [],
+                "warnings": []
+            }
+            
+            # Get activity details (mock)
+            activity = {"max_participants": 30, "min_participants": 5}
+            
+            # Validate participant count
+            participant_count = participant_data.get("count", 0)
+            if participant_count < activity["min_participants"]:
+                validation_result["errors"].append(f"Too few participants: {participant_count}")
+                validation_result["validated"] = False
+            elif participant_count > activity["max_participants"]:
+                validation_result["errors"].append(f"Too many participants: {participant_count}")
+                validation_result["validated"] = False
+            
+            # Validate participant list
+            participants = participant_data.get("participants", [])
+            if len(participants) != participant_count:
+                validation_result["errors"].append("Participant count mismatch")
+                validation_result["validated"] = False
+            
+            # Validate individual participants
+            for participant in participants:
+                if not participant.get("id"):
+                    validation_result["errors"].append("Participant ID is required")
+                    validation_result["validated"] = False
+                
+                # Check eligibility
+                eligibility = await self.validate_student_eligibility(participant["id"], activity_id)
+                if not eligibility.get("eligible", False):
+                    validation_result["errors"].append(f"Student {participant['id']} not eligible")
+                    validation_result["validated"] = False
+            
+            return validation_result
+        except Exception as e:
+            logger.error(f"Error validating activity participants: {e}")
+            return {"validated": False, "errors": [str(e)]} 

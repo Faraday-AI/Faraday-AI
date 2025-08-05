@@ -1069,3 +1069,202 @@ class SafetyReportGenerator:
         except Exception as e:
             self.logger.error(f"Error converting incident to Excel: {str(e)}")
             return b"" 
+
+    async def generate_equipment_safety_report(
+        self,
+        equipment_data: Dict[str, Any],
+        format: str = "pdf"
+    ) -> Dict[str, Any]:
+        """Generate equipment safety report."""
+        try:
+            report_id = f"equipment_safety_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Mock equipment safety data
+            equipment_stats = {
+                "total_equipment": equipment_data.get("total_count", 0),
+                "inspected_equipment": equipment_data.get("inspected_count", 0),
+                "maintenance_due": equipment_data.get("maintenance_due", 0),
+                "damaged_equipment": equipment_data.get("damaged_count", 0),
+                "safety_score": 0.85
+            }
+            
+            report_data = {
+                "report_id": report_id,
+                "report_type": "equipment_safety",
+                "generated_at": datetime.utcnow().isoformat(),
+                "equipment_stats": equipment_stats,
+                "recommendations": [
+                    "Schedule regular equipment inspections",
+                    "Replace damaged equipment",
+                    "Update maintenance schedule"
+                ]
+            }
+            
+            if format == "pdf":
+                report_content = await self._convert_to_pdf(report_data)
+            elif format == "html":
+                report_content = await self._convert_to_html(report_data)
+            else:
+                return {"generated": False, "error": f"Unsupported format: {format}"}
+            
+            return {
+                "generated": True,
+                "report_id": report_id,
+                "format": format,
+                "content": report_content
+            }
+        except Exception as e:
+            self.logger.error(f"Error generating equipment safety report: {str(e)}")
+            return {"generated": False, "error": str(e)}
+
+    async def generate_environmental_safety_report(
+        self,
+        environment_data: Dict[str, Any],
+        format: str = "pdf"
+    ) -> Dict[str, Any]:
+        """Generate environmental safety report."""
+        try:
+            report_id = f"environmental_safety_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Mock environmental safety data
+            environmental_stats = {
+                "facility_condition": environment_data.get("condition", "good"),
+                "lighting_quality": environment_data.get("lighting", "adequate"),
+                "surface_condition": environment_data.get("surface", "safe"),
+                "temperature": environment_data.get("temperature", "comfortable"),
+                "air_quality": environment_data.get("air_quality", "good"),
+                "safety_score": 0.78
+            }
+            
+            report_data = {
+                "report_id": report_id,
+                "report_type": "environmental_safety",
+                "generated_at": datetime.utcnow().isoformat(),
+                "environmental_stats": environmental_stats,
+                "recommendations": [
+                    "Improve lighting in designated areas",
+                    "Maintain proper temperature control",
+                    "Regular facility inspections"
+                ]
+            }
+            
+            if format == "pdf":
+                report_content = await self._convert_to_pdf(report_data)
+            elif format == "html":
+                report_content = await self._convert_to_html(report_data)
+            else:
+                return {"generated": False, "error": f"Unsupported format: {format}"}
+            
+            return {
+                "generated": True,
+                "report_id": report_id,
+                "format": format,
+                "content": report_content
+            }
+        except Exception as e:
+            self.logger.error(f"Error generating environmental safety report: {str(e)}")
+            return {"generated": False, "error": str(e)}
+
+    async def generate_student_safety_report(
+        self,
+        student_data: Dict[str, Any],
+        format: str = "pdf"
+    ) -> Dict[str, Any]:
+        """Generate student safety report."""
+        try:
+            report_id = f"student_safety_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Mock student safety data
+            student_stats = {
+                "total_students": student_data.get("total_count", 0),
+                "students_with_medical_conditions": student_data.get("medical_conditions", 0),
+                "students_requiring_special_attention": student_data.get("special_attention", 0),
+                "safety_incidents": student_data.get("incidents", 0),
+                "safety_score": 0.92
+            }
+            
+            report_data = {
+                "report_id": report_id,
+                "report_type": "student_safety",
+                "generated_at": datetime.utcnow().isoformat(),
+                "student_stats": student_stats,
+                "recommendations": [
+                    "Review medical conditions regularly",
+                    "Provide additional supervision where needed",
+                    "Implement safety training programs"
+                ]
+            }
+            
+            if format == "pdf":
+                report_content = await self._convert_to_pdf(report_data)
+            elif format == "html":
+                report_content = await self._convert_to_html(report_data)
+            else:
+                return {"generated": False, "error": f"Unsupported format: {format}"}
+            
+            return {
+                "generated": True,
+                "report_id": report_id,
+                "format": format,
+                "content": report_content
+            }
+        except Exception as e:
+            self.logger.error(f"Error generating student safety report: {str(e)}")
+            return {"generated": False, "error": str(e)}
+
+    async def generate_comprehensive_safety_report(
+        self,
+        comprehensive_data: Dict[str, Any],
+        format: str = "pdf"
+    ) -> Dict[str, Any]:
+        """Generate comprehensive safety report."""
+        try:
+            report_id = f"comprehensive_safety_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}"
+            
+            # Mock comprehensive safety data
+            comprehensive_stats = {
+                "overall_safety_score": 0.85,
+                "equipment_safety": 0.88,
+                "environmental_safety": 0.82,
+                "student_safety": 0.90,
+                "incident_rate": 0.05,
+                "risk_level": "low"
+            }
+            
+            report_data = {
+                "report_id": report_id,
+                "report_type": "comprehensive_safety",
+                "generated_at": datetime.utcnow().isoformat(),
+                "comprehensive_stats": comprehensive_stats,
+                "sections": [
+                    "Equipment Safety Analysis",
+                    "Environmental Safety Assessment",
+                    "Student Safety Overview",
+                    "Incident Analysis",
+                    "Risk Assessment",
+                    "Recommendations"
+                ],
+                "recommendations": [
+                    "Maintain current safety protocols",
+                    "Continue regular inspections",
+                    "Monitor incident trends",
+                    "Update safety training materials"
+                ]
+            }
+            
+            if format == "pdf":
+                report_content = await self._convert_to_pdf(report_data)
+            elif format == "html":
+                report_content = await self._convert_to_html(report_data)
+            else:
+                return {"generated": False, "error": f"Unsupported format: {format}"}
+            
+            return {
+                "generated": True,
+                "report_id": report_id,
+                "format": format,
+                "content": report_content
+            }
+        except Exception as e:
+            self.logger.error(f"Error generating comprehensive safety report: {str(e)}")
+            return {"generated": False, "error": str(e)} 

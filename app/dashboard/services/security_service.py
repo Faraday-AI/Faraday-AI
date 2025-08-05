@@ -35,7 +35,7 @@ from app.dashboard.models import (
 from app.dashboard.schemas.security import SecurityAlert, AccessLog
 from app.services.access_control_service import AccessControlService
 from app.core.config import settings
-from app.core.security import get_password_hash, verify_password
+from app.core import security
 from app.core.exceptions import (
     SecurityException,
     AuthenticationError,
@@ -59,7 +59,7 @@ class SecurityService:
             # Generate key ID and secret
             key_id = self._generate_key_id()
             secret = self._generate_secret()
-            hashed_secret = get_password_hash(secret)
+            hashed_secret = security.get_password_hash(secret)
             
             # Create API key
             api_key = DashboardAPIKey(
@@ -131,7 +131,7 @@ class SecurityService:
             if api_key.expires_at and api_key.expires_at < datetime.utcnow():
                 return False
             
-            return verify_password(secret, api_key.hashed_secret)
+            return security.verify_password(secret, api_key.hashed_secret)
             
         except SQLAlchemyError as e:
             raise SecurityException(f"Failed to verify API key: {str(e)}")

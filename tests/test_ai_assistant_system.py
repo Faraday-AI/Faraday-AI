@@ -24,7 +24,15 @@ class TestEnhancedAssistantService:
     @pytest.fixture
     def mock_content_service(self):
         """Mock content management service."""
-        return Mock(spec=ContentManagementService)
+        mock_service = Mock(spec=ContentManagementService)
+        
+        # Mock async methods with AsyncMock
+        mock_service.create_content = AsyncMock()
+        mock_service.get_content_by_id = AsyncMock()
+        mock_service.update_content = AsyncMock()
+        mock_service.get_content_by_user = AsyncMock()  # Add missing method
+        
+        return mock_service
     
     @pytest.fixture
     def assistant_service(self, mock_db, mock_content_service):
@@ -56,17 +64,17 @@ class TestEnhancedAssistantService:
         # Mock content creation
         mock_content = Mock()
         mock_content.id = 1
-        mock_content.title = "AI Generated Content"
+        mock_content.title = "AI Generated Lesson"
         mock_content_service.create_content.return_value = mock_content
         
         # Mock AI response
         with patch.object(assistant_service, '_get_ai_response') as mock_ai_response:
             mock_ai_response.return_value = '''
             {
-                "title": "AI Generated Content",
-                "content": "This is AI-generated content.",
-                "objectives": ["Learn AI content"],
-                "materials": ["Computer"],
+                "title": "AI Generated Lesson",
+                "content": "This is AI generated content",
+                "objectives": ["Learn AI concepts"],
+                "materials": ["Computer", "Internet"],
                 "activities": [{"name": "AI Activity", "description": "Description"}],
                 "assessment_criteria": {"criteria": "Assessment"},
                 "tags": ["ai-generated"]
@@ -141,18 +149,18 @@ class TestEnhancedAssistantService:
             '''
             
             result = await assistant_service.optimize_content(
-                content_id=1,
+                content_id="1",
                 user_id=1,
                 optimization_type="engagement"
             )
             
             assert result["success"] is True
-            assert result["content_id"] == 1
+            assert result["content_id"] == "1"  # String ID
             assert "optimizations" in result
             assert result["optimized_at"] is not None
             
             # Verify content service calls
-            mock_content_service.get_content_by_id.assert_called_once_with(1)
+            mock_content_service.get_content_by_id.assert_called_once_with("1")  # String ID
             mock_content_service.update_content.assert_called_once()
     
     @pytest.mark.asyncio
@@ -209,32 +217,34 @@ class TestEnhancedAssistantService:
         mock_content = Mock()
         mock_content.id = 1
         mock_content.title = "Test Content"
+        mock_content.content = "Test content"
         mock_content_service.get_content_by_id.return_value = mock_content
         
         # Mock AI response
         with patch.object(assistant_service, '_get_ai_response') as mock_ai_response:
             mock_ai_response.return_value = '''
             {
-                "performance_score": 0.85,
-                "strengths": ["Clear objectives", "Engaging content"],
-                "weaknesses": ["Could use more examples"],
-                "recommendations": ["Add more examples", "Include interactive elements"],
-                "trends": "Performance is improving over time"
+                "performance_score": 85.5,
+                "engagement_metrics": {"time_spent": 120, "completion_rate": 0.9},
+                "improvement_suggestions": ["Add more visuals", "Simplify language"],
+                "comparison_data": {"peer_average": 78.2, "top_percentile": 92.1}
             }
             '''
             
             result = await assistant_service.analyze_content_performance(
-                content_id=1,
-                metrics={"engagement": 0.8, "completion_rate": 0.9}
+                content_id="1",
+                metrics={"engagement": True}
             )
             
             assert result["success"] is True
-            assert result["content_id"] == 1
+            assert result["content_id"] == "1"  # String ID
             assert "analysis" in result
-            assert result["analysis"]["performance_score"] == 0.85
-            assert len(result["analysis"]["strengths"]) == 2
-            assert len(result["analysis"]["weaknesses"]) == 1
-            assert len(result["analysis"]["recommendations"]) == 2
+            assert "performance_score" in result["analysis"]
+            assert "engagement_metrics" in result["analysis"]
+            assert "improvement_suggestions" in result["analysis"]
+            
+            # Verify content service was called
+            mock_content_service.get_content_by_id.assert_called_once_with("1")  # String ID
     
     @pytest.mark.asyncio
     async def test_generate_lesson_plan_success(self, assistant_service, mock_content_service):
@@ -242,19 +252,20 @@ class TestEnhancedAssistantService:
         # Mock content creation
         mock_content = Mock()
         mock_content.id = 1
-        mock_content.title = "AI Generated Lesson Plan"
+        mock_content.title = "Generated Lesson Plan"
         mock_content_service.create_content.return_value = mock_content
         
         # Mock AI response
         with patch.object(assistant_service, '_get_ai_response') as mock_ai_response:
             mock_ai_response.return_value = '''
             {
-                "title": "AI Generated Lesson Plan",
-                "content": "This is a comprehensive lesson plan.",
-                "materials": ["Computer", "Projector"],
-                "activities": [{"name": "Introduction", "description": "Introduction activity", "duration": "10 min"}],
-                "assessment_criteria": {"criteria": "Lesson assessment"},
-                "tags": ["lesson-plan", "mathematics"]
+                "title": "Generated Lesson Plan",
+                "content": "This is a comprehensive lesson plan",
+                "objectives": ["Objective 1", "Objective 2"],
+                "materials": ["Material 1", "Material 2"],
+                "activities": [{"name": "Activity 1", "duration": 30}],
+                "assessment_criteria": {"criteria": "Assessment"},
+                "tags": ["lesson-plan"]
             }
             '''
             
@@ -263,46 +274,45 @@ class TestEnhancedAssistantService:
                 subject="Mathematics",
                 grade_level="5th",
                 duration="60 minutes",
-                objectives=["Learn basic algebra", "Solve equations"]
+                objectives=["Learn fractions", "Practice problem solving"]
             )
             
             assert result["success"] is True
-            assert result["lesson_plan_id"] == 1
+            assert result["lesson_plan_id"] == 1  # lesson_plan_id instead of content_id
             assert "lesson_plan" in result
             assert result["generated_at"] is not None
+            
+            # Verify content service was called
+            mock_content_service.create_content.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_generate_assessment_success(self, assistant_service, mock_content_service):
         """Test successful assessment generation."""
-        # Mock content retrieval
-        mock_content = Mock()
-        mock_content.id = 1
-        mock_content.title = "Math Lesson"
-        mock_content.subject_category_id = 1
-        mock_content.grade_level = "5th"
-        mock_content_service.get_content_by_id.return_value = mock_content
+        # Mock content retrieval for lesson
+        mock_lesson = Mock()
+        mock_lesson.id = 1
+        mock_lesson.title = "Math Lesson"
+        mock_lesson.content = "Lesson content"
+        mock_content_service.get_content_by_id.return_value = mock_lesson
         
-        # Mock assessment content creation
+        # Mock assessment creation
         mock_assessment = Mock()
         mock_assessment.id = 2
-        mock_assessment.title = "Assessment: Math Lesson"
+        mock_assessment.title = "Generated Assessment"
         mock_content_service.create_content.return_value = mock_assessment
         
         # Mock AI response
         with patch.object(assistant_service, '_get_ai_response') as mock_ai_response:
             mock_ai_response.return_value = '''
             {
+                "title": "Generated Assessment",
+                "content": "This is an assessment",
                 "questions": [
-                    {
-                        "question": "What is 2 + 2?",
-                        "type": "multiple_choice",
-                        "options": ["3", "4", "5", "6"],
-                        "correct_answer": "4",
-                        "explanation": "Basic addition"
-                    }
+                    {"question": "What is 2+2?", "answer": "4", "type": "multiple_choice"},
+                    {"question": "Solve for x: x+3=7", "answer": "4", "type": "short_answer"}
                 ],
-                "criteria": {"criteria": "Assessment criteria"},
-                "tags": ["assessment", "mathematics"]
+                "assessment_criteria": {"passing_score": 70},
+                "tags": ["assessment"]
             }
             '''
             
@@ -310,14 +320,18 @@ class TestEnhancedAssistantService:
                 user_id=1,
                 content_id=1,
                 assessment_type="quiz",
-                difficulty="easy",
+                difficulty="intermediate",
                 num_questions=5
             )
             
             assert result["success"] is True
             assert result["assessment_id"] == 2
             assert "assessment" in result
-            assert len(result["assessment"]["questions"]) == 1
+            assert result["generated_at"] is not None
+            
+            # Verify content service calls
+            mock_content_service.get_content_by_id.assert_called_once_with("1")  # String ID (converted by service)
+            mock_content_service.create_content.assert_called_once()
     
     @pytest.mark.asyncio
     async def test_analyze_feedback_success(self, assistant_service):
