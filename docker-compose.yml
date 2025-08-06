@@ -14,6 +14,7 @@ services:
       <<: *default-bake
     environment:
       - TESTING=true
+      - TEST_MODE=true
       - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - db
@@ -80,6 +81,7 @@ services:
       - PYTHONHASHSEED=0
       - PORT=8000
       - TESTING=true
+      - TEST_MODE=true
     ports:
       - "${APP_PORT:-8000}:${APP_PORT:-8000}"
       - "${APP_METRICS_PORT:-9091}:${APP_METRICS_PORT:-9091}"
