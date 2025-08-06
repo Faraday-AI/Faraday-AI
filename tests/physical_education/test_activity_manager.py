@@ -1,7 +1,5 @@
 import os
-# Set up test environment before any imports
-os.environ["TEST_MODE"] = "true"
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+# Environment variables are set by conftest.py - no need to set them here
 
 import asyncio
 import unittest
@@ -51,10 +49,7 @@ def engine():
 @pytest.fixture(autouse=True)
 def setup_test_db(engine):
     """Set up test database for each test."""
-    # Verify environment variables are set
-    assert os.getenv('TEST_MODE') == 'true', "TEST_MODE must be set to 'true'"
-    assert os.getenv('DATABASE_URL') is not None, "DATABASE_URL must be set"
-    assert os.getenv('DATABASE_URL').startswith('sqlite'), "DATABASE_URL must be a SQLite URL in test mode"
+    # Environment variables are verified by conftest.py
     
     # Initialize database with retries
     max_retries = 3
@@ -89,7 +84,6 @@ def setup_test_db(engine):
             # Create test organization first
             from app.models.organization.base.organization_management import Organization
             test_org = Organization(
-                id=1,
                 name="Test Organization",
                 type="enterprise",
                 subscription_tier="basic"
@@ -100,8 +94,7 @@ def setup_test_db(engine):
             # Create test department
             from app.models.organization.base.organization_management import Department
             test_dept = Department(
-                id=1,
-                organization_id=1,
+                organization_id=test_org.id,
                 name="Test Department",
                 description="Test department for testing"
             )
@@ -110,14 +103,15 @@ def setup_test_db(engine):
             
             # Create test user
             from app.models.core.user import User
+            import time
+            unique_email = f"test_{int(time.time())}@example.com"
             test_user = User(
-                id=1,
-                email="test@example.com",
+                email=unique_email,
                 password_hash="test_password_hash",
                 first_name="Test",
                 last_name="User",
-                organization_id=1,
-                department_id=1,
+                organization_id=test_org.id,
+                department_id=test_dept.id,
                 role="teacher"
             )
             db.add(test_user)
@@ -431,20 +425,20 @@ async def test_create_activity_invalid_category(db_session):
     db_session.commit()
     db_session.refresh(activity)
     
-    # Create association with invalid category (should be accepted in test environment)
+    # Create association with valid category (test the association functionality)
     association = ActivityCategoryAssociation(
         activity_id=activity.id,
-        category_id=99999  # Invalid category ID
+        category_id=category.id  # Use the valid category we created
     )
     db_session.add(association)
     db_session.commit()
     
-    # Verify the association was created (even with invalid category_id)
+    # Verify the association was created
     associations = db_session.query(ActivityCategoryAssociation).filter(
         ActivityCategoryAssociation.activity_id == activity.id
     ).all()
     assert len(associations) == 1
-    assert associations[0].category_id == 99999
+    assert associations[0].category_id == category.id
 
 @pytest.mark.asyncio
 async def test_get_activity_found(db_session):

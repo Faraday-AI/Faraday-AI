@@ -13,7 +13,8 @@ from app.models.shared_base import SharedBase
 def get_test_db_url():
     """Get database URL based on environment."""
     if os.getenv("TEST_MODE") == "true":
-        return "sqlite:///:memory:"
+        # Use Azure database for tests
+        return os.getenv("DATABASE_URL", "sqlite:///:memory:")
     elif os.getenv("CI") == "true":
         return "sqlite:///./test.db"
     else:
@@ -23,13 +24,20 @@ def get_test_db_url():
 @pytest.fixture(scope="session", autouse=True)
 def setup_test_env():
     """Set up test environment variables."""
+    # Force set environment variables for all tests
     os.environ["TEST_MODE"] = "true"
     os.environ["SCHEMA"] = os.getenv("TEST_SCHEMA", "test_schema")
     os.environ["ENVIRONMENT"] = "test"
+    os.environ["LOG_LEVEL"] = "DEBUG"
+    os.environ["REDIS_URL"] = "redis://redis:6379/0"
     
     # Set DATABASE_URL for tests if not already set
     if not os.getenv("DATABASE_URL"):
         os.environ["DATABASE_URL"] = get_test_db_url()
+    
+    # Verify environment is set correctly
+    assert os.getenv("TEST_MODE") == "true", "TEST_MODE must be set to 'true'"
+    assert os.getenv("DATABASE_URL") is not None, "DATABASE_URL must be set"
     
     yield
     
@@ -117,8 +125,21 @@ def sample_data(db_session):
     pass
 
 def pytest_configure(config):
-    """Configure test environment."""
-    pass
+    """Configure pytest and ensure environment variables are set."""
+    # Ensure environment variables are set at the very beginning
+    os.environ["TEST_MODE"] = "true"
+    os.environ["SCHEMA"] = os.getenv("TEST_SCHEMA", "test_schema")
+    os.environ["ENVIRONMENT"] = "test"
+    os.environ["LOG_LEVEL"] = "DEBUG"
+    os.environ["REDIS_URL"] = "redis://redis:6379/0"
+    
+    # Set DATABASE_URL for tests if not already set
+    if not os.getenv("DATABASE_URL"):
+        os.environ["DATABASE_URL"] = get_test_db_url()
+    
+    # Verify environment is set correctly
+    assert os.getenv("TEST_MODE") == "true", "TEST_MODE must be set to 'true'"
+    assert os.getenv("DATABASE_URL") is not None, "DATABASE_URL must be set"
 
 def pytest_unconfigure(config):
     """Cleanup after tests."""
