@@ -87,22 +87,8 @@ def track_metrics(endpoint: str = None):
         async def wrapper(*args, **kwargs):
             start_time = time.time()
             try:
-                # Get the function's parameters
-                params = list(sig.parameters.values())
-                
-                # If this is a method (has 'self' as first parameter)
-                if params and params[0].name == 'self':
-                    # For method calls, pass self as first arg and bind remaining args
-                    self_arg = args[0]
-                    remaining_args = args[1:]
-                    bound_args = sig.bind(self_arg, *remaining_args, **kwargs)
-                    bound_args.apply_defaults()
-                    result = await func(*bound_args.args, **bound_args.kwargs)
-                else:
-                    # For regular function calls, bind all args
-                    bound_args = sig.bind(*args, **kwargs)
-                    bound_args.apply_defaults()
-                    result = await func(*bound_args.args, **bound_args.kwargs)
+                # Simply call the function with the provided arguments
+                result = await func(*args, **kwargs)
                 
                 # Use function name as endpoint if none provided
                 endpoint_name = endpoint or func.__name__

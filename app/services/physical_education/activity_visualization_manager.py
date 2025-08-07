@@ -117,6 +117,14 @@ class ActivityVisualizationManager:
             self.visualization_cache.clear()
             self.template_cache.clear()
             
+            # Reset settings to defaults
+            self.settings['default_theme'] = 'light'
+            self.settings['accessibility'] = {
+                "high_contrast": False,
+                "screen_reader": False,
+                "keyboard_navigation": False
+            }
+            
             # Reset service references
             self.db = None
             
@@ -586,11 +594,35 @@ class ActivityVisualizationManager:
         theme: Optional[str] = None
     ) -> go.Figure:
         """Generate performance trend plot."""
+        if data is None:
+            raise ValueError("Data cannot be None")
+        if data.empty:
+            raise ValueError("Empty data")
+            
+        # Check if required columns exist
+        required_columns = ['date', 'score']
+        missing_columns = [col for col in required_columns if col not in data.columns]
+        if missing_columns:
+            raise ValueError(f"Missing required columns: {missing_columns}")
+            
+        # Validate data types
+        try:
+            # Check if date column can be converted to datetime
+            pd.to_datetime(data['date'])
+        except (ValueError, TypeError):
+            raise ValueError("Invalid data types")
+            
+        try:
+            # Check if score column can be converted to numeric
+            pd.to_numeric(data['score'])
+        except (ValueError, TypeError):
+            raise ValueError("Invalid data types")
+            
         fig = px.line(
             data,
             x='date',
             y='score',
-            color='category',
+            color='category' if 'category' in data.columns else None,
             title='Performance Trend',
             template=theme or self.settings['default_theme']
         )
@@ -775,6 +807,12 @@ class ActivityVisualizationManager:
 
     def save_visualization(self, fig: go.Figure, output_path: str, fmt: str = 'png') -> None:
         """Save visualization to file."""
+        if fig is None:
+            raise ValueError("Cannot save None figure")
+            
+        if not hasattr(fig, 'write_image'):
+            raise ValueError("Invalid figure object")
+            
         if fmt == 'png':
             fig.write_image(output_path)
         elif fmt == 'html':
@@ -792,9 +830,18 @@ class ActivityVisualizationManager:
 
     def set_accessibility(self, options: Dict[str, bool]) -> None:
         """Set accessibility options."""
+        if options is None:
+            raise ValueError("Options cannot be None")
+        if not isinstance(options, dict):
+            raise ValueError("Options must be a dictionary")
+        if not options:  # Empty dict
+            raise ValueError("Options cannot be empty")
+            
         for key, value in options.items():
             if key not in self.settings['accessibility']:
                 raise ValueError(f"Unsupported accessibility option: {key}")
+            if not isinstance(value, bool):
+                raise ValueError(f"Accessibility option {key} must be a boolean")
             self.settings['accessibility'][key] = value
 
     def _add_accessibility_features(self, fig: go.Figure) -> None:

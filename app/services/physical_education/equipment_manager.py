@@ -4,7 +4,7 @@ import logging
 from sqlalchemy.orm import Session
 from fastapi import Depends
 
-from app.models.physical_education.safety import SafetyCheck
+from app.models.physical_education.safety.models import EquipmentCheck
 from app.models.physical_education.equipment import Equipment, EquipmentType
 from app.core.database import get_db
 from app.core.monitoring import track_metrics
@@ -234,7 +234,7 @@ class EquipmentManager:
             if age_status not in self.age_statuses:
                 raise ValueError(f"Invalid age status. Must be one of: {self.age_statuses}")
             
-            check = SafetyCheck(
+            check = EquipmentCheck(
                 class_id=class_id,
                 equipment_id=equipment_id,
                 check_date=datetime.utcnow(),
@@ -244,7 +244,7 @@ class EquipmentManager:
                 last_maintenance=last_maintenance,
                 purchase_date=purchase_date,
                 max_age_years=max_age_years,
-                metadata=metadata or {}
+                equipment_metadata=metadata or {}
             )
             
             db.add(check)
@@ -270,10 +270,10 @@ class EquipmentManager:
         self,
         check_id: str,
         db: Session = Depends(get_db)
-    ) -> Optional[SafetyCheck]:
+    ) -> Optional[EquipmentCheck]:
         """Retrieve a specific equipment check by ID."""
         try:
-            return db.query(SafetyCheck).filter(SafetyCheck.id == check_id).first()
+            return db.query(EquipmentCheck).filter(EquipmentCheck.id == check_id).first()
         except Exception as e:
             self.logger.error(f"Error retrieving equipment check: {str(e)}")
             return None
@@ -288,25 +288,25 @@ class EquipmentManager:
         start_date: Optional[datetime] = None,
         end_date: Optional[datetime] = None,
         db: Session = Depends(get_db)
-    ) -> List[SafetyCheck]:
+    ) -> List[EquipmentCheck]:
         """Retrieve equipment checks with optional filters."""
         try:
-            query = db.query(SafetyCheck)
+            query = db.query(EquipmentCheck)
             
             if class_id:
-                query = query.filter(SafetyCheck.class_id == class_id)
+                query = query.filter(EquipmentCheck.class_id == class_id)
             if equipment_id:
-                query = query.filter(SafetyCheck.equipment_id == equipment_id)
+                query = query.filter(EquipmentCheck.equipment_id == equipment_id)
             if maintenance_status:
-                query = query.filter(SafetyCheck.maintenance_status == maintenance_status)
+                query = query.filter(EquipmentCheck.maintenance_status == maintenance_status)
             if damage_status:
-                query = query.filter(SafetyCheck.damage_status == damage_status)
+                query = query.filter(EquipmentCheck.damage_status == damage_status)
             if age_status:
-                query = query.filter(SafetyCheck.age_status == age_status)
+                query = query.filter(EquipmentCheck.age_status == age_status)
             if start_date:
-                query = query.filter(SafetyCheck.check_date >= start_date)
+                query = query.filter(EquipmentCheck.check_date >= start_date)
             if end_date:
-                query = query.filter(SafetyCheck.check_date <= end_date)
+                query = query.filter(EquipmentCheck.check_date <= end_date)
             
             return query.all()
             
@@ -322,7 +322,7 @@ class EquipmentManager:
     ) -> Dict[str, Any]:
         """Update an existing equipment check."""
         try:
-            check = db.query(SafetyCheck).filter(SafetyCheck.id == check_id).first()
+            check = db.query(EquipmentCheck).filter(EquipmentCheck.id == check_id).first()
             if not check:
                 return {
                     "success": False,
@@ -364,7 +364,7 @@ class EquipmentManager:
     ) -> Dict[str, Any]:
         """Delete an equipment check."""
         try:
-            check = db.query(SafetyCheck).filter(SafetyCheck.id == check_id).first()
+            check = db.query(EquipmentCheck).filter(EquipmentCheck.id == check_id).first()
             if not check:
                 return {
                     "success": False,
@@ -397,43 +397,43 @@ class EquipmentManager:
     ) -> Dict[str, Any]:
         """Get statistics about equipment checks."""
         try:
-            query = db.query(SafetyCheck)
+            query = db.query(EquipmentCheck)
             if class_id:
-                query = query.filter(SafetyCheck.class_id == class_id)
+                query = query.filter(EquipmentCheck.class_id == class_id)
             if start_date:
-                query = query.filter(SafetyCheck.check_date >= start_date)
+                query = query.filter(EquipmentCheck.check_date >= start_date)
             if end_date:
-                query = query.filter(SafetyCheck.check_date <= end_date)
+                query = query.filter(EquipmentCheck.check_date <= end_date)
             
             checks = query.all()
             
             stats = {
-                "total": len(checks),
-                "by_equipment": {},
-                "by_maintenance": {},
-                "by_damage": {},
-                "by_age": {},
+                "total_checks": len(checks),
+                "equipment_distribution": {},
+                "maintenance_status_distribution": {},
+                "damage_status_distribution": {},
+                "age_status_distribution": {},
                 "trends": {}
             }
             
             for check in checks:
                 # Count by equipment
-                stats["by_equipment"][check.equipment_id] = \
-                    stats["by_equipment"].get(check.equipment_id, {})
-                stats["by_equipment"][check.equipment_id]["total"] = \
-                    stats["by_equipment"][check.equipment_id].get("total", 0) + 1
+                stats["equipment_distribution"][check.equipment_id] = \
+                    stats["equipment_distribution"].get(check.equipment_id, {})
+                stats["equipment_distribution"][check.equipment_id]["total"] = \
+                    stats["equipment_distribution"][check.equipment_id].get("total", 0) + 1
                 
                 # Count by maintenance status
-                stats["by_maintenance"][check.maintenance_status] = \
-                    stats["by_maintenance"].get(check.maintenance_status, 0) + 1
+                stats["maintenance_status_distribution"][check.maintenance_status] = \
+                    stats["maintenance_status_distribution"].get(check.maintenance_status, 0) + 1
                 
                 # Count by damage status
-                stats["by_damage"][check.damage_status] = \
-                    stats["by_damage"].get(check.damage_status, 0) + 1
+                stats["damage_status_distribution"][check.damage_status] = \
+                    stats["damage_status_distribution"].get(check.damage_status, 0) + 1
                 
                 # Count by age status
-                stats["by_age"][check.age_status] = \
-                    stats["by_age"].get(check.age_status, 0) + 1
+                stats["age_status_distribution"][check.age_status] = \
+                    stats["age_status_distribution"].get(check.age_status, 0) + 1
                 
                 # Calculate trends
                 date_key = check.check_date.strftime("%Y-%m")
@@ -457,7 +457,7 @@ class EquipmentManager:
             
             for update in updates:
                 try:
-                    check_id = update.pop("id")
+                    check_id = update.pop("check_id")
                     result = await self.update_equipment_check(check_id, update, db)
                     if result["success"]:
                         success_count += 1
@@ -468,7 +468,8 @@ class EquipmentManager:
                     failure_count += 1
             
             return {
-                "success": success_count,
+                "success": success_count > 0,
+                "updated_count": success_count,
                 "failure": failure_count
             }
             
@@ -477,7 +478,8 @@ class EquipmentManager:
             if db:
                 db.rollback()
             return {
-                "success": 0,
+                "success": False,
+                "updated_count": 0,
                 "failure": len(updates)
             }
 
@@ -503,7 +505,8 @@ class EquipmentManager:
                     failure_count += 1
             
             return {
-                "success": success_count,
+                "success": success_count > 0,
+                "deleted_count": success_count,
                 "failure": failure_count
             }
             
@@ -512,6 +515,7 @@ class EquipmentManager:
             if db:
                 db.rollback()
             return {
-                "success": 0,
+                "success": False,
+                "deleted_count": 0,
                 "failure": len(check_ids)
             } 

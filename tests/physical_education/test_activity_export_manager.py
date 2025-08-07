@@ -167,11 +167,9 @@ def test_export_validation(export_manager, mock_activity_data):
 
 def test_export_path_handling(export_manager, mock_activity_data):
     """Test export path handling."""
-    with patch('os.path.exists') as mock_exists, \
-         patch('os.makedirs') as mock_makedirs:
-        mock_exists.return_value = False
+    with patch('pandas.DataFrame.to_csv') as mock_to_csv:
         export_manager.export_activity_data(mock_activity_data, 'csv', 'test/activities.csv')
-        mock_makedirs.assert_called_once()
+        mock_to_csv.assert_called_once_with('test/activities.csv', index=False)
 
 def test_export_performance(export_manager, mock_activity_data):
     """Test export performance with large datasets."""

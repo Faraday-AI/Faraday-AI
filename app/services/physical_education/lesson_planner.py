@@ -17,6 +17,11 @@ class LessonPlanner:
             cls._instance = super(LessonPlanner, cls).__new__(cls)
         return cls._instance
     
+    @classmethod
+    def reset_instance(cls):
+        """Reset the singleton instance for testing."""
+        cls._instance = None
+    
     def __init__(self):
         self.logger = logging.getLogger("lesson_planner")
         self.db = None
@@ -61,12 +66,39 @@ class LessonPlanner:
                 }
             }
         }
+        
+        # Lesson templates
+        self.lesson_templates = {
+            "fitness": {
+                "warmup": "dynamic_stretching",
+                "main_activity": "fitness_circuit",
+                "cooldown": "static_stretching"
+            },
+            "skills": {
+                "warmup": "dynamic_stretching",
+                "main_activity": "individual_skills",
+                "cooldown": "static_stretching"
+            },
+            "team_sports": {
+                "warmup": "dynamic_stretching",
+                "main_activity": "team_game",
+                "cooldown": "static_stretching"
+            }
+        }
+        
+        # Template file path
+        self.template_file = "lesson_templates.json"
     
     async def initialize(self):
         """Initialize the lesson planner."""
         try:
             self.db = next(get_db())
-            self.assessment_system = service_integration.get_service("assessment_system")
+            
+            # Only get assessment_system if not already set (for testing)
+            if self.assessment_system is None:
+                self.assessment_system = service_integration.get_service("assessment_system")
+            elif hasattr(self.assessment_system, 'initialize'):
+                await self.assessment_system.initialize()
             
             # Load required data
             self.load_lesson_templates()
@@ -96,8 +128,13 @@ class LessonPlanner:
     def load_lesson_templates(self):
         """Load lesson plan templates."""
         try:
-            # TODO: Load templates from persistent storage
+            import json
+            with open(self.template_file, 'r') as f:
+                self.lesson_templates = json.load(f)
             self.logger.info("Lesson templates loaded successfully")
+        except FileNotFoundError:
+            # Keep the default templates set in __init__
+            self.logger.info("Lesson templates file not found, using defaults")
         except Exception as e:
             self.logger.error(f"Error loading lesson templates: {str(e)}")
             raise
@@ -111,7 +148,7 @@ class LessonPlanner:
             self.logger.error(f"Error initializing activity database: {str(e)}")
             raise
 
-    @track_metrics
+    @track_metrics("create_lesson_plan")
     async def create_lesson_plan(self, 
                                grade_level: str,
                                focus_area: str,
@@ -147,7 +184,7 @@ class LessonPlanner:
                 "objectives": self.generate_objectives(grade_level, focus_area),
                 "assessment_criteria": self.generate_assessment_criteria(focus_area),
                 "safety_considerations": self.generate_safety_considerations(activities),
-                "modifications": self.generate_modifications(skill_level, activities),
+                "modifications": self.generate_activity_modifications(activities[0], grade_level, skill_level, class_size),
                 "created_at": datetime.now().isoformat()
             }
             
@@ -164,8 +201,9 @@ class LessonPlanner:
             if grade_level not in self.curriculum_standards["state"]["grade_levels"]:
                 raise ValueError(f"Invalid grade level: {grade_level}")
             
-            # Validate focus area
-            if focus_area not in self.curriculum_standards["national"]:
+            # Validate focus area - check against valid focus areas in select_template
+            valid_focus_areas = ["fitness", "skills", "technique", "skill_development", "teamwork", "sports", "team_sports"]
+            if focus_area not in valid_focus_areas:
                 raise ValueError(f"Invalid focus area: {focus_area}")
             
             # Validate skill level
@@ -187,12 +225,17 @@ class LessonPlanner:
     def select_template(self, focus_area: str) -> Dict[str, str]:
         """Select appropriate lesson template based on focus area."""
         try:
-            if focus_area in ["skills", "technique"]:
-                return self.lesson_templates["skill_development"]
-            elif focus_area in ["teamwork", "sports"]:
+            # Validate focus area
+            valid_focus_areas = ["fitness", "skills", "technique", "skill_development", "teamwork", "sports", "team_sports"]
+            if focus_area not in valid_focus_areas:
+                raise ValueError(f"Invalid focus area: {focus_area}")
+            
+            if focus_area in ["skills", "technique", "skill_development"]:
+                return self.lesson_templates["skills"]
+            elif focus_area in ["teamwork", "sports", "team_sports"]:
                 return self.lesson_templates["team_sports"]
             else:
-                return self.lesson_templates["fitness_focus"]
+                return self.lesson_templates["fitness"]
         except Exception as e:
             self.logger.error(f"Error selecting template: {str(e)}")
             raise
@@ -273,6 +316,9 @@ class LessonPlanner:
             # Select activity based on skill level and class size
             selected_activity = self.choose_activity(equipment_activities, skill_level, class_size)
             
+            # Add name field for the activity
+            selected_activity["name"] = activity_type
+            
             # Add modifications for grade level and skill level
             selected_activity["modifications"] = self.generate_activity_modifications(
                 selected_activity,
@@ -290,7 +336,14 @@ class LessonPlanner:
     def check_equipment_requirements(self, required_equipment: str, available_equipment: List[str]) -> bool:
         """Check if required equipment is available."""
         try:
-            required = self.settings["equipment_requirements"][required_equipment]
+            # Map equipment levels to required equipment
+            equipment_mapping = {
+                "minimal": ["cones", "whistle"],
+                "basic": ["cones", "balls", "jump ropes"],
+                "full": ["cones", "whistle", "balls", "jump ropes", "mats", "gymnastics equipment"]
+            }
+            
+            required = equipment_mapping.get(required_equipment, ["cones", "whistle"])
             return all(item in available_equipment for item in required)
         except Exception as e:
             self.logger.error(f"Error checking equipment requirements: {str(e)}")
@@ -313,21 +366,23 @@ class LessonPlanner:
         """Generate modifications for an activity based on parameters."""
         try:
             modifications = {
-                "simplified": [],
-                "advanced": [],
+                "modifications": {
+                    "simplified": [],
+                    "advanced": []
+                },
                 "group_size": self.calculate_group_size(class_size),
-                "equipment": self.generate_equipment_modifications(activity["equipment"])
+                "equipment_modifications": self.generate_equipment_modifications(activity["equipment"])
             }
             
             # Add skill-level specific modifications
             if skill_level == "beginner":
-                modifications["simplified"].extend([
+                modifications["modifications"]["simplified"].extend([
                     "Reduce complexity",
                     "Focus on basic movements",
                     "Provide more demonstrations"
                 ])
             elif skill_level == "advanced":
-                modifications["advanced"].extend([
+                modifications["modifications"]["advanced"].extend([
                     "Increase complexity",
                     "Add competitive elements",
                     "Focus on technique refinement"
@@ -335,7 +390,7 @@ class LessonPlanner:
             
             # Add grade-level specific modifications
             if grade_level in ["K-2", "3-5"]:
-                modifications["simplified"].extend([
+                modifications["modifications"]["simplified"].extend([
                     "Use simpler language",
                     "Provide more visual cues",
                     "Increase supervision"
@@ -350,8 +405,14 @@ class LessonPlanner:
     def calculate_group_size(self, class_size: int) -> int:
         """Calculate appropriate group size for activities."""
         try:
-            max_groups = class_size // self.settings["max_students_per_group"]
-            return max(1, min(self.settings["max_students_per_group"], class_size // max_groups))
+            max_group_size = self.settings["max_students_per_group"]
+            
+            # If class size is smaller than max group size, return class size
+            if class_size <= max_group_size:
+                return class_size
+            
+            # Calculate optimal group size
+            return max(1, min(max_group_size, class_size // 2))
         except Exception as e:
             self.logger.error(f"Error calculating group size: {str(e)}")
             return self.settings["max_students_per_group"]
@@ -366,6 +427,11 @@ class LessonPlanner:
                 modifications.append("Use basic equipment with modified rules")
             elif required_equipment == "basic":
                 modifications.append("Use minimal equipment with creative adaptations")
+                modifications.append("Use lighter balls")
+                modifications.append("Substitute equipment with available alternatives")
+            elif required_equipment == "minimal":
+                modifications.append("Use body weight exercises")
+                modifications.append("Create equipment from available materials")
             
             return modifications
             
@@ -414,8 +480,8 @@ class LessonPlanner:
                 "improvement": []
             }
             
-            # Add focus area specific criteria
-            if focus_area in self.assessment_system.assessment_criteria:
+            # Add focus area specific criteria if available
+            if hasattr(self.assessment_system, 'assessment_criteria') and focus_area in self.assessment_system.assessment_criteria:
                 criteria["technique"].extend(
                     self.assessment_system.assessment_criteria[focus_area]["technique"]
                 )
@@ -433,11 +499,11 @@ class LessonPlanner:
                 "Progress"
             ])
             
-            return criteria
+            return {"criteria": criteria}
             
         except Exception as e:
             self.logger.error(f"Error generating assessment criteria: {str(e)}")
-            return {}
+            return {"criteria": {}}
 
     def generate_safety_considerations(self, activities: List[Dict[str, Any]]) -> List[str]:
         """Generate safety considerations for the lesson plan."""
@@ -446,7 +512,7 @@ class LessonPlanner:
                 "Proper warmup and cooldown",
                 "Adequate supervision",
                 "Clear instructions",
-                "Appropriate spacing"
+                "Ensure adequate spacing"
             ]
             
             # Add activity-specific safety considerations
@@ -463,7 +529,9 @@ class LessonPlanner:
     def save_lesson_templates(self):
         """Save lesson templates to persistent storage."""
         try:
-            # TODO: Implement data persistence
+            import json
+            with open(self.template_file, 'w') as f:
+                json.dump(self.lesson_templates, f, indent=2)
             self.logger.info("Lesson templates saved successfully")
         except Exception as e:
             self.logger.error(f"Error saving lesson templates: {str(e)}")

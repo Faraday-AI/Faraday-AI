@@ -15,10 +15,15 @@ from .assessment.assessment import (
     AssessmentResult,
     AssessmentHistory,
     SkillProgress,
-    AssessmentMetrics
+    AssessmentMetrics,
+    SkillModels
 )
+
+# Import SkillAssessmentModel
+from .skill_assessment_model import SkillAssessmentModel
 
 __all__ = [
     'SafetyReport', 'SafetyIncident', 'RiskAssessment', 'SafetyAlert', 'SafetyProtocol', 'SafetyCheck',
-    'Assessment', 'SkillAssessment', 'AssessmentCriteria', 'AssessmentResult', 'AssessmentHistory', 'SkillProgress', 'AssessmentMetrics'
+    'Assessment', 'SkillAssessment', 'AssessmentCriteria', 'AssessmentResult', 'AssessmentHistory', 'SkillProgress', 'AssessmentMetrics',
+    'SkillAssessmentModel'
 ] 

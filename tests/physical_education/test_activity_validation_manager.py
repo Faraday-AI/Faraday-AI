@@ -22,8 +22,10 @@ async def test_validate_activity_creation(validation_manager, mock_activity_mana
         "name": "Test Activity",
         "description": "Test Description",
         "duration": 30,
+        "type": "team_sport",
         "difficulty_level": "intermediate",
-        "equipment_required": ["ball", "net"],
+        "participants": 15,
+        "equipment_required": ["ball", "net", "safety_equipment"],
         "safety_guidelines": ["Wear proper shoes", "Stay hydrated"]
     }
     mock_activity_manager.get_activity_by_name.return_value = None
@@ -42,7 +44,10 @@ async def test_validate_activity_creation_duplicate_name(validation_manager, moc
     activity_data = {
         "name": "Existing Activity",
         "description": "Test Description",
-        "duration": 30
+        "duration": 30,
+        "type": "individual_sport",
+        "participants": 10,
+        "equipment_required": ["safety_equipment"]
     }
     mock_activity_manager.get_activity_by_name.return_value = {"id": "123", "name": "Existing Activity"}
     
@@ -60,7 +65,10 @@ async def test_validate_activity_update(validation_manager, mock_activity_manage
     update_data = {
         "name": "Updated Activity",
         "description": "Updated Description",
-        "duration": 45
+        "duration": 45,
+        "type": "team_sport",
+        "participants": 20,
+        "equipment_required": ["safety_equipment"]
     }
     mock_activity_manager.get_activity_by_name.return_value = None
     mock_activity_manager.get_activity.return_value = {"id": activity_id, "name": "Original Activity"}
@@ -121,37 +129,39 @@ async def test_validate_activity_schedule_invalid_times(validation_manager):
     assert "End time must be after start time" in result['errors']
 
 @pytest.mark.asyncio
-async def test_validate_activity_participants(validation_manager):
+async def test_validate_activity_participants(validation_manager, mock_activity_manager):
     # Setup
     activity_id = "test_activity"
-    participants = ["student1", "student2", "student3"]
+    participants = [{"id": "student1"}, {"id": "student2"}, {"id": "student3"}]
     mock_activity_manager.get_activity.return_value = {
         "id": activity_id,
         "max_participants": 5,
+        "min_participants": 1,
         "current_participants": 2
     }
     
     # Test
-    result = await validation_manager.validate_activity_participants(activity_id, participants)
+    result = await validation_manager.validate_activity_participants(activity_id, {"count": 3, "participants": participants})
     
     # Verify
     assert result['is_valid'] is True
     assert result['errors'] == []
 
 @pytest.mark.asyncio
-async def test_validate_activity_participants_exceed_limit(validation_manager):
+async def test_validate_activity_participants_exceed_limit(validation_manager, mock_activity_manager):
     # Setup
     activity_id = "test_activity"
-    participants = ["student1", "student2", "student3", "student4"]
+    participants = [{"id": "student1"}, {"id": "student2"}, {"id": "student3"}, {"id": "student4"}]
     mock_activity_manager.get_activity.return_value = {
         "id": activity_id,
         "max_participants": 3,
+        "min_participants": 1,
         "current_participants": 2
     }
     
     # Test
-    result = await validation_manager.validate_activity_participants(activity_id, participants)
+    result = await validation_manager.validate_activity_participants(activity_id, {"count": 4, "participants": participants})
     
     # Verify
     assert result['is_valid'] is False
-    assert "Number of participants exceeds maximum limit" in result['errors'] 
+    assert "Too many participants: 4" in result['errors'] 

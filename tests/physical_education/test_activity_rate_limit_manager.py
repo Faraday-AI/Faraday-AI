@@ -10,7 +10,12 @@ def mock_db():
 
 @pytest.fixture
 def mock_redis():
-    return AsyncMock()
+    mock = MagicMock()
+    mock.ping.return_value = True
+    mock.get.return_value = None
+    mock.setex.return_value = True
+    mock.delete.return_value = 1
+    return mock
 
 @pytest.fixture
 def mock_activity_manager():
@@ -18,9 +23,11 @@ def mock_activity_manager():
 
 @pytest.fixture
 def rate_limit_manager(mock_db, mock_redis, mock_activity_manager):
-    with patch('app.services.physical_education.services.activity_rate_limit_manager.redis.Redis', return_value=mock_redis), \
-         patch('app.services.physical_education.services.activity_rate_limit_manager.ActivityManager', return_value=mock_activity_manager):
-        return ActivityRateLimitManager(db=mock_db)
+    with patch('app.services.physical_education.activity_rate_limit_manager.redis.Redis') as mock_redis_class:
+        mock_redis_class.return_value = mock_redis
+        manager = ActivityRateLimitManager(db=mock_db)
+        manager.redis_client = mock_redis
+        return manager
 
 @pytest.mark.asyncio
 async def test_check_rate_limit_first_request(rate_limit_manager, mock_redis):
@@ -77,7 +84,7 @@ async def test_check_rate_limit_window_expired(rate_limit_manager, mock_redis):
     # Setup
     user_id = 'user1'
     action = 'create_activity'
-    old_time = datetime.now() - timedelta(seconds=61)  # Window expired
+    old_time = datetime.now() - timedelta(seconds=3601)  # Window expired (3600 + 1)
     mock_redis.get.return_value = f"10:{int(old_time.timestamp())}"
     
     # Test
@@ -152,20 +159,18 @@ async def test_get_rate_limit_stats(rate_limit_manager, mock_redis):
     current_time = datetime.now()
     mock_redis.get.side_effect = [
         f"5:{int(current_time.timestamp())}",  # create_activity
-        None,  # update_activity
-        f"10:{int(current_time.timestamp())}",  # get_activities
-        None  # delete_activity
+        None,  # participate_activity
+        f"10:{int(current_time.timestamp())}"  # update_progress
     ]
     
     # Test
     result = await rate_limit_manager.get_rate_limit_stats(user_id)
     
     # Verify
-    assert len(result) == 4  # All actions should be present
+    assert len(result) == 3  # All actions should be present
     assert result['create_activity']['current_count'] == 5
-    assert result['update_activity']['current_count'] == 0
-    assert result['get_activities']['current_count'] == 10
-    assert result['delete_activity']['current_count'] == 0
+    assert result['participate_activity']['current_count'] == 0
+    assert result['update_progress']['current_count'] == 10
     for action in result:
         assert 'max_allowed' in result[action]
         assert 'window_start' in result[action] 

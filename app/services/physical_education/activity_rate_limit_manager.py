@@ -1,8 +1,9 @@
 """Activity rate limit manager for physical education."""
 
 import logging
+import redis
 from typing import Dict, Any, Optional, List
-from datetime import datetime
+from datetime import datetime, timedelta
 import numpy as np
 from sqlalchemy.orm import Session
 from app.core.database import get_db
@@ -38,9 +39,22 @@ class ActivityRateLimitManager:
             cls._instance = super(ActivityRateLimitManager, cls).__new__(cls)
         return cls._instance
     
-    def __init__(self):
+    def __init__(self, db: Session = None):
         self.logger = logging.getLogger("activity_rate_limit_manager")
-        self.db = None
+        self.db = db
+        
+        # Initialize Redis connection
+        try:
+            self.redis_client = redis.Redis(
+                host='localhost',
+                port=6379,
+                db=1,
+                decode_responses=True
+            )
+            self.redis_client.ping()  # Test connection
+        except Exception as e:
+            self.logger.warning(f"Redis connection failed: {str(e)}")
+            self.redis_client = None
         
         # Rate limit settings
         self.settings = {
@@ -56,7 +70,13 @@ class ActivityRateLimitManager:
                 "requests_per_window": 1000,
                 "burst_size": 100,
                 "concurrent_requests": 10
-            }
+            },
+            "default_limits": {
+                "create_activity": {"max_requests": 10, "time_window": 3600},
+                "participate_activity": {"max_requests": 100, "time_window": 3600},
+                "update_progress": {"max_requests": 50, "time_window": 3600}
+            },
+            "block_duration": 3600  # 1 hour
         }
         
         # Rate limit components
@@ -64,13 +84,14 @@ class ActivityRateLimitManager:
         self.rate_metrics = {}
         self.request_history = []
         self.violation_history = []
+        
+        # Initialize assessment criteria
+        self.initialize_rate_limit_components()
     
     async def initialize(self):
         """Initialize the rate limit manager."""
         try:
-            self.db = next(get_db())
-            
-            # Initialize rate limit components
+            # Initialize assessment criteria
             self.initialize_rate_limit_components()
             
             self.logger.info("Activity Rate Limit Manager initialized successfully")
@@ -107,7 +128,8 @@ class ActivityRateLimitManager:
                 },
                 "violations": {
                     "count": 0,
-                    "rate": 0.0
+                    "rate": 0.0,
+                    "window_start": datetime.now().isoformat()
                 },
                 "concurrent": {
                     "current": 0,
@@ -122,46 +144,72 @@ class ActivityRateLimitManager:
 
     async def check_rate_limit(
         self,
-        activity_id: str,
-        student_id: str
-    ) -> Dict[str, Any]:
+        user_id: str,
+        action: str
+    ) -> bool:
         """Check if request is within rate limits."""
         try:
             if not self.settings["rate_limit_enabled"]:
-                return {"allowed": True}
+                return True
             
-            # Get rate limit key
-            limit_key = f"{student_id}_{activity_id}"
+            if not self.redis_client:
+                # Fallback to in-memory if Redis is not available
+                return True
             
-            # Check concurrent requests
-            if not self._check_concurrent_limit():
-                return {
-                    "allowed": False,
-                    "reason": "Too many concurrent requests"
-                }
+            # Get rate limit configuration
+            config = self.settings["default_limits"].get(action)
+            if not config:
+                return True
             
-            # Check request rate
-            if not self._check_request_rate(limit_key):
-                return {
-                    "allowed": False,
-                    "reason": "Request rate exceeded"
-                }
+            # Create Redis key
+            redis_key = f"rate_limit:{user_id}:{action}"
             
-            # Check burst limit
-            if not self._check_burst_limit(limit_key):
-                return {
-                    "allowed": False,
-                    "reason": "Burst limit exceeded"
-                }
+            # Get current count and timestamp from Redis
+            current_data = self.redis_client.get(redis_key)
             
-            # Update metrics
-            self._update_rate_metrics("requests")
+            if current_data is None:
+                # First request
+                current_count = 0
+                current_time = datetime.now().timestamp()
+            else:
+                # Parse existing data
+                try:
+                    count_str, timestamp_str = current_data.split(":")
+                    current_count = int(count_str)
+                    current_time = float(timestamp_str)
+                except (ValueError, AttributeError):
+                    current_count = 0
+                    current_time = datetime.now().timestamp()
             
-            return {"allowed": True}
+            # Check if window has expired
+            now = datetime.now().timestamp()
+            window_duration = config["time_window"]
+            
+            if now - current_time > window_duration:
+                # Window expired, reset count
+                current_count = 0
+                current_time = now
+            
+            # Check if limit exceeded (before incrementing)
+            if current_count >= config["max_requests"]:
+                return False
+            
+            # Increment count for current request
+            current_count += 1
+            
+            # Store updated data in Redis
+            new_data = f"{current_count}:{current_time}"
+            self.redis_client.setex(
+                redis_key,
+                window_duration,
+                new_data
+            )
+            
+            return True
             
         except Exception as e:
             self.logger.error(f"Error checking rate limit: {str(e)}")
-            raise
+            return True  # Allow request on error
 
     async def get_rate_metrics(self) -> Dict[str, Any]:
         """Get rate limit metrics."""
@@ -286,4 +334,102 @@ class ActivityRateLimitManager:
             
         except Exception as e:
             self.logger.error(f"Error updating rate metrics: {str(e)}")
-            raise 
+            raise
+    
+    async def block_user(self, user_id: str, reason: str) -> bool:
+        """Block a user from making requests."""
+        try:
+            if not self.redis_client:
+                # Fallback to in-memory if Redis is not available
+                blocked_users = getattr(self, '_blocked_users', {})
+                blocked_users[user_id] = {
+                    "reason": reason,
+                    "blocked_at": datetime.now().isoformat()
+                }
+                self._blocked_users = blocked_users
+                return True
+            
+            # Store block in Redis
+            redis_key = f"blocked:{user_id}"
+            self.redis_client.setex(
+                redis_key,
+                self.settings["block_duration"],
+                reason
+            )
+            return True
+        except Exception as e:
+            self.logger.error(f"Error blocking user: {str(e)}")
+            return False
+    
+    async def is_user_blocked(self, user_id: str) -> str:
+        """Check if a user is blocked. Returns reason if blocked, None if not."""
+        try:
+            if not self.redis_client:
+                # Fallback to in-memory if Redis is not available
+                blocked_users = getattr(self, '_blocked_users', {})
+                return blocked_users.get(user_id, {}).get("reason") if user_id in blocked_users else None
+            
+            # Check Redis for block
+            redis_key = f"blocked:{user_id}"
+            reason = self.redis_client.get(redis_key)
+            return reason
+        except Exception as e:
+            self.logger.error(f"Error checking if user is blocked: {str(e)}")
+            return None
+    
+    async def unblock_user(self, user_id: str) -> bool:
+        """Unblock a user."""
+        try:
+            if not self.redis_client:
+                # Fallback to in-memory if Redis is not available
+                blocked_users = getattr(self, '_blocked_users', {})
+                if user_id in blocked_users:
+                    del blocked_users[user_id]
+                    self._blocked_users = blocked_users
+                    return True
+                return False
+            
+            # Remove block from Redis
+            redis_key = f"blocked:{user_id}"
+            result = self.redis_client.delete(redis_key)
+            return result > 0
+        except Exception as e:
+            self.logger.error(f"Error unblocking user: {str(e)}")
+            return False
+    
+    async def get_rate_limit_stats(self, user_id: str) -> Dict[str, Any]:
+        """Get rate limit statistics for a user."""
+        try:
+            if not self.redis_client:
+                # Fallback to in-memory if Redis is not available
+                return {}
+            
+            stats = {}
+            for action in self.settings["default_limits"]:
+                redis_key = f"rate_limit:{user_id}:{action}"
+                current_data = self.redis_client.get(redis_key)
+                
+                if current_data:
+                    try:
+                        count_str, timestamp_str = current_data.split(":")
+                        current_count = int(count_str)
+                        window_start = float(timestamp_str)
+                    except (ValueError, AttributeError):
+                        current_count = 0
+                        window_start = datetime.now().timestamp()
+                else:
+                    current_count = 0
+                    window_start = datetime.now().timestamp()
+                
+                config = self.settings["default_limits"][action]
+                stats[action] = {
+                    "current_count": current_count,
+                    "max_allowed": config["max_requests"],
+                    "window_start": window_start,
+                    "time_window": config["time_window"]
+                }
+            
+            return stats
+        except Exception as e:
+            self.logger.error(f"Error getting rate limit stats: {str(e)}")
+            return {} 

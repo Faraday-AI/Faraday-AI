@@ -115,7 +115,10 @@ async def test_get_equipment_check_not_found(equipment_manager, mock_db):
 @pytest.mark.asyncio
 async def test_get_equipment_checks_with_filters(equipment_manager, mock_db, mock_equipment_check):
     """Test retrieving equipment checks with filters."""
-    mock_db.query.return_value.filter.return_value.all.return_value = [mock_equipment_check]
+    # Configure the mock chain to return the same mock for each filter call
+    mock_query = mock_db.query.return_value
+    mock_query.filter.return_value = mock_query  # Each filter returns the same query object
+    mock_query.all.return_value = [mock_equipment_check]
     
     result = await equipment_manager.get_equipment_checks(
         class_id="class1",

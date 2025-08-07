@@ -19,7 +19,11 @@ def mock_scheduling_service():
 
 @pytest.fixture
 def scheduling_manager(mock_db, mock_activity_manager, mock_scheduling_service):
-    return ActivitySchedulingManager(db=mock_db, activity_manager=mock_activity_manager)
+    return ActivitySchedulingManager(
+        db=mock_db, 
+        activity_manager=mock_activity_manager,
+        scheduling_service=mock_scheduling_service.return_value
+    )
 
 @pytest.mark.asyncio
 async def test_schedule_activity(scheduling_manager, mock_activity_manager, mock_scheduling_service):
