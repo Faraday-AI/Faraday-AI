@@ -38,8 +38,8 @@ from app.models.physical_education.activity_adaptation.activity_adaptation impor
 from app.models.physical_education.exercise.models import Exercise
 from app.models.routine import Routine
 from app.models.physical_education.student.models import Student
-from app.models.activity_plan import ActivityPlan, ActivityPlanActivity
-from app.models.physical_education.class_ import PhysicalEducationClass
+from app.models.physical_education.activity_plan.models import ActivityPlan, ActivityPlanActivity
+from app.models.physical_education.class_ import PhysicalEducationClass as Class
 
 class ActivityManager:
     """Manages physical education activities and related operations."""
@@ -54,6 +54,7 @@ class ActivityManager:
     def __init__(self, db_session: Optional[Session] = None):
         self.logger = logging.getLogger("activity_manager")
         self.db_session = db_session
+        self.db = db_session  # Add this for compatibility
         self.movement_analyzer = None
         self.assessment_system = None
         self.lesson_planner = None
@@ -817,81 +818,125 @@ class ActivityManager:
         self,
         student_id: str,
         class_id: Optional[str] = None,
-        duration: int = 60,  # minutes
-        difficulty: Optional[str] = None
+        duration_minutes: int = 60,  # minutes
+        difficulty: Optional[str] = None,
+        focus_areas: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Generate a personalized activity plan for a student."""
         try:
-            with get_db() as db:
-                student = db.query(Student).filter(Student.id == student_id).first()
-                if not student:
-                    raise ValueError(f"Student not found: {student_id}")
-                
-                # Get student's performance history
-                performance_history = db.query(StudentActivityPerformance).filter(
-                    StudentActivityPerformance.student_id == student_id
-                ).all()
-                
-                # Calculate student's strengths and weaknesses
-                strengths = {}
-                weaknesses = {}
-                for performance in performance_history:
-                    activity = db.query(Activity).filter(Activity.id == performance.activity_id).first()
-                    if activity:
-                        for category in activity.categories:
-                            if performance.score >= 0.7:
-                                strengths[category] = strengths.get(category, 0) + 1
-                            else:
-                                weaknesses[category] = weaknesses.get(category, 0) + 1
-                
-                # Get available activities
-                query = db.query(Activity)
-                if difficulty:
-                    query = query.filter(Activity.difficulty_level == difficulty)
-                
-                activities = query.all()
-                
-                # Score activities based on student's needs
-                scored_activities = []
-                for activity in activities:
-                    score = 0
+            # Use the instance's db session
+            db = self.db
+            
+            # Convert student_id to int if it's a string
+            try:
+                student_id_int = int(student_id)
+            except (ValueError, TypeError):
+                student_id_int = student_id
+            
+            student = db.query(Student).filter(Student.id == student_id_int).first()
+            if not student:
+                raise ValueError(f"Student not found: {student_id}")
+            
+            # Get student's performance history
+            performance_history = db.query(StudentActivityPerformance).filter(
+                StudentActivityPerformance.student_id == student_id_int
+            ).all()
+            
+            # Calculate student's strengths and weaknesses
+            strengths = {}
+            weaknesses = {}
+            for performance in performance_history:
+                activity = db.query(Activity).filter(Activity.id == performance.activity_id).first()
+                if activity and hasattr(activity, 'categories') and activity.categories:
+                    for category in activity.categories:
+                        if performance.score >= 0.7:
+                            strengths[category] = strengths.get(category, 0) + 1
+                        else:
+                            weaknesses[category] = weaknesses.get(category, 0) + 1
+            
+            # Get available activities
+            query = db.query(Activity)
+            if difficulty:
+                query = query.filter(Activity.difficulty_level == difficulty)
+            
+            activities = query.all()
+            
+            # Score activities based on student's needs
+            scored_activities = []
+            for activity in activities:
+                score = 0
+                if hasattr(activity, 'categories') and activity.categories:
                     for category in activity.categories:
                         if category in weaknesses:
                             score += 2  # Prioritize weak areas
                         if category in strengths:
                             score += 1  # Include some strong areas
-                    
-                    scored_activities.append({
-                        "activity": activity,
-                        "score": score
-                    })
                 
-                # Sort by score and select activities
-                scored_activities.sort(key=lambda x: x["score"], reverse=True)
-                selected_activities = []
-                remaining_time = duration
+                scored_activities.append({
+                    "activity": activity,
+                    "score": score
+                })
+            
+            # Sort by score and select activities
+            scored_activities.sort(key=lambda x: x["score"], reverse=True)
+            selected_activities = []
+            remaining_time = duration_minutes
+            
+            for scored_activity in scored_activities:
+                activity = scored_activity["activity"]
+                activity_duration = getattr(activity, 'duration_minutes', 30)  # Default 30 minutes
+                if activity_duration <= remaining_time:
+                    selected_activities.append(activity)
+                    remaining_time -= activity_duration
                 
-                for scored_activity in scored_activities:
-                    activity = scored_activity["activity"]
-                    if activity.duration <= remaining_time:
-                        selected_activities.append(activity)
-                        remaining_time -= activity.duration
-                    
-                    if remaining_time <= 0:
-                        break
-                
-                # Create activity plan
-                plan = {
-                    "student_id": student_id,
-                    "class_id": class_id,
-                    "total_duration": duration,
-                    "activities": selected_activities,
-                    "focus_areas": list(weaknesses.keys()),
-                    "estimated_calories": sum(a.calories_burned for a in selected_activities),
-                    "difficulty_level": difficulty or "mixed"
+                if remaining_time <= 0:
+                    break
+            
+            # Create activity plan in database
+            plan = ActivityPlan(
+                name=f"Personalized Plan for {student.first_name}",
+                description=f"Generated plan focusing on {', '.join(focus_areas or list(weaknesses.keys()))}",
+                grade_level=student.grade_level if hasattr(student, 'grade_level') else "Mixed",
+                duration=duration_minutes,
+                difficulty=difficulty or "mixed",
+                student_id=student_id_int,
+                plan_metadata={
+                    "focus_areas": focus_areas or list(weaknesses.keys()),
+                    "estimated_calories": sum(getattr(a, 'calories_burned', 0) for a in selected_activities),
+                    "generated_at": datetime.utcnow().isoformat()
                 }
-                
-                return plan
+            )
+            
+            db.add(plan)
+            db.flush()  # Get the plan ID
+            
+            # Add activities to the plan
+            for i, activity in enumerate(selected_activities):
+                plan_activity = ActivityPlanActivity(
+                    plan_id=plan.id,
+                    activity_id=activity.id,
+                    sequence=i + 1,
+                    duration=getattr(activity, 'duration_minutes', 30),
+                    is_completed=False,
+                    activity_metadata={
+                        "activity_name": activity.name,
+                        "activity_type": getattr(activity, 'type', 'unknown')
+                    }
+                )
+                db.add(plan_activity)
+            
+            db.commit()
+            
+            return {
+                "plan_id": plan.id,
+                "student_id": student_id,
+                "class_id": class_id,
+                "duration": duration_minutes,
+                "activities": selected_activities,
+                "focus_areas": focus_areas or list(weaknesses.keys()),
+                "estimated_calories": sum(getattr(a, 'calories_burned', 0) for a in selected_activities),
+                "difficulty_level": difficulty or "mixed"
+            }
         except Exception as e:
             self.logger.error(f"Error generating activity plan: {str(e)}")
             raise
@@ -904,131 +949,122 @@ class ActivityManager:
     ) -> Dict[str, Any]:
         """Analyze a student's performance across all activities."""
         try:
-            with get_db() as db:
-                student = db.query(Student).filter(Student.id == student_id).first()
-                if not student:
-                    raise ValueError(f"Student not found: {student_id}")
-                
-                # Get performance history
-                query = db.query(StudentActivityPerformance).filter(
-                    StudentActivityPerformance.student_id == student_id
-                )
-                
-                if start_date:
-                    query = query.filter(StudentActivityPerformance.date >= start_date)
-                if end_date:
-                    query = query.filter(StudentActivityPerformance.date <= end_date)
-                
-                performances = query.all()
-                
-                # Calculate overall statistics
-                total_activities = len(performances)
-                if total_activities == 0:
-                    return {
-                        "student_id": student_id,
-                        "total_activities": 0,
-                        "average_score": 0,
-                        "improvement_rate": 0,
-                        "category_performance": {},
-                        "activity_type_performance": {},
-                        "recommendations": []
-                    }
-                
-                # Calculate scores by category and activity type
-                category_scores = {}
-                type_scores = {}
-                scores_over_time = []
-                
-                for performance in performances:
-                    activity = db.query(Activity).filter(Activity.id == performance.activity_id).first()
-                    if activity:
-                        # Track scores over time
-                        scores_over_time.append({
-                            "date": performance.date,
-                            "score": performance.score,
-                            "activity_name": activity.name
-                        })
-                        
-                        # Track category scores
-                        for category in activity.categories:
-                            if category not in category_scores:
-                                category_scores[category] = []
-                            category_scores[category].append(performance.score)
-                        
-                        # Track activity type scores
-                        activity_type = activity.activity_type
+            db = self.db
+            student = db.query(Student).filter(Student.id == student_id).first()
+            if not student:
+                raise ValueError(f"Student not found: {student_id}")
+            
+            # Get performance history
+            query = db.query(StudentActivityPerformance).filter(
+                StudentActivityPerformance.student_id == student_id
+            )
+            
+            if start_date:
+                query = query.filter(StudentActivityPerformance.recorded_at >= start_date)
+            if end_date:
+                query = query.filter(StudentActivityPerformance.recorded_at <= end_date)
+            
+            performances = query.all()
+            
+            # Calculate overall statistics
+            total_activities = len(performances)
+            if total_activities == 0:
+                return {
+                    "student_id": student_id,
+                    "total_activities": 0,
+                    "average_score": 0,
+                    "improvement_rate": 0,
+                    "category_performance": {},
+                    "activity_type_performance": {},
+                    "recommendations": []
+                }
+            
+            # Calculate scores by category and activity type
+            category_scores = {}
+            type_scores = {}
+            scores_over_time = []
+            
+            for performance in performances:
+                activity = db.query(Activity).filter(Activity.id == performance.activity_id).first()
+                if activity:
+                    # Track scores over time
+                    scores_over_time.append({
+                        "date": performance.recorded_at,
+                        "score": performance.score,
+                        "activity_name": activity.name
+                    })
+                    
+                    # Track category scores
+                    for category in activity.categories:
+                        if category not in category_scores:
+                            category_scores[category] = []
+                        category_scores[category].append(performance.score)
+                    
+                                            # Track activity type scores
+                        activity_type = getattr(activity, 'type', 'general')
                         if activity_type not in type_scores:
                             type_scores[activity_type] = []
                         type_scores[activity_type].append(performance.score)
-                
-                # Calculate averages and improvement rates
-                category_performance = {
-                    category: {
-                        "average_score": sum(scores) / len(scores),
-                        "total_activities": len(scores)
-                    }
-                    for category, scores in category_scores.items()
+            
+            # Calculate averages and improvement rates
+            category_performance = {
+                category: {
+                    "average_score": sum(scores) / len(scores),
+                    "total_activities": len(scores)
                 }
-                
-                type_performance = {
-                    activity_type: {
-                        "average_score": sum(scores) / len(scores),
-                        "total_activities": len(scores)
-                    }
-                    for activity_type, scores in type_scores.items()
+                for category, scores in category_scores.items()
+            }
+            
+            type_performance = {
+                activity_type: {
+                    "average_score": sum(scores) / len(scores),
+                    "total_activities": len(scores)
                 }
+                for activity_type, scores in type_scores.items()
+            }
+            
+            # Calculate overall improvement rate
+            if len(scores_over_time) >= 2:
+                scores_over_time.sort(key=lambda x: x["date"])
+                first_half = scores_over_time[:len(scores_over_time)//2]
+                second_half = scores_over_time[len(scores_over_time)//2:]
                 
-                # Calculate overall improvement rate
-                if len(scores_over_time) >= 2:
-                    scores_over_time.sort(key=lambda x: x["date"])
-                    first_half = scores_over_time[:len(scores_over_time)//2]
-                    second_half = scores_over_time[len(scores_over_time)//2:]
-                    
-                    first_avg = sum(s["score"] for s in first_half) / len(first_half)
-                    second_avg = sum(s["score"] for s in second_half) / len(second_half)
-                    
-                    improvement_rate = ((second_avg - first_avg) / first_avg) * 100 if first_avg > 0 else 0
-                else:
-                    improvement_rate = 0
+                first_avg = sum(s["score"] for s in first_half) / len(first_half)
+                second_avg = sum(s["score"] for s in second_half) / len(second_half)
                 
-                # Generate recommendations
-                recommendations = []
-                
-                # Recommend focus on weak categories
-                weak_categories = [
-                    category for category, perf in category_performance.items()
-                    if perf["average_score"] < 0.7
-                ]
-                if weak_categories:
-                    recommendations.append({
-                        "type": "focus_area",
-                        "message": f"Focus on improving in: {', '.join(weak_categories)}",
-                        "priority": "high"
-                    })
-                
-                # Recommend more practice in low-performing activity types
-                low_performing_types = [
-                    activity_type for activity_type, perf in type_performance.items()
-                    if perf["average_score"] < 0.7
-                ]
-                if low_performing_types:
-                    recommendations.append({
-                        "type": "activity_type",
-                        "message": f"Practice more: {', '.join(low_performing_types)}",
-                        "priority": "medium"
-                    })
-                
-                # Overall performance analysis
-                return {
-                    "student_id": student_id,
-                    "total_activities": total_activities,
-                    "average_score": sum(p.score for p in performances) / total_activities,
-                    "improvement_rate": improvement_rate,
-                    "category_performance": category_performance,
-                    "activity_type_performance": type_performance,
-                    "recommendations": recommendations,
-                    "performance_trend": scores_over_time
-                }
+                improvement_rate = ((second_avg - first_avg) / first_avg) * 100 if first_avg > 0 else 0
+            else:
+                improvement_rate = 0
+            
+            # Generate recommendations
+            recommendations = []
+            
+            # Recommend focus on weak categories
+            weak_categories = [
+                str(category) for category, perf in category_performance.items()
+                if perf["average_score"] < 0.7
+            ]
+            if weak_categories:
+                recommendations.append(f"Focus on improving performance in: {', '.join(weak_categories)}")
+            
+            # Recommend activities based on strong performance
+            strong_categories = [
+                str(category) for category, perf in category_performance.items()
+                if perf["average_score"] > 0.8
+            ]
+            if strong_categories:
+                recommendations.append(f"Consider advanced activities in: {', '.join(strong_categories)}")
+            
+            return {
+                "student_id": student_id,
+                "total_activities": total_activities,
+                "average_score": sum(p.score for p in performances) / total_activities if total_activities > 0 else 0,
+                "improvement_rate": improvement_rate,
+                "category_performance": category_performance,
+                "activity_type_performance": type_performance,
+                "recommendations": recommendations
+            }
+            
         except Exception as e:
             self.logger.error(f"Error analyzing student performance: {str(e)}")
             raise
@@ -1143,17 +1179,32 @@ class ActivityManager:
         duration_minutes: int,
         focus_areas: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        """Create a personalized activity plan for a student."""
+        """Create an activity plan for a student."""
         try:
-            student = self.db.query(Student).filter(Student.id == student_id).first()
+            # Validate duration
+            if duration_minutes <= 0:
+                return {
+                    "success": False,
+                    "message": "Invalid duration"
+                }
+            
+            # Convert student_id to int if it's a string
+            try:
+                student_id_int = int(student_id)
+            except (ValueError, TypeError):
+                student_id_int = student_id
+            
+            # Validate student exists
+            student = self.db.query(Student).filter(Student.id == student_id_int).first()
             if not student:
                 raise ValueError(f"Student not found: {student_id}")
             
+            # Validate class exists
             class_ = self.db.query(Class).filter(Class.id == class_id).first()
             if not class_:
                 raise ValueError(f"Class not found: {class_id}")
             
-            # Generate plan using existing method
+            # Generate activity plan
             plan_data = await self.generate_activity_plan(
                 student_id=student_id,
                 class_id=class_id,
@@ -1163,31 +1214,43 @@ class ActivityManager:
             
             # Create plan record
             plan = ActivityPlan(
-                student_id=student_id,
-                class_id=class_id,
-                duration_minutes=duration_minutes,
-                focus_areas=focus_areas or []
+                name=f"Activity Plan for {student.first_name}",
+                description=f"Generated plan with focus on {', '.join(focus_areas or [])}",
+                grade_level=student.grade_level if hasattr(student, 'grade_level') else "Mixed",
+                duration=duration_minutes,
+                difficulty="mixed",
+                student_id=student_id_int,
+                plan_metadata={
+                    "focus_areas": focus_areas or [],
+                    "class_id": class_id,
+                    "generated_at": datetime.utcnow().isoformat()
+                }
             )
             
             self.db.add(plan)
             self.db.flush()  # Get plan ID
             
             # Create plan activities
-            for i, activity_data in enumerate(plan_data["activities"]):
+            for i, activity in enumerate(plan_data["activities"]):
                 plan_activity = ActivityPlanActivity(
                     plan_id=plan.id,
-                    activity_id=activity_data["activity"].id,
-                    order=i,
-                    duration_minutes=activity_data["duration_minutes"],
-                    activity_type=activity_data["type"]
+                    activity_id=activity.id,
+                    sequence=i + 1,
+                    duration=getattr(activity, 'duration_minutes', 30),
+                    is_completed=False,
+                    activity_metadata={
+                        "activity_name": activity.name,
+                        "activity_type": getattr(activity, 'type', 'general')
+                    }
                 )
                 self.db.add(plan_activity)
             
             self.db.commit()
             
             return {
-                "plan": plan,
-                "activities": plan.activities
+                "plan_id": plan.id,
+                "success": True,
+                "activities": plan_data["activities"]
             }
             
         except Exception as e:
@@ -1204,22 +1267,33 @@ class ActivityManager:
     ) -> Dict[str, Any]:
         """Track progress of an activity in a plan."""
         try:
+            # Convert IDs to int if they're strings
+            try:
+                plan_id_int = int(plan_id)
+                activity_id_int = int(activity_id)
+            except (ValueError, TypeError):
+                plan_id_int = plan_id
+                activity_id_int = activity_id
+            
             plan_activity = self.db.query(ActivityPlanActivity).filter(
                 and_(
-                    ActivityPlanActivity.plan_id == plan_id,
-                    ActivityPlanActivity.activity_id == activity_id
+                    ActivityPlanActivity.plan_id == plan_id_int,
+                    ActivityPlanActivity.activity_id == activity_id_int
                 )
             ).first()
             
             if not plan_activity:
-                raise ValueError(f"Activity not found in plan: {activity_id}")
+                return {
+                    "success": False,
+                    "message": f"Plan activity not found"
+                }
             
             plan_activity.is_completed = is_completed
             if notes:
                 plan_activity.notes = notes
             
             # Check if all activities are completed
-            plan = self.db.query(ActivityPlan).filter(ActivityPlan.id == plan_id).first()
+            plan = self.db.query(ActivityPlan).filter(ActivityPlan.id == plan_id_int).first()
             if plan:
                 all_completed = all(a.is_completed for a in plan.activities)
                 plan.is_completed = all_completed
@@ -1227,6 +1301,7 @@ class ActivityManager:
             self.db.commit()
             
             return {
+                "success": True,
                 "plan_id": plan_id,
                 "activity_id": activity_id,
                 "is_completed": is_completed,
@@ -1247,7 +1322,13 @@ class ActivityManager:
     ) -> Dict[str, Any]:
         """Generate a comprehensive progress report for a student."""
         try:
-            student = self.db.query(Student).filter(Student.id == student_id).first()
+            # Convert student_id to int if it's a string
+            try:
+                student_id_int = int(student_id)
+            except (ValueError, TypeError):
+                student_id_int = student_id
+            
+            student = self.db.query(Student).filter(Student.id == student_id_int).first()
             if not student:
                 raise ValueError(f"Student not found: {student_id}")
             
@@ -1260,26 +1341,20 @@ class ActivityManager:
             
             # Get activity progressions
             progressions = self.db.query(ActivityProgression).filter(
-                ActivityProgression.student_id == student_id
+                ActivityProgression.student_id == student_id_int
             ).all()
             
             # Get completed plans
             completed_plans = self.db.query(ActivityPlan).filter(
                 and_(
-                    ActivityPlan.student_id == student_id,
+                    ActivityPlan.student_id == student_id_int,
                     ActivityPlan.is_completed == True
                 )
             ).all()
             
             # Generate report
             report = {
-                "student_id": student_id,
-                "period": {
-                    "start": start_date,
-                    "end": end_date
-                },
-                "performance_summary": performance_analysis,
-                "activity_progress": [
+                "activities": [
                     {
                         "activity_id": p.activity_id,
                         "current_level": p.current_level,
@@ -1288,8 +1363,8 @@ class ActivityManager:
                         "next_assessment": p.next_assessment_date
                     } for p in progressions
                 ],
-                "completed_plans": len(completed_plans),
-                "recommendations": performance_analysis["recommendations"]
+                "progress_summary": performance_analysis,
+                "recommendations": performance_analysis.get("recommendations", [])
             }
             
             return report
@@ -1551,11 +1626,11 @@ class ActivityManager:
             )
             
             if start_date:
-                query = query.filter(StudentActivityPerformance.date >= start_date)
+                query = query.filter(StudentActivityPerformance.recorded_at >= start_date)
             if end_date:
-                query = query.filter(StudentActivityPerformance.date <= end_date)
+                query = query.filter(StudentActivityPerformance.recorded_at <= end_date)
             
-            performances = query.order_by(StudentActivityPerformance.date).all()
+            performances = query.order_by(StudentActivityPerformance.recorded_at).all()
             
             # Initialize enhanced analysis
             enhanced_analysis = {
@@ -1577,7 +1652,7 @@ class ActivityManager:
                 
                 # Calculate effort score (based on frequency and duration)
                 total_days = (end_date - start_date).days if start_date and end_date else 30
-                activity_days = len(set(p.date.date() for p in performances))
+                activity_days = len(set(p.recorded_at.date() for p in performances))
                 enhanced_analysis["advanced_metrics"]["effort_score"] = activity_days / total_days
                 
                 # Calculate improvement trends by category
@@ -1692,9 +1767,9 @@ class ActivityManager:
             )
             
             if start_date:
-                query = query.filter(StudentActivityPerformance.date >= start_date)
+                query = query.filter(StudentActivityPerformance.recorded_at >= start_date)
             if end_date:
-                query = query.filter(StudentActivityPerformance.date <= end_date)
+                query = query.filter(StudentActivityPerformance.recorded_at <= end_date)
             
             performances = query.all()
             
@@ -1704,7 +1779,7 @@ class ActivityManager:
                 activity = await self.get_activity(performance.activity_id)
                 if activity:
                     data.append({
-                        'date': performance.date,
+                        'date': performance.recorded_at,
                         'activity_id': performance.activity_id,
                         'activity_type': activity.activity_type.value,
                         'category': activity.categories[0] if activity.categories else 'uncategorized',

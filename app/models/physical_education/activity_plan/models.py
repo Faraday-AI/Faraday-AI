@@ -6,7 +6,7 @@ This module defines activity plan models for physical education.
 
 from datetime import datetime
 from typing import Optional, List
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Float, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, JSON, Float, Text, Boolean
 from sqlalchemy.orm import relationship
 from pydantic import BaseModel, ConfigDict
 
@@ -33,6 +33,7 @@ class ActivityPlan(SharedBase, TimestampedMixin):
     duration = Column(Integer)  # in minutes
     difficulty = Column(String(20))
     student_id = Column(Integer, ForeignKey("students.id"), nullable=True)  # Optional for class-wide plans
+    is_completed = Column(Boolean, default=False, nullable=False)  # Track plan completion status
     plan_metadata = Column(JSON)
     
     # Relationships
@@ -52,6 +53,7 @@ class ActivityPlanActivity(SharedBase, TimestampedMixin):
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
     sequence = Column(Integer)
     duration = Column(Integer)  # in minutes
+    is_completed = Column(Boolean, default=False, nullable=False)  # Track completion status
     activity_metadata = Column(JSON)
     
     # Relationships

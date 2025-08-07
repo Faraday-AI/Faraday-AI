@@ -227,6 +227,9 @@ class ActivityProgression(SharedBase):
     current_level = Column(SQLEnum(ProgressionLevel, name='current_progression_level_enum'), nullable=False)
     requirements = Column(Text)
     next_level_id = Column(Integer, ForeignKey("activity_progressions.id"))
+    improvement_rate = Column(Float, default=0.0)  # Rate of improvement (0-1 scale)
+    last_assessment_date = Column(DateTime, nullable=True)  # Date of last assessment
+    next_assessment_date = Column(DateTime, nullable=True)  # Date of next scheduled assessment
     start_date = Column(DateTime, default=datetime.utcnow)
     last_updated = Column(DateTime, default=datetime.utcnow)
     progression_metadata = Column(JSON, nullable=True)
