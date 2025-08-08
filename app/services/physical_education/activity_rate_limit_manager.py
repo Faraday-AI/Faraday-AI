@@ -45,10 +45,10 @@ class ActivityRateLimitManager:
         
         # Initialize Redis connection
         try:
-            self.redis_client = redis.Redis(
-                host='localhost',
-                port=6379,
-                db=1,
+            from app.core.config import get_settings
+            settings = get_settings()
+            self.redis_client = redis.Redis.from_url(
+                settings.REDIS_URL,
                 decode_responses=True
             )
             self.redis_client.ping()  # Test connection

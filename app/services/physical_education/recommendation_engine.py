@@ -7,7 +7,16 @@ from app.models.student import Student
 from app.models.activity import Activity
 from app.models.routine import Routine
 from app.models.physical_education.assessment import Assessment
-from app.api.v1.models.activity import ActivityRecommendation
+# Define ActivityRecommendation locally to avoid circular imports
+from datetime import datetime
+from typing import Dict, Any, Optional
+from pydantic import BaseModel, Field, ConfigDict
+
+class ActivityRecommendation(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    activity: Any = Field(..., description="Activity object")
+    recommendation_score: float = Field(..., description="Recommendation score (0.0 to 1.0)", ge=0.0, le=1.0)
+    score_breakdown: Dict[str, float] = Field(..., description="Detailed breakdown of the recommendation score")
 from app.schemas.physical_education.student import StudentPreferences
 from app.core.config import settings
 from app.core.logging import get_logger

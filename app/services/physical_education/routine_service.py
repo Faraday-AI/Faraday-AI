@@ -4,10 +4,12 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from app.models.routine import (
     Routine, 
-    RoutineType, 
-    RoutineActivity, 
+    RoutineActivity
+)
+from app.models.physical_education.pe_enums.pe_types import (
+    RoutineType,
     RoutineStatus,
-    RoutineDifficulty
+    DifficultyLevel
 )
 from app.models.physical_education.class_ import PhysicalEducationClass
 from app.models.student import Student

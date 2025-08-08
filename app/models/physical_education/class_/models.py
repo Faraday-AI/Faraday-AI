@@ -49,6 +49,7 @@ class PhysicalEducationClass(SharedBase):
     risk_assessments = relationship("app.models.physical_education.safety.models.RiskAssessment", back_populates="class_", lazy='joined')
     safety_checks = relationship("app.models.physical_education.safety.models.SafetyCheck", back_populates="class_", lazy='joined')
     equipment_checks = relationship("app.models.physical_education.safety.models.EquipmentCheck", back_populates="class_", lazy='joined')
+    lesson_plans = relationship("app.models.lesson_plan.models.LessonPlan", back_populates="physical_education_class", lazy='joined')
 
 class ClassStudent(SharedBase):
     """Model for student enrollment in physical education classes."""

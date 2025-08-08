@@ -43,5 +43,5 @@ class ActivityPlanActivity(SharedBase):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    plan = relationship("ActivityPlan", back_populates="activities")
+    plan = relationship("app.models.activity_adaptation.activity.activity.ActivityPlan", back_populates="activities")
     activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="activity_plans") 

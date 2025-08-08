@@ -3,14 +3,23 @@ import logging
 import time
 from datetime import datetime
 import redis.asyncio as redis
-from prometheus_client import Counter, Histogram, Gauge
+from prometheus_client import Counter, Histogram, Gauge, REGISTRY
 
-# Prometheus metrics
-CACHE_HITS = Counter('cache_hits_total', 'Total number of cache hits', ['service', 'method'])
-CACHE_MISSES = Counter('cache_misses_total', 'Total number of cache misses', ['service', 'method'])
-CACHE_LATENCY = Histogram('cache_latency_seconds', 'Cache operation latency in seconds', ['service', 'operation'])
-CACHE_SIZE = Gauge('cache_size_bytes', 'Current size of cache in bytes', ['service'])
-CACHE_ERRORS = Counter('cache_errors_total', 'Total number of cache errors', ['service', 'error_type'])
+# Function to get or create metrics safely
+def get_or_create_metric(metric_class, name, description, labelnames=None):
+    """Get existing metric or create new one to avoid duplicate registration."""
+    try:
+        return metric_class(name, description, labelnames or [])
+    except ValueError:
+        # Metric already exists, return None for now (we'll handle this in the class)
+        return None
+
+# Prometheus metrics - initialize as None, will be created in class if needed
+CACHE_HITS = None
+CACHE_MISSES = None
+CACHE_LATENCY = None
+CACHE_SIZE = None
+CACHE_ERRORS = None
 
 class CacheMonitor:
     """Service for monitoring Redis cache performance and reliability."""
@@ -19,6 +28,19 @@ class CacheMonitor:
         self.redis = redis_client
         self.service_name = service_name
         self.logger = logging.getLogger(f"cache_monitor.{service_name}")
+        
+        # Initialize metrics if not already created
+        global CACHE_HITS, CACHE_MISSES, CACHE_LATENCY, CACHE_SIZE, CACHE_ERRORS
+        if CACHE_HITS is None:
+            CACHE_HITS = get_or_create_metric(Counter, 'cache_hits_total', 'Total number of cache hits', ['service', 'method'])
+        if CACHE_MISSES is None:
+            CACHE_MISSES = get_or_create_metric(Counter, 'cache_misses_total', 'Total number of cache misses', ['service', 'method'])
+        if CACHE_LATENCY is None:
+            CACHE_LATENCY = get_or_create_metric(Histogram, 'cache_latency_seconds', 'Cache operation latency in seconds', ['service', 'operation'])
+        if CACHE_SIZE is None:
+            CACHE_SIZE = get_or_create_metric(Gauge, 'cache_size_bytes', 'Current size of cache in bytes', ['service'])
+        if CACHE_ERRORS is None:
+            CACHE_ERRORS = get_or_create_metric(Counter, 'cache_errors_total', 'Total number of cache errors', ['service', 'error_type'])
 
     async def track_cache_operation(
         self,
@@ -28,7 +50,7 @@ class CacheMonitor:
     ) -> None:
         """Track a cache operation with timing and success/failure metrics."""
         try:
-            if start_time is not None:
+            if start_time is not None and CACHE_LATENCY is not None:
                 latency = time.time() - start_time
                 CACHE_LATENCY.labels(
                     service=self.service_name,
@@ -36,38 +58,43 @@ class CacheMonitor:
                 ).observe(latency)
 
             # Track cache size
-            cache_size = await self.redis.dbsize()
-            CACHE_SIZE.labels(service=self.service_name).set(cache_size)
+            if CACHE_SIZE is not None:
+                cache_size = await self.redis.dbsize()
+                CACHE_SIZE.labels(service=self.service_name).set(cache_size)
 
         except Exception as e:
             self.logger.error(f"Error tracking cache operation: {str(e)}")
-            CACHE_ERRORS.labels(
-                service=self.service_name,
-                error_type="monitoring_error"
-            ).inc()
+            if CACHE_ERRORS is not None:
+                CACHE_ERRORS.labels(
+                    service=self.service_name,
+                    error_type="monitoring_error"
+                ).inc()
 
     async def track_cache_hit(self, method: str) -> None:
         """Track a successful cache hit."""
-        CACHE_HITS.labels(
-            service=self.service_name,
-            method=method
-        ).inc()
+        if CACHE_HITS is not None:
+            CACHE_HITS.labels(
+                service=self.service_name,
+                method=method
+            ).inc()
         await self.track_cache_operation("hit", method)
 
     async def track_cache_miss(self, method: str) -> None:
         """Track a cache miss."""
-        CACHE_MISSES.labels(
-            service=self.service_name,
-            method=method
-        ).inc()
+        if CACHE_MISSES is not None:
+            CACHE_MISSES.labels(
+                service=self.service_name,
+                method=method
+            ).inc()
         await self.track_cache_operation("miss", method)
 
     async def track_cache_error(self, error_type: str) -> None:
         """Track a cache error."""
-        CACHE_ERRORS.labels(
-            service=self.service_name,
-            error_type=error_type
-        ).inc()
+        if CACHE_ERRORS is not None:
+            CACHE_ERRORS.labels(
+                service=self.service_name,
+                error_type=error_type
+            ).inc()
         self.logger.error(f"Cache error occurred: {error_type}")
 
     async def get_cache_stats(self) -> Dict[str, Any]:

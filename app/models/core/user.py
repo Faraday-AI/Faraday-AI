@@ -170,6 +170,7 @@ class User(CoreBase, TimestampedMixin, StatusMixin, MetadataMixin):
     teacher_profile = relationship("app.models.educational.staff.teacher.Teacher", back_populates="user", uselist=False, lazy="select")
     workout_sessions = relationship("app.models.physical_education.workout.models.WorkoutSession", back_populates="teacher", lazy="select")
     workout_plans = relationship("app.models.physical_education.workout.models.WorkoutPlan", back_populates="teacher", lazy="select")
+    lesson_plans = relationship("app.models.lesson_plan.models.LessonPlan", back_populates="teacher", lazy="select")
     health_checks = relationship("app.models.physical_education.health.models.HealthCheck", back_populates="teacher")
     ip_allowlist_entries = relationship("app.models.security.policy.security.IPAllowlist", back_populates="created_by_user", lazy="select")
     ip_blocklist_entries = relationship("app.models.security.policy.security.IPBlocklist", back_populates="created_by_user", lazy="select")

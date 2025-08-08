@@ -15,11 +15,37 @@ from app.models.physical_education.activity.models import (
     StudentActivityPerformance,
     StudentActivityPreference
 )
-from app.api.v1.models.activity import (
-    ActivityRecommendationRequest,
-    ActivityRecommendationResponse,
-    ActivityRecommendation
-)
+# Define models locally to avoid circular imports
+from datetime import datetime
+from typing import Dict, Any, Optional
+from pydantic import BaseModel, Field, ConfigDict
+
+class ActivityRecommendationRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    student_id: int = Field(..., description="ID of the student")
+    class_id: int = Field(..., description="ID of the class")
+    preferences: Optional[Dict[str, Any]] = Field(None, description="Student preferences")
+    limit: Optional[int] = Field(5, description="Maximum number of recommendations to return")
+
+class ActivityRecommendationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int = Field(..., description="Recommendation ID")
+    student_id: int = Field(..., description="ID of the student")
+    class_id: int = Field(..., description="ID of the class")
+    activity_id: int = Field(..., description="ID of the recommended activity")
+    recommendation_score: float = Field(..., description="Recommendation score (0.0 to 1.0)", ge=0.0, le=1.0)
+    score_breakdown: Dict[str, float] = Field(..., description="Detailed breakdown of the recommendation score")
+    created_at: datetime = Field(..., description="Timestamp of recommendation")
+
+class ActivityRecommendation(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    activity_type: str = Field(..., description="Type of activity recommended")
+    category: str = Field(..., description="Category of the activity")
+    duration: int = Field(..., description="Recommended duration in minutes", gt=0)
+    intensity: str = Field(..., description="Recommended intensity level")
+    priority: str = Field(..., description="Priority of the recommendation")
+    reason: str = Field(..., description="Reason for the recommendation")
+    expected_improvement: float = Field(..., description="Expected improvement percentage", ge=0, le=100)
 from app.services.physical_education.recommendation_engine import RecommendationEngine
 from app.core.logging import get_logger
 from app.models.physical_education.pe_enums.pe_types import (

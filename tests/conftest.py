@@ -68,54 +68,38 @@ def engine():
 
 @pytest.fixture(scope="session")
 def test_schema(engine):
-    """Create and use test schema."""
+    """Use existing schema for Azure PostgreSQL."""
     if not get_test_db_url().startswith("sqlite"):
-        schema_name = os.getenv("TEST_SCHEMA", "test_schema")
-        with engine.connect() as conn:
-            conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {schema_name}"))
-            conn.execute(text(f"SET search_path TO {schema_name}"))
-            conn.commit()
-        yield schema_name
-        with engine.connect() as conn:
-            conn.execute(text(f"DROP SCHEMA IF EXISTS {schema_name} CASCADE"))
-            conn.commit()
+        # For Azure, use the existing schema (public)
+        yield "public"
     else:
         yield None
 
 @pytest.fixture(scope="session")
 def tables(engine, test_schema):
-    """Create all database tables."""
-    if get_test_db_url().startswith("sqlite"):
-        # Create all tables using SharedBase
-        SharedBase.metadata.create_all(engine)
-        yield
-        # Drop all tables
-        SharedBase.metadata.drop_all(engine)
-    else:
-        # For Azure, tables are managed through migrations
-        yield
+    """Use existing tables for Azure PostgreSQL."""
+    # For Azure, tables are already created and seeded
+    # No need to create/drop tables
+    yield
 
 @pytest.fixture
 def db_session(engine, tables, test_schema):
     """Create a new database session for a test."""
     connection = engine.connect()
     
-    # Start transaction
-    transaction = connection.begin()
+    # Set the search path to use the test schema for PostgreSQL
+    if test_schema:
+        connection.execute(text(f"SET search_path TO {test_schema}, public"))
+        connection.commit()
     
     # Create session
     Session = sessionmaker(bind=connection)
     session = Session()
     
-    if not get_test_db_url().startswith("sqlite"):
-        # For Azure, use nested transactions
-        session.begin_nested()
-    
     yield session
     
     # Cleanup
     session.close()
-    transaction.rollback()
     connection.close()
 
 @pytest.fixture

@@ -38,7 +38,7 @@ class GradeLevelModel(SQLAlchemyBaseModel):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    lesson_plans = relationship("LessonPlan", back_populates="grade_level")
+    lesson_plans = relationship("app.models.educational.curriculum.lesson_plan.LessonPlan", back_populates="grade_level")
 
     def __repr__(self):
         return f"<GradeLevel {self.name}>"
@@ -60,7 +60,7 @@ class SubjectModel(SQLAlchemyBaseModel):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    lesson_plans = relationship("LessonPlan", back_populates="subject")
+    lesson_plans = relationship("app.models.educational.curriculum.lesson_plan.LessonPlan", back_populates="subject")
 
     def __repr__(self):
         return f"<Subject {self.name}>"

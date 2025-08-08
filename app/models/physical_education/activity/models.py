@@ -102,6 +102,8 @@ class Activity(SharedBase):
     safety = relationship("app.models.skill_assessment.safety.safety.Safety", back_populates="activity", overlaps="activity,safety")
     safety_checks = relationship("app.models.physical_education.safety.models.SafetyCheck", back_populates="activity", overlaps="activity,safety_checks")
     skill_assessment_safety_checks = relationship("app.models.skill_assessment.safety.safety.SafetyCheck", back_populates="activity", overlaps="activity,skill_assessment_safety_checks")
+    tracking_records = relationship("app.models.tracking.models.ActivityTracking", back_populates="activity")
+    lesson_plan_activities = relationship("app.models.lesson_plan.models.LessonPlanActivity", back_populates="activity")
     
     def __repr__(self):
         return f"<Activity {self.name} - {self.difficulty_level}>"

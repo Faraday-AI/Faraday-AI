@@ -9,6 +9,7 @@ from app.models.routine import Routine
 from app.models.activity import Activity
 from app.models.lesson_plan import LessonPlan
 from app.models.movement_analysis.analysis.movement_analysis import MovementAnalysis, MovementPattern
+from app.models.physical_education.pe_enums.pe_types import ClassStatus
 
 class ClassService:
     """Service for managing physical education classes and related operations."""

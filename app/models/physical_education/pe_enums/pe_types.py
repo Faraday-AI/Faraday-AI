@@ -1220,6 +1220,53 @@ class PlanningTrigger(str, enum.Enum):
     ADAPTATION = "adaptation"
     SYSTEM = "system"
 
+class TrackingType(str, enum.Enum):
+    """Types of activity tracking."""
+    PARTICIPATION = "participation"
+    PERFORMANCE = "performance"
+    PROGRESS = "progress"
+    ATTENDANCE = "attendance"
+    ENGAGEMENT = "engagement"
+    BEHAVIOR = "behavior"
+    SAFETY = "safety"
+    HEALTH = "health"
+    FITNESS = "fitness"
+    SKILL = "skill"
+    MOVEMENT = "movement"
+    RECOVERY = "recovery"
+    ADAPTATION = "adaptation"
+
+class TrackingLevel(str, enum.Enum):
+    """Levels of tracking detail."""
+    BASIC = "basic"
+    STANDARD = "standard"
+    DETAILED = "detailed"
+    COMPREHENSIVE = "comprehensive"
+    EXPERT = "expert"
+
+class TrackingTrigger(str, enum.Enum):
+    """Triggers for tracking events."""
+    MANUAL = "manual"
+    SCHEDULED = "scheduled"
+    PERFORMANCE = "performance"
+    PROGRESS = "progress"
+    SAFETY = "safety"
+    ADAPTATION = "adaptation"
+    SYSTEM = "system"
+
+class TrackingStatus(str, enum.Enum):
+    """Status options for activity tracking."""
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    PAUSED = "paused"
+    CANCELLED = "cancelled"
+    ON_HOLD = "on_hold"
+    NEEDS_ATTENTION = "needs_attention"
+    OVERDUE = "overdue"
+    MISSED = "missed"
+    RESCHEDULED = "rescheduled"
+
 # Metric Types
 class MetricType(str, enum.Enum):
     """Types of metrics for health and fitness tracking."""
@@ -2344,6 +2391,10 @@ __all__ = [
     'PlanningLevel',
     'PlanningStatus',
     'PlanningTrigger',
+    'TrackingType',
+    'TrackingLevel',
+    'TrackingStatus',
+    'TrackingTrigger',
     'MetricType',
     'MetricLevel',
     'MetricStatus',

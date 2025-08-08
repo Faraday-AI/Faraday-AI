@@ -140,6 +140,12 @@ class Student(SharedBase):
     # Movement analysis relationships
     movement_analyses = relationship("app.models.physical_education.movement_analysis.models.MovementAnalysis", back_populates="student")
     movement_analysis_records = relationship("MovementAnalysisRecord", back_populates="student")
+    
+    # Tracking relationships
+    activity_tracking = relationship("app.models.tracking.models.ActivityTracking", back_populates="student")
+    
+    # Planning relationships
+    activity_plans = relationship("app.models.planning.models.ActivityPlan", back_populates="student")
 
 class StudentCreate(BaseModel):
     """Pydantic model for creating student profiles."""
