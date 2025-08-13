@@ -17,7 +17,7 @@ from app.dashboard.services.cache_manager import (
 @pytest.fixture
 def redis_client():
     """Create a Redis client for testing."""
-    client = redis.Redis(host='localhost', port=6379, db=0)
+    client = redis.Redis(host='redis', port=6379, db=0)
     client.flushdb()  # Clear Redis before tests
     yield client
     client.flushdb()  # Clear Redis after tests
@@ -26,7 +26,7 @@ def redis_client():
 def cache_manager(redis_client):
     """Create a cache manager instance for testing."""
     manager = CacheManager(
-        redis_url='redis://localhost:6379/0',
+        redis_url='redis://redis:6379/0',
         default_ttl=1,
         max_memory_size=100,
         compression_threshold=1024,

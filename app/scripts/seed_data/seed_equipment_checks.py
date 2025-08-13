@@ -67,4 +67,6 @@ def seed_equipment_checks(session: Session):
     session.add_all(equipment_checks)
     session.flush()
     
-    print(f"Seeded {len(equipment_checks)} equipment checks.") 
+    # Count and display the actual number of equipment checks seeded
+    equipment_check_count = session.query(EquipmentCheck).count()
+    print(f"Seeded {len(equipment_checks)} equipment checks. Total equipment checks in database: {equipment_check_count}") 

@@ -22,7 +22,7 @@ from app.models.exercise import (
 
 @pytest.fixture
 async def redis_client():
-    client = redis.Redis(host='localhost', port=6379, db=0)
+    client = redis.Redis(host='redis', port=6379, db=0)
     yield client
     await client.close()
 

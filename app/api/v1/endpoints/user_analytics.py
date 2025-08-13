@@ -372,7 +372,7 @@ def get_analytics_health(
     return {
         "system_status": "healthy",
         "data_freshness": datetime.utcnow().isoformat(),
-        "model_versions": {
+        "ml_model_versions": {  # Updated field name to avoid Pydantic namespace conflict
             "prediction_model": "v1.0.0",
             "recommendation_model": "v1.0.0",
             "insights_model": "v1.0.0"

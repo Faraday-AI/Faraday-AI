@@ -14,14 +14,18 @@ def seed_skill_assessments(session: Session) -> None:
     """Seed skill assessment data."""
     print("Seeding skill assessments...")
 
-    # Get students, activities, and criteria
-    students = session.execute(select(Student)).scalars().all()
-    activities = session.execute(select(Activity)).scalars().all()
-    criteria = session.execute(select(AssessmentCriteria)).scalars().all()
+    # Get students, activities, and criteria - use simple queries to avoid relationship conflicts
+    students = session.query(Student.id, Student.first_name, Student.last_name).limit(5).all()
+    activities = session.query(Activity.id, Activity.name).limit(3).all()
+    criteria = session.query(AssessmentCriteria.id, AssessmentCriteria.name, AssessmentCriteria.weight).all()
+
+    if not students or not activities or not criteria:
+        print("Warning: Missing required data for skill assessments")
+        return
 
     # Create assessments for each student-activity pair
-    for student in students[:5]:  # Limit to first 5 students
-        for activity in activities[:3]:  # Limit to first 3 activities
+    for student in students:
+        for activity in activities:
             # Create skill assessment
             assessment = SkillAssessment(
                 student_id=student.id,
@@ -99,5 +103,5 @@ def seed_skill_assessments(session: Session) -> None:
             )
             session.add(progress)
 
-    session.flush()
+    session.commit()
     print("Skill assessments seeded successfully!") 

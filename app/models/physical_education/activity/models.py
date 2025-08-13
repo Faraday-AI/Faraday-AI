@@ -37,6 +37,10 @@ class Activity(SharedBase):
     safety_notes = Column(Text)
     type = Column(SQLEnum(ActivityType, name='activity_type_enum'))  # Activity type
     
+    # Enhanced fields for better activity tracking
+    calories_burn_rate = Column(Float)  # calories burned per minute
+    target_muscle_groups = Column(Text)  # primary muscle groups targeted
+    
     # Additional columns specific to Activity
     category = Column(SQLEnum(ActivityCategoryType, name='activity_category_enum'))
     format = Column(SQLEnum(ActivityFormat, name='activity_format_enum'))
@@ -104,6 +108,8 @@ class Activity(SharedBase):
     skill_assessment_safety_checks = relationship("app.models.skill_assessment.safety.safety.SafetyCheck", back_populates="activity", overlaps="activity,skill_assessment_safety_checks")
     tracking_records = relationship("app.models.tracking.models.ActivityTracking", back_populates="activity")
     lesson_plan_activities = relationship("app.models.lesson_plan.models.LessonPlanActivity", back_populates="activity")
+    progress_records = relationship("app.models.progress.progress_model.ProgressModel", back_populates="activity")
+    progress_goals = relationship("app.models.progress.progress_goal.ProgressGoal", back_populates="activity")
     
     def __repr__(self):
         return f"<Activity {self.name} - {self.difficulty_level}>"

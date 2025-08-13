@@ -92,7 +92,10 @@ def seed_users(session: Session) -> None:
         session.add(user)
     
     session.commit()
-    print("Users seeded successfully!")
+    
+    # Count and display the actual number of users seeded
+    user_count = session.query(User).count()
+    print(f"Users seeded successfully! Total users in database: {user_count}")
 
 if __name__ == "__main__":
     seed_users(SessionLocal()) 

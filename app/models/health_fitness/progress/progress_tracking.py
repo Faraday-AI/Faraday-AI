@@ -83,7 +83,7 @@ class Progress(ProgressBaseModel, StatusMixin):
     
     # Relationships
     student = relationship("Student", back_populates="progress")
-    goals = relationship("ProgressGoal", back_populates="progress", cascade="all, delete-orphan")
+    goals = relationship("app.models.health_fitness.progress.progress_tracking.ProgressGoal", back_populates="progress", cascade="all, delete-orphan")
     notes = relationship("HealthFitnessProgressNote", back_populates="progress", cascade="all, delete-orphan")
 
 class ProgressGoal(ProgressBaseModel, NamedMixin, StatusMixin):

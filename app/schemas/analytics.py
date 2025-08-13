@@ -495,7 +495,7 @@ class AnalyticsHealthResponse(BaseModel):
     """Analytics system health response."""
     system_status: str
     data_freshness: datetime
-    model_versions: Dict[str, str]
+    ml_model_versions: Dict[str, str]  # Renamed from model_versions to avoid Pydantic namespace conflict
     prediction_accuracy: float
     recommendation_effectiveness: float
     system_performance: Dict[str, Any]

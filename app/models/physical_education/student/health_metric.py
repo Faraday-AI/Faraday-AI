@@ -31,7 +31,7 @@ class HealthMetric(BaseModelMixin, TimestampMixin):
     notes = Column(String)
 
     # Relationships will be set up by setup_student_relationships
-    pass
+    student = relationship('Student', back_populates='student_health_metrics', overlaps="health_metrics,pe_health_metrics")
 
 class HealthMetricHistory(BaseModelMixin, TimestampMixin):
     """Model for tracking student health metric history."""

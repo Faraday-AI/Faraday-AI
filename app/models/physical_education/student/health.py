@@ -126,7 +126,7 @@ class HealthMetric(CoreBase):
     metric_metadata = Column(JSON, nullable=True)
 
     # Relationships
-    student = relationship("Student", back_populates="student_health_metrics")
+    student = relationship("Student", back_populates="student_health_metrics", overlaps="health_metrics,pe_health_metrics")
     thresholds = relationship("app.models.physical_education.student.health.HealthMetricThreshold", back_populates="metrics")
 
 class HealthMetricThreshold(CoreBase):

@@ -29,7 +29,7 @@ class HealthMetric(CoreBase, TimestampedMixin, MetadataMixin):
     notes = Column(String, nullable=True)
     
     # Relationships
-    student = relationship("Student", back_populates="health_metrics", overlaps="student,student_health_metrics")
+    student = relationship("Student", back_populates="health_metrics", overlaps="student,student_health_metrics,pe_health_metrics,health_metrics")
     history = relationship("app.models.health_fitness.metrics.health.HealthMetricHistory", back_populates="metric", cascade="all, delete-orphan", overlaps="metric,history")
     
     def dict(self) -> Dict[str, Any]:

@@ -209,6 +209,11 @@ from .seed_memories import seed_memories
 from .seed_assistant_profiles import seed_assistant_profiles
 from .seed_skill_progress import seed_skill_progress
 
+# Import the new comprehensive seeding scripts
+from .seed_dashboard_system import seed_dashboard_system
+from .seed_gpt_system import seed_gpt_system
+from .seed_security_system import seed_security_system
+
 def seed_database():
     """Seed the database with initial data."""
     print("Running seed data script...")
@@ -456,6 +461,41 @@ def seed_database():
                 seed_skill_progress(session)
                 session.commit()
                 
+                # NEW: Comprehensive system seeding
+                print("\n" + "="*50)
+                print("COMPREHENSIVE SYSTEM SEEDING")
+                print("="*50)
+                
+                # Dashboard system
+                seed_dashboard_system(session)
+                session.commit()
+                
+                # GPT/AI system
+                seed_gpt_system(session)
+                session.commit()
+                
+                # Security system
+                seed_security_system(session)
+                session.commit()
+                
+                # Final count summary
+                print("\n" + "="*50)
+                print("FINAL SEEDING SUMMARY")
+                print("="*50)
+                
+                # Count all major tables
+                from app.models.shared_base import SharedBase
+                inspector = inspect(engine)
+                table_names = inspector.get_table_names()
+                
+                for table_name in sorted(table_names):
+                    try:
+                        count = session.execute(text(f"SELECT COUNT(*) FROM {table_name}")).scalar()
+                        print(f"{table_name}: {count} records")
+                    except Exception as e:
+                        print(f"{table_name}: Error counting - {e}")
+                
+                print("="*50)
                 print("Database seeded successfully!")
                 
             except Exception as e:

@@ -31,6 +31,7 @@ class ProgressModel(SharedBase):
     # Relationships
     student = relationship("Student", back_populates="progress_records")
     activity = relationship("Activity", back_populates="progress_records")
+    metrics = relationship("ProgressMetrics", back_populates="progress_record")
     
     def __repr__(self):
         return f"<ProgressModel(student_id={self.student_id}, activity_id={self.activity_id}, timestamp={self.timestamp})>"

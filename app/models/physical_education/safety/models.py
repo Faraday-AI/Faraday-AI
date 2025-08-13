@@ -182,6 +182,9 @@ class EquipmentBase(SharedBase):
         'polymorphic_identity': 'equipment_base',
         'polymorphic_on': 'type'
     }
+    
+    def __repr__(self):
+        return f"<Equipment {self.name} - {self.type}>"
 
 class Equipment(EquipmentBase):
     """Model for physical education equipment."""
@@ -350,6 +353,17 @@ class SafetyCheck(SharedBase):
     checked_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     performed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     status = Column(String(20), default="PASS")
+    
+    # Enhanced fields for better safety tracking
+    description = Column(Text)  # Description of what the safety check covers
+    priority = Column(String(20))  # Priority level of the safety check (HIGH, MEDIUM, LOW)
+    assigned_to = Column(String(100))  # Person assigned to perform the safety check
+    due_date = Column(DateTime)  # Due date for completing the safety check
+    completed_date = Column(DateTime)  # Date when the safety check was completed
+    location = Column(String(100))  # Location where the safety check should be performed
+    equipment_involved = Column(Text)  # Equipment that needs to be checked for safety
+    risk_level = Column(String(20))  # Risk level assessment (LOW, MEDIUM, HIGH, CRITICAL)
+    
     notes = Column(Text)
     results = Column(JSON, nullable=True)  # Results of the safety check
     check_metadata = Column(JSON, nullable=True)  # Additional metadata about the check

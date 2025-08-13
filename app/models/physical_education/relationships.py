@@ -31,7 +31,7 @@ def setup_progress_relationships(Progress):
     Progress.student = relationship('Student', back_populates='progress')
     Progress.activity = relationship('Activity', back_populates='progress_records')
     Progress.milestones = relationship('ProgressMilestone', back_populates='progress', cascade='all, delete-orphan')
-    Progress.goals = relationship('ProgressGoal', back_populates='progress', cascade='all, delete-orphan')
+    Progress.goals = relationship('app.models.physical_education.progress.models.ProgressGoal', back_populates='progress', cascade='all, delete-orphan')
     Progress.notes = relationship('ProgressNote', back_populates='progress', cascade='all, delete-orphan')
     Progress.assessments = relationship('ProgressAssessment', back_populates='progress', cascade='all, delete-orphan')
 

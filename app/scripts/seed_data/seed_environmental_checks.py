@@ -56,4 +56,6 @@ def seed_environmental_checks(session: Session) -> None:
     session.add_all(environmental_checks)
     session.flush()
     
-    print(f"Seeded {len(environmental_checks)} environmental checks.") 
+    # Count and display the actual number of environmental checks seeded
+    environmental_check_count = session.query(EnvironmentalCheck).count()
+    print(f"Seeded {len(environmental_checks)} environmental checks. Total environmental checks in database: {environmental_check_count}") 

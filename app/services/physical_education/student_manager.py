@@ -37,49 +37,60 @@ class StudentManager:
         return cls._instance
     
     def __init__(self, db_session: Optional[Session] = None):
-        self.logger = logging.getLogger("student_manager")
-        self.db = db_session
-        self.assessment_system = None
-        self.lesson_planner = None
+        # For singleton, we need to check if this is a new instance or existing
+        if not hasattr(self, 'logger'):
+            # This is a new instance, initialize everything
+            self.logger = logging.getLogger("student_manager")
+            self.assessment_system = None
+            self.lesson_planner = None
+            
+            # Student data structures
+            self.students: Dict[str, Dict[str, Any]] = {}
+            self.classes: Dict[str, Dict[str, Any]] = {}
+            self.attendance_records: Dict[str, Dict[str, List[datetime]]] = {}
+            self.progress_records: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
+            
+            # Settings
+            self.settings = {
+                "max_class_size": 30,
+                "min_attendance_required": 0.8,  # 80% attendance required
+                "progress_update_frequency": 7,  # days
+                "assessment_frequency": 14,  # days
+                "skill_levels": ["beginner", "intermediate", "advanced"],
+                "medical_conditions": [
+                    "asthma",
+                    "diabetes",
+                    "epilepsy",
+                    "heart_condition",
+                    "allergies",
+                    "other"
+                ]
+            }
+            
+            # Progress tracking metrics
+            self.progress_metrics = {
+                "fitness": [
+                    "cardiovascular_endurance",
+                    "muscular_strength",
+                    "flexibility",
+                    "body_composition"
+                ],
+                "skills": [
+                    "locomotor_skills",
+                    "non_locomotor_skills",
+                    "manipulative_skills"
+                ],
+                "social": [
+                    "teamwork",
+                    "sportsmanship",
+                    "leadership",
+                    "communication"
+                ]
+            }
         
-        # Student data structures
-        self.students: Dict[str, Dict[str, Any]] = {}
-        self.classes: Dict[str, Dict[str, Any]] = {}
-        self.attendance_records: Dict[str, Dict[str, List[datetime]]] = {}
-        self.progress_records: Dict[str, Dict[str, List[Dict[str, Any]]]] = {}
-        
-        # Settings
-        self.settings = {
-            "max_class_size": 30,
-            "min_attendance_required": 0.8,  # 80% attendance required
-            "progress_update_frequency": 7,  # days
-            "assessment_frequency": 14,  # days
-            "skill_levels": ["beginner", "intermediate", "advanced"],
-            "medical_conditions": [
-                "asthma",
-                "diabetes",
-                "epilepsy",
-                "heart_condition",
-                "allergies",
-                "other"
-            ]
-        }
-        
-        # Progress tracking metrics
-        self.progress_metrics = {
-            "fitness": [
-                "cardiovascular_endurance",
-                "muscular_strength",
-                "flexibility",
-                "body_composition"
-            ],
-            "skills": [
-                "locomotor_skills",
-                "non_locomotor_skills",
-                "manipulative_skills",
-                "game_strategies"
-            ]
-        }
+        # Always update the database session for existing instances
+        if db_session is not None:
+            self.db = db_session
     
     async def initialize(self):
         """Initialize the student manager."""
@@ -121,7 +132,27 @@ class StudentManager:
             self.logger.error(f"Error loading class data: {str(e)}")
             raise
 
-    @track_metrics
+    @track_metrics("create_student_profile")
+    async def get_student_profile(self, student_id: str) -> Dict[str, Any]:
+        """Get a student profile by ID."""
+        try:
+            if student_id not in self.students:
+                raise ValueError(f"Student {student_id} does not exist")
+            return self.students[student_id]
+        except Exception as e:
+            self.logger.error(f"Error getting student profile: {str(e)}")
+            raise
+
+    async def get_class_info(self, class_id: str) -> Dict[str, Any]:
+        """Get class information by ID."""
+        try:
+            if class_id not in self.classes:
+                raise ValueError(f"Class {class_id} does not exist")
+            return self.classes[class_id]
+        except Exception as e:
+            self.logger.error(f"Error getting class info: {str(e)}")
+            raise
+
     async def create_student_profile(self,
                                    student_id: str,
                                    first_name: str,
@@ -212,7 +243,7 @@ class StudentManager:
             self.logger.error(f"Error validating student parameters: {str(e)}")
             raise
 
-    @track_metrics
+    @track_metrics("create_class")
     async def create_class(self,
                           class_id: str,
                           name: str,
@@ -281,7 +312,7 @@ class StudentManager:
             self.logger.error(f"Error validating class parameters: {str(e)}")
             raise
 
-    @track_metrics
+    @track_metrics("enroll_student")
     async def enroll_student(self, student_id: str, class_id: str) -> bool:
         """Enroll a student in a class."""
         try:
@@ -293,7 +324,7 @@ class StudentManager:
             
             # Check class size
             if self.classes[class_id]["current_size"] >= self.classes[class_id]["max_size"]:
-                raise ValueError("Class is full")
+                return False  # Class is full, return False instead of raising exception
             
             # Add student to class
             if student_id not in self.classes[class_id]["students"]:
@@ -332,7 +363,7 @@ class StudentManager:
             self.logger.error(f"Error initializing student records: {str(e)}")
             raise
 
-    @track_metrics
+    @track_metrics("record_attendance")
     async def record_attendance(self,
                               class_id: str,
                               student_id: str,
@@ -348,9 +379,17 @@ class StudentManager:
             if student_id not in self.classes[class_id]["students"]:
                 raise ValueError(f"Student {student_id} is not enrolled in class {class_id}")
             
-            # Record attendance
+            # Record attendance - store both present and absent records
             if present:
                 self.attendance_records[class_id][student_id].append(date)
+            else:
+                # For absent records, we need to ensure the structure exists
+                if class_id not in self.attendance_records:
+                    self.attendance_records[class_id] = {}
+                if student_id not in self.attendance_records[class_id]:
+                    self.attendance_records[class_id][student_id] = []
+                # Store absent date with a marker to distinguish from present
+                self.attendance_records[class_id][student_id].append(f"absent_{date}")
             
             # Update attendance rate
             self.update_attendance_rate(student_id, class_id)
@@ -376,11 +415,12 @@ class StudentManager:
             self.logger.error(f"Error updating attendance rate: {str(e)}")
             raise
 
-    @track_metrics
+    @track_metrics("record_progress")
     async def record_progress(self,
                             student_id: str,
                             class_id: str,
-                            metrics: Dict[str, Any]) -> bool:
+                            metrics: Dict[str, Any],
+                            date: Optional[datetime] = None) -> bool:
         """Record student progress for a class."""
         try:
             # Validate parameters
@@ -396,7 +436,7 @@ class StudentManager:
             
             # Create progress record
             progress_record = {
-                "date": datetime.now().isoformat(),
+                "date": (date or datetime.now()).isoformat(),
                 "metrics": metrics,
                 "class_id": class_id
             }
@@ -494,7 +534,7 @@ class StudentManager:
             self.logger.error(f"Error determining skill level: {str(e)}")
             return "beginner"
 
-    @track_metrics
+    @track_metrics("generate_progress_report")
     async def generate_progress_report(self,
                                      student_id: str,
                                      class_id: str,
@@ -627,20 +667,26 @@ class StudentManager:
             self.logger.error(f"Error generating recommendations: {str(e)}")
             return []
 
-    def save_student_data(self):
+    def save_student_data(self, student_id: str, filename: str):
         """Save student data to persistent storage."""
         try:
-            # TODO: Implement data persistence
-            self.logger.info("Student data saved successfully")
+            import json
+            f = open(filename, 'w')
+            json.dump(self.students[student_id], f, indent=4)
+            f.close()
+            self.logger.info(f"Student data for {student_id} saved to {filename}")
         except Exception as e:
             self.logger.error(f"Error saving student data: {str(e)}")
             raise
 
-    def save_class_data(self):
+    def save_class_data(self, class_id: str, filename: str):
         """Save class data to persistent storage."""
         try:
-            # TODO: Implement data saving to persistent storage
-            self.logger.info("Class data saved successfully")
+            import json
+            f = open(filename, 'w')
+            json.dump(self.classes[class_id], f, indent=4)
+            f.close()
+            self.logger.info(f"Class data for {class_id} saved to {filename}")
         except Exception as e:
             self.logger.error(f"Error saving class data: {str(e)}")
             raise
@@ -726,4 +772,166 @@ class StudentManager:
             return {
                 "progress_updated": False,
                 "error": str(e)
-            } 
+            }
+    
+    def add_student_to_class(self, student_id: int, class_id: int):
+        """Add a student to a class using database IDs."""
+        try:
+            if not self.db:
+                raise ValueError("Database session not available")
+            
+            # Check if student and class exist
+            from app.models.physical_education.student.models import Student
+            from app.models.physical_education.class_.models import PhysicalEducationClass, ClassStudent
+            from app.models.physical_education.pe_enums.pe_types import ClassStatus
+            
+            student = self.db.query(Student).filter(Student.id == student_id).first()
+            if not student:
+                raise ValueError(f"Student {student_id} not found")
+            
+            class_ = self.db.query(PhysicalEducationClass).filter(PhysicalEducationClass.id == class_id).first()
+            if not class_:
+                raise ValueError(f"Class {class_id} not found")
+            
+            # Check if student is already enrolled
+            existing_enrollment = self.db.query(ClassStudent).filter(
+                ClassStudent.student_id == student_id,
+                ClassStudent.class_id == class_id
+            ).first()
+            
+            if existing_enrollment:
+                raise ValueError(f"Student {student_id} is already enrolled in class {class_id}")
+            
+            # Check class capacity
+            current_enrollment_count = self.db.query(ClassStudent).filter(
+                ClassStudent.class_id == class_id
+            ).count()
+            
+            if class_.max_students and current_enrollment_count >= class_.max_students:
+                raise ValueError(f"Class {class_id} is at maximum capacity ({class_.max_students} students)")
+            
+            # Create enrollment record
+            enrollment = ClassStudent(
+                student_id=student_id,
+                class_id=class_id,
+                status=ClassStatus.ACTIVE
+            )
+            
+            self.db.add(enrollment)
+            self.db.commit()
+            
+            self.logger.info(f"Student {student_id} added to class {class_id}")
+        except Exception as e:
+            self.logger.error(f"Error adding student to class: {str(e)}")
+            if self.db:
+                self.db.rollback()
+            raise
+
+    def remove_student_from_class(self, student_id: int, class_id: int):
+        """Remove a student from a class using database IDs."""
+        try:
+            if not self.db:
+                raise ValueError("Database session not available")
+            
+            # Check if student and class exist
+            from app.models.physical_education.student.models import Student
+            from app.models.physical_education.class_.models import PhysicalEducationClass, ClassStudent
+            
+            student = self.db.query(Student).filter(Student.id == student_id).first()
+            if not student:
+                raise ValueError(f"Student {student_id} not found")
+            
+            class_ = self.db.query(PhysicalEducationClass).filter(PhysicalEducationClass.id == class_id).first()
+            if not class_:
+                raise ValueError(f"Class {class_id} not found")
+            
+            # Find and remove enrollment record
+            enrollment = self.db.query(ClassStudent).filter(
+                ClassStudent.student_id == student_id,
+                ClassStudent.class_id == class_id
+            ).first()
+            
+            if not enrollment:
+                raise ValueError(f"Student {student_id} is not enrolled in class {class_id}")
+            
+            self.db.delete(enrollment)
+            self.db.commit()
+            
+            self.logger.info(f"Student {student_id} removed from class {class_id}")
+        except Exception as e:
+            self.logger.error(f"Error removing student from class: {str(e)}")
+            if self.db:
+                self.db.rollback()
+            raise
+
+    def get_student_classes(self, student_id: int):
+        """Get all classes for a student using database ID."""
+        try:
+            if not self.db:
+                raise ValueError("Database session not available")
+            
+            # Check if student exists
+            from app.models.physical_education.student.models import Student
+            from app.models.physical_education.class_.models import ClassStudent, PhysicalEducationClass
+            
+            student = self.db.query(Student).filter(Student.id == student_id).first()
+            if not student:
+                raise ValueError(f"Student {student_id} not found")
+            
+            # Get all classes the student is enrolled in
+            enrollments = self.db.query(ClassStudent).filter(
+                ClassStudent.student_id == student_id
+            ).all()
+            
+            class_ids = [enrollment.class_id for enrollment in enrollments]
+            classes = self.db.query(PhysicalEducationClass).filter(
+                PhysicalEducationClass.id.in_(class_ids)
+            ).all()
+            
+            self.logger.info(f"Retrieved {len(classes)} classes for student {student_id}")
+            return classes
+        except Exception as e:
+            self.logger.error(f"Error getting student classes: {str(e)}")
+            raise
+
+    def get_class_students(self, class_id: int):
+        """Get all students in a class using database ID."""
+        try:
+            if not self.db:
+                raise ValueError("Database session not available")
+            
+            # Check if class exists
+            from app.models.physical_education.class_.models import PhysicalEducationClass, ClassStudent
+            from app.models.physical_education.student.models import Student
+            
+            class_ = self.db.query(PhysicalEducationClass).filter(PhysicalEducationClass.id == class_id).first()
+            if not class_:
+                raise ValueError(f"Class {class_id} not found")
+            
+            # Get all students enrolled in the class
+            enrollments = self.db.query(ClassStudent).filter(
+                ClassStudent.class_id == class_id
+            ).all()
+            
+            student_ids = [enrollment.student_id for enrollment in enrollments]
+            students = self.db.query(Student).filter(
+                Student.id.in_(student_ids)
+            ).all()
+            
+            self.logger.info(f"Retrieved {len(students)} students for class {class_id}")
+            return students
+        except Exception as e:
+            self.logger.error(f"Error getting class students: {str(e)}")
+            raise
+
+    @classmethod
+    def reset_instance(cls):
+        """Reset the singleton instance for testing purposes."""
+        cls._instance = None
+    
+    def clear_data(self):
+        """Clear in-memory data structures for testing purposes."""
+        self.students.clear()
+        self.classes.clear()
+        self.attendance_records.clear()
+        self.progress_records.clear() 

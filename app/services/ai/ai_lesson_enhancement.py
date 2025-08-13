@@ -4,7 +4,7 @@ import openai
 from app.services.core.base_service import BaseService
 from app.models.educational.curriculum.lesson_plan import LessonPlan
 from app.core.config import get_settings
-from google.cloud import translate_v2 as translate
+from google.cloud import translate
 from google.cloud import texttospeech
 import logging
 from app.models.core.types import Subject

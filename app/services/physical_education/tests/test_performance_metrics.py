@@ -12,7 +12,7 @@ from app.services.physical_education.services.cache_monitor import CacheMonitor
 @pytest.fixture(scope="module")
 async def redis_client():
     """Create a Redis client for testing."""
-    redis = await aioredis.from_url("redis://localhost:6379/1")
+    redis = await aioredis.from_url("redis://redis:6379/1")
     yield redis
     await redis.flushdb()
     await redis.close()

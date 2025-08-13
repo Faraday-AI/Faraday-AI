@@ -37,7 +37,7 @@ class HealthMetric(BaseModelMixin, TimestampMixin):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships using simple class names since they are already imported
-    student = relationship('Student', back_populates='pe_health_metrics')
+    student = relationship('Student', back_populates='pe_health_metrics', overlaps="health_metrics,student_health_metrics,student")
     history = relationship('app.models.physical_education.health.models.HealthMetricHistory', back_populates='metric')
 
 class HealthMetricCreate(BaseModel):

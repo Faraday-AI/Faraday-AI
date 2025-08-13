@@ -41,7 +41,10 @@ def setup_student_relationships(Student):
     Student.student_activity_plans = relationship("app.models.physical_education.activity_plan.models.ActivityPlan", back_populates="student", cascade="all, delete-orphan", overlaps="student,student_activity_plans")
     Student.adapted_activity_plans = relationship("app.models.activity_adaptation.activity.activity.ActivityPlan", back_populates="student", cascade="all, delete-orphan", overlaps="student,adapted_activity_plans")
     Student.adaptations = relationship("app.models.physical_education.activity_adaptation.activity_adaptation.ActivityAdaptation", back_populates="student", cascade="all, delete-orphan", overlaps="student,adaptations")
-    Student.classes = relationship("app.models.physical_education.class_.models.ClassStudent", back_populates="student", cascade="all, delete-orphan", overlaps="student,classes")
+    Student.classes = relationship("app.models.physical_education.class_.models.PhysicalEducationClass", 
+                                 secondary="physical_education_class_students",
+                                 lazy='joined',
+                                 overlaps="class_students,students")
     Student.movement_analyses = relationship("app.models.movement_analysis.analysis.movement_analysis.MovementAnalysis", back_populates="student", cascade="all, delete-orphan", overlaps="student,movement_analyses")
     # Student.assessments = relationship("Assessment", back_populates="student", cascade="all, delete-orphan", overlaps="student,assessments")
     Student.skill_assessments = relationship("app.models.skill_assessment.assessment.assessment.SkillAssessment", back_populates="student", cascade="all, delete-orphan", overlaps="student,skill_assessments")
@@ -50,7 +53,7 @@ def setup_student_relationships(Student):
     Student.routine_performances = relationship("app.models.physical_education.routine.models.RoutinePerformance", back_populates="student", cascade="all, delete-orphan", overlaps="student,routine_performances")
     Student.routine_progress = relationship("app.models.physical_education.routine.models.RoutineProgress", back_populates="student", cascade="all, delete-orphan", overlaps="student,routine_progress")
     Student.adapted_routine_performances = relationship("app.models.activity_adaptation.routine.routine.AdaptedRoutinePerformance", back_populates="student", cascade="all, delete-orphan", overlaps="student,adapted_routine_performances")
-    Student.health_metrics = relationship("app.models.health_fitness.metrics.health.HealthMetric", back_populates="student", cascade="all, delete-orphan", overlaps="student,health_metrics")
+    Student.health_metrics = relationship("app.models.health_fitness.metrics.health.HealthMetric", back_populates="student", cascade="all, delete-orphan", overlaps="student,pe_health_metrics,student_health_metrics,fitness_health_metrics")
     Student.fitness_goals = relationship("app.models.health_fitness.goals.fitness_goals.FitnessGoal", back_populates="student", cascade="all, delete-orphan", overlaps="student,fitness_goals")
     Student.goal_recommendations = relationship("app.models.health_fitness.goals.fitness_goals.GoalRecommendation", back_populates="student", cascade="all, delete-orphan", overlaps="student,goal_recommendations")
     # Student.nutrition_plans = relationship("NutritionPlan", back_populates="student", cascade="all, delete-orphan", overlaps="student,nutrition_plans")

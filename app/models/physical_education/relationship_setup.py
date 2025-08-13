@@ -14,7 +14,7 @@ def setup_student_progress_relationships():
     
     # Add relationships to Student model if they don't exist
     if not hasattr(Student, 'progress_goals'):
-        Student.progress_goals = relationship("ProgressGoal", back_populates="student")
+        Student.progress_goals = relationship("app.models.physical_education.progress.models.ProgressGoal", back_populates="student")
     
     if not hasattr(Student, 'progress'):
         Student.progress = relationship("Progress", back_populates="student")
@@ -53,4 +53,4 @@ def setup_all_physical_education_relationships():
     from app.models.physical_education.progress.models import ProgressGoal
     
     if not hasattr(Activity, 'progress_goals'):
-        Activity.progress_goals = relationship("ProgressGoal", back_populates="activity") 
+        Activity.progress_goals = relationship("app.models.physical_education.progress.models.ProgressGoal", back_populates="activity") 

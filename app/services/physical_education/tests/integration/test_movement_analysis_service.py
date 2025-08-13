@@ -50,7 +50,7 @@ class MockActivityVisualizationManager:
 @pytest.fixture
 async def redis_client():
     """Create a Redis client for testing."""
-    redis_client = redis.Redis(host='localhost', port=6379, db=1)
+    redis_client = redis.Redis(host='redis', port=6379, db=1)
     yield redis_client
     await redis_client.flushdb()
     await redis_client.close()

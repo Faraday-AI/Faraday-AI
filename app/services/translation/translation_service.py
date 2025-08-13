@@ -43,8 +43,8 @@ class TranslationService:
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_file
         
         try:
-            from google.cloud import translate_v2 as translate
-            self.client = translate.Client()
+            from google.cloud import translate
+            self.client = translate.TranslationServiceClient()
         except ImportError:
             raise ValueError("Google Cloud Translation library not installed")
 
@@ -66,16 +66,18 @@ class TranslationService:
             Dict containing translated text and detection info
         """
         try:
-            result = self.client.translate(
-                text,
-                target_language=target_language,
-                source_language=source_language
+            result = self.client.translate_text(
+                request={
+                    "contents": [text],
+                    "target_language_code": target_language,
+                    "source_language_code": source_language,
+                }
             )
 
             return {
                 "status": "success",
-                "translated_text": result["translatedText"],
-                "source_language": result["detectedSourceLanguage"],
+                "translated_text": result.translations[0].translated_text,
+                "source_language": result.translations[0].detected_language_code,
                 "target_language": target_language
             }
 
@@ -97,11 +99,15 @@ class TranslationService:
             Dict containing detected language info
         """
         try:
-            result = self.client.detect_language(text)
+            result = self.client.detect_language(
+                request={
+                    "contents": [text],
+                }
+            )
             return {
                 "status": "success",
-                "language": result["language"],
-                "confidence": result["confidence"]
+                "language": result.languages[0].language_code,
+                "confidence": result.languages[0].confidence
             }
         except Exception as e:
             logger.error(f"Language detection error: {str(e)}")

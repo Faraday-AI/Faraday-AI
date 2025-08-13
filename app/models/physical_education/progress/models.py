@@ -76,8 +76,7 @@ class PhysicalEducationProgressNote(ProgressNoteBase):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, ForeignKey('progress_note_base.id'), primary_key=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # Removed duplicate created_at and updated_at columns - they're inherited from base class
     
     __mapper_args__ = {
         'polymorphic_identity': 'progress_note',

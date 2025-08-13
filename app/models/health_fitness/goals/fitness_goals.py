@@ -131,7 +131,7 @@ class GoalRecommendation(Base):
 
     # Relationships using full module paths to avoid circular imports
     goal = relationship("app.models.health_fitness.goals.fitness_goals.FitnessGoal", back_populates="recommendations")
-    student = relationship("app.models.physical_education.student.models.Student", back_populates="goal_recommendations", overlaps="student")
+    student = relationship("app.models.physical_education.student.models.Student", back_populates="goal_recommendations", overlaps="student,pe_goal_recommendations")
 
     def __repr__(self):
         return f"<GoalRecommendation {self.recommendation_type} - {self.description[:30]}>"

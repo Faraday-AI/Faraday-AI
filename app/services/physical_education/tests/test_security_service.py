@@ -8,7 +8,7 @@ from app.services.physical_education.security_service import SecurityService, Th
 @pytest.fixture
 async def redis_client():
     """Create a Redis client for testing."""
-    redis = await aioredis.from_url("redis://localhost:6379/1")
+    redis = await aioredis.from_url("redis://redis:6379/1")
     yield redis
     await redis.flushdb()
     await redis.close()

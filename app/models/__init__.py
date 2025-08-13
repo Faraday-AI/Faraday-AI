@@ -69,6 +69,9 @@ from .physical_education.progress import (
     ProgressNoteResponse
 )
 
+# Import progress models from our new progress package
+from .progress import ProgressModel, ProgressGoal as ProgressGoalModel, ProgressMetrics
+
 # Use the health_fitness Progress model as ProgressTracking for backward compatibility
 from .health_fitness.progress.progress_tracking import Progress as HealthFitnessProgress
 ProgressTracking = HealthFitnessProgress
@@ -666,8 +669,9 @@ __all__ = [
     'MovementPattern', 'MovementPatternCreate', 'MovementPatternUpdate', 'MovementPatternResponse',
     'MovementFeedback', 'MovementFeedbackCreate', 'MovementFeedbackUpdate', 'MovementFeedbackResponse',
     'Progress', 'ProgressCreate', 'ProgressUpdate', 'ProgressResponse',
-    'ProgressGoal', 'ProgressGoalCreate', 'ProgressGoalUpdate', 'ProgressGoalResponse',
-    'PhysicalEducationProgressNote', 'ProgressNoteCreate', 'ProgressNoteUpdate', 'ProgressNoteResponse',
+'ProgressGoal', 'ProgressGoalCreate', 'ProgressGoalUpdate', 'ProgressGoalResponse',
+'PhysicalEducationProgressNote', 'ProgressNoteCreate', 'ProgressNoteUpdate', 'ProgressNoteResponse',
+'ProgressModel', 'ProgressGoalModel', 'ProgressMetrics',
     'PhysicalEducationGoal',
     'Equipment', 'EquipmentCreate', 'EquipmentUpdate', 'EquipmentResponse',
     'EquipmentUsage', 'EquipmentMaintenance', 'MaintenanceRecord',

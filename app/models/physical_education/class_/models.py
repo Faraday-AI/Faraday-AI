@@ -36,12 +36,22 @@ class PhysicalEducationClass(SharedBase):
     location = Column(String(100))
     schedule = Column(Text)
     grade_level = Column(Enum(GradeLevel, name='class_grade_level_enum'), nullable=False)
+    
+    # Enhanced fields for better class management
+    curriculum_focus = Column(Text)  # Main focus areas of the curriculum
+    assessment_methods = Column(Text)  # Methods used to assess student progress
+    
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships using full module paths to avoid circular imports
     teacher = relationship("app.models.core.user.User", back_populates="physical_education_classes", foreign_keys=[teacher_id], lazy='joined')
-    class_students = relationship("app.models.physical_education.class_.models.ClassStudent", back_populates="class_", lazy='joined')
+    class_students = relationship("app.models.physical_education.class_.models.ClassStudent", back_populates="class_", lazy='joined', overlaps="classes,students")
+    # Add students relationship for easier access - go through ClassStudent model
+    students = relationship("app.models.physical_education.student.models.Student", 
+                          secondary="physical_education_class_students",
+                          lazy='joined',
+                          overlaps="class_students,classes")
     routines = relationship("app.models.physical_education.class_.models.ClassRoutine", back_populates="class_", lazy='joined')
     regular_routines = relationship("app.models.physical_education.routine.models.Routine", back_populates="class_", lazy='joined')
     adapted_routines = relationship("app.models.activity_adaptation.routine.routine.AdaptedRoutine", back_populates="class_", lazy='joined')
@@ -66,8 +76,8 @@ class ClassStudent(SharedBase):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships using full module paths to avoid circular imports
-    class_ = relationship('app.models.physical_education.class_.models.PhysicalEducationClass', back_populates='class_students')
-    student = relationship('app.models.physical_education.student.models.Student', back_populates='classes')
+    class_ = relationship('app.models.physical_education.class_.models.PhysicalEducationClass', back_populates='class_students', overlaps="classes,students")
+    student = relationship('app.models.physical_education.student.models.Student', overlaps="classes,students")  # Remove back_populates since we changed the relationship
     
     def __repr__(self):
         return f"<ClassStudent {self.student_id} in class {self.class_id}>"
