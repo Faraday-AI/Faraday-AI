@@ -97,6 +97,21 @@ from .physical_education.class_ import PhysicalEducationClass, ClassStudent
 # Import only one version of Routine models to avoid conflicts
 from .physical_education.routine.models import Routine, RoutineActivity, RoutinePerformance
 
+# School Models - Multi-school district structure
+from .physical_education.schools import (
+    School,
+    SchoolFacility,
+    SchoolType,
+    SchoolStatus
+)
+
+from .physical_education.schools.relationships import (
+    TeacherSchoolAssignment,
+    StudentSchoolEnrollment,
+    ClassSchoolAssignment,
+    SchoolAcademicYear
+)
+
 # Goal models
 from .health_fitness.goals.goal_setting import Goal, GoalMilestone, GoalActivity, HealthFitnessGoalProgress
 from .health_fitness.goals.fitness_goals import FitnessGoal, FitnessGoalProgress, GoalRecommendation
@@ -673,6 +688,11 @@ __all__ = [
 'PhysicalEducationProgressNote', 'ProgressNoteCreate', 'ProgressNoteUpdate', 'ProgressNoteResponse',
 'ProgressModel', 'ProgressGoalModel', 'ProgressMetrics',
     'PhysicalEducationGoal',
+    
+    # School Models
+    'School', 'SchoolFacility', 'SchoolType', 'SchoolStatus',
+    'TeacherSchoolAssignment', 'StudentSchoolEnrollment', 'ClassSchoolAssignment', 'SchoolAcademicYear',
+    
     'Equipment', 'EquipmentCreate', 'EquipmentUpdate', 'EquipmentResponse',
     'EquipmentUsage', 'EquipmentMaintenance', 'MaintenanceRecord',
     'EquipmentCategory', 'EquipmentCategoryCreate', 'EquipmentCategoryUpdate', 'EquipmentCategoryResponse',

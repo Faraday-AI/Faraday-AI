@@ -117,6 +117,9 @@ class User(CoreBase, TimestampedMixin, StatusMixin, MetadataMixin):
     feedback_responses = relationship("app.models.organization.feedback.project_feedback_management.FeedbackResponse", back_populates="user")
     feedback_actions = relationship("app.models.organization.feedback.project_feedback_management.FeedbackAction", back_populates="user")
     project_feedback = relationship("app.models.organization.feedback.project_feedback_management.ProjectFeedback", back_populates="user")
+    
+    # School relationships
+    school_assignments = relationship("app.models.physical_education.schools.relationships.TeacherSchoolAssignment", back_populates="teacher", lazy="select")
     # Analytics relationships
     activities = relationship("app.models.analytics.user_analytics.UserActivity", back_populates="user")
     behaviors = relationship("app.models.analytics.user_analytics.UserBehavior", back_populates="user")

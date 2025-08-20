@@ -31,6 +31,7 @@ from app.models.physical_education.student import (
 )
 from app.models.health_fitness.metrics.health import HealthMetric, HealthMetricHistory
 from app.models.physical_education.class_ import PhysicalEducationClass, ClassStudent
+from app.models.physical_education.schools import School, SchoolFacility
 from app.models.physical_education.safety import SafetyIncident, RiskAssessment
 from app.models.physical_education.safety.models import (
     SafetyCheck, EnvironmentalCheck, SafetyProtocol, SafetyAlert, Equipment
@@ -465,6 +466,11 @@ def seed_database():
                 print("\n" + "="*50)
                 print("COMPREHENSIVE SYSTEM SEEDING")
                 print("="*50)
+                
+                # Schools system (NEW - Multi-school district structure)
+                from app.scripts.seed_data.seed_schools import seed_schools
+                seed_schools(session)
+                session.commit()
                 
                 # Dashboard system
                 seed_dashboard_system(session)

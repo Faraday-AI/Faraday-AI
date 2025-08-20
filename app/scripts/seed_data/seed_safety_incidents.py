@@ -29,64 +29,91 @@ def seed_safety_incidents(session):
         return
     teacher_id = teacher[0]
     
-    safety_incidents = [
+    # Generate realistic safety incidents for multiple students
+    safety_incidents = []
+    
+    # Get a sample of students and activities for variety
+    student_ids = list(students.values())
+    activity_names = list(activities.keys())
+    
+    # Create incidents for a subset of students (about 20-30 incidents)
+    num_incidents = min(25, len(student_ids) // 4)
+    
+    # Define incident templates
+    incident_templates = [
         {
-            "student_id": students["John Smith"],  # Using actual student ID
-            "activity_id": activities["Jump Rope Basics"],
-            "incident_date": datetime.now() - timedelta(days=1),
-            "teacher_id": teacher_id,
             "incident_type": "injury",
             "severity": "low",
-            "description": "Twisted ankle during double under attempt",
+            "description": "Twisted ankle during {activity}",
             "action_taken": "Applied ice and provided rest",
-            "incident_metadata": {
-                "preventive_measures": "Added proper landing technique training",
-                "reported_by": "TEACH001"
-            }
+            "preventive_measures": "Added proper landing technique training"
         },
         {
-            "student_id": students["Emily Johnson"],
-            "activity_id": activities["Basketball Dribbling"],
-            "incident_date": datetime.now() - timedelta(days=2),
-            "teacher_id": teacher_id,
             "incident_type": "near_miss",
             "severity": "low",
-            "description": "Almost collided with another student during fast dribble drill",
+            "description": "Almost collided with another student during {activity}",
             "action_taken": "Reorganized drill spacing",
-            "incident_metadata": {
-                "preventive_measures": "Added visual markers for personal space",
-                "reported_by": "TEACH001"
-            }
+            "preventive_measures": "Added visual markers for personal space"
         },
         {
-            "student_id": students["Michael Brown"],
-            "activity_id": activities["Soccer Passing"],
-            "incident_date": datetime.now() - timedelta(days=3),
-            "teacher_id": teacher_id,
             "incident_type": "equipment_failure",
             "severity": "low",
-            "description": "Soccer ball was overinflated and too hard",
-            "action_taken": "Replaced ball with properly inflated one",
-            "incident_metadata": {
-                "preventive_measures": "Added ball pressure check before each session",
-                "reported_by": "TEACH002"
-            }
+            "description": "Equipment issue during {activity}",
+            "action_taken": "Replaced equipment with properly maintained version",
+            "preventive_measures": "Added equipment check before each session"
         },
         {
-            "student_id": students["Sarah Davis"],
-            "activity_id": activities["Circuit Training"],
-            "incident_date": datetime.now() - timedelta(days=4),
-            "teacher_id": teacher_id,
             "incident_type": "behavioral_issue",
             "severity": "low",
-            "description": "Student performing lunges with improper knee alignment",
+            "description": "Student performing {activity} with improper form",
             "action_taken": "Provided immediate form correction",
-            "incident_metadata": {
-                "preventive_measures": "Added more detailed form demonstration",
-                "reported_by": "TEACH002"
-            }
+            "preventive_measures": "Added more detailed form demonstration"
+        },
+        {
+            "incident_type": "environmental",
+            "severity": "low",
+            "description": "Wet floor conditions during {activity}",
+            "action_taken": "Immediately stopped activity and dried floor",
+            "preventive_measures": "Added floor condition check before activities"
         }
     ]
+    
+    for _ in range(num_incidents):
+        # Randomly select student and activity
+        student_id = random.choice(student_ids)
+        activity_name = random.choice(activity_names)
+        activity_id = activities[activity_name]
+        
+        # Randomly select incident template
+        template = random.choice(incident_templates)
+        
+        # Random date within last 30 days
+        incident_date = datetime.now() - timedelta(days=random.randint(1, 30))
+        
+        # Random severity (mostly low, some medium)
+        severity = random.choice(["low", "low", "low", "medium"])
+        
+        # Generate description and action based on template
+        description = template["description"].format(activity=activity_name.lower())
+        action_taken = template["action_taken"]
+        preventive_measures = template["preventive_measures"]
+        
+        incident_data = {
+            "student_id": student_id,
+            "activity_id": activity_id,
+            "incident_date": incident_date,
+            "teacher_id": teacher_id,
+            "incident_type": template["incident_type"],
+            "severity": severity,
+            "description": description,
+            "action_taken": action_taken,
+            "incident_metadata": {
+                "preventive_measures": preventive_measures,
+                "reported_by": f"TEACH{random.randint(1, 32):03d}"
+            }
+        }
+        
+        safety_incidents.append(incident_data)
 
     for incident_data in safety_incidents:
         incident = SafetyIncident(**incident_data)

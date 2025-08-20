@@ -154,6 +154,9 @@ class Student(SharedBase):
     
     # Progress relationships
     progress_records = relationship("app.models.progress.progress_model.ProgressModel", back_populates="student")
+    
+    # School relationships
+    school_enrollments = relationship("app.models.physical_education.schools.relationships.StudentSchoolEnrollment", back_populates="student", lazy="select")
 
 class StudentCreate(BaseModel):
     """Pydantic model for creating student profiles."""

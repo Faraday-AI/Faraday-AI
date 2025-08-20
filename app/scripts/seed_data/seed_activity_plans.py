@@ -40,51 +40,113 @@ def seed_activity_plans(session: Session) -> None:
         print("Missing required data. Please seed students, classes, and activities first.")
         return
     
-    # Create activity plans
-    activity_plans = [
+    # Create realistic activity plans for multiple students
+    activity_plans = []
+    
+    # Get a sample of students for variety
+    student_ids = list(students.values())
+    
+    # Create plans for a subset of students (about 50-100 plans)
+    num_plans = min(75, len(student_ids) // 2)
+    
+    # Define plan templates for different activities
+    plan_templates = [
         {
             "name": "Jump Rope Mastery Plan",
             "description": "A comprehensive plan to master jump rope techniques",
-            "student_id": students["John Smith"],
-            "grade_level": "5th",
             "duration": 45,
             "difficulty": "intermediate",
-            "plan_metadata": {
-                "objectives": {
-                    "primary": "Master basic and intermediate jump rope techniques",
-                    "secondary": ["Improve endurance", "Develop rhythm"]
-                },
-                "assessment_criteria": {
-                    "technique": ["Proper form", "Consistent rhythm"],
-                    "endurance": ["Duration", "Consistency"]
-                },
-                "start_date": datetime.now().date().isoformat(),
-                "end_date": (datetime.now() + timedelta(days=30)).date().isoformat(),
-                "status": "active"
+            "objectives": {
+                "primary": "Master basic and intermediate jump rope techniques",
+                "secondary": ["Improve endurance", "Develop rhythm"]
+            },
+            "assessment_criteria": {
+                "technique": ["Proper form", "Consistent rhythm"],
+                "endurance": ["Duration", "Consistency"]
             }
         },
         {
             "name": "Basketball Fundamentals Plan",
             "description": "Develop core basketball skills",
-            "student_id": students["Emily Johnson"],
-            "grade_level": "6th",
             "duration": 60,
             "difficulty": "beginner",
-            "plan_metadata": {
-                "objectives": {
-                    "primary": "Master dribbling and shooting techniques",
-                    "secondary": ["Improve ball control", "Develop accuracy"]
-                },
-                "assessment_criteria": {
-                    "dribbling": ["Control", "Speed"],
-                    "shooting": ["Accuracy", "Form"]
-                },
-                "start_date": datetime.now().date().isoformat(),
-                "end_date": (datetime.now() + timedelta(days=45)).date().isoformat(),
-                "status": "active"
+            "objectives": {
+                "primary": "Master dribbling and shooting techniques",
+                "secondary": ["Improve ball control", "Develop accuracy"]
+            },
+            "assessment_criteria": {
+                "dribbling": ["Control", "Speed"],
+                "shooting": ["Accuracy", "Form"]
+            }
+        },
+        {
+            "name": "Soccer Skills Development",
+            "description": "Build foundational soccer abilities",
+            "duration": 50,
+            "difficulty": "beginner",
+            "objectives": {
+                "primary": "Master passing and dribbling",
+                "secondary": ["Improve coordination", "Build stamina"]
+            },
+            "assessment_criteria": {
+                "passing": ["Accuracy", "Power"],
+                "dribbling": ["Control", "Speed"]
+            }
+        },
+        {
+            "name": "Fitness Foundation Plan",
+            "description": "Establish basic fitness and strength",
+            "duration": 40,
+            "difficulty": "beginner",
+            "objectives": {
+                "primary": "Build core strength and endurance",
+                "secondary": ["Improve flexibility", "Develop coordination"]
+            },
+            "assessment_criteria": {
+                "strength": ["Repetitions", "Form"],
+                "endurance": ["Duration", "Consistency"]
             }
         }
     ]
+    
+    for _ in range(num_plans):
+        # Randomly select student and plan template
+        student_id = random.choice(student_ids)
+        template = random.choice(plan_templates)
+        
+        # Generate grade level (K-12)
+        grade_levels = ["K", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th", "11th", "12th"]
+        grade_level = random.choice(grade_levels)
+        
+        # Random duration variation
+        duration = template["duration"] + random.randint(-10, 10)
+        duration = max(30, min(90, duration))  # Keep between 30-90 minutes
+        
+        # Random difficulty
+        difficulties = ["beginner", "intermediate", "advanced"]
+        difficulty = random.choice(difficulties)
+        
+        # Random dates
+        start_date = datetime.now().date()
+        end_date = start_date + timedelta(days=random.randint(14, 60))
+        
+        plan_data = {
+            "name": template["name"],
+            "description": template["description"],
+            "student_id": student_id,
+            "grade_level": grade_level,
+            "duration": duration,
+            "difficulty": difficulty,
+            "plan_metadata": {
+                "objectives": template["objectives"],
+                "assessment_criteria": template["assessment_criteria"],
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "status": "active"
+            }
+        }
+        
+        activity_plans.append(plan_data)
     
     # Create plan activities
     plan_activities = []
@@ -94,12 +156,13 @@ def seed_activity_plans(session: Session) -> None:
         session.add(plan)
         session.flush()  # Get the plan ID
         
-        # Add activities to the plan
-        if plan.name == "Jump Rope Mastery Plan":
+        # Add activities to the plan based on plan type
+        if "Jump Rope" in plan.name:
+            # Add jump rope activities
             plan_activities.extend([
                 {
                     "plan_id": plan.id,
-                    "activity_id": activities["Jump Rope Basics"],
+                    "activity_id": activities.get("Jump Rope Basics", list(activities.values())[0]),
                     "sequence": 1,
                     "duration": 20,
                     "activity_metadata": {
@@ -109,7 +172,7 @@ def seed_activity_plans(session: Session) -> None:
                 },
                 {
                     "plan_id": plan.id,
-                    "activity_id": activities["Advanced Jump Rope"],
+                    "activity_id": activities.get("Advanced Jump Rope", list(activities.values())[0]),
                     "sequence": 2,
                     "duration": 25,
                     "activity_metadata": {
@@ -118,11 +181,12 @@ def seed_activity_plans(session: Session) -> None:
                     }
                 }
             ])
-        elif plan.name == "Basketball Fundamentals Plan":
+        elif "Basketball" in plan.name:
+            # Add basketball activities
             plan_activities.extend([
                 {
                     "plan_id": plan.id,
-                    "activity_id": activities["Basketball Dribbling"],
+                    "activity_id": activities.get("Basketball Dribbling", list(activities.values())[0]),
                     "sequence": 1,
                     "duration": 30,
                     "activity_metadata": {
@@ -132,9 +196,58 @@ def seed_activity_plans(session: Session) -> None:
                 },
                 {
                     "plan_id": plan.id,
-                    "activity_id": activities["Basketball Game"],
+                    "activity_id": activities.get("Basketball Game", list(activities.values())[0]),
                     "sequence": 2,
                     "duration": 30,
+                    "activity_metadata": {
+                        "scheduled_date": (datetime.now() + timedelta(days=14)).date().isoformat(),
+                        "status": "scheduled"
+                    }
+                }
+            ])
+        elif "Soccer" in plan.name:
+            # Add soccer activities
+            plan_activities.extend([
+                {
+                    "plan_id": plan.id,
+                    "activity_id": activities.get("Soccer Passing", list(activities.values())[0]),
+                    "sequence": 1,
+                    "duration": 25,
+                    "activity_metadata": {
+                        "scheduled_date": (datetime.now() + timedelta(days=7)).date().isoformat(),
+                        "status": "scheduled"
+                    }
+                },
+                {
+                    "plan_id": plan.id,
+                    "activity_id": activities.get("Soccer Scrimmage", list(activities.values())[0]),
+                    "sequence": 2,
+                    "duration": 25,
+                    "activity_metadata": {
+                        "scheduled_date": (datetime.now() + timedelta(days=14)).date().isoformat(),
+                        "status": "scheduled"
+                    }
+                }
+            ])
+        else:
+            # Add general fitness activities for other plans
+            available_activities = list(activities.values())
+            plan_activities.extend([
+                {
+                    "plan_id": plan.id,
+                    "activity_id": random.choice(available_activities),
+                    "sequence": 1,
+                    "duration": 25,
+                    "activity_metadata": {
+                        "scheduled_date": (datetime.now() + timedelta(days=7)).date().isoformat(),
+                        "status": "scheduled"
+                    }
+                },
+                {
+                    "plan_id": plan.id,
+                    "activity_id": random.choice(available_activities),
+                    "sequence": 2,
+                    "duration": 25,
                     "activity_metadata": {
                         "scheduled_date": (datetime.now() + timedelta(days=14)).date().isoformat(),
                         "status": "scheduled"

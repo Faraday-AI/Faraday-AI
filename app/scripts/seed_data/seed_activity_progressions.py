@@ -34,49 +34,56 @@ def seed_activity_progressions(session: Session) -> None:
         print("Missing required data. Please seed students and activities first.")
         return
     
-    # Create activity progressions
-    progressions = [
-        {
-            "student_id": students["John Smith"],
-            "activity_id": activities["Jump Rope Basics"],
-            "level": ProgressionLevel.NOVICE,
-            "current_level": ProgressionLevel.NOVICE,
-            "requirements": "Complete basic jump rope skills",
-            "start_date": datetime.now() - timedelta(days=30),
-            "last_updated": datetime.now() - timedelta(days=7),
-            "progression_metadata": {"attempts": 5, "success_rate": 0.75}
-        },
-        {
-            "student_id": students["Emily Johnson"],
-            "activity_id": activities["Basketball Dribbling"],
-            "level": ProgressionLevel.DEVELOPING,
-            "current_level": ProgressionLevel.DEVELOPING,
-            "requirements": "Master basic dribbling techniques",
-            "start_date": datetime.now() - timedelta(days=25),
-            "last_updated": datetime.now() - timedelta(days=5),
-            "progression_metadata": {"attempts": 8, "success_rate": 0.85}
-        },
-        {
-            "student_id": students["Michael Brown"],
-            "activity_id": activities["Soccer Passing"],
-            "level": ProgressionLevel.NOVICE,
-            "current_level": ProgressionLevel.NOVICE,
-            "requirements": "Learn proper passing form",
-            "start_date": datetime.now() - timedelta(days=20),
-            "last_updated": datetime.now() - timedelta(days=3),
-            "progression_metadata": {"attempts": 3, "success_rate": 0.65}
-        },
-        {
-            "student_id": students["Sarah Davis"],
-            "activity_id": activities["Advanced Jump Rope"],
-            "level": ProgressionLevel.ADVANCED,
-            "current_level": ProgressionLevel.ADVANCED,
-            "requirements": "Master advanced jump rope techniques",
-            "start_date": datetime.now() - timedelta(days=45),
-            "last_updated": datetime.now() - timedelta(days=2),
-            "progression_metadata": {"attempts": 12, "success_rate": 0.90}
+    # Create realistic activity progressions for multiple students
+    progressions = []
+    
+    # Get a sample of students and activities for variety
+    student_ids = list(students.values())
+    activity_names = list(activities.keys())
+    
+    # Create progressions for a subset of students (about 100-200 progressions)
+    num_progressions = min(150, len(student_ids) * len(activity_names) // 10)
+    
+    for _ in range(num_progressions):
+        # Randomly select student and activity
+        student_id = random.choice(student_ids)
+        activity_name = random.choice(activity_names)
+        activity_id = activities[activity_name]
+        
+        # Randomly determine progression level
+        level = random.choice(list(ProgressionLevel))
+        current_level = random.choice(list(ProgressionLevel))
+        
+        # Generate realistic requirements based on level
+        if level == ProgressionLevel.NOVICE:
+            requirements = f"Learn basic {activity_name.lower()} skills"
+        elif level == ProgressionLevel.DEVELOPING:
+            requirements = f"Master intermediate {activity_name.lower()} techniques"
+        elif level == ProgressionLevel.ADVANCED:
+            requirements = f"Perfect advanced {activity_name.lower()} skills"
+        else:
+            requirements = f"Excel in {activity_name.lower()} mastery"
+        
+        # Random dates within last 90 days
+        start_date = datetime.now() - timedelta(days=random.randint(1, 90))
+        last_updated = start_date + timedelta(days=random.randint(1, 30))
+        
+        # Realistic metadata
+        attempts = random.randint(3, 20)
+        success_rate = round(random.uniform(0.4, 0.95), 2)
+        
+        progression_data = {
+            "student_id": student_id,
+            "activity_id": activity_id,
+            "level": level,
+            "current_level": current_level,
+            "requirements": requirements,
+            "start_date": start_date,
+            "last_updated": last_updated,
+            "progression_metadata": {"attempts": attempts, "success_rate": success_rate}
         }
-    ]
+        
+        progressions.append(progression_data)
     
     for progression_data in progressions:
         progression = ActivityProgression(**progression_data)
