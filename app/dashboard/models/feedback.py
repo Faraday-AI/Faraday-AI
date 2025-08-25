@@ -15,6 +15,7 @@ class Feedback(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("dashboard_users.id"), nullable=False)
     gpt_id = Column(String, nullable=False)
+    title = Column(String, nullable=True)  # Added for seeding compatibility
     feedback_type = Column(String, nullable=False)
     content = Column(JSON)
     rating = Column(Integer)

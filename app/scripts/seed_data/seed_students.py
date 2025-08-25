@@ -99,15 +99,14 @@ def seed_students(session):
         "Seasonal allergies", "Eczema", "Mild anxiety", "Depression", "Autism spectrum disorder"
     ]
     
-    # School assignments for 6 schools
-    schools = [
-        ("Lincoln Elementary School", 1, "K", "5"),      # school_name, school_id, min_grade, max_grade
-        ("Washington Elementary School", 2, "K", "5"),
-        ("Roosevelt Elementary School", 3, "K", "5"),
-        ("Jefferson Elementary School", 4, "K", "5"),
-        ("Springfield Middle School", 5, "6", "8"),
-        ("Springfield High School", 6, "9", "12")
-    ]
+    # Get actual school IDs from database
+    schools_result = session.execute(text("SELECT id, name, min_grade, max_grade FROM schools ORDER BY name")).fetchall()
+    if not schools_result:
+        print("Warning: No schools found in database. Students will not have school assignments.")
+        schools = []
+    else:
+        schools = [(school.name, school.id, school.min_grade, school.max_grade) for school in schools_result]
+        print(f"Found {len(schools)} schools for student assignment")
     
     # Grade level mappings
     grade_mappings = {
@@ -238,17 +237,121 @@ def seed_students(session):
     for grade_info in grade_data:
         print(f"  - {grade_info.grade_level}: {grade_info.count} students")
     
-    # Print students by school (if school_id is available)
+    # Create school enrollments for all students
+    print("\nCreating school enrollments...")
+    from app.models.physical_education.schools.relationships import StudentSchoolEnrollment
+    
+    # Get current academic year
+    academic_year_result = session.execute(text("SELECT academic_year FROM school_academic_years WHERE is_current = true LIMIT 1")).fetchall()
+    current_academic_year = academic_year_result[0].academic_year if academic_year_result else "2025-2026"
+    
+    # Query all students from database to avoid session detachment issues
+    students_result = session.execute(text("SELECT id, grade_level FROM students ORDER BY id")).fetchall()
+    
+    # Create enrollments for each student based on their grade level
+    enrollments_created = 0
+    for student_row in students_result:
+        student_id = student_row.id
+        grade_level = student_row.grade_level
+        
+        # Convert grade level enum to string format that matches school grade ranges
+        if hasattr(grade_level, 'name'):
+            # It's an enum object, get the name
+            grade_name = grade_level.name
+        else:
+            # It's already a string
+            grade_name = str(grade_level)
+        
+        # Convert enum names to school grade format
+        if grade_name == "KINDERGARTEN":
+            grade_str = "K"
+        elif grade_name == "FIRST":
+            grade_str = "1"
+        elif grade_name == "SECOND":
+            grade_str = "2"
+        elif grade_name == "THIRD":
+            grade_str = "3"
+        elif grade_name == "FOURTH":
+            grade_str = "4"
+        elif grade_name == "FIFTH":
+            grade_str = "5"
+        elif grade_name == "SIXTH":
+            grade_str = "6"
+        elif grade_name == "SEVENTH":
+            grade_str = "7"
+        elif grade_name == "EIGHTH":
+            grade_str = "8"
+        elif grade_name == "NINTH":
+            grade_str = "9"
+        elif grade_name == "TENTH":
+            grade_str = "10"
+        elif grade_name == "ELEVENTH":
+            grade_str = "11"
+        elif grade_name == "TWELFTH":
+            grade_str = "12"
+        else:
+            grade_str = grade_name
+        
+        # Find ALL schools that cover this grade for proper distribution
+        if grade_str == "K":
+            # Kindergarten should go to elementary schools - get ALL of them
+            school_result = session.execute(text(
+                "SELECT id FROM schools WHERE min_grade = 'K' ORDER BY name"
+            )).fetchall()
+        else:
+            # Numeric grades - need to handle mixed K/numeric data properly
+            try:
+                grade_num = int(grade_str)
+                school_result = session.execute(text(
+                    """SELECT id FROM schools 
+                       WHERE (min_grade != 'K' AND CAST(min_grade AS INTEGER) <= :grade) 
+                       AND (max_grade != 'K' AND CAST(max_grade AS INTEGER) >= :grade) 
+                       ORDER BY name"""
+                ), {"grade": grade_num}).fetchall()
+            except ValueError:
+                # Fallback for non-numeric grades
+                school_result = session.execute(text(
+                    "SELECT id FROM schools WHERE min_grade = :grade OR max_grade = :grade ORDER BY name"
+                ), {"grade": grade_str}).fetchall()
+        
+        if school_result:
+            # Randomly select from available schools for better distribution
+            selected_school = random.choice(school_result)
+            school_id = selected_school.id
+            
+            # Create enrollment
+            enrollment = StudentSchoolEnrollment(
+                student_id=student_id,
+                school_id=school_id,
+                enrollment_date=datetime.now(),
+                grade_level=grade_str,
+                academic_year=current_academic_year,
+                status="ACTIVE",
+                enrollment_type="REGULAR"
+            )
+            session.add(enrollment)
+            enrollments_created += 1
+    
+    session.commit()
+    print(f"Created {enrollments_created} school enrollments")
+    
+    # Print students by school
     try:
-        result = session.execute(text("SELECT school_id, COUNT(*) FROM students GROUP BY school_id ORDER BY school_id"))
+        result = session.execute(text("""
+            SELECT s.name, COUNT(*) as student_count 
+            FROM student_school_enrollments sse 
+            JOIN schools s ON sse.school_id = s.id 
+            WHERE sse.status = 'ACTIVE' 
+            GROUP BY s.id, s.name 
+            ORDER BY s.name
+        """))
         school_data = result.fetchall()
         
         print("\nStudents by school:")
         for school_info in school_data:
-            school_name = "Unknown" if school_info.school_id is None else f"School {school_info.school_id}"
-            print(f"  - {school_name}: {school_info.count} students")
-    except:
-        print("\nNote: School assignments will be created in separate relationship seeding")
+            print(f"  - {school_info.name}: {school_info.student_count} students")
+    except Exception as e:
+        print(f"\nNote: Could not display school assignments: {e}")
     
     return created_students
 

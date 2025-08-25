@@ -104,4 +104,12 @@ def seed_skill_assessments(session: Session) -> None:
             session.add(progress)
 
     session.commit()
-    print("Skill assessments seeded successfully!") 
+    print("Skill assessments seeded successfully!")
+    
+    # Return count of created records
+    assessment_count = len(students) * len(activities)  # One assessment per student-activity pair
+    result_count = len(students) * len(activities) * len(criteria)  # One result per criterion per assessment
+    history_count = len(students) * len(activities)  # One history per assessment
+    progress_count = len(students) * len(activities)  # One progress per assessment
+    
+    return assessment_count

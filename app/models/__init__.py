@@ -627,6 +627,32 @@ from .movement_analysis import (
     MovementPattern
 )
 
+# Tracking Models
+from .tracking.models import (
+    ActivityTracking,
+    TrackingMetrics,
+    TrackingHistory,
+    TrackingStatus
+)
+
+# Planning Models
+from .planning.models import (
+    ActivityPlan,
+    ActivityPlanCreate,
+    ActivityPlanUpdate,
+    ActivityPlanResponse
+)
+
+# Lesson Plan Models
+from .lesson_plan.models import (
+    LessonPlan,
+    LessonPlanActivity,
+    LessonPlanObjective,
+    LessonPlanCreate,
+    LessonPlanUpdate,
+    LessonPlanResponse
+)
+
 # Import missing association tables and models that are failing to create
 from .user_management.preferences.user_preferences_management import user_preference_template_assignments
 from app.dashboard.models.association_tables import dashboard_context_gpts
@@ -761,6 +787,15 @@ __all__ = [
     
     # Movement Analysis Models
     'MovementAnalysis', 'MovementPattern',
+
+    # Tracking Models
+    'ActivityTracking', 'TrackingMetrics', 'TrackingHistory', 'TrackingStatus',
+
+    # Planning Models
+    'ActivityPlan', 'ActivityPlanCreate', 'ActivityPlanUpdate', 'ActivityPlanResponse',
+
+    # Lesson Plan Models
+    'LessonPlan', 'LessonPlanActivity', 'LessonPlanObjective', 'LessonPlanCreate', 'LessonPlanUpdate', 'LessonPlanResponse',
 
     # Missing models and association tables
     'user_preference_template_assignments', 'dashboard_context_gpts', 'gpt_categories',

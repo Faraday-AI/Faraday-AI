@@ -29,6 +29,7 @@ class AITool(CoreBase):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     description = Column(String)
+    status = Column(String, nullable=True)  # Added for seeding compatibility
     suite_id = Column(Integer, ForeignKey("ai_suites.id"))
     tool_type = Column(String, nullable=False)
     configuration = Column(JSON)

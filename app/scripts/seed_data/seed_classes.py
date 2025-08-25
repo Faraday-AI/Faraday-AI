@@ -46,13 +46,19 @@ def seed_classes(session):
         "12": GradeLevel.TWELFTH
     }
     
+    # Get actual school IDs from database
+    schools_result = session.execute(text("SELECT id, name, min_grade, max_grade FROM schools ORDER BY name")).fetchall()
+    if not schools_result:
+        print("Warning: No schools found in database. Classes will not have school assignments.")
+        return
+    
     # Elementary Schools (K-5) - 80-95 Classes Total
-    elementary_schools = [
-        ("Lincoln Elementary School", "LIN-EL", 1, 4),  # school_id, teacher_count
-        ("Washington Elementary School", "WAS-EL", 2, 4),
-        ("Roosevelt Elementary School", "ROO-EL", 3, 4),
-        ("Jefferson Elementary School", "JEF-EL", 4, 4)
-    ]
+    elementary_schools = []
+    for school in schools_result:
+        if school.min_grade == "K" and school.max_grade == "5":
+            elementary_schools.append((school.name, f"{school.name[:3].upper()}-EL", school.id, 4))
+    
+    print(f"Found {len(elementary_schools)} elementary schools for class assignment")
     
     for school_name, school_code, school_id, teacher_count in elementary_schools:
         for grade in ["K", "1", "2", "3", "4", "5"]:
@@ -371,6 +377,99 @@ def seed_classes(session):
             print(f"\nGaps in class IDs: {', '.join(gaps)}")
         else:
             print("\nNo gaps in class IDs")
+    
+    # Create school assignments for all classes
+    print("\nCreating school assignments for classes...")
+    from app.models.physical_education.schools.relationships import ClassSchoolAssignment
+    
+    # Get current academic year
+    academic_year_result = session.execute(text("SELECT academic_year FROM school_academic_years WHERE is_current = true LIMIT 1")).fetchall()
+    current_academic_year = academic_year_result[0].academic_year if academic_year_result else "2025-2026"
+    
+    # Create assignments for each class based on their grade level
+    assignments_created = 0
+    for class_info in classes_data:
+        # Find the appropriate school for this class's grade level
+        grade_level = class_info.grade_level
+        
+        # Handle grade level conversion (it's an enum object from the database)
+        if hasattr(grade_level, 'name'):
+            # It's an enum object, get the name
+            grade_name = grade_level.name
+        else:
+            # It's already a string
+            grade_name = str(grade_level)
+        
+        # Convert enum names to school grade format
+        if grade_name == "KINDERGARTEN":
+            grade_str = "K"
+        elif grade_name == "FIRST":
+            grade_str = "1"
+        elif grade_name == "SECOND":
+            grade_str = "2"
+        elif grade_name == "THIRD":
+            grade_str = "3"
+        elif grade_name == "FOURTH":
+            grade_str = "4"
+        elif grade_name == "FIFTH":
+            grade_str = "5"
+        elif grade_name == "SIXTH":
+            grade_str = "6"
+        elif grade_name == "SEVENTH":
+            grade_str = "7"
+        elif grade_name == "EIGHTH":
+            grade_str = "8"
+        elif grade_name == "NINTH":
+            grade_str = "9"
+        elif grade_name == "TENTH":
+            grade_str = "10"
+        elif grade_name == "ELEVENTH":
+            grade_str = "11"
+        elif grade_name == "TWELFTH":
+            grade_str = "12"
+        else:
+            grade_str = grade_name
+        
+        # Find ALL schools that cover this grade for proper distribution
+        if grade_str == "K":
+            # Kindergarten should go to elementary schools - get ALL of them
+            school_result = session.execute(text(
+                "SELECT id FROM schools WHERE min_grade = 'K' ORDER BY name"
+            )).fetchall()
+        else:
+            # Numeric grades - need to handle mixed K/numeric data properly
+            try:
+                grade_num = int(grade_str)
+                school_result = session.execute(text(
+                    """SELECT id FROM schools 
+                       WHERE (min_grade != 'K' AND CAST(min_grade AS INTEGER) <= :grade) 
+                       AND (max_grade != 'K' AND CAST(max_grade AS INTEGER) >= :grade) 
+                       ORDER BY name"""
+                ), {"grade": grade_num}).fetchall()
+            except ValueError:
+                # Fallback for non-numeric grades
+                school_result = session.execute(text(
+                    "SELECT id FROM schools WHERE min_grade = :grade OR max_grade = :grade ORDER BY name"
+                ), {"grade": grade_str}).fetchall()
+        
+        if school_result:
+            # Randomly select from available schools for better distribution
+            selected_school = random.choice(school_result)
+            school_id = selected_school.id
+            
+            # Create assignment
+            assignment = ClassSchoolAssignment(
+                class_id=class_info.id,
+                school_id=school_id,
+                academic_year=current_academic_year,
+                semester="Full Year",
+                status="ACTIVE"
+            )
+            session.add(assignment)
+            assignments_created += 1
+    
+    session.commit()
+    print(f"Created {assignments_created} class school assignments")
     
     return classes
 

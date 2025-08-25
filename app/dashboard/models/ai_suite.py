@@ -18,6 +18,7 @@ class AISuite(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     description = Column(String)
+    version = Column(String, nullable=True)  # Added for seeding compatibility
     user_id = Column(Integer, ForeignKey("dashboard_users.id"), nullable=False)
     configuration = Column(JSON)
     is_active = Column(Boolean, default=True)

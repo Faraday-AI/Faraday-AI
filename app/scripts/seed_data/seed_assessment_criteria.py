@@ -160,4 +160,9 @@ def seed_assessment_criteria(session: Session) -> None:
         session.add(criteria)
 
     session.flush()
-    print("Assessment criteria seeded successfully!") 
+    print("Assessment criteria seeded successfully!")
+    
+    # Return count of created records
+    criteria_count = len(criteria_data)
+    
+    return criteria_count

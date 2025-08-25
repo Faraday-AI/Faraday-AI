@@ -16,8 +16,16 @@ from app.models.core.user import User
 from app.models.mixins.status import BaseStatus
 
 def seed_users(session: Session) -> None:
-    """Seed the database with 18 PE teachers for our 6-school district structure."""
+    """Seed the database with 32 PE teachers for our 6-school district structure."""
     print("Seeding PE teachers...")
+    
+    # Get school IDs for proper assignment
+    schools = session.execute(text("SELECT id, name FROM schools ORDER BY name")).fetchall()
+    school_map = {school.name: school.id for school in schools}
+    
+    if not school_map:
+        print("Warning: No schools found. Teachers will not have school assignments.")
+        school_map = {}
     
     # PE Teacher data for 6-school district structure
     users_data = [
@@ -30,6 +38,7 @@ def seed_users(session: Session) -> None:
             "role": "teacher",
             "is_active": True,
             "user_type": "teacher",
+            
             "preferences": {
                 "school": "Lincoln Elementary School",
                 "department": "Physical Education",
@@ -575,6 +584,43 @@ def seed_users(session: Session) -> None:
     user_count = session.query(User).count()
     print(f"PE teachers seeded successfully! Total users in database: {user_count}")
     print(f"Expected: 32 PE teachers for 6-school district structure")
+    
+    # Create teacher-school assignments
+    print("\nCreating teacher-school assignments...")
+    from app.models.physical_education.schools.relationships import TeacherSchoolAssignment
+    
+    # Get current academic year
+    academic_year_result = session.execute(text("SELECT academic_year FROM school_academic_years WHERE is_current = true LIMIT 1")).fetchall()
+    current_academic_year = academic_year_result[0].academic_year if academic_year_result else "2025-2026"
+    
+    # Create assignments for each teacher based on their preferences
+    assignments_created = 0
+    for user_data in users_data:
+        # Find the user by email
+        user = session.query(User).filter(User.email == user_data["email"]).first()
+        if user and "school" in user_data["preferences"]:
+            school_name = user_data["preferences"]["school"]
+            school_id = school_map.get(school_name)
+            
+            if school_id:
+                # Create assignment
+                assignment = TeacherSchoolAssignment(
+                    teacher_id=user.id,
+                    school_id=school_id,
+                    assignment_type="Primary",
+                    grade_levels=", ".join(user_data["preferences"].get("grade_levels", [])),
+                    subjects=", ".join(user_data["preferences"].get("subjects", [])),
+                    start_date=datetime.now(),
+                    status="ACTIVE",
+                    is_department_head="department_head" in user_data["preferences"].get("specialization", "").lower(),
+                    is_lead_teacher="coordinator" in user_data["preferences"].get("specialization", "").lower() or "director" in user_data["preferences"].get("specialization", "").lower(),
+                    responsibilities=user_data["preferences"].get("specialization", "")
+                )
+                session.add(assignment)
+                assignments_created += 1
+    
+    session.commit()
+    print(f"Created {assignments_created} teacher-school assignments")
 
 if __name__ == "__main__":
     seed_users(SessionLocal()) 

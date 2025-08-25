@@ -141,7 +141,12 @@ def seed_skill_progress(session):
         session.flush()
         print("Skill progress seeded successfully!")
         
+        # Return count of created records
+        progress_count = len(skill_progress)
+        
+        return progress_count
+        
     except Exception as e:
         print(f"Error seeding skill progress: {e}")
         session.rollback()
-        raise 
+        raise

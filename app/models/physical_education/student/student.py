@@ -130,6 +130,7 @@ class ActivityPreference(SharedBase):
     student_id = Column(Integer, ForeignKey("student_health.id"), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
     preference_level = Column(Integer)
+    preference_reason = Column(String, nullable=True)  # Added for seeding compatibility
     preference_notes = Column(Text)
     preference_metadata = Column(JSON)
     created_at = Column(DateTime, default=datetime.utcnow)
