@@ -393,6 +393,19 @@ def seed_database():
                 seed_users(session)
                 session.commit()
                 
+                # MIGRATE USERS TO DASHBOARD (CRITICAL FOR EDUCATIONAL TEACHERS)
+                print("\n" + "="*50)
+                print("MIGRATING USERS TO DASHBOARD SYSTEM")
+                print("="*50)
+                print("🔄 Migrating users from core users table to dashboard_users...")
+                
+                # Import and run the user migration
+                from app.scripts.seed_data.migrate_users_to_dashboard import migrate_users_to_dashboard
+                migrate_users_to_dashboard(session)
+                session.commit()
+                
+                print("✅ User migration to dashboard complete!")
+                
                 seed_subject_categories(session)
                 session.commit()
                 
@@ -443,6 +456,22 @@ def seed_database():
                 print("Seeding simple activity library...")
                 seed_simple_activity_library(session)
                 session.commit()
+                
+                # COMPREHENSIVE LESSON PLANNING SYSTEM RECREATION
+                print("\n" + "="*50)
+                print("COMPREHENSIVE LESSON PLANNING SYSTEM RECREATION")
+                print("="*50)
+                print("🔄 Recreating comprehensive lesson planning system...")
+                print("📚 This will create grade levels, subjects, teachers, and 1,200+ lesson plans")
+                print("🎯 Covering Physical Education, Health Education, and Drivers Education")
+                
+                # Import and run the comprehensive system recreation
+                from app.scripts.seed_data.recreate_comprehensive_system import recreate_comprehensive_system
+                recreate_comprehensive_system(session)
+                session.commit()
+                
+                print("✅ Comprehensive lesson planning system recreation complete!")
+                print("🎉 Created 1,200+ lesson plans across all subjects and grade levels")
                 
                 # Student and class organization
                 seed_students(session)

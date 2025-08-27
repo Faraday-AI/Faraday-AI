@@ -23,21 +23,21 @@ def seed_grade_levels(session: Session) -> None:
         print(f"Error checking grade_levels table: {e}")
         return
     
-    # Standard K-12 grade levels
+    # Standard K-12 grade levels - using shorter names that fit within 10-character limit
     grade_levels = [
         {"name": "K", "description": "Kindergarten"},
-        {"name": "1", "description": "First Grade"},
-        {"name": "2", "description": "Second Grade"},
-        {"name": "3", "description": "Third Grade"},
-        {"name": "4", "description": "Fourth Grade"},
-        {"name": "5", "description": "Fifth Grade"},
-        {"name": "6", "description": "Sixth Grade"},
-        {"name": "7", "description": "Seventh Grade"},
-        {"name": "8", "description": "Eighth Grade"},
-        {"name": "9", "description": "Ninth Grade"},
-        {"name": "10", "description": "Tenth Grade"},
-        {"name": "11", "description": "Eleventh Grade"},
-        {"name": "12", "description": "Twelfth Grade"}
+        {"name": "1ST", "description": "First Grade"},
+        {"name": "2ND", "description": "Second Grade"},
+        {"name": "3RD", "description": "Third Grade"},
+        {"name": "4TH", "description": "Fourth Grade"},
+        {"name": "5TH", "description": "Fifth Grade"},
+        {"name": "6TH", "description": "Sixth Grade"},
+        {"name": "7TH", "description": "Seventh Grade"},
+        {"name": "8TH", "description": "Eighth Grade"},
+        {"name": "9TH", "description": "Ninth Grade"},
+        {"name": "10TH", "description": "Tenth Grade"},
+        {"name": "11TH", "description": "Eleventh Grade"},
+        {"name": "12TH", "description": "Twelfth Grade"}
     ]
     
     # Insert grade levels
