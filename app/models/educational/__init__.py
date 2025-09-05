@@ -1,24 +1,21 @@
 """
-Educational Models
+Educational models package.
 
-This module exports all educational models.
+This package contains models for managing educational content,
+including curricula, classes, teachers, and related components.
 """
 
-from app.models.educational.base import (
-    Grade,
-    Assignment,
-    Rubric,
-    Message,
-    MessageBoard,
-    MessageBoardPost
-)
+from app.models.educational.base.message import Message
+from app.models.educational.base.message_board import MessageBoard, MessageBoardPost
 
 from app.models.educational.curriculum import (
     Curriculum,
     LessonPlan,
-    Subject,
     Course,
-    SubjectCategory
+    SubjectCategory,
+    Assignment,
+    Grade,
+    Rubric
 )
 
 from app.models.educational.classroom import (
@@ -26,32 +23,11 @@ from app.models.educational.classroom import (
     EducationalClassStudent
 )
 
-from app.models.educational.staff import (
-    Teacher
-)
-
-from .instructor import Instructor, InstructorStatus
+from app.models.educational.staff.teacher import Teacher
+from app.models.educational.instructor import Instructor
 
 __all__ = [
-    # Base models
-    'Grade',
-    'Assignment',
-    'Rubric',
-    'Message',
-    'MessageBoard',
-    'MessageBoardPost',
-    
-    # Curriculum models
-    'Curriculum',
-    'LessonPlan',
-    'Subject',
-    'Course',
-    'SubjectCategory',
-    
-    # Classroom models
-    'EducationalClass',
-    'EducationalClassStudent',
-    
-    # Staff models
-    'Teacher'
-] 
+    'Grade', 'Assignment', 'Rubric', 'Message', 'MessageBoard', 'MessageBoardPost', 
+    'Curriculum', 'LessonPlan', 'Course', 'SubjectCategory',
+    'EducationalClass', 'EducationalClassStudent', 'Teacher', 'Instructor'
+]

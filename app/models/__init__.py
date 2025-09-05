@@ -585,7 +585,6 @@ from .educational import (
     MessageBoardPost,
     Curriculum,
     LessonPlan,
-    Subject,
     Course,
     SubjectCategory,
     EducationalClass,
@@ -777,7 +776,7 @@ __all__ = [
     'GPTContext', 'ContextInteraction', 'SharedContext', 'ContextSummary', 'ContextBackup', 'ContextData', 'ContextMetrics', 'ContextSharing', 'gpt_context_gpts',
 
     # Educational Models
-    'Grade', 'Assignment', 'Rubric', 'Message', 'MessageBoard', 'MessageBoardPost', 'Curriculum', 'LessonPlan', 'Subject', 'Course', 'SubjectCategory', 'EducationalClass', 'EducationalClassStudent', 'Teacher', 'Instructor',
+    'Grade', 'Assignment', 'Rubric', 'Message', 'MessageBoard', 'MessageBoardPost', 'Curriculum', 'LessonPlan', 'Course', 'SubjectCategory', 'EducationalClass', 'EducationalClassStudent', 'Teacher', 'Instructor',
 
     # Analytics Models
     'UserActivity', 'UserBehavior', 'UserPerformance', 'UserEngagement', 'UserPrediction', 'UserRecommendation', 'AnalyticsEvent', 'UserInsight', 'UserTrend', 'UserComparison',

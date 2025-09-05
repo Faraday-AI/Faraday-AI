@@ -745,6 +745,30 @@ def seed_database():
                 except Exception as e:
                     print(f"⚠️  Could not seed unused tables: {e}")
                 
+                # PHASE 2: EDUCATIONAL SYSTEM ENHANCEMENT
+                print("\n" + "="*50)
+                print("🚀 PHASE 2: EDUCATIONAL SYSTEM ENHANCEMENT")
+                print("="*50)
+                print("📚 Seeding 38 tables for advanced educational features")
+                print("👨‍🏫 Teacher & class management")
+                print("🏢 Department & organization structure")
+                print("="*50)
+                
+                try:
+                    print("🔄 Running Phase 2 educational system enhancement...")
+                    # Import and run the Phase 2 seeding
+                    from app.scripts.seed_data.seed_phase2_educational_system import seed_phase2_educational_system
+                    results = seed_phase2_educational_system(session)
+                    session.commit()
+                    print("✅ Phase 2 educational system enhancement completed successfully!")
+                    print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
+                except Exception as e:
+                    print(f"❌ Error seeding Phase 2 educational system: {e}")
+                    print(f"Full error details: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    session.rollback()
+                
                 # Performance tracking summary
                 print("\n" + "="*50)
                 print("PERFORMANCE TRACKING SUMMARY")
@@ -864,8 +888,10 @@ def seed_database():
                 print("="*50)
                 print("Database seeded successfully!")
                 print("="*50)
-                print("🎉 DATABASE SEEDING COMPLETE! 🎉")
+                print("🎉 COMPREHENSIVE DATABASE SEEDING COMPLETE! 🎉")
                 print("="*50)
+                print("✅ Phase 1: Foundation & Core Infrastructure")
+                print("✅ Phase 2: Educational System Enhancement")
                 print("✅ All tables populated with data")
                 print("✅ Relationships established")
                 print("✅ System ready for Power BI testing")

@@ -1,26 +1,31 @@
 """
-Curriculum Models
+Educational curriculum models package.
 
-This module exports all curriculum-related models.
-
-- Use the Subject Enum (in app.models.core.types) for standard, built-in subjects (e.g., Physical Education, Math).
-- Use the SubjectCategory model (below) for user/admin-defined custom subjects.
+This package contains models for managing educational curricula,
+including curriculum definitions, units, standards, and related components.
 """
 
-from app.models.educational.curriculum.curriculum import Curriculum
-from app.models.educational.curriculum.lesson_plan import LessonPlan
-from app.models.educational.curriculum.course import Course
-from app.models.educational.curriculum.subject import SubjectCategory
+from .curriculum import (
+    Curriculum,
+    CurriculumUnit,
+    CurriculumStandard
+)
+
+from .lesson_plan import LessonPlan
+from .course import Course
+from .subject import SubjectCategory
 from app.models.educational.base.assignment import Assignment
-from app.models.educational.base.message_board import MessageBoard
-from app.models.core.types import Subject
+from app.models.educational.base.grade import Grade  
+from app.models.educational.base.rubric import Rubric
 
 __all__ = [
     'Curriculum',
+    'CurriculumUnit', 
+    'CurriculumStandard',
     'LessonPlan',
     'Course',
     'SubjectCategory',
     'Assignment',
-    'MessageBoard',
-    'Subject'
-] 
+    'Grade',
+    'Rubric'
+]
