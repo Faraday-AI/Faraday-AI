@@ -41,6 +41,13 @@ def seed_students(session):
     except Exception as e:
         print(f"  - Note: Could not clear class enrollments: {e}")
     
+    try:
+        # Delete student activity performances (they reference students)
+        session.execute(text("DELETE FROM student_activity_performances"))
+        print("  - Cleared student activity performances")
+    except Exception as e:
+        print(f"  - Note: Could not clear student activity performances: {e}")
+    
     # Now delete students
     session.execute(Student.__table__.delete())
     print("  - Cleared existing students")
