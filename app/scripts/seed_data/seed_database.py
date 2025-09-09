@@ -820,6 +820,50 @@ def seed_database():
                     traceback.print_exc()
                     session.rollback()
                 
+                # Phase 4: Safety & Risk Management System
+                print("\n" + "="*50)
+                print("🛡️ PHASE 4: SAFETY & RISK MANAGEMENT SYSTEM")
+                print("="*50)
+                print("📊 Seeding comprehensive safety infrastructure")
+                print("⚠️ Risk assessment & prevention systems")
+                print("🔧 Equipment management & maintenance")
+                print("📋 Compliance & audit systems")
+                print("="*50)
+                
+                try:
+                    # Get required IDs for Phase 4
+                    user_result = session.execute(text('SELECT id FROM users LIMIT 5'))
+                    user_ids = [row[0] for row in user_result.fetchall()]
+                    
+                    school_result = session.execute(text('SELECT id FROM schools LIMIT 5'))
+                    school_ids = [row[0] for row in school_result.fetchall()]
+                    
+                    activity_result = session.execute(text('SELECT id FROM activities LIMIT 5'))
+                    activity_ids = [row[0] for row in activity_result.fetchall()]
+                    
+                    print(f"Found {len(user_ids)} users, {len(school_ids)} schools, {len(activity_ids)} activities")
+                    
+                    # First seed Phase 4 dependencies
+                    from app.scripts.seed_data.seed_phase4_safety_risk_corrected import seed_phase4_dependencies
+                    dep_results = seed_phase4_dependencies(session, user_ids, school_ids, activity_ids)
+                    session.commit()
+                    print("✅ Phase 4 dependencies completed successfully!")
+                    print(f"🎉 Created {sum(dep_results.values())} dependency records across {len(dep_results)} tables")
+                    
+                    # Then seed main Phase 4 tables
+                    from app.scripts.seed_data.seed_phase4_safety_risk_corrected import seed_phase4_safety_risk
+                    results = seed_phase4_safety_risk(session, user_ids, school_ids, activity_ids)
+                    session.commit()
+                    print("✅ Phase 4 safety & risk management system completed successfully!")
+                    print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
+                    print("🏆 All Phase 4 tables successfully seeded!")
+                except Exception as e:
+                    print(f"❌ Error seeding Phase 4 safety & risk management system: {e}")
+                    print(f"Full error details: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    session.rollback()
+                
                 # Performance tracking summary
                 print("\n" + "="*50)
                 print("PERFORMANCE TRACKING SUMMARY")
@@ -944,6 +988,7 @@ def seed_database():
                 print("✅ Phase 1: Foundation & Core Infrastructure")
                 print("✅ Phase 2: Educational System Enhancement (38 tables)")
                 print("✅ Phase 3: Health & Fitness System (41 tables - 100% complete)")
+                print("✅ Phase 4: Safety & Risk Management System (9+ tables - Core functionality complete)")
                 print("✅ All tables populated with data")
                 print("✅ Relationships established")
                 print("✅ System ready for Power BI testing")
