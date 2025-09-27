@@ -19,9 +19,7 @@ def seed_activity_progressions(session: Session) -> None:
     """Seed activity progressions data."""
     print("Seeding activity progressions...")
     
-    # Delete existing records
-    session.execute(text("DELETE FROM activity_progressions"))
-    session.commit()
+    # Note: No need to delete existing data - initial cascade drop cleared everything
     
     # Get all students and activities
     result = session.execute(select(Student.id, Student.first_name, Student.last_name))

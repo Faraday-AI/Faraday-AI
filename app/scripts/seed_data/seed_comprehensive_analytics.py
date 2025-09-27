@@ -82,11 +82,7 @@ def seed_comprehensive_analytics(session: Session) -> Dict[str, int]:
         except:
             user_ids = [1]  # Default fallback
         
-        # Clear existing data first
-        try:
-            session.execute(text("DELETE FROM analytics_events"))
-        except:
-            pass  # Table might not exist
+        # Note: No need to delete existing data - initial cascade drop cleared everything
         
         # Create analytics events using ORM
         event_types = ["PAGE_VIEW", "BUTTON_CLICK", "FORM_SUBMIT", "API_CALL", "ERROR", "PERFORMANCE", "USER_ACTION", "SYSTEM_EVENT"]
@@ -162,11 +158,7 @@ def seed_comprehensive_analytics(session: Session) -> Dict[str, int]:
             dashboard_user_ids = [1]  # Default fallback
         
         # Clear existing data first
-        try:
-            session.execute(text("DELETE FROM ai_tools"))
-            session.execute(text("DELETE FROM ai_suites"))
-        except:
-            pass  # Tables might not exist
+        # Note: No need to delete existing data - initial cascade drop cleared everything
         
         # Create AI suites using ORM
         suite_data_list = [
@@ -228,10 +220,7 @@ def seed_comprehensive_analytics(session: Session) -> Dict[str, int]:
         feedback_created = 0
         
         # Clear existing data first
-        try:
-            session.execute(text("DELETE FROM dashboard_feedback"))
-        except:
-            pass  # Table might not exist
+        # Note: No need to delete existing data - initial cascade drop cleared everything
         
         feedback_types = ["PERFORMANCE", "SAFETY", "TECHNIQUE", "PROGRESS", "GENERAL"]
         

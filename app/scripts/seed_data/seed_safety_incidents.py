@@ -36,8 +36,8 @@ def seed_safety_incidents(session):
     student_ids = list(students.values())
     activity_names = list(activities.keys())
     
-    # Create incidents for a subset of students (about 20-30 incidents)
-    num_incidents = min(25, len(student_ids) // 4)
+    # Create incidents for a realistic district level (1 per 20 students)
+    num_incidents = max(200, len(student_ids) // 20)
     
     # Define incident templates
     incident_templates = [

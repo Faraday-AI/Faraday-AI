@@ -18,39 +18,10 @@ def seed_students(session):
     # First delete existing students and related data to avoid foreign key violations
     print("Clearing existing student data...")
     
-    # Delete in order of dependency (child tables first, then parent tables)
-    try:
-        # Delete activity progressions first (they reference students)
-        session.execute(text("DELETE FROM activity_progressions"))
-        print("  - Cleared activity progressions")
-    except Exception as e:
-        print(f"  - Note: Could not clear activity progressions: {e}")
+    # Note: No need to delete existing data - initial cascade drop cleared everything
+    # All data should be additive from this point forward
     
-    try:
-        # Delete activity plans (they reference students)
-        session.execute(text("DELETE FROM activity_plan_activities"))
-        session.execute(text("DELETE FROM activity_plans"))
-        print("  - Cleared activity plans")
-    except Exception as e:
-        print(f"  - Note: Could not clear activity plans: {e}")
-    
-    try:
-        # Delete class enrollments (they reference students)
-        session.execute(text("DELETE FROM physical_education_class_students"))
-        print("  - Cleared class enrollments")
-    except Exception as e:
-        print(f"  - Note: Could not clear class enrollments: {e}")
-    
-    try:
-        # Delete student activity performances (they reference students)
-        session.execute(text("DELETE FROM student_activity_performances"))
-        print("  - Cleared student activity performances")
-    except Exception as e:
-        print(f"  - Note: Could not clear student activity performances: {e}")
-    
-    # Now delete students
-    session.execute(Student.__table__.delete())
-    print("  - Cleared existing students")
+    # Note: Students table was already cleared by initial cascade drop
     
     session.commit()
     print("Data clearing completed.")

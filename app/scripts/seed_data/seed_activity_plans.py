@@ -20,10 +20,7 @@ def seed_activity_plans(session: Session) -> None:
     """Seed activity plans and plan activities data."""
     print("Seeding activity plans...")
     
-    # Delete existing records
-    session.execute(text("DELETE FROM activity_plan_activities"))
-    session.execute(text("DELETE FROM activity_plans"))
-    session.commit()
+    # Note: No need to delete existing data - initial cascade drop cleared everything
     
     # Get all students and classes
     result = session.execute(select(Student.id, Student.first_name, Student.last_name))

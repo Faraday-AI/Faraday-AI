@@ -118,8 +118,8 @@ def seed_student_activity_data(session):
     print("  Creating additional comprehensive activity performances...")
     additional_performances = []
     
-    # Create 1000+ additional performance records (100 students × 10+ activities)
-    num_students = min(100, len(student_ids))
+    # Create comprehensive performance records (all students × activities)
+    num_students = len(student_ids)
     num_activities = min(10, len(activity_ids))
     
     for i in range(num_students):
@@ -153,7 +153,7 @@ def seed_student_activity_data(session):
     print("  Creating additional comprehensive activity preferences...")
     additional_preferences = []
     
-    # Create 1000+ additional preference records (100 students × 10+ activities)
+    # Create comprehensive preference records (all students × activities)
     for i in range(num_students):
         for j in range(num_activities):
             additional_preference = StudentActivityPreference(

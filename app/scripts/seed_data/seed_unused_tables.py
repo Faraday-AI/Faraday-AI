@@ -29,7 +29,7 @@ def seed_unused_tables(session: Session) -> Dict[str, int]:
     
     # Get student IDs first to avoid variable scope issues
     try:
-        student_ids = session.execute(text("SELECT id FROM students LIMIT 100")).fetchall()
+        student_ids = session.execute(text("SELECT id FROM students")).fetchall()
         if student_ids:
             student_ids = [s[0] for s in student_ids]
         else:
@@ -199,13 +199,11 @@ def seed_unused_tables(session: Session) -> Dict[str, int]:
                 results['activity_preferences'] = 0
             else:
                 # Get existing data from pe_activity_preferences
-                # We need to map student_id from students to student_health.id
+                # Use student_id directly (not student_health.id)
                 existing_preferences = session.execute(text("""
                     SELECT sap.student_id, sap.activity_id, sap.preference_score, sap.preference_level, 
-                           sap.notes, sap.preference_metadata, sap.last_updated,
-                           sh.id as student_health_id
+                           sap.notes, sap.preference_metadata, sap.last_updated
                     FROM pe_activity_preferences sap
-                    JOIN student_health sh ON sap.student_id = sh.student_id
                     LIMIT 1000
                 """)).fetchall()
                 
@@ -226,7 +224,7 @@ def seed_unused_tables(session: Session) -> Dict[str, int]:
                                 metadata = json.dumps(metadata)
                             
                             session.execute(insert_query, {
-                                'student_id': pref[7], # Use student_health_id
+                                'student_id': pref[0], # Use student_id directly
                                 'activity_id': pref[1],
                                 'preference_level': pref[3],  # preference_level
                                 'preference_notes': pref[4],  # notes -> preference_notes
@@ -254,7 +252,91 @@ def seed_unused_tables(session: Session) -> Dict[str, int]:
         results['activity_preferences'] = 0
         session.rollback()  # Rollback on error
     
-    # 3. Populate feedback table (copy from dashboard_feedback)
+    # 3. Populate student_health_goal_recommendations table
+    print("  📊 Populating student_health_goal_recommendations table...")
+    try:
+        # Check if table exists
+        table_exists = session.execute(text("SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = 'student_health_goal_recommendations')")).scalar()
+        if not table_exists:
+            print("    ⚠️  student_health_goal_recommendations table does not exist")
+            results['student_health_goal_recommendations'] = 0
+        else:
+            # Get student health fitness goals to create recommendations
+            # First check what columns exist in the table
+            columns_result = session.execute(text("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'student_health_fitness_goals' 
+                ORDER BY ordinal_position
+            """)).fetchall()
+            available_columns = [col[0] for col in columns_result]
+            print(f"    📋 Available columns in student_health_fitness_goals: {available_columns}")
+            
+            # Build query based on available columns
+            if 'current_value' in available_columns:
+                goal_data = session.execute(text("""
+                    SELECT shfg.id, shfg.student_id, shfg.goal_type, shfg.target_value, shfg.current_value
+                    FROM student_health_fitness_goals shfg
+                    LIMIT 100
+                """)).fetchall()
+            else:
+                # Use available columns without current_value
+                goal_data = session.execute(text("""
+                    SELECT shfg.id, shfg.student_id, shfg.goal_type, shfg.target_value
+                    FROM student_health_fitness_goals shfg
+                    LIMIT 100
+                """)).fetchall()
+            
+            if goal_data:
+                recommendations_created = 0
+                recommendation_types = ['NUTRITION', 'EXERCISE', 'SLEEP', 'HYDRATION', 'STRESS_MANAGEMENT']
+                recommendation_levels = ['LOW', 'MEDIUM', 'HIGH']
+                
+                for goal in goal_data:
+                    try:
+                        insert_query = text("""
+                            INSERT INTO student_health_goal_recommendations 
+                            (goal_id, student_id, recommendation_type, description, priority, 
+                             is_implemented, created_at, updated_at)
+                            VALUES (:goal_id, :student_id, :recommendation_type, :description, 
+                                    :priority, :is_implemented, :created_at, :updated_at)
+                        """)
+                        
+                        # Handle both cases: with and without current_value
+                        if len(goal) >= 5:  # Has current_value
+                            description = f"Focus on {goal[2].lower()} activities to reach your target of {goal[3]}"
+                        else:  # No current_value
+                            description = f"Focus on {goal[2].lower()} activities to reach your target of {goal[3]}"
+                        
+                        session.execute(insert_query, {
+                            'goal_id': goal[0],
+                            'student_id': goal[1],
+                            'recommendation_type': random.choice(recommendation_types),
+                            'description': description,
+                            'priority': random.randint(1, 5),  # Use integer priority instead of string
+                            'is_implemented': random.choice([True, False]),
+                            'created_at': datetime.now(),
+                            'updated_at': datetime.now()
+                        })
+                        recommendations_created += 1
+                        
+                    except Exception as e:
+                        print(f"      ⚠️  Could not create recommendation record: {e}")
+                        continue
+                
+                session.flush()
+                print(f"    ✅ Created {recommendations_created} student_health_goal_recommendations records")
+                results['student_health_goal_recommendations'] = recommendations_created
+                total_records += recommendations_created
+            else:
+                print("    ⚠️  No student_health_fitness_goals data found")
+                results['student_health_goal_recommendations'] = 0
+                
+    except Exception as e:
+        print(f"    ❌ Error populating student_health_goal_recommendations: {e}")
+        results['student_health_goal_recommendations'] = 0
+        session.rollback()
+    
+    # 4. Populate feedback table (copy from dashboard_feedback)
     print("  📊 Populating feedback table...")
     try:
         # Check if feedback table exists

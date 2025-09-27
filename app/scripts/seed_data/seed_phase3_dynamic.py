@@ -254,6 +254,10 @@ def seed_table_dynamic(session: Session, table_name: str, student_ids: List[int]
             print(f"  ✅ {table_name}: {existing_count} records (already seeded)")
             return {table_name: existing_count}
         
+        # Special handling for student_health_goal_recommendations
+        if table_name == 'student_health_goal_recommendations':
+            return seed_student_health_goal_recommendations(session, student_ids)
+        
         # Generate data based on actual schema
         records = generate_table_data_dynamic(table_name, schema, student_ids, user_ids)
         
@@ -301,15 +305,15 @@ def get_record_count_for_table(table_name: str) -> int:
         'health_checks': 200,
         'health_conditions': 100,
         'health_alerts': 50,
-        'health_metrics': 500,
-        'health_metric_history': 500,
+        'health_metrics': 100,  # Reduced to prevent connection timeout
+        'health_metric_history': 100,  # Reduced to prevent connection timeout
         'health_metric_thresholds': 40,
         'medical_conditions': 100,
         'emergency_contacts': 200,
         'fitness_assessments': 150,
         'fitness_metrics': 30,
-        'fitness_metric_history': 400,
-        'fitness_health_metric_history': 300,
+        'fitness_metric_history': 100,  # Reduced to prevent connection timeout
+        'fitness_health_metric_history': 50,  # Reduced to prevent connection timeout
         'fitness_goals': 200,
         'fitness_goal_progress_detailed': 100,
         'fitness_goal_progress_general': 100,
@@ -966,6 +970,107 @@ def insert_data_dynamic(session: Session, table_name: str, records: List[Dict], 
     # Execute insert
     session.execute(text(query), records)
     session.commit()
+
+def seed_student_health_goal_recommendations(session: Session, student_ids: List[int]) -> Dict[str, int]:
+    """Seed student_health_goal_recommendations table by referencing student_health_fitness_goals"""
+    try:
+        # First check if table exists
+        table_exists = session.execute(text("""
+            SELECT EXISTS(SELECT FROM information_schema.tables 
+                         WHERE table_name = 'student_health_goal_recommendations')
+        """)).scalar()
+        
+        if not table_exists:
+            print(f"  ⚠️  student_health_goal_recommendations: Table does not exist")
+            return {'student_health_goal_recommendations': 0}
+        
+        # Get student health fitness goals to create recommendations
+        goal_data = session.execute(text("""
+            SELECT id, student_id, goal_type, target_value
+            FROM student_health_fitness_goals
+            LIMIT 100
+        """)).fetchall()
+        
+        if not goal_data:
+            print(f"  ⚠️  student_health_goal_recommendations: No student_health_fitness_goals data found")
+            # Create some fallback data using student_ids
+            print(f"  🔧 Creating fallback recommendations using student_ids...")
+            recommendations_created = 0
+            recommendation_types = ['NUTRITION', 'EXERCISE', 'SLEEP', 'HYDRATION', 'STRESS_MANAGEMENT']
+            recommendation_levels = ['LOW', 'MEDIUM', 'HIGH']
+            
+            for i, student_id in enumerate(student_ids[:50]):  # Limit to 50 recommendations
+                try:
+                    insert_query = text("""
+                        INSERT INTO student_health_goal_recommendations 
+                        (goal_id, student_id, recommendation_type, description, priority, 
+                         is_implemented, created_at, updated_at)
+                        VALUES (:goal_id, :student_id, :recommendation_type, :description, 
+                                :priority, :is_implemented, :created_at, :updated_at)
+                    """)
+                    
+                    description = f"General health recommendation for student {student_id}"
+                    
+                    session.execute(insert_query, {
+                        'goal_id': i + 1,  # Use sequential ID
+                        'student_id': student_id,
+                        'recommendation_type': random.choice(recommendation_types),
+                        'description': description,
+                        'priority': random.randint(1, 5),  # Use integer priority instead of string
+                        'is_implemented': random.choice([True, False]),
+                        'created_at': datetime.now(),
+                        'updated_at': datetime.now()
+                    })
+                    recommendations_created += 1
+                    
+                except Exception as e:
+                    print(f"      ⚠️  Could not create fallback recommendation record: {e}")
+                    continue
+            
+            session.commit()
+            print(f"  ✅ student_health_goal_recommendations: {recommendations_created} records (fallback)")
+            return {'student_health_goal_recommendations': recommendations_created}
+        
+        recommendations_created = 0
+        recommendation_types = ['NUTRITION', 'EXERCISE', 'SLEEP', 'HYDRATION', 'STRESS_MANAGEMENT']
+        recommendation_levels = ['LOW', 'MEDIUM', 'HIGH']
+        
+        for goal in goal_data:
+            try:
+                insert_query = text("""
+                    INSERT INTO student_health_goal_recommendations 
+                    (goal_id, student_id, recommendation_type, description, priority, 
+                     is_implemented, created_at, updated_at)
+                    VALUES (:goal_id, :student_id, :recommendation_type, :description, 
+                            :priority, :is_implemented, :created_at, :updated_at)
+                """)
+                
+                description = f"Focus on {goal[2].lower()} activities to reach your target of {goal[3]}"
+                
+                session.execute(insert_query, {
+                    'goal_id': goal[0],
+                    'student_id': goal[1],
+                    'recommendation_type': random.choice(recommendation_types),
+                    'description': description,
+                    'priority': random.randint(1, 5),  # Use integer priority instead of string
+                    'is_implemented': random.choice([True, False]),
+                    'created_at': datetime.now(),
+                    'updated_at': datetime.now()
+                })
+                recommendations_created += 1
+                
+            except Exception as e:
+                print(f"      ⚠️  Could not create recommendation record: {e}")
+                continue
+        
+        session.commit()
+        print(f"  ✅ student_health_goal_recommendations: {recommendations_created} records")
+        return {'student_health_goal_recommendations': recommendations_created}
+        
+    except Exception as e:
+        print(f"  ❌ student_health_goal_recommendations: {e}")
+        session.rollback()
+        return {'student_health_goal_recommendations': 0}
 
 if __name__ == "__main__":
     from app.core.database import SessionLocal

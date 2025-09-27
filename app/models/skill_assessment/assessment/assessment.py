@@ -27,7 +27,7 @@ class Assessment(SharedBase, TimestampedMixin, StatusMixin):
     id = Column(Integer, primary_key=True, index=True)
     student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     assessor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    curriculum_id = Column(Integer, ForeignKey("curricula.id"), nullable=True)
+    curriculum_id = Column(Integer, ForeignKey("curriculum.id"), nullable=True)
     assessment_date = Column(TIMESTAMP(timezone=True), nullable=False)
     assessment_type = Column(SQLEnum(AssessmentType, name='assessment_type_enum'), nullable=False)
     score = Column(Float, nullable=True)

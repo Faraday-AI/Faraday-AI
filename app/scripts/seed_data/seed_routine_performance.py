@@ -14,12 +14,12 @@ def seed_routine_performance(session: Session) -> int:
     print("Starting routine performance seeding...")
     print("⏱️  This step may take a moment...")
     
-    # Set timeout for this function (5 minutes)
+    # Set timeout for this function (10 minutes)
     def timeout_handler(signum, frame):
-        raise TimeoutError("Routine performance seeding timed out after 5 minutes")
+        raise TimeoutError("Routine performance seeding timed out after 10 minutes")
     
     signal.signal(signal.SIGALRM, timeout_handler)
-    signal.alarm(300)  # 5 minutes
+    signal.alarm(600)  # 10 minutes
     
     try:
         # Clear existing performance data
@@ -37,9 +37,9 @@ def seed_routine_performance(session: Session) -> int:
             print("  No routines found, skipping performance creation")
             return 0
         
-        # Get students (limit to 200 for performance - increased from 100)
-        print("  Getting students (limiting to 200 for performance)...")
-        students = session.execute(select(Student.id, Student.grade_level).limit(200)).fetchall()
+        # Get students (limit to 500 for performance)
+        print("  Getting students...")
+        students = session.execute(select(Student.id, Student.grade_level).limit(500)).fetchall()
         print(f"  Using {len(students)} students")
         
         if not students:

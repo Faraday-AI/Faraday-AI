@@ -28,7 +28,7 @@ def seed_lesson_plans(session: Session) -> None:
     # Get existing data for references
     try:
         # Get teachers
-        teachers = session.execute(text("SELECT id FROM users WHERE role = 'teacher' LIMIT 10")).fetchall()
+        teachers = session.execute(text("SELECT id FROM educational_teachers LIMIT 10")).fetchall()
         teacher_ids = [t[0] for t in teachers] if teachers else [1]
         
         # Get subjects
@@ -61,7 +61,7 @@ def seed_lesson_plans(session: Session) -> None:
             "guided_practice": ["Walking in different directions", "Running with control", "Jumping in place"],
             "independent_practice": ["Create movement sequences", "Practice with partners"],
             "closure": "Review what we learned about movement",
-            "assessment": "Observation of skill demonstration",
+            "assessment": ["Observation of skill demonstration"],
             "materials": ["Cones", "Bean bags", "Music player"],
             "homework": "Practice movements at home",
             "notes": "Focus on safety and proper form",
@@ -78,7 +78,7 @@ def seed_lesson_plans(session: Session) -> None:
             "guided_practice": ["Partner toss games", "Group circle activities", "Simple relay races"],
             "independent_practice": ["Create team challenges", "Practice with different partners"],
             "closure": "Share what we learned about teamwork",
-            "assessment": "Participation and cooperation observation",
+            "assessment": ["Participation and cooperation observation"],
             "materials": ["Soft balls", "Hula hoops", "Cones"],
             "homework": "Practice throwing and catching at home",
             "notes": "Emphasize cooperation over competition",
@@ -95,7 +95,7 @@ def seed_lesson_plans(session: Session) -> None:
             "guided_practice": ["Walking", "Jogging", "Jumping jacks", "Dancing"],
             "independent_practice": ["Create fitness routines", "Monitor heart rate"],
             "closure": "Reflect on how exercise makes us feel",
-            "assessment": "Participation and understanding of concepts",
+            "assessment": ["Participation and understanding of concepts"],
             "materials": ["Stopwatch", "Heart rate monitors", "Music"],
             "homework": "Exercise for 20 minutes at home",
             "notes": "Monitor students for fatigue",
@@ -124,14 +124,14 @@ def seed_lesson_plans(session: Session) -> None:
             "duration": random.choice([30, 45, 60, 90]),
             "essential_question": template["essential_question"],
             "do_now": template["do_now"],
-            "objectives": json.dumps(template["objectives"], ensure_ascii=False),  # Convert list to JSON string
+            "objectives": template["objectives"],  # Pass Python list directly
             "anticipatory_set": template["anticipatory_set"],
             "direct_instruction": template["direct_instruction"],
-            "guided_practice": json.dumps(template["guided_practice"], ensure_ascii=False),  # Convert list to JSON string
-            "independent_practice": json.dumps(template["independent_practice"], ensure_ascii=False),  # Convert list to JSON string
+            "guided_practice": template["guided_practice"],  # Pass Python list directly
+            "independent_practice": template["independent_practice"],  # Pass Python list directly
             "closure": template["closure"],
             "assessment": template["assessment"],
-            "materials": json.dumps(template["materials"], ensure_ascii=False),  # Convert list to JSON string
+            "materials": template["materials"],  # Pass Python list directly
             "homework": template["homework"],
             "notes": template["notes"],
             "reflection": f"Lesson {i+1} reflection notes",
@@ -142,30 +142,41 @@ def seed_lesson_plans(session: Session) -> None:
         
         lesson_plans.append(lesson_plan)
     
-    # Insert lesson plans
+    # Insert lesson plans using ORM
     for plan_data in lesson_plans:
         try:
-            session.execute(
-                text("""
-                    INSERT INTO lesson_plans (
-                        teacher_id, subject_id, grade_level_id, unit_title, lesson_title, 
-                        date, period, duration, essential_question, do_now, objectives, 
-                        anticipatory_set, direct_instruction, guided_practice, independent_practice,
-                        closure, assessment, materials, homework, notes, reflection, next_steps,
-                        created_at, updated_at
-                    )
-                    VALUES (
-                        :teacher_id, :subject_id, :grade_level_id, :unit_title, :lesson_title,
-                        :date, :period, :duration, :essential_question, :do_now, :objectives,
-                        :anticipatory_set, :direct_instruction, :guided_practice, :independent_practice,
-                        :closure, :assessment, :materials, :homework, :notes, :reflection, :next_steps,
-                        :created_at, :updated_at
-                    )
-                """),
-                plan_data
+            from app.models.educational.curriculum.lesson_plan import LessonPlan
+            
+            lesson_plan = LessonPlan(
+                teacher_id=plan_data['teacher_id'],
+                subject_id=plan_data['subject_id'],
+                grade_level_id=plan_data['grade_level_id'],
+                unit_title=plan_data['unit_title'],
+                lesson_title=plan_data['lesson_title'],
+                date=plan_data['date'],
+                period=plan_data['period'],
+                duration=plan_data['duration'],
+                essential_question=plan_data['essential_question'],
+                do_now=plan_data['do_now'],
+                objectives=plan_data['objectives'],
+                anticipatory_set=plan_data['anticipatory_set'],
+                direct_instruction=plan_data['direct_instruction'],
+                guided_practice=plan_data['guided_practice'],
+                independent_practice=plan_data['independent_practice'],
+                closure=plan_data['closure'],
+                assessment=plan_data['assessment'],
+                materials=plan_data['materials'],
+                homework=plan_data['homework'],
+                notes=plan_data['notes'],
+                reflection=plan_data['reflection'],
+                next_steps=plan_data['next_steps'],
+                created_at=plan_data['created_at'],
+                updated_at=plan_data['updated_at']
             )
+            session.add(lesson_plan)
+            print(f"✅ Added lesson plan: {plan_data['lesson_title']}")
         except Exception as e:
-            print(f"Error inserting lesson plan {plan_data['lesson_title']}: {e}")
+            print(f"❌ Error adding lesson plan {plan_data['lesson_title']}: {e}")
             continue
     
     # Commit the changes
@@ -184,6 +195,82 @@ def seed_lesson_plans(session: Session) -> None:
             
     except Exception as e:
         print(f"Error verifying lesson plans: {e}")
+
+def seed_subjects(session: Session) -> None:
+    """Seed the subjects table with basic subjects."""
+    print("Seeding subjects...")
+    
+    try:
+        result = session.execute(text("SELECT COUNT(*) FROM subjects")).scalar()
+        if result > 0:
+            print(f"Subjects table already has {result} records. Skipping seeding.")
+            return
+    except Exception as e:
+        print(f"Error checking subjects table: {e}")
+        return
+    
+    subjects = [
+        {"name": "Physical Education", "description": "Physical Education and Health"},
+        {"name": "Mathematics", "description": "Mathematics and Statistics"},
+        {"name": "Science", "description": "Science and Technology"},
+        {"name": "English", "description": "English Language Arts"},
+        {"name": "Social Studies", "description": "Social Studies and History"}
+    ]
+    
+    for subject in subjects:
+        session.execute(text("""
+            INSERT INTO subjects (name, description, created_at, updated_at)
+            VALUES (:name, :description, :created_at, :updated_at)
+        """), {
+            "name": subject["name"],
+            "description": subject["description"],
+            "created_at": datetime.now(),
+            "updated_at": datetime.now()
+        })
+    
+    print(f"✅ Created {len(subjects)} subjects")
+
+def seed_grade_levels(session: Session) -> None:
+    """Seed the grade_levels table with basic grade levels."""
+    print("Seeding grade levels...")
+    
+    try:
+        result = session.execute(text("SELECT COUNT(*) FROM grade_levels")).scalar()
+        if result > 0:
+            print(f"Grade levels table already has {result} records. Skipping seeding.")
+            return
+    except Exception as e:
+        print(f"Error checking grade_levels table: {e}")
+        return
+    
+    grade_levels = [
+        {"name": "K", "description": "Kindergarten"},
+        {"name": "1", "description": "First Grade"},
+        {"name": "2", "description": "Second Grade"},
+        {"name": "3", "description": "Third Grade"},
+        {"name": "4", "description": "Fourth Grade"},
+        {"name": "5", "description": "Fifth Grade"},
+        {"name": "6", "description": "Sixth Grade"},
+        {"name": "7", "description": "Seventh Grade"},
+        {"name": "8", "description": "Eighth Grade"},
+        {"name": "9", "description": "Ninth Grade"},
+        {"name": "10", "description": "Tenth Grade"},
+        {"name": "11", "description": "Eleventh Grade"},
+        {"name": "12", "description": "Twelfth Grade"}
+    ]
+    
+    for grade in grade_levels:
+        session.execute(text("""
+            INSERT INTO grade_levels (name, description, created_at, updated_at)
+            VALUES (:name, :description, :created_at, :updated_at)
+        """), {
+            "name": grade["name"],
+            "description": grade["description"],
+            "created_at": datetime.now(),
+            "updated_at": datetime.now()
+        })
+    
+    print(f"✅ Created {len(grade_levels)} grade levels")
 
 if __name__ == "__main__":
     from app.core.database import SessionLocal

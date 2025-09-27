@@ -17,9 +17,7 @@ def seed_activity_category_associations(session: Session) -> None:
     """Seed activity category associations data."""
     print("Seeding activity category associations...")
     
-    # Delete existing records
-    session.execute(text("DELETE FROM activity_category_associations"))
-    session.commit()
+    # Note: No need to delete existing data - initial cascade drop cleared everything
     
     # Get all activities and categories
     result = session.execute(select(Activity.id, Activity.name))

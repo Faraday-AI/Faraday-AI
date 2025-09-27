@@ -139,10 +139,13 @@ def seed_sample_users(session):
     
     for user_data in sample_users:
         session.execute(text("""
-            INSERT INTO dashboard_users (username, email, role, is_active, created_at, updated_at)
-            VALUES (:username, :email, :role, true, :now, :now)
+            INSERT INTO dashboard_users (full_name, email, hashed_password, role, is_active, created_at, updated_at)
+            VALUES (:full_name, :email, :hashed_password, :role, true, :now, :now)
         """), {
-            **user_data,
+            "full_name": user_data["username"],  # Map username to full_name
+            "email": user_data["email"],
+            "hashed_password": "dummy_password_hash",  # Required field
+            "role": user_data["role"],
             "now": datetime.utcnow()
         })
     

@@ -28,9 +28,9 @@ def seed_phase3_dependencies(session: Session) -> None:
     
     print("  🔄 Seeding Phase 3 dependency tables...")
     
-    # Get student IDs for foreign key references
+    # Get student IDs for foreign key references - use ALL students
     try:
-        student_result = session.execute(text("SELECT id FROM students LIMIT 100"))
+        student_result = session.execute(text("SELECT id FROM students"))
         student_ids = [row[0] for row in student_result.fetchall()]
         print(f"  📊 Found {len(student_ids)} students for foreign key references")
     except Exception as e:
@@ -110,7 +110,7 @@ def seed_phase3_dependencies(session: Session) -> None:
         plan_count = session.execute(text("SELECT COUNT(*) FROM nutrition_plans")).scalar()
         if plan_count == 0:
             plans_data = []
-            for i in range(30):  # Create 30 nutrition plans
+            for i in range(60):  # Create 60 nutrition plans to include IDs 35, 39
                 plans_data.append({
                 'student_id': random.choice(student_ids) if student_ids else random.randint(1, 100),
                 'title': f'Nutrition Plan {i + 1}',
@@ -239,28 +239,34 @@ def seed_phase3_dependencies(session: Session) -> None:
     
     # 5. Seed fitness_goals table
     try:
-        fitness_goal_count = session.execute(text("SELECT COUNT(*) FROM fitness_goals")).scalar()
-        if fitness_goal_count == 0:
-            fitness_goals_data = []
-            for i in range(200):  # Create 200 fitness goals
-                fitness_goals_data.append({
-                    'student_id': random.choice(student_ids) if student_ids else random.randint(1, 100),
-                    'goal_type': random.choice(['WEIGHT_LOSS', 'MUSCLE_GAIN', 'FLEXIBILITY', 'ENDURANCE', 'STRENGTH', 'SKILL_IMPROVEMENT']),
-                    'description': f'Fitness goal {i + 1}',
-                    'target_value': round(random.uniform(1, 100), 2),
-                    'target_date': datetime.now() + timedelta(days=random.randint(30, 365)),
-                    'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'ON_HOLD']),
-                    'priority': random.randint(1, 10)
-                })
-            
-            session.execute(text("""
-                INSERT INTO fitness_goals (student_id, goal_type, description, target_value, target_date, status, priority)
-                VALUES (:student_id, :goal_type, :description, :target_value, :target_date, :status, :priority)
-            """), fitness_goals_data)
-            session.commit()
-            print(f"  ✅ Seeded fitness_goals table: {len(fitness_goals_data)} records")
+        # Check if table exists first
+        table_exists = session.execute(text("SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = 'fitness_goals')")).scalar()
+        if not table_exists:
+            # Skip silently - table doesn't exist
+            pass
         else:
-            print(f"  ⚠️  Fitness_goals table already has {fitness_goal_count} records")
+            fitness_goal_count = session.execute(text("SELECT COUNT(*) FROM fitness_goals")).scalar()
+            if fitness_goal_count == 0:
+                fitness_goals_data = []
+                for i in range(200):  # Create 200 fitness goals
+                    fitness_goals_data.append({
+                        'student_id': random.choice(student_ids) if student_ids else random.randint(1, 100),
+                        'goal_type': random.choice(['WEIGHT_LOSS', 'MUSCLE_GAIN', 'FLEXIBILITY', 'ENDURANCE', 'STRENGTH', 'SKILL_IMPROVEMENT']),
+                        'description': f'Fitness goal {i + 1}',
+                        'target_value': round(random.uniform(1, 100), 2),
+                        'target_date': datetime.now() + timedelta(days=random.randint(30, 365)),
+                        'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'ON_HOLD']),
+                        'priority': random.randint(1, 10)
+                    })
+                
+                session.execute(text("""
+                    INSERT INTO fitness_goals (student_id, goal_type, description, target_value, target_date, status, priority)
+                    VALUES (:student_id, :goal_type, :description, :target_value, :target_date, :status, :priority)
+                """), fitness_goals_data)
+                session.commit()
+                print(f"  ✅ Seeded fitness_goals table: {len(fitness_goals_data)} records")
+            else:
+                print(f"  ⚠️  Fitness_goals table already has {fitness_goal_count} records")
     except Exception as e:
         print(f"  ❌ Error seeding fitness_goals: {e}")
     
@@ -268,10 +274,19 @@ def seed_phase3_dependencies(session: Session) -> None:
     try:
         shf_goal_count = session.execute(text("SELECT COUNT(*) FROM student_health_fitness_goals")).scalar()
         if shf_goal_count == 0:
+            # Get student_health IDs for foreign key references
+            try:
+                student_health_result = session.execute(text("SELECT id FROM student_health"))
+                student_health_ids = [row[0] for row in student_health_result.fetchall()]
+                print(f"  📊 Found {len(student_health_ids)} student_health records for foreign key references")
+            except Exception as e:
+                print(f"  ⚠️  Could not get student_health IDs: {e}")
+                student_health_ids = list(range(1, 101))  # Fallback range
+            
             shf_goals_data = []
             for i in range(200):  # Create 200 student health fitness goals
                 shf_goals_data.append({
-                    'student_id': random.choice(student_ids) if student_ids else random.randint(1, 100),
+                    'student_id': random.choice(student_health_ids) if student_health_ids else random.randint(1, 100),
                     'goal_type': random.choice(['WEIGHT_LOSS', 'MUSCLE_GAIN', 'FLEXIBILITY', 'ENDURANCE', 'STRENGTH', 'SKILL_IMPROVEMENT']),
                     'category': random.choice(['CARDIOVASCULAR', 'STRENGTH', 'FLEXIBILITY', 'ENDURANCE', 'BALANCE', 'COORDINATION', 'SPEED', 'AGILITY', 'POWER', 'SPORTS_SPECIFIC', 'GENERAL_FITNESS', 'WEIGHT_MANAGEMENT']),
                     'timeframe': random.choice(['SHORT_TERM', 'MEDIUM_TERM', 'LONG_TERM', 'ACADEMIC_YEAR', 'CUSTOM']),
@@ -309,21 +324,25 @@ def seed_phase3_dependencies(session: Session) -> None:
             pe_nutrition_plans_data = []
             for i in range(50):  # Create 50 physical education nutrition plans
                 pe_nutrition_plans_data.append({
+                    'student_id': random.choice(student_ids),
                     'plan_name': f'PE Nutrition Plan {i + 1}',
-                    'description': f'Description for PE nutrition plan {i + 1}',
-                    'target_audience': random.choice(['ELEMENTARY', 'MIDDLE', 'HIGH_SCHOOL', 'ALL_LEVELS']),
-                    'nutritional_goals': json.dumps({"goals": [f"Goal {i + 1}", f"Goal {i + 2}"]}),
-                    'meal_plan': json.dumps({"meals": [f"Meal {i + 1}", f"Meal {i + 2}"]}),
-                    'dietary_restrictions': json.dumps({"restrictions": []}),
+                    'start_date': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'end_date': datetime.now() + timedelta(days=random.randint(30, 90)),
+                    'plan_notes': f'Notes for PE nutrition plan {i + 1}',
+                    'daily_calories': random.randint(1500, 3000),
+                    'protein_goal': round(random.uniform(50, 150), 2),
+                    'carbs_goal': round(random.uniform(100, 300), 2),
+                    'fat_goal': round(random.uniform(30, 100), 2),
+                    'plan_metadata': json.dumps({"plan_type": "PE", "difficulty": random.choice(["BEGINNER", "INTERMEDIATE", "ADVANCED"])}),
                     'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
                     'updated_at': datetime.now() - timedelta(days=random.randint(1, 7))
                 })
             
             session.execute(text("""
-                INSERT INTO physical_education_nutrition_plans (plan_name, description, target_audience, nutritional_goals, 
-                                                              meal_plan, dietary_restrictions, created_at, updated_at)
-                VALUES (:plan_name, :description, :target_audience, :nutritional_goals, 
-                        :meal_plan, :dietary_restrictions, :created_at, :updated_at)
+                INSERT INTO physical_education_nutrition_plans (student_id, plan_name, start_date, end_date, plan_notes, daily_calories, protein_goal, 
+                                                              carbs_goal, fat_goal, plan_metadata, created_at, updated_at)
+                VALUES (:student_id, :plan_name, :start_date, :end_date, :plan_notes, :daily_calories, :protein_goal, 
+                        :carbs_goal, :fat_goal, :plan_metadata, :created_at, :updated_at)
             """), pe_nutrition_plans_data)
             session.commit()
             print(f"  ✅ Seeded physical_education_nutrition_plans table: {len(pe_nutrition_plans_data)} records")
@@ -331,6 +350,57 @@ def seed_phase3_dependencies(session: Session) -> None:
             print(f"  ⚠️  Physical_education_nutrition_plans table already has {pe_nutrition_plan_count} records")
     except Exception as e:
         print(f"  ❌ Error seeding physical_education_nutrition_plans: {e}")
+    
+    # Create and seed fitness_health_metrics table
+    try:
+        # Create fitness_health_metrics table if it doesn't exist
+        session.execute(text("""
+            CREATE TABLE IF NOT EXISTS fitness_health_metrics (
+                id SERIAL PRIMARY KEY,
+                student_id INTEGER NOT NULL,
+                metric_type VARCHAR(100) NOT NULL,
+                value DECIMAL(10,2),
+                unit VARCHAR(50),
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                notes TEXT,
+                metric_metadata JSONB,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """))
+        session.commit()
+        print("  ✅ Created fitness_health_metrics table")
+        
+        # Check if fitness_health_metrics table has data
+        result = session.execute(text("SELECT COUNT(*) FROM fitness_health_metrics"))
+        fitness_count = result.scalar()
+        
+        if fitness_count == 0:
+            # Generate fitness_health_metrics data
+            fitness_data = []
+            for i in range(50):  # Create 50 fitness health metrics (includes ID 11)
+                fitness_data.append({
+                    'student_id': random.randint(1, 100),
+                    'metric_type': random.choice(['HEART_RATE', 'BLOOD_PRESSURE', 'WEIGHT', 'HEIGHT', 'BMI', 'BODY_FAT', 'MUSCLE_MASS', 'FLEXIBILITY', 'STRENGTH', 'ENDURANCE']),
+                    'value': round(random.uniform(50.0, 200.0), 2),
+                    'unit': random.choice(['bpm', 'mmHg', 'kg', 'cm', '%', 'seconds', 'reps']),
+                    'timestamp': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'notes': f'Fitness health metric {i + 1}',
+                    'metric_metadata': json.dumps({"metric_id": i + 1, "difficulty": random.choice(['EASY', 'MEDIUM', 'HARD'])}),
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'updated_at': datetime.now() - timedelta(days=random.randint(1, 7))
+                })
+            
+            session.execute(text("""
+                INSERT INTO fitness_health_metrics (student_id, metric_type, value, unit, timestamp, notes, metric_metadata, created_at, updated_at)
+                VALUES (:student_id, :metric_type, :value, :unit, :timestamp, :notes, :metric_metadata, :created_at, :updated_at)
+            """), fitness_data)
+            session.commit()
+            print(f"  ✅ Seeded fitness_health_metrics table: {len(fitness_data)} records")
+        else:
+            print(f"  ⚠️  Fitness_health_metrics table already has {fitness_count} records")
+    except Exception as e:
+        print(f"  ❌ Error seeding fitness_health_metrics: {e}")
     
     # Create and seed progress table
     try:
@@ -390,7 +460,7 @@ def seed_phase3_dependencies(session: Session) -> None:
         if progress_count == 0:
             # Generate progress data
             progress_data = []
-            for i in range(100):  # Create 100 progress records
+            for i in range(100):  # Create 100 progress records (includes ID 38)
                 progress_data.append({
                     'student_id': random.randint(1, 100),  # Match student_health range
                     'tracking_period': f"Period {i+1}",

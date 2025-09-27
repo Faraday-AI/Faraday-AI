@@ -58,7 +58,7 @@ class CurriculumBaseModel(Base, TimestampedMixin, MetadataMixin):
 class Curriculum(CurriculumBaseModel, NamedMixin, StatusMixin):
     """Model for PE curriculum management."""
     
-    __tablename__ = "curricula"
+    __tablename__ = "curriculum"
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
@@ -113,7 +113,7 @@ class CurriculumUnit(CurriculumBaseModel, NamedMixin):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    curriculum_id = Column(Integer, ForeignKey("curricula.id"), nullable=False, index=True)
+    curriculum_id = Column(Integer, ForeignKey("curriculum.id"), nullable=False, index=True)
     description = Column(String, nullable=False)
     sequence_number = Column(Integer, nullable=False)
     duration_weeks = Column(Integer, nullable=False)
@@ -179,6 +179,6 @@ class CurriculumStandard(CurriculumBaseModel, NamedMixin):
 curriculum_standard_association = Table(
     'curriculum_standard_association',
     Base.metadata,
-    Column('curriculum_id', Integer, ForeignKey('curricula.id'), primary_key=True),
+    Column('curriculum_id', Integer, ForeignKey('curriculum.id'), primary_key=True),
     Column('standard_id', Integer, ForeignKey('curriculum_standards.id'), primary_key=True)
 ) 

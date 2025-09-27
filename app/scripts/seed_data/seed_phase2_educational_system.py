@@ -58,9 +58,9 @@ def seed_physical_education_teachers(session: Session) -> int:
             print(f"  ⚠️  physical_education_teachers already has {existing_count} records, skipping...")
             return existing_count
         
-        # Create sample physical education teachers
+        # Create physical education teachers (32 to match 32 users)
         teachers = []
-        for i in range(5):  # Create 5 teachers
+        for i in range(32):  # Create 32 teachers
             teacher = {
                 'user_id': i + 1,  # Simple user ID
                 'first_name': f'PE Teacher {i + 1}',
@@ -390,11 +390,27 @@ def seed_curriculum_lessons(session: Session) -> int:
             print(f"  ⚠️  curriculum_lessons already has {existing_count} records, skipping...")
             return existing_count
         
-        # Check if physical_education_curriculum_units has any records
-        result = session.execute(text("SELECT COUNT(*) FROM physical_education_curriculum_units"))
-        units_count = result.scalar()
+        # Check if any curriculum-related table has records
+        curriculum_ids = []
+        possible_curriculum_tables = [
+            'curriculum',
+            'physical_education_curriculum_units',
+            'curriculum_units'
+        ]
         
-        if units_count == 0:
+        for table_name in possible_curriculum_tables:
+            try:
+                result = session.execute(text(f"SELECT COUNT(*) FROM {table_name}"))
+                count = result.scalar()
+                if count > 0:
+                    result = session.execute(text(f"SELECT id FROM {table_name} ORDER BY id"))
+                    curriculum_ids = [row[0] for row in result.fetchall()]
+                    print(f"  📋 Found {len(curriculum_ids)} curriculum records in {table_name}")
+                    break
+            except Exception as e:
+                continue
+        
+        if not curriculum_ids:
             print(f"  📝 Creating curriculum first...")
             # First create some curriculum records
             curriculums = []
@@ -406,6 +422,17 @@ def seed_curriculum_lessons(session: Session) -> int:
                     'grade_level': random.choice(['K-2', '3-5', '6-8', '9-12']),
                     'academic_year': random.choice(academic_years),
                     'curriculum_metadata': f'{{"subject": "Physical Education", "focus": "Comprehensive PE Education", "standards": "National PE Standards"}}',
+                    'learning_standards': f'{{"national_standards": ["PE.1", "PE.2", "PE.3"], "state_standards": ["S.1", "S.2"], "grade_level": "{random.choice(["K-2", "3-5", "6-8", "9-12"])}"}}',
+                    'learning_objectives': f'{{"motor_skills": ["Running", "Jumping", "Throwing"], "fitness": ["Cardiovascular", "Strength", "Flexibility"], "social": ["Teamwork", "Sportsmanship"]}}',
+                    'core_competencies': f'{{"physical": ["Coordination", "Balance", "Agility"], "cognitive": ["Strategy", "Rules", "Safety"], "social": ["Communication", "Leadership"]}}',
+                    'unit_data': f'{{"units": ["Unit 1: PE Fundamentals", "Unit 2: PE Applications", "Unit 3: PE Mastery"], "unit_count": 3, "unit_duration": "4-6 weeks each"}}',
+                    'progression_path': f'{{"beginner": ["Basic PE Concepts", "Introduction to PE Skills"], "intermediate": ["Advanced PE Applications", "Complex PE Problems"], "advanced": ["Mastery of PE", "Independent PE Projects"]}}',
+                    'time_allocation': f'{{"total_hours": 120, "weekly_hours": 3, "unit_breakdown": {{"Unit 1": 40, "Unit 2": 40, "Unit 3": 40}}}}',
+                    'assessment_criteria': f'{{"formative": ["PE Quizzes", "PE Class Participation"], "summative": ["PE Exams", "PE Projects"], "weighting": {{"Quizzes": 30, "Exams": 50, "Projects": 20}}}}',
+                    'evaluation_methods': f'{{"methods": ["PE Written Tests", "PE Practical Assessments", "PE Portfolio Reviews"], "frequency": "Weekly quizzes, monthly exams, semester projects"}}',
+                    'version': 1,
+                    'is_valid': True,
+                    'status': 'ACTIVE',
                     'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
                     'updated_at': datetime.now()
                 }
@@ -413,16 +440,26 @@ def seed_curriculum_lessons(session: Session) -> int:
             
             # Insert curriculum records
             session.execute(text("""
-                INSERT INTO curriculum (name, description, grade_level, academic_year, curriculum_metadata, created_at, updated_at)
-                VALUES (:name, :description, :grade_level, :academic_year, :curriculum_metadata, :created_at, :updated_at)
+                INSERT INTO curriculum (name, description, grade_level, academic_year, curriculum_metadata, 
+                                      learning_standards, learning_objectives, core_competencies,
+                                      unit_data, progression_path, time_allocation, assessment_criteria, evaluation_methods,
+                                      version, is_valid, status, created_at, updated_at)
+                VALUES (:name, :description, :grade_level, :academic_year, :curriculum_metadata, 
+                        :learning_standards, :learning_objectives, :core_competencies,
+                        :unit_data, :progression_path, :time_allocation, :assessment_criteria, :evaluation_methods,
+                        :version, :is_valid, :status, :created_at, :updated_at)
             """), curriculums)
             print(f"  ✅ Created {len(curriculums)} curriculum records")
             
             # Get the curriculum IDs
             curriculum_result = session.execute(text("SELECT id FROM curriculum ORDER BY id"))
             curriculum_ids = [row[0] for row in curriculum_result.fetchall()]
-            
-            print(f"  📝 Creating curriculum units...")
+        
+        # Always create curriculum units if they don't exist
+        print(f"  📝 Creating curriculum units...")
+        # Check if units already exist
+        existing_units = session.execute(text("SELECT COUNT(*) FROM physical_education_curriculum_units")).scalar()
+        if existing_units == 0:
             # Create some curriculum units
             units = []
             for i in range(30):
@@ -445,7 +482,10 @@ def seed_curriculum_lessons(session: Session) -> int:
                 VALUES (:curriculum_id, :name, :description, :sequence, 
                         :duration, :unit_metadata, :created_at, :updated_at)
             """), units)
+            session.commit()  # Commit the curriculum units
             print(f"  ✅ Created {len(units)} curriculum units")
+        else:
+            print(f"  📋 Found {existing_units} existing curriculum units")
         
         # Get actual unit IDs from the database
         unit_result = session.execute(text("SELECT id FROM physical_education_curriculum_units ORDER BY id"))
@@ -459,6 +499,8 @@ def seed_curriculum_lessons(session: Session) -> int:
         lessons = []
         subjects = ['Physical Education', 'Health Education', 'Sports Science', 'Nutrition']
         grade_levels = ['K-2', '3-5', '6-8', '9-12']
+        
+        print(f"  📝 Creating 600 curriculum lessons using {len(unit_ids)} available units...")
         
         for i in range(600):
             lesson = {
@@ -497,12 +539,51 @@ def seed_curriculum_standards(session: Session) -> int:
             print(f"  ⚠️  curriculum_standards already has {existing_count} records, skipping...")
             return existing_count
         
-        # Get actual unit IDs from the database
-        unit_result = session.execute(text("SELECT id FROM physical_education_curriculum_units ORDER BY id"))
-        unit_ids = [row[0] for row in unit_result.fetchall()]
+        # Get actual unit IDs from the database - must use physical_education_curriculum_units due to FK constraint
+        unit_ids = []
         
-        if not unit_ids:
-            print("  ⚠️  No curriculum units found, skipping standards...")
+        # First try the required table for the foreign key constraint
+        try:
+            unit_result = session.execute(text("SELECT id FROM physical_education_curriculum_units ORDER BY id"))
+            unit_ids = [row[0] for row in unit_result.fetchall()]
+            if unit_ids:
+                print(f"  📋 Found {len(unit_ids)} units in physical_education_curriculum_units")
+            else:
+                print("  📝 No units found in physical_education_curriculum_units, creating some first...")
+                # Create some curriculum units first
+                curriculum_result = session.execute(text("SELECT id FROM curriculum ORDER BY id LIMIT 5"))
+                curriculum_ids = [row[0] for row in curriculum_result.fetchall()]
+                
+                if curriculum_ids:
+                    units = []
+                    for i in range(10):
+                        unit = {
+                            'curriculum_id': random.choice(curriculum_ids),
+                            'name': f"PE Unit {i+1}",
+                            'description': f"Physical Education Unit {i+1}",
+                            'sequence': i + 1,
+                            'duration': random.randint(60, 180),
+                            'unit_metadata': json.dumps({"subject": "Physical Education", "focus": "General PE Activities"}),
+                            'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+                            'updated_at': datetime.now()
+                        }
+                        units.append(unit)
+                    
+                    session.execute(text("""
+                        INSERT INTO physical_education_curriculum_units 
+                        (curriculum_id, name, description, sequence, duration, unit_metadata, created_at, updated_at)
+                        VALUES (:curriculum_id, :name, :description, :sequence, :duration, :unit_metadata, :created_at, :updated_at)
+                    """), units)
+                    
+                    # Get the newly created unit IDs
+                    unit_result = session.execute(text("SELECT id FROM physical_education_curriculum_units ORDER BY id"))
+                    unit_ids = [row[0] for row in unit_result.fetchall()]
+                    print(f"  ✅ Created {len(unit_ids)} curriculum units")
+                else:
+                    print("  ⚠️  No curriculum found, skipping standards...")
+                    return 0
+        except Exception as e:
+            print(f"  ⚠️  Error accessing physical_education_curriculum_units: {e}")
             return 0
         
         # Create sample curriculum standards
@@ -510,6 +591,8 @@ def seed_curriculum_standards(session: Session) -> int:
         categories = ['Motor Skills', 'Fitness', 'Knowledge', 'Behavior', 'Social']
         levels = ['Beginner', 'Intermediate', 'Advanced', 'Expert']
         grade_levels = ['K-2', '3-5', '6-8', '9-12']
+        
+        print(f"  📝 Creating 50 curriculum standards using {len(unit_ids)} available units...")
         
         for i in range(50):
             standard = {
@@ -540,6 +623,7 @@ def seed_curriculum_standards(session: Session) -> int:
                     :learning_outcomes, :version, :is_valid, :created_at, :updated_at)
         """), standards)
         
+        session.commit()  # Commit the curriculum standards
         return len(standards)
         
     except Exception as e:
@@ -557,15 +641,64 @@ def seed_curriculum_standard_associations(session: Session) -> int:
             print(f"  ⚠️  curriculum_standard_association already has {existing_count} records, skipping...")
             return existing_count
         
-        # Get actual curriculum and standard IDs from the database
-        curriculum_result = session.execute(text("SELECT id FROM curricula ORDER BY id"))
-        curriculum_ids = [row[0] for row in curriculum_result.fetchall()]
+        # Get actual curriculum and standard IDs from the database - try multiple tables
+        curriculum_ids = []
+        standard_ids = []
         
-        standard_result = session.execute(text("SELECT id FROM curriculum_standards ORDER BY id"))
-        standard_ids = [row[0] for row in standard_result.fetchall()]
+        # Use the correct hardcoded table names - look for the table that actually has data
+        curriculum_ids = []
+        possible_curriculum_tables = ['curriculum', 'curricula']  # Try curriculum first since that's what's actually seeded
+        
+        for table_name in possible_curriculum_tables:
+            try:
+                curriculum_result = session.execute(text(f"SELECT id FROM {table_name} ORDER BY id"))
+                curriculum_ids = [row[0] for row in curriculum_result.fetchall()]
+                if curriculum_ids:
+                    print(f"  📋 Found {len(curriculum_ids)} curriculum records in {table_name}")
+                    break
+            except Exception as e:
+                print(f"  ❌ Error checking {table_name}: {e}")
+                continue
+        
+        # If no curriculum found, skip associations creation (don't create our own data)
+        if not curriculum_ids:
+            print("  ⚠️  No curriculum found in any table, skipping associations...")
+            return 0
+        
+        # Foreign key constraint now points to curriculum.id, so we can use curriculum_ids directly
+        print(f"  📋 Using {len(curriculum_ids)} curriculum records for associations")
+        
+        # Find the correct standards table that exists and has data
+        standard_ids = []
+        standard_table_name = None
+        
+        # Check all possible standards table names
+        possible_standards_tables = ['curriculum_standards', 'standards', 'educational_standards']
+        
+        for table_name in possible_standards_tables:
+            try:
+                # Check if table exists and has data
+                count_result = session.execute(text(f"SELECT COUNT(*) FROM {table_name}"))
+                count = count_result.scalar()
+                if count > 0:
+                    # Table exists and has data, get the IDs
+                    standard_result = session.execute(text(f"SELECT id FROM {table_name} ORDER BY id"))
+                    standard_ids = [row[0] for row in standard_result.fetchall()]
+                    standard_table_name = table_name
+                    print(f"  📋 Found {len(standard_ids)} standard records in {table_name} table")
+                    break
+                else:
+                    print(f"  📋 Table {table_name} exists but has 0 records")
+            except Exception as e:
+                print(f"  📋 Table {table_name} does not exist or error: {e}")
+                continue
+        
+        if not standard_ids:
+            print("  ⚠️  No standards table found with data, skipping associations...")
+            return 0
         
         if not curriculum_ids or not standard_ids:
-            print("  ⚠️  No curricula or standards found, skipping associations...")
+            print("  ⚠️  No curriculum or standards found, skipping associations...")
             return 0
         
         # Create sample associations with unique combinations
@@ -598,6 +731,7 @@ def seed_curriculum_standard_associations(session: Session) -> int:
             VALUES (:curriculum_id, :standard_id)
         """), associations)
         
+        session.commit()  # Commit the curriculum standard associations
         return len(associations)
         
     except Exception as e:
@@ -607,65 +741,187 @@ def seed_curriculum_standard_associations(session: Session) -> int:
 def seed_curriculum(session: Session) -> int:
     """Seed curriculum table"""
     try:
+        print(f"  🔍 Checking curriculum table...")
         # Check if table exists and has data
         result = session.execute(text("SELECT COUNT(*) FROM curriculum"))
         existing_count = result.scalar()
+        print(f"  📊 Found {existing_count} existing records in curriculum table")
         
         if existing_count > 0:
             print(f"  ⚠️  curriculum already has {existing_count} records, skipping...")
             return existing_count
         
-        # Create sample curriculum records
-        curricula = []
-        curriculum_types = ['Standard', 'Advanced', 'Remedial', 'Enrichment']
-        subjects = ['Physical Education', 'Health Education', 'Sports Science']
+        print(f"  📝 Creating 300+ curriculum records for district-wide coverage...")
+        # Create comprehensive curriculum records for entire district
+        curriculum_records = []
+        grade_levels = ['K', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+        academic_years = ['2022-2023', '2023-2024', '2024-2025', '2025-2026']
+        subjects = ['Physical Education', 'Health Education', 'Mathematics', 'Science', 'English Language Arts', 'Social Studies', 'Art', 'Music', 'Technology', 'Foreign Language']
+        schools = ['Elementary School', 'Middle School', 'High School']
         
-        for i in range(30):
-            curriculum = {
-                'name': f"Curriculum {i+1}",
-                'description': f"Description for curriculum {i+1}",
-                'curriculum_type': random.choice(curriculum_types),
-                'subject': random.choice(subjects),
-                'grade_level_start': random.randint(1, 12),
-                'grade_level_end': random.randint(1, 12),
-                'is_active': random.choice([True, False]),
-                'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
-                'updated_at': datetime.now()
-            }
-            curricula.append(curriculum)
+        # Create curriculum for each subject, grade level, and school combination
+        for subject in subjects:
+            for grade in grade_levels:
+                for school in schools:
+                    # Only create relevant combinations (e.g., high school subjects for 9-12)
+                    if grade == 'K':
+                        grade_num = 0
+                    else:
+                        grade_num = int(grade)
+                    
+                    if school == 'Elementary School' and grade_num > 5:
+                        continue
+                    elif school == 'Middle School' and (grade_num < 6 or grade_num > 8):
+                        continue
+                    elif school == 'High School' and grade_num < 9:
+                        continue
+                    
+                    for year in academic_years:
+                        curriculum_records.append({
+                            'name': f"{subject} - Grade {grade} - {school}",
+                            'description': f"Comprehensive {subject} curriculum for Grade {grade} at {school}",
+                            'grade_level': grade,
+                            'academic_year': year,
+                            'curriculum_metadata': json.dumps({
+                                'subject': subject,
+                                'school': school,
+                                'grade_level': grade,
+                                'academic_year': year,
+                                'standards': 'State and National Standards',
+                                'focus': f'{subject} Education for Grade {grade}'
+                            }),
+                            'learning_standards': json.dumps({
+                                'national_standards': [f"{subject.upper()}.1", f"{subject.upper()}.2", f"{subject.upper()}.3"],
+                                'state_standards': [f"S.{grade}", f"S.{grade}.1"],
+                                'grade_level': grade
+                            }),
+                            'learning_objectives': json.dumps({
+                                'cognitive': [f"{subject} Knowledge", f"{subject} Understanding", f"{subject} Application"],
+                                'affective': [f"{subject} Appreciation", f"{subject} Interest", f"{subject} Motivation"],
+                                'psychomotor': [f"{subject} Skills", f"{subject} Practice", f"{subject} Mastery"]
+                            }),
+                            'core_competencies': json.dumps({
+                                'knowledge': [f"{subject} Concepts", f"{subject} Principles", f"{subject} Theories"],
+                                'skills': [f"{subject} Analysis", f"{subject} Problem Solving", f"{subject} Critical Thinking"],
+                                'attitudes': [f"{subject} Appreciation", f"{subject} Curiosity", f"{subject} Persistence"]
+                            }),
+                            'unit_data': json.dumps({
+                                'units': [f"Unit 1: {subject} Fundamentals", f"Unit 2: {subject} Applications", f"Unit 3: {subject} Mastery"],
+                                'unit_count': 3,
+                                'unit_duration': "4-6 weeks each"
+                            }),
+                            'progression_path': json.dumps({
+                                'beginner': [f"Basic {subject} Concepts", f"Introduction to {subject} Skills"],
+                                'intermediate': [f"Advanced {subject} Applications", f"Complex {subject} Problems"],
+                                'advanced': [f"Mastery of {subject}", f"Independent {subject} Projects"]
+                            }),
+                            'time_allocation': json.dumps({
+                                'total_hours': 120,
+                                'weekly_hours': 3,
+                                'unit_breakdown': {"Unit 1": 40, "Unit 2": 40, "Unit 3": 40}
+                            }),
+                            'assessment_criteria': json.dumps({
+                                'formative': [f"{subject} Quizzes", f"{subject} Class Participation"],
+                                'summative': [f"{subject} Exams", f"{subject} Projects"],
+                                'weighting': {"Quizzes": 30, "Exams": 50, "Projects": 20}
+                            }),
+                            'evaluation_methods': json.dumps({
+                                'methods': [f"{subject} Written Tests", f"{subject} Practical Assessments", f"{subject} Portfolio Reviews"],
+                                'frequency': "Weekly quizzes, monthly exams, semester projects"
+                            }),
+                            'version': 1,
+                            'is_valid': True,
+                            'status': 'ACTIVE',
+                            'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+                            'updated_at': datetime.now()
+                        })
         
-        # Insert curricula
+        # Limit to reasonable number but ensure good coverage
+        curriculum_records = curriculum_records[:300]
+        
+        print(f"  💾 Inserting {len(curriculum_records)} curriculum records...")
+        # Insert curriculum records
         session.execute(text("""
-            INSERT INTO curriculum (name, description, curriculum_type, subject, 
-                                  grade_level_start, grade_level_end, is_active, 
-                                  created_at, updated_at)
-            VALUES (:name, :description, :curriculum_type, :subject, 
-                    :grade_level_start, :grade_level_end, :is_active, 
-                    :created_at, :updated_at)
-        """), curricula)
+            INSERT INTO curriculum (name, description, grade_level, academic_year, curriculum_metadata, 
+                                  learning_standards, learning_objectives, core_competencies,
+                                  unit_data, progression_path, time_allocation, assessment_criteria, evaluation_methods,
+                                  version, is_valid, status, created_at, updated_at)
+            VALUES (:name, :description, :grade_level, :academic_year, :curriculum_metadata, 
+                    :learning_standards, :learning_objectives, :core_competencies,
+                    :unit_data, :progression_path, :time_allocation, :assessment_criteria, :evaluation_methods,
+                    :version, :is_valid, :status, :created_at, :updated_at)
+        """), curriculum_records)
         
-        return len(curricula)
+        print(f"  ✅ Successfully created {len(curriculum_records)} curriculum records")
+        return len(curriculum_records)
         
     except Exception as e:
         print(f"  ❌ Error seeding curriculum: {e}")
+        import traceback
+        traceback.print_exc()
         return 0
 
 def seed_courses(session: Session) -> int:
-    """Seed courses table"""
+    """Seed courses table - completely flexible for development"""
+    print("  🚀 STARTING seed_courses function")
     try:
+        print("  🔍 Checking if courses table exists...")
         # Check if table exists and has data
         result = session.execute(text("SELECT COUNT(*) FROM courses"))
         existing_count = result.scalar()
+        print(f"  📊 Current courses count: {existing_count}")
         
+        # In development, skip if data already exists (additive only after CASCADE DROP)
         if existing_count > 0:
             print(f"  ⚠️  courses already has {existing_count} records, skipping...")
             return existing_count
+        
+        # Get user IDs from the correct hardcoded table names - flexible for whatever data exists
+        user_ids = []
+        possible_user_tables = ['users', 'dashboard_users', 'students', 'teachers']
+        
+        print(f"  🔍 Looking for user data in tables: {possible_user_tables}")
+        for table_name in possible_user_tables:
+            try:
+                print(f"  🔍 Checking table: {table_name}")
+                user_result = session.execute(text(f"SELECT id FROM {table_name} ORDER BY id"))
+                user_ids = [row[0] for row in user_result.fetchall()]
+                print(f"  📊 {table_name}: {len(user_ids)} records")
+                if user_ids:
+                    print(f"  📋 Found {len(user_ids)} user records in {table_name}")
+                    break
+            except Exception as e:
+                print(f"  ❌ Error checking {table_name}: {e}")
+                import traceback
+                print(f"  🔍 Full traceback: {traceback.format_exc()}")
+                continue
+        
+        # If no users found, try one more time with a fresh query
+        if not user_ids:
+            print("  ⚠️  No users found in any table, trying fresh query...")
+            try:
+                # Try a fresh query to users table
+                user_result = session.execute(text("SELECT id FROM users ORDER BY id"))
+                user_ids = [row[0] for row in user_result.fetchall()]
+                if user_ids:
+                    print(f"  📋 Found {len(user_ids)} user records on retry")
+                else:
+                    print("  ⚠️  Still no users found, skipping courses creation...")
+                    return 0
+            except Exception as e:
+                print(f"  ⚠️  Error on retry: {e}, skipping courses creation...")
+                import traceback
+                print(f"  🔍 Full traceback: {traceback.format_exc()}")
+                return 0
+        
+        print(f"  🎯 Proceeding with {len(user_ids)} users to create courses...")
         
         # Create sample courses with unique codes
         courses = []
         course_names = ['Physical Education Fundamentals', 'Health and Wellness', 'Sports Science', 'Nutrition Basics', 'Fitness Training', 'Team Sports', 'Individual Sports', 'Outdoor Education']
         used_codes = set()
         
+        print("  🔨 Creating course data...")
         for i in range(25):
             # Generate unique course code
             while True:
@@ -678,7 +934,7 @@ def seed_courses(session: Session) -> int:
                 'name': f"{random.choice(course_names)} {i+1}",
                 'code': code,
                 'description': f"Description for {random.choice(course_names)} course {i+1}",
-                'created_by': 1,  # Assuming user ID 1 exists
+                'created_by': random.choice(user_ids),  # Use actual user ID
                 'is_active': random.choice([True, False]),
                 'start_date': datetime.now() - timedelta(days=random.randint(1, 365)),
                 'end_date': datetime.now() + timedelta(days=random.randint(30, 365)),
@@ -686,6 +942,8 @@ def seed_courses(session: Session) -> int:
                 'updated_at': datetime.now()
             }
             courses.append(course)
+        
+        print(f"  📝 Created {len(courses)} course records, inserting into database...")
         
         # Insert courses
         session.execute(text("""
@@ -695,32 +953,76 @@ def seed_courses(session: Session) -> int:
                     :start_date, :end_date, :created_at, :updated_at)
         """), courses)
         
+        print("  💾 Committing courses to database...")
+        session.commit()  # Commit the courses
+        
+        print(f"  ✅ Successfully created {len(courses)} courses")
         return len(courses)
         
     except Exception as e:
         print(f"  ❌ Error seeding courses: {e}")
+        import traceback
+        print(f"  🔍 Full traceback: {traceback.format_exc()}")
         return 0
 
 def seed_course_enrollments(session: Session) -> int:
     """Seed course enrollments table"""
     try:
-        # Check if table exists and has data
+        # Check if table exists first
+        table_exists = session.execute(text("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'course_enrollments'
+            )
+        """)).scalar()
+        
+        if not table_exists:
+            print("  ⚠️  course_enrollments table does not exist, skipping...")
+            return 0
+        
+        # Check if table has data
         result = session.execute(text("SELECT COUNT(*) FROM course_enrollments"))
         existing_count = result.scalar()
         
+        # In development, skip if data already exists (additive only after CASCADE DROP)
         if existing_count > 0:
             print(f"  ⚠️  course_enrollments already has {existing_count} records, skipping...")
             return existing_count
         
-        # Get actual course IDs and user IDs from the database
-        course_result = session.execute(text("SELECT id FROM courses ORDER BY id"))
-        course_ids = [row[0] for row in course_result.fetchall()]
+        # Get actual course IDs and user IDs from the database - try multiple tables
+        course_ids = []
+        user_ids = []
         
-        user_result = session.execute(text("SELECT id FROM dashboard_users ORDER BY id"))
-        user_ids = [row[0] for row in user_result.fetchall()]
+        # Only use course IDs from the courses table to avoid foreign key violations
+        course_ids = []
+        try:
+            course_result = session.execute(text("SELECT id FROM courses ORDER BY id"))
+            course_ids = [row[0] for row in course_result.fetchall()]
+            if course_ids:
+                print(f"  📋 Found {len(course_ids)} course records in courses table")
+            else:
+                print("  ⚠️  No courses found in courses table, skipping enrollments...")
+                return 0
+        except Exception as e:
+            print(f"  ⚠️  Error accessing courses table: {e}")
+            return 0
         
-        if not course_ids or not user_ids:
-            print("  ⚠️  No courses or users found, skipping enrollments...")
+        # Try to find user IDs - try multiple sources for flexibility
+        user_ids = []
+        possible_user_tables = ['users', 'dashboard_users', 'students', 'teachers']
+        for table_name in possible_user_tables:
+            try:
+                user_result = session.execute(text(f"SELECT id FROM {table_name} ORDER BY id"))
+                user_ids = [row[0] for row in user_result.fetchall()]
+                if user_ids:
+                    print(f"  📋 Found {len(user_ids)} user records in {table_name}")
+                    break
+            except Exception as e:
+                continue
+        
+        if not user_ids:
+            print("  ⚠️  No users found in any table, skipping enrollments...")
             return 0
         
         # Create sample enrollments with unique combinations
@@ -755,6 +1057,7 @@ def seed_course_enrollments(session: Session) -> int:
             VALUES (:course_id, :user_id, :role)
         """), enrollments)
         
+        session.commit()  # Commit the course enrollments
         return len(enrollments)
         
     except Exception as e:
@@ -763,23 +1066,30 @@ def seed_course_enrollments(session: Session) -> int:
 
 def seed_assignments(session: Session) -> int:
     """Seed assignments table"""
+    print("  🚀 STARTING seed_assignments function")
     try:
+        print("  🔍 Checking if assignments table exists...")
         # Check if table exists and has data
         result = session.execute(text("SELECT COUNT(*) FROM assignments"))
         existing_count = result.scalar()
+        print(f"  📊 Current assignments count: {existing_count}")
         
+        # In development, skip if data already exists (additive only after CASCADE DROP)
         if existing_count > 0:
             print(f"  ⚠️  assignments already has {existing_count} records, skipping...")
             return existing_count
         
+        print("  🔍 Looking for course IDs...")
         # Get actual course IDs from the database
         course_result = session.execute(text("SELECT id FROM courses ORDER BY id"))
         course_ids = [row[0] for row in course_result.fetchall()]
+        print(f"  📊 Found {len(course_ids)} course IDs")
         
         if not course_ids:
             print("  ⚠️  No courses found, skipping assignments...")
             return 0
         
+        print("  🔨 Creating assignment data...")
         # Create sample assignments using only existing columns
         assignments = []
         statuses = ['DRAFT', 'PUBLISHED', 'CLOSED', 'GRADED']
@@ -798,6 +1108,8 @@ def seed_assignments(session: Session) -> int:
             }
             assignments.append(assignment)
         
+        print(f"  📝 Created {len(assignments)} assignment records, inserting into database...")
+        
         # Insert assignments using only existing columns
         session.execute(text("""
             INSERT INTO assignments (course_id, title, description, due_date, 
@@ -806,19 +1118,39 @@ def seed_assignments(session: Session) -> int:
                     :created_by, :rubric_id, :status, :created_at, :updated_at)
         """), assignments)
         
+        print("  💾 Committing assignments to database...")
+        session.commit()  # Commit the assignments
+        
+        print(f"  ✅ Successfully created {len(assignments)} assignments")
         return len(assignments)
         
     except Exception as e:
         print(f"  ❌ Error seeding assignments: {e}")
+        import traceback
+        print(f"  🔍 Full traceback: {traceback.format_exc()}")
         return 0
 
 def seed_grades(session: Session) -> int:
     """Seed grades table"""
     try:
-        # Check if table exists and has data
+        # Check if table exists first
+        table_exists = session.execute(text("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'grades'
+            )
+        """)).scalar()
+        
+        if not table_exists:
+            print("  ⚠️  grades table does not exist, skipping...")
+            return 0
+        
+        # Check if table has data
         result = session.execute(text("SELECT COUNT(*) FROM grades"))
         existing_count = result.scalar()
         
+        # In development, skip if data already exists (additive only after CASCADE DROP)
         if existing_count > 0:
             print(f"  ⚠️  grades already has {existing_count} records, skipping...")
             return existing_count
@@ -827,11 +1159,26 @@ def seed_grades(session: Session) -> int:
         assignment_result = session.execute(text("SELECT id FROM assignments ORDER BY id"))
         assignment_ids = [row[0] for row in assignment_result.fetchall()]
         
-        user_result = session.execute(text("SELECT id FROM dashboard_users ORDER BY id"))
-        user_ids = [row[0] for row in user_result.fetchall()]
+        # Try multiple sources for user IDs
+        user_ids = []
+        possible_user_tables = ['users', 'dashboard_users', 'students']
         
-        if not assignment_ids or not user_ids:
-            print("  ⚠️  No assignments or users found, skipping grades...")
+        for table_name in possible_user_tables:
+            try:
+                user_result = session.execute(text(f"SELECT id FROM {table_name} ORDER BY id"))
+                user_ids = [row[0] for row in user_result.fetchall()]
+                if user_ids:
+                    print(f"  📋 Found {len(user_ids)} user records in {table_name}")
+                    break
+            except Exception as e:
+                continue
+        
+        if not user_ids:
+            print("  ⚠️  No users found in any table, skipping enrollments...")
+            return 0
+        
+        if not assignment_ids:
+            print("  ⚠️  No assignments found, skipping grades...")
             return 0
         
         # Create sample grades using only existing columns
@@ -873,6 +1220,7 @@ def seed_rubrics(session: Session) -> int:
         result = session.execute(text("SELECT COUNT(*) FROM rubrics"))
         existing_count = result.scalar()
         
+        # In development, skip if data already exists (additive only after CASCADE DROP)
         if existing_count > 0:
             print(f"  ⚠️  rubrics already has {existing_count} records, skipping...")
             return existing_count
@@ -1344,20 +1692,25 @@ def seed_teacher_specializations(session: Session) -> int:
 def seed_educational_classes(session: Session) -> int:
     """Seed educational classes table"""
     try:
+        print(f"  🔍 Checking educational_classes table...")
         # Check if table exists and has data
         result = session.execute(text("SELECT COUNT(*) FROM educational_classes"))
         existing_count = result.scalar()
+        print(f"  📊 Found {existing_count} existing records in educational_classes table")
         
+        # Additive approach - work with existing data
         if existing_count > 0:
             print(f"  ⚠️  educational_classes already has {existing_count} records, skipping...")
             return existing_count
         
-        # Get actual teacher IDs from physical_education_teachers table
-        teacher_result = session.execute(text("SELECT id FROM physical_education_teachers ORDER BY id"))
+        print(f"  🔍 Querying educational_teachers table...")
+        # Get actual teacher IDs from educational_teachers table
+        teacher_result = session.execute(text("SELECT id FROM educational_teachers ORDER BY id"))
         teacher_ids = [row[0] for row in teacher_result.fetchall()]
+        print(f"  📊 Found {len(teacher_ids)} educational teachers")
         
         if not teacher_ids:
-            print("  ⚠️  No teachers found, skipping educational classes...")
+            print("  ⚠️  No educational teachers found, skipping educational classes...")
             return 0
         
         # Create sample educational classes
@@ -1367,7 +1720,13 @@ def seed_educational_classes(session: Session) -> int:
         statuses = ['PLANNED', 'ACTIVE', 'COMPLETED', 'CANCELLED', 'ON_HOLD']
         locations = ['Gymnasium A', 'Gymnasium B', 'Outdoor Field', 'Classroom 101', 'Classroom 102']
         
-        for i in range(50):
+        # Calculate appropriate number of classes based on teachers and students
+        # Each teacher should have 6-8 classes, with 20-30 students per class
+        # For a district with 4000+ students, we need more classes
+        num_classes = len(teacher_ids) * random.randint(6, 8)  # 6-8 classes per teacher
+        print(f"  📝 Creating {num_classes} educational classes for {len(teacher_ids)} teachers...")
+        
+        for i in range(num_classes):
             # Create schedule metadata as JSON
             schedule_metadata = {
                 "days": random.sample(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], random.randint(2, 5)),
@@ -1412,10 +1771,13 @@ def seed_educational_classes(session: Session) -> int:
         """), classes)
         
         session.commit()
+        print(f"  ✅ Successfully created {len(classes)} educational classes")
         return len(classes)
         
     except Exception as e:
         print(f"  ❌ Error seeding educational_classes: {e}")
+        import traceback
+        traceback.print_exc()
         return 0
 
 def seed_educational_class_students(session: Session) -> int:
@@ -1425,6 +1787,7 @@ def seed_educational_class_students(session: Session) -> int:
         result = session.execute(text("SELECT COUNT(*) FROM educational_class_students"))
         existing_count = result.scalar()
         
+        # In development, skip if data already exists (additive only after CASCADE DROP)
         if existing_count > 0:
             print(f"  ⚠️  educational_class_students already has {existing_count} records, skipping...")
             return existing_count
@@ -1433,18 +1796,39 @@ def seed_educational_class_students(session: Session) -> int:
         class_result = session.execute(text("SELECT id FROM educational_classes ORDER BY id"))
         class_ids = [row[0] for row in class_result.fetchall()]
         
-        student_result = session.execute(text("SELECT id FROM dashboard_users ORDER BY id"))
-        student_ids = [row[0] for row in student_result.fetchall()]
+        # Get actual student IDs from the database - try multiple sources for flexibility
+        student_ids = []
+        possible_student_tables = ['students', 'dashboard_users', 'users']
         
-        if not class_ids or not student_ids:
-            print("  ⚠️  No classes or students found, skipping enrollments...")
+        for table_name in possible_student_tables:
+            try:
+                student_result = session.execute(text(f"SELECT id FROM {table_name} ORDER BY id"))
+                student_ids = [row[0] for row in student_result.fetchall()]
+                if student_ids:
+                    print(f"  📋 Found {len(student_ids)} student records in {table_name}")
+                    break
+            except Exception as e:
+                continue
+        
+        if not student_ids:
+            print("  ⚠️  No students found in any table, creating fallback student IDs...")
+            student_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]  # Fallback IDs for development
+        
+        if not class_ids:
+            print("  ⚠️  No classes found, skipping enrollments...")
             return 0
         
-        # Create sample class student enrollments
+        # Create realistic class student enrollments
         enrollments = []
         statuses = ['Active', 'Dropped', 'Completed', 'On Hold']
         
-        for i in range(200):
+        # Calculate realistic number of enrollments
+        # Each student should be in 2-4 classes, with 20-30 students per class
+        # Use the smaller of: (students * 3) or (classes * 25)
+        num_enrollments = min(len(student_ids) * 3, len(class_ids) * 25)
+        print(f"  📝 Creating {num_enrollments} class enrollments for {len(student_ids)} students across {len(class_ids)} classes...")
+        
+        for i in range(num_enrollments):
             # Create performance and attendance data as JSON
             performance_data = {
                 "overall_score": random.randint(60, 100),
@@ -1496,6 +1880,84 @@ def seed_educational_class_students(session: Session) -> int:
         print(f"  ❌ Error seeding educational_class_students: {e}")
         return 0
 
+def seed_educational_teachers(session: Session) -> int:
+    """Migrate existing users to educational teachers table"""
+    try:
+        print(f"  🔍 Checking educational_teachers table...")
+        # Check if table exists and has data
+        result = session.execute(text("SELECT COUNT(*) FROM educational_teachers"))
+        existing_count = result.scalar()
+        print(f"  📊 Found {existing_count} existing records in educational_teachers table")
+        
+        # Additive approach - work with existing data
+        if existing_count > 0:
+            print(f"  ⚠️  educational_teachers already has {existing_count} records, skipping...")
+            return existing_count
+        
+        print(f"  🔍 Querying users table...")
+        # Get user data from users table (not dashboard_users)
+        user_result = session.execute(text("""
+            SELECT id, first_name, last_name, email 
+            FROM users 
+            ORDER BY id 
+            LIMIT 32
+        """))
+        users = user_result.fetchall()
+        print(f"  📊 Found {len(users)} users in users table")
+        
+        if not users:
+            print("  ⚠️  No users found, skipping educational teachers...")
+            return 0
+        
+        print(f"  🔄 Migrating {len(users)} users to educational teachers...")
+        
+        # Migrate users to educational teachers
+        teachers = []
+        for i, user in enumerate(users):
+            teachers.append({
+                'user_id': user[0],
+                'name': f"{user[1]} {user[2]}" if user[1] and user[2] else f"Teacher {i + 1}",
+                'school': random.choice(['Lincoln Elementary', 'Roosevelt Middle', 'Kennedy High', 'Washington Elementary', 'Jefferson Middle']),
+                'department': random.choice(['Mathematics', 'Science', 'English', 'History', 'Physical Education']),
+                'subjects': json.dumps([random.choice(['Math', 'Science', 'English', 'History', 'PE'])]),
+                'grade_levels': json.dumps([random.choice(['K-5', '6-8', '9-12'])]),
+                'certifications': json.dumps([random.choice(['Teaching License', 'Subject Certification', 'Special Education'])]),
+                'specialties': json.dumps([random.choice(['Gifted Education', 'Special Needs', 'ESL', 'STEM'])]),
+                'bio': f"Experienced educator with {random.randint(1, 20)} years of teaching experience",
+                'last_login': datetime.now() - timedelta(days=random.randint(1, 30)),
+                'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                'updated_at': datetime.now() - timedelta(days=random.randint(1, 7)),
+                'last_accessed_at': datetime.now() - timedelta(days=random.randint(1, 7)),
+                'archived_at': None,
+                'deleted_at': None,
+                'scheduled_deletion_at': None,
+                'retention_period': 365,
+                'status': 'ACTIVE',
+                'is_active': True
+            })
+        
+        session.execute(text("""
+            INSERT INTO educational_teachers (user_id, name, school, department, subjects, grade_levels, 
+                                           certifications, specialties, bio, last_login, created_at, updated_at,
+                                           last_accessed_at, archived_at, deleted_at, scheduled_deletion_at,
+                                           retention_period, status, is_active)
+            VALUES (:user_id, :name, :school, :department, :subjects, :grade_levels, 
+                   :certifications, :specialties, :bio, :last_login, :created_at, :updated_at,
+                   :last_accessed_at, :archived_at, :deleted_at, :scheduled_deletion_at,
+                   :retention_period, :status, :is_active)
+        """), teachers)
+        
+        session.commit()
+        print(f"  ✅ Migrated {len(teachers)} users to educational teachers")
+        return len(teachers)
+        
+    except Exception as e:
+        print(f"  ❌ Error migrating educational_teachers: {e}")
+        import traceback
+        traceback.print_exc()
+        session.rollback()
+        return 0
+
 def seed_educational_teacher_availability(session: Session) -> int:
     """Seed educational teacher availability table"""
     try:
@@ -1508,7 +1970,7 @@ def seed_educational_teacher_availability(session: Session) -> int:
             return existing_count
         
         # Get actual teacher IDs from the database
-        teacher_result = session.execute(text("SELECT id FROM physical_education_teachers ORDER BY id"))
+        teacher_result = session.execute(text("SELECT id FROM educational_teachers ORDER BY id"))
         teacher_ids = [row[0] for row in teacher_result.fetchall()]
         
         if not teacher_ids:
@@ -1567,7 +2029,7 @@ def seed_educational_teacher_certifications(session: Session) -> int:
             return existing_count
         
         # Get actual teacher IDs from the database
-        teacher_result = session.execute(text("SELECT id FROM physical_education_teachers ORDER BY id"))
+        teacher_result = session.execute(text("SELECT id FROM educational_teachers ORDER BY id"))
         teacher_ids = [row[0] for row in teacher_result.fetchall()]
         
         if not teacher_ids:
@@ -1632,17 +2094,38 @@ def seed_class_attendance(session: Session) -> int:
         class_result = session.execute(text("SELECT id FROM educational_classes ORDER BY id"))
         class_ids = [row[0] for row in class_result.fetchall()]
         
-        student_result = session.execute(text("SELECT id FROM dashboard_users ORDER BY id"))
-        student_ids = [row[0] for row in student_result.fetchall()]
+        # Get actual student IDs from the database - try multiple sources for flexibility
+        student_ids = []
+        possible_student_tables = ['students', 'dashboard_users', 'users']
         
-        if not class_ids or not student_ids:
-            print("  ⚠️  No classes or students found, skipping class attendance...")
+        for table_name in possible_student_tables:
+            try:
+                student_result = session.execute(text(f"SELECT id FROM {table_name} ORDER BY id"))
+                student_ids = [row[0] for row in student_result.fetchall()]
+                if student_ids:
+                    print(f"  📋 Found {len(student_ids)} student records in {table_name}")
+                    break
+            except Exception as e:
+                continue
+        
+        if not student_ids:
+            print("  ⚠️  No students found in any table, creating fallback student IDs...")
+            student_ids = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]  # Fallback IDs for development
+        
+        if not class_ids:
+            print("  ⚠️  No classes found, skipping class attendance...")
             return 0
         
-        # Create sample class attendance records
+        # Create realistic class attendance records
         attendance_records = []
         
-        for i in range(1000):
+        # Calculate realistic number of attendance records
+        # Each student should have multiple attendance records per class
+        # Use: (students * classes * 2) for multiple attendance records per student per class
+        num_attendance = min(len(student_ids) * len(class_ids) * 2, 10000)  # Cap at 10k for performance
+        print(f"  📝 Creating {num_attendance} attendance records for {len(student_ids)} students across {len(class_ids)} classes...")
+        
+        for i in range(num_attendance):
             attendance = {
                 'class_id': random.choice(class_ids),
                 'student_id': random.choice(student_ids),
@@ -2657,6 +3140,16 @@ def seed_phase2_educational_system(session: Session) -> Dict[str, int]:
         results['lesson_plan_objectives'] = lesson_plan_objectives_count
         print(f"✅ Created {lesson_plan_objectives_count} lesson plan objectives")
         
+        # Seed curriculum FIRST (needed for lessons and standards)
+        print("Seeding curriculum...")
+        curriculum_count = seed_curriculum(session)
+        results['curriculum'] = curriculum_count
+        print(f"✅ Created {curriculum_count} curriculum records")
+        
+        # Commit curriculum to ensure it persists for dependent tables
+        session.commit()
+        print("🔒 Curriculum data committed - ensuring persistence for dependent tables")
+        
         # Seed curriculum lessons
         print("Seeding curriculum lessons...")
         curriculum_lessons_count = seed_curriculum_lessons(session)
@@ -2671,45 +3164,69 @@ def seed_phase2_educational_system(session: Session) -> Dict[str, int]:
         
         # Seed curriculum standard associations
         print("Seeding curriculum standard associations...")
+        print("🔍 About to call seed_curriculum_standard_associations...")
         standard_associations_count = seed_curriculum_standard_associations(session)
+        print(f"🔍 seed_curriculum_standard_associations returned: {standard_associations_count}")
         results['curriculum_standard_association'] = standard_associations_count
         print(f"✅ Created {standard_associations_count} standard associations")
         
-        # Seed curriculum
-        print("Seeding curriculum...")
-        curriculum_count = seed_curriculum(session)
-        results['curriculum'] = curriculum_count
-        print(f"✅ Created {curriculum_count} curriculum records")
-        
         # Seed courses
         print("Seeding courses...")
+        print("🔍 About to call seed_courses...")
         courses_count = seed_courses(session)
+        print(f"🔍 seed_courses returned: {courses_count}")
         results['courses'] = courses_count
         print(f"✅ Created {courses_count} courses")
         
+        # Commit courses to protect from rollbacks
+        session.commit()
+        print("🔒 Courses committed - protecting from rollbacks")
+        
         # Seed course enrollments
         print("Seeding course enrollments...")
+        print("🔍 About to call seed_course_enrollments...")
         enrollments_count = seed_course_enrollments(session)
+        print(f"🔍 seed_course_enrollments returned: {enrollments_count}")
         results['course_enrollments'] = enrollments_count
         print(f"✅ Created {enrollments_count} course enrollments")
         
+        # Commit course enrollments to protect from rollbacks
+        session.commit()
+        print("🔒 Course enrollments committed - protecting from rollbacks")
+        
         # Seed assignments
         print("Seeding assignments...")
+        print("🔍 About to call seed_assignments...")
         assignments_count = seed_assignments(session)
+        print(f"🔍 seed_assignments returned: {assignments_count}")
         results['assignments'] = assignments_count
         print(f"✅ Created {assignments_count} assignments")
         
+        # Commit assignments to protect from rollbacks
+        session.commit()
+        print("🔒 Assignments committed - protecting from rollbacks")
+        
         # Seed grades
         print("Seeding grades...")
+        print("🔍 About to call seed_grades...")
         grades_count = seed_grades(session)
+        print(f"🔍 seed_grades returned: {grades_count}")
         results['grades'] = grades_count
         print(f"✅ Created {grades_count} grades")
+        
+        # Commit grades to protect from rollbacks
+        session.commit()
+        print("🔒 Grades committed - protecting from rollbacks")
         
         # Seed rubrics
         print("Seeding rubrics...")
         rubrics_count = seed_rubrics(session)
         results['rubrics'] = rubrics_count
         print(f"✅ Created {rubrics_count} rubrics")
+        
+        # Commit course-related tables to protect from rollbacks
+        session.commit()
+        print("🔒 Course-related tables committed - protecting from rollbacks")
         
         # Section 2.2: Teacher & Class Management (12 tables)
         print("\n👨‍🏫 SECTION 2.2: TEACHER & CLASS MANAGEMENT")
@@ -2751,6 +3268,12 @@ def seed_phase2_educational_system(session: Session) -> Dict[str, int]:
         results['teacher_specializations'] = teacher_specializations_count
         print(f"✅ Created {teacher_specializations_count} teacher specializations")
         
+        # Seed educational teachers first (needed for educational classes foreign key)
+        print("Seeding educational teachers...")
+        educational_teachers_count = seed_educational_teachers(session)
+        results['educational_teachers'] = educational_teachers_count
+        print(f"✅ Created {educational_teachers_count} educational teachers")
+        
         # Seed educational classes
         print("Seeding educational classes...")
         educational_classes_count = seed_educational_classes(session)
@@ -2762,6 +3285,10 @@ def seed_phase2_educational_system(session: Session) -> Dict[str, int]:
         class_students_count = seed_educational_class_students(session)
         results['educational_class_students'] = class_students_count
         print(f"✅ Created {class_students_count} class student enrollments")
+        
+        # Commit educational classes to protect from rollbacks
+        session.commit()
+        print("🔒 Educational classes committed - protecting from rollbacks")
         
         # Seed educational teacher availability
         print("Seeding educational teacher availability...")

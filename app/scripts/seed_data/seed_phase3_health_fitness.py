@@ -50,7 +50,8 @@ def seed_health_checks(session: Session) -> int:
         check_types = ['Routine', 'Emergency', 'Follow-up', 'Annual', 'Pre-activity']
         statuses = ['Completed', 'In Progress', 'Scheduled', 'Cancelled']
         
-        for i in range(200):
+        # Scale up for district size - create 4000+ health checks
+        for i in range(4000):
             health_check = {
                 'student_id': random.choice(student_ids),
                 'check_type': random.choice(check_types),
@@ -571,7 +572,8 @@ def seed_fitness_assessments(session: Session) -> int:
         
         # Create sample fitness assessments
         assessments = []
-        for i in range(150):
+        # Scale up for district size - create 4000+ fitness assessments
+        for i in range(4000):
             assessment = {
                 'user_id': random.choice(user_ids),
                 'assessment_date': datetime.now() - timedelta(days=random.randint(1, 365)),
@@ -1298,7 +1300,8 @@ def seed_nutrition_logs(session: Session) -> int:
         
         # Create sample nutrition logs
         logs = []
-        for i in range(400):
+        # Scale up for district size - create 12000+ nutrition logs
+        for i in range(12000):
             log = {
                 'user_id': random.choice(user_ids),
                 'food_item_id': random.choice(food_item_ids),
@@ -1344,6 +1347,62 @@ def seed_nutrition_logs(session: Session) -> int:
         session.rollback()
         return 0
 
+def seed_student_health(session: Session) -> int:
+    """Seed student_health table for all students"""
+    try:
+        # Check if table exists and has data
+        result = session.execute(text("SELECT COUNT(*) FROM student_health"))
+        existing_count = result.scalar()
+        
+        if existing_count > 0:
+            print(f"  ⚠️  student_health already has {existing_count} records, skipping...")
+            return existing_count
+        
+        # Get all students
+        student_result = session.execute(text("SELECT id FROM students ORDER BY id"))
+        student_ids = [row[0] for row in student_result.fetchall()]
+        
+        if not student_ids:
+            print("  ⚠️  No students found, skipping student health...")
+            return 0
+        
+        # Create health records for all students
+        health_records = []
+        health_conditions = ["None", "Asthma", "Allergies", "ADHD", "Diabetes", "Other"]
+        
+        for student_id in student_ids:
+            health_record = {
+                'student_id': student_id,
+                'has_medical_conditions': random.choice([True, False]),
+                'medical_conditions': random.choice(health_conditions),
+                'emergency_contact_name': f'Emergency Contact for Student {student_id}',
+                'emergency_contact_phone': f'555-{random.randint(1000, 9999)}',
+                'insurance_provider': random.choice(['Blue Cross', 'Aetna', 'Cigna', 'UnitedHealth', 'None']),
+                'insurance_number': f'INS{random.randint(100000, 999999)}',
+                'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+                'updated_at': datetime.now()
+            }
+            health_records.append(health_record)
+        
+        # Insert student health records
+        session.execute(text("""
+            INSERT INTO student_health (student_id, has_medical_conditions, medical_conditions,
+                                      emergency_contact_name, emergency_contact_phone,
+                                      insurance_provider, insurance_number, created_at, updated_at)
+            VALUES (:student_id, :has_medical_conditions, :medical_conditions,
+                   :emergency_contact_name, :emergency_contact_phone,
+                   :insurance_provider, :insurance_number, :created_at, :updated_at)
+        """), health_records)
+        
+        session.commit()
+        print(f"  ✅ Created {len(health_records)} student health records")
+        return len(health_records)
+        
+    except Exception as e:
+        print(f"  ❌ Error seeding student_health: {e}")
+        session.rollback()
+        return 0
+
 def seed_phase3_health_fitness(session: Session) -> Dict[str, int]:
     """
     Seed Phase 3: Health & Fitness System
@@ -1364,6 +1423,9 @@ def seed_phase3_health_fitness(session: Session) -> Dict[str, int]:
         # Section 3.1: Health Assessment & Monitoring (11 tables)
         print("\n🏥 SECTION 3.1: HEALTH ASSESSMENT & MONITORING")
         print("-" * 50)
+        
+        print("Seeding student health records...")
+        results['student_health'] = seed_student_health(session)
         
         print("Seeding health checks...")
         results['health_checks'] = seed_health_checks(session)

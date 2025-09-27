@@ -43,7 +43,7 @@ def recreate_comprehensive_system(session: Session) -> None:
         
         print("  🏗️  Deleting existing curriculum structure...")
         session.execute(text("DELETE FROM curriculum_units"))
-        session.execute(text("DELETE FROM curricula"))
+        session.execute(text("DELETE FROM curriculum"))
         print("  ✅ Curriculum structure deleted")
         
         session.commit()
@@ -500,7 +500,7 @@ def recreate_comprehensive_system(session: Session) -> None:
         for curriculum in curricula_data:
             try:
                 insert_query = text("""
-                    INSERT INTO curricula (
+                    INSERT INTO curriculum (
                         name, description, grade_level, academic_year, learning_standards,
                         learning_objectives, core_competencies, unit_data, progression_path,
                         time_allocation, assessment_criteria, evaluation_methods, version,
@@ -522,7 +522,7 @@ def recreate_comprehensive_system(session: Session) -> None:
         session.commit()
         
         # Create curriculum units
-        created_curricula = session.execute(text("SELECT id, name FROM curricula")).fetchall()
+        created_curricula = session.execute(text("SELECT id, name FROM curriculum")).fetchall()
         curriculum_units_data = []
         
         unit_templates = [
@@ -585,7 +585,7 @@ def recreate_comprehensive_system(session: Session) -> None:
         subjects_count = session.execute(text("SELECT COUNT(*) FROM subjects")).scalar()
         educational_teachers_count = session.execute(text("SELECT COUNT(*) FROM educational_teachers")).scalar()
         lesson_plans_count = session.execute(text("SELECT COUNT(*) FROM lesson_plans")).scalar()
-        curricula_count = session.execute(text("SELECT COUNT(*) FROM curricula")).scalar()
+        curricula_count = session.execute(text("SELECT COUNT(*) FROM curriculum")).scalar()
         curriculum_units_count = session.execute(text("SELECT COUNT(*) FROM curriculum_units")).scalar()
         
         print(f"📊 FINAL RESULTS:")

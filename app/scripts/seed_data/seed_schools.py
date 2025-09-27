@@ -49,25 +49,36 @@ def seed_schools(session):
     except:
         pass  # Table doesn't exist yet
     
-    # Set up academic year
+    # Set up academic year - check if it already exists
     current_year = datetime.now().year
     academic_year = f"{current_year}-{current_year + 1}"
-    start_date = datetime(current_year, 9, 1)  # September 1st
-    end_date = datetime(current_year + 1, 6, 15)  # June 15th next year
     
-    # Create academic year
-    academic_year_record = SchoolAcademicYear(
-        academic_year=academic_year,
-        start_date=start_date,
-        end_date=end_date,
-        is_current=True,
-        status="ACTIVE",
-        description=f"Academic Year {academic_year}",
-        special_events="Olympics Week, Fitness Challenge, Sports Tournament, Wellness Fair",
-        notes="Standard academic year with enhanced PE programs"
-    )
-    session.add(academic_year_record)
-    session.flush()  # Get the ID
+    # Check if academic year already exists
+    existing_year = session.execute(text("SELECT id FROM school_academic_years WHERE academic_year = :year"), 
+                                   {"year": academic_year}).fetchone()
+    
+    if existing_year:
+        print(f"  📋 Academic year {academic_year} already exists, using existing record")
+        academic_year_id = existing_year[0]
+    else:
+        print(f"  📝 Creating new academic year {academic_year}")
+        start_date = datetime(current_year, 9, 1)  # September 1st
+        end_date = datetime(current_year + 1, 6, 15)  # June 15th next year
+        
+        # Create academic year
+        academic_year_record = SchoolAcademicYear(
+            academic_year=academic_year,
+            start_date=start_date,
+            end_date=end_date,
+            is_current=True,
+            status="ACTIVE",
+            description=f"Academic Year {academic_year}",
+            special_events="Olympics Week, Fitness Challenge, Sports Tournament, Wellness Fair",
+            notes="Standard academic year with enhanced PE programs"
+        )
+        session.add(academic_year_record)
+        session.flush()  # Get the ID
+        academic_year_id = academic_year_record.id
     
     # Create the 6 schools
     schools = [

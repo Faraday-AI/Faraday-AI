@@ -99,7 +99,7 @@ def seed_phase4_dependencies(session: Session, user_ids: List[int], school_ids: 
     print(f"✅ Phase 4 dependencies completed: {sum(results.values())} records across {len(results)} tables")
     return results
 
-def seed_phase4_safety_risk(session: Session, user_ids: List[int] = None, school_ids: List[int] = None, activity_ids: List[int] = None) -> Dict[str, int]:
+def seed_phase4_safety_risk(session: Session, user_ids: List[int] = None, school_ids: List[int] = None, activity_ids: List[int] = None, student_ids: List[int] = None) -> Dict[str, int]:
     """
     Complete Phase 4 Safety & Risk Management System
     Seeds all safety, risk, equipment, and compliance tables
@@ -115,11 +115,15 @@ def seed_phase4_safety_risk(session: Session, user_ids: List[int] = None, school
     
     results = {}
     
-    # Get reference data
-    student_ids = get_table_ids(session, "students")
-    user_ids = get_table_ids(session, "users")
-    school_ids = get_table_ids(session, "schools")
-    activity_ids = get_table_ids(session, "activities")
+    # Get reference data - use provided IDs or get from database
+    if student_ids is None:
+        student_ids = get_table_ids(session, "students")
+    if user_ids is None:
+        user_ids = get_table_ids(session, "users")
+    if school_ids is None:
+        school_ids = get_table_ids(session, "schools")
+    if activity_ids is None:
+        activity_ids = get_table_ids(session, "activities")
     
     print(f"  📊 Found {len(student_ids)} students, {len(user_ids)} users, {len(school_ids)} schools, {len(activity_ids)} activities")
     
@@ -1824,11 +1828,20 @@ def seed_environmental_monitoring(session: Session, user_ids: List[int], school_
         results['skill_assessment_environmental_checks'] = 0
     
     # Skill Assessment Equipment Checks (depends on skill_assessment_safety_checks)
+    # Get actual equipment IDs from physical_education_equipment table
+    try:
+        equipment_result = session.execute(text("SELECT id FROM physical_education_equipment LIMIT 100"))
+        equipment_ids = [row[0] for row in equipment_result.fetchall()]
+        print(f"  📋 Found {len(equipment_ids)} equipment IDs for skill_assessment_equipment_checks")
+    except Exception as e:
+        print(f"  ⚠️ Could not get equipment IDs: {e}")
+        equipment_ids = list(range(1, 101))  # Fallback range
+    
     equipment_checks_data = []
     for i in range(45):
         equipment_checks_data.append({
             'safety_check_id': random.choice(safety_check_ids),  # Use actual IDs
-            'equipment_id': random.randint(1, 100),
+            'equipment_id': random.choice(equipment_ids) if equipment_ids else random.randint(1, 100),
             'condition': random.choice(['EXCELLENT', 'GOOD', 'FAIR', 'POOR', 'UNUSABLE']),
             'maintenance_needed': random.choice([True, False]),
             'maintenance_type': random.choice(['ROUTINE', 'REPAIR', 'REPLACEMENT', 'CLEANING', 'CALIBRATION']),
