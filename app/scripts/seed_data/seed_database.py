@@ -970,6 +970,23 @@ def seed_database():
                     traceback.print_exc()
                     session.rollback()
                 
+                # Phase 6: Movement & Performance Analysis
+                print("\n🎯 PHASE 6: MOVEMENT & PERFORMANCE ANALYSIS")
+                print("-" * 50)
+                try:
+                    from app.scripts.seed_data.seed_phase6_movement_performance import seed_phase6_movement_performance
+                    results = seed_phase6_movement_performance(session)
+                    session.commit()
+                    print("✅ Phase 6 movement & performance analysis completed successfully!")
+                    print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
+                    print("🏆 All Phase 6 tables successfully seeded!")
+                except Exception as e:
+                    print(f"❌ Error seeding Phase 6 movement & performance analysis: {e}")
+                    print(f"Full error details: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    session.rollback()
+                
                 # Performance tracking summary
                 print("\n" + "="*50)
                 print("PERFORMANCE TRACKING SUMMARY")
@@ -1112,6 +1129,7 @@ def seed_database():
                 print("✅ Phase 3: Health & Fitness System (41 tables - 100% complete)")
                 print("✅ Phase 4: Safety & Risk Management System (35 tables - 100% complete)")
                 print("✅ Phase 5: Advanced Analytics & AI (36 tables - 100% complete)")
+                print("✅ Phase 6: Movement & Performance Analysis (25 tables - 100% complete)")
                 print(f"✅ {populated_tables}/{len(table_names)} tables populated with data")
                 print("✅ Relationships established")
                 print("✅ System ready for Power BI testing")

@@ -277,13 +277,16 @@ def seed_students(session):
                 "SELECT id FROM schools WHERE min_grade = 'K' ORDER BY name"
             )).fetchall()
         else:
-            # Numeric grades - need to handle mixed K/numeric data properly
+            # Numeric grades - handle both K-5 elementary and 6-12 secondary schools
             try:
                 grade_num = int(grade_str)
                 school_result = session.execute(text(
                     """SELECT id FROM schools 
-                       WHERE (min_grade != 'K' AND CAST(min_grade AS INTEGER) <= :grade) 
-                       AND (max_grade != 'K' AND CAST(max_grade AS INTEGER) >= :grade) 
+                       WHERE (
+                           (min_grade = 'K' AND :grade >= 1 AND :grade <= 5) OR
+                           (min_grade != 'K' AND CAST(min_grade AS INTEGER) <= :grade) 
+                           AND (max_grade != 'K' AND CAST(max_grade AS INTEGER) >= :grade)
+                       )
                        ORDER BY name"""
                 ), {"grade": grade_num}).fetchall()
             except ValueError:
@@ -293,8 +296,42 @@ def seed_students(session):
                 ), {"grade": grade_str}).fetchall()
         
         if school_result:
-            # Randomly select from available schools for better distribution
-            selected_school = random.choice(school_result)
+            # Use weighted selection for better distribution
+            # Elementary schools should get more students than middle/high
+            if grade_str in ["K", "1", "2", "3", "4", "5"]:
+                # Elementary grades - prefer elementary schools
+                elementary_schools = [s for s in school_result if s.id in [1, 2, 3, 6]]  # Elementary school IDs
+                if elementary_schools:
+                    # 80% chance for elementary schools, 20% for others
+                    if random.random() < 0.8 and elementary_schools:
+                        selected_school = random.choice(elementary_schools)
+                    else:
+                        selected_school = random.choice(school_result)
+                else:
+                    selected_school = random.choice(school_result)
+            elif grade_str in ["6", "7", "8"]:
+                # Middle school grades - prefer middle school
+                middle_schools = [s for s in school_result if s.id == 5]  # Middle school ID
+                if middle_schools:
+                    # 90% chance for middle school
+                    if random.random() < 0.9:
+                        selected_school = random.choice(middle_schools)
+                    else:
+                        selected_school = random.choice(school_result)
+                else:
+                    selected_school = random.choice(school_result)
+            else:
+                # High school grades - prefer high school
+                high_schools = [s for s in school_result if s.id == 4]  # High school ID
+                if high_schools:
+                    # 90% chance for high school
+                    if random.random() < 0.9:
+                        selected_school = random.choice(high_schools)
+                    else:
+                        selected_school = random.choice(school_result)
+                else:
+                    selected_school = random.choice(school_result)
+            
             school_id = selected_school.id
             
             # Create enrollment
