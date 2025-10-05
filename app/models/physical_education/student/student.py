@@ -50,11 +50,11 @@ class StudentHealthProfile(SharedBase):
     health_records = relationship("app.models.physical_education.student.student.HealthRecord", back_populates="student")
     fitness_assessments = relationship("FitnessAssessment", back_populates="student")
     health_skill_assessments = relationship("StudentHealthSkillAssessment", back_populates="student")
-    activity_preferences = relationship("ActivityPreference", back_populates="student")
-    adaptation_preferences = relationship("app.models.activity_adaptation.student.activity_student.StudentActivityPreference", back_populates="student")
+    # activity_preferences moved to Student model since foreign key now points to students.id
+    # adaptation_preferences moved to Student model since foreign key now points to students.id
     activity_performances = relationship("ActivityPerformance", back_populates="student")
     activity_adaptations = relationship("app.models.activity_adaptation.activity.activity_adaptation.ActivityAdaptation", back_populates="student")
-    student_activity_adaptations = relationship("app.models.activity_adaptation.student.activity_student.ActivityAdaptation", back_populates="student")
+    # student_activity_adaptations moved to Student model since foreign key now points to students.id
     student_health_fitness_goals = relationship("StudentHealthFitnessGoal", back_populates="student")
     health_thresholds = relationship("app.models.physical_education.student.student.HealthMetricThreshold", back_populates="student")
     
@@ -127,7 +127,7 @@ class ActivityPreference(SharedBase):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("student_health.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
     preference_level = Column(Integer)
     preference_reason = Column(String, nullable=True)  # Added for seeding compatibility
@@ -137,7 +137,7 @@ class ActivityPreference(SharedBase):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    student = relationship("StudentHealthProfile", back_populates="activity_preferences")
+    student = relationship("app.models.physical_education.student.models.Student", back_populates="activity_preferences")
     activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="health_preferences")
 
 class ActivityPerformance(SharedBase):

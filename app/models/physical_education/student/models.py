@@ -157,6 +157,12 @@ class Student(SharedBase):
     
     # School relationships
     school_enrollments = relationship("app.models.physical_education.schools.relationships.StudentSchoolEnrollment", back_populates="student", lazy="select")
+    
+    # Activity preference relationships
+    activity_preferences = relationship("app.models.physical_education.student.student.ActivityPreference", back_populates="student")
+    pe_activity_preferences = relationship("app.models.physical_education.activity.models.StudentActivityPreference", back_populates="student")
+    adaptation_preferences = relationship("app.models.activity_adaptation.student.activity_student.StudentActivityPreference", back_populates="student")
+    student_activity_adaptations = relationship("app.models.activity_adaptation.student.activity_student.ActivityAdaptation", back_populates="student")
 
 class StudentCreate(BaseModel):
     """Pydantic model for creating student profiles."""

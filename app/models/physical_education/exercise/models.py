@@ -66,6 +66,7 @@ class Exercise(SharedBase, TimestampMixin):
     progressions = relationship("ExerciseProgression", back_populates="exercise", cascade="all, delete-orphan")
     workouts = relationship("ExerciseWorkout", secondary="workout_exercises", back_populates="exercises")
     workout_exercises = relationship("ExerciseWorkoutExercise", back_populates="exercise", overlaps="workouts")
+    health_fitness_workout_exercises = relationship("HealthFitnessWorkoutExercise", back_populates="exercise")
     student_progress = relationship("StudentExerciseProgress", back_populates="exercise")
     performances = relationship("ExercisePerformance", back_populates="exercise")
     progress = relationship("ExerciseProgress", back_populates="exercise")

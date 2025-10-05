@@ -28,8 +28,7 @@ class HealthFitnessExercise(SharedBase):
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-    # Relationships
-    workout_exercises = relationship("HealthFitnessWorkoutExercise", back_populates="exercise", overlaps="exercise,workout_exercises")
+    # Relationships - removed workout_exercises since we use exercises table instead
 
     def __repr__(self):
         return f"<HealthFitnessExercise {self.name} - {self.category}>"
@@ -144,7 +143,7 @@ class HealthFitnessWorkoutExercise(SharedBase):
 
     id = Column(Integer, primary_key=True, index=True)
     workout_id = Column(Integer, ForeignKey("health_fitness_workouts.id"), nullable=False)
-    exercise_id = Column(Integer, ForeignKey("health_fitness_exercises.id"), nullable=False)
+    exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
     sets = Column(Integer, nullable=False)
     reps = Column(Integer, nullable=False)
     duration_minutes = Column(Float)
@@ -154,7 +153,7 @@ class HealthFitnessWorkoutExercise(SharedBase):
 
     # Relationships
     workout = relationship("HealthFitnessWorkout", back_populates="exercises", overlaps="workout,exercises")
-    exercise = relationship("HealthFitnessExercise", back_populates="workout_exercises")
+    exercise = relationship("Exercise", back_populates="health_fitness_workout_exercises")
     exercise_sets = relationship("ExerciseSet", back_populates="workout_exercise", cascade="all, delete-orphan")
 
     def __repr__(self):

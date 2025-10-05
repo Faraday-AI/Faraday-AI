@@ -118,33 +118,32 @@ def seed_student_activity_data(session):
     print("  Creating additional comprehensive activity performances...")
     additional_performances = []
     
-    # Create comprehensive performance records (all students × activities)
-    num_students = len(student_ids)
-    num_activities = min(10, len(activity_ids))
+    # Create comprehensive performance records (sample of students × activities)
+    num_students = min(2000, len(student_ids))  # Scale up to 2000 students for district
+    num_activities = min(20, len(activity_ids))  # Scale up to 20 activities
     
     for i in range(num_students):
         for j in range(num_activities):
-            # Create multiple performance records per student-activity pair
-            for performance_idx in range(random.randint(1, 3)):  # 1-3 performances per pair
-                additional_performance = StudentActivityPerformance(
-                    student_id=student_ids[i],
-                    activity_id=activity_ids[j],
-                    performance_level=random.choice(["EXCELLENT", "GOOD", "SATISFACTORY", "NEEDS_IMPROVEMENT"]),
-                    score=random.uniform(60, 100),
-                    completion_time=random.randint(15, 60),
-                    attempts=random.randint(1, 5),
-                    recorded_at=datetime.now() - timedelta(days=random.randint(1, 90)),
-                    notes=f"Additional performance record {performance_idx + 1} for student {i+1} in activity {j+1}",
-                    feedback={"teacher_notes": f"Good effort, keep practicing", "peer_feedback": "Great teamwork!"},
-                    performance_metadata={"location": "gym", "weather": "indoor", "equipment_used": "standard"}
-                )
-                session.add(additional_performance)
-                additional_performances.append(additional_performance)
-                
-                # Flush every 100 records to manage memory
-                if len(additional_performances) % 100 == 0:
-                    session.flush()
-                    print(f"    Created {len(additional_performances)} additional performance records...")
+            # Create 1 performance record per student-activity pair (not 1-3)
+            additional_performance = StudentActivityPerformance(
+                student_id=student_ids[i],
+                activity_id=activity_ids[j],
+                performance_level=random.choice(["EXCELLENT", "GOOD", "SATISFACTORY", "NEEDS_IMPROVEMENT"]),
+                score=random.uniform(60, 100),
+                completion_time=random.randint(15, 60),
+                attempts=random.randint(1, 5),
+                recorded_at=datetime.now() - timedelta(days=random.randint(1, 90)),
+                notes=f"Performance record for student {i+1} in activity {j+1}",
+                feedback={"teacher_notes": f"Good effort, keep practicing", "peer_feedback": "Great teamwork!"},
+                performance_metadata={"location": "gym", "weather": "indoor", "equipment_used": "standard"}
+            )
+            session.add(additional_performance)
+            additional_performances.append(additional_performance)
+            
+            # Flush every 100 records to manage memory
+            if len(additional_performances) % 100 == 0:
+                session.flush()
+                print(f"    Created {len(additional_performances)} additional performance records...")
     
     session.flush()
     print(f"  Created {len(additional_performances)} additional comprehensive performance records")
@@ -187,10 +186,10 @@ def seed_student_activity_data(session):
     except:
         user_ids = [1]  # Default fallback
     
-    # Create 500+ activity assessments (50 activities × 10+ assessors)
-    num_assessors = min(10, len(user_ids))  # Using teachers as assessors
+    # Create 2000+ activity assessments (100 activities × 20+ assessors)
+    num_assessors = min(20, len(user_ids))  # Using teachers as assessors
     
-    for i in range(min(50, len(activity_ids))):
+    for i in range(min(100, len(activity_ids))):
         for j in range(num_assessors):
             # Get random performance level and convert to uppercase string for database compatibility
             performance_level_enum = random.choice([PerformanceLevel.EXCELLENT, PerformanceLevel.GOOD, PerformanceLevel.SATISFACTORY, PerformanceLevel.NEEDS_IMPROVEMENT, PerformanceLevel.POOR])
@@ -219,8 +218,8 @@ def seed_student_activity_data(session):
     print("  Creating comprehensive activity progressions...")
     activity_progressions = []
     
-    # Create 500+ activity progressions (50 students × 10+ activities)
-    for i in range(min(50, len(student_ids))):
+    # Create 2000+ activity progressions (200 students × 10+ activities)
+    for i in range(min(200, len(student_ids))):
         for j in range(min(10, len(activity_ids))):
             # Get random progression levels and convert to lowercase strings for database compatibility
             level_enum = random.choice([ProgressionLevel.NOVICE, ProgressionLevel.DEVELOPING, ProgressionLevel.PROFICIENT, ProgressionLevel.ADVANCED, ProgressionLevel.EXPERT])

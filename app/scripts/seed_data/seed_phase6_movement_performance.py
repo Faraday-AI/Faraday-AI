@@ -392,7 +392,7 @@ def seed_movement_analysis_tables(session: Session) -> Dict[str, int]:
                 SELECT id, goal_type, target_value, goal_metadata 
                 FROM student_health_fitness_goals 
                 WHERE goal_type IS NOT NULL 
-                LIMIT 50
+                LIMIT 4269
             """)).fetchall()
             
             # Migrate health goals to PE goals
@@ -416,7 +416,7 @@ def seed_movement_analysis_tables(session: Session) -> Dict[str, int]:
                 SELECT id, goal_type, target_value, goal_metadata 
                 FROM physical_education_student_fitness_goals 
                 WHERE goal_type IS NOT NULL 
-                LIMIT 50
+                LIMIT 4269
             """)).fetchall()
         
         existing_pe_routines = session.execute(text("""
@@ -776,7 +776,7 @@ def seed_performance_tracking_tables(session: Session) -> Dict[str, int]:
     # performance_thresholds (50 records)
     print("  Seeding performance_thresholds...")
     thresholds = []
-    for i in range(50):
+    for i in range(1000):
         threshold = {
             'metric_type': f'Performance Metric #{i+1}',
             'min_value': round(random.uniform(50, 80), 2),
@@ -1015,7 +1015,7 @@ def seed_performance_tracking_tables(session: Session) -> Dict[str, int]:
     """, 'progress_metrics')
     results['progress_metrics'] = len(progress_metrics)
     
-    # tracking_history (40000 records - 10 per student)
+    # tracking_history (4000 records - 1 per student for district scale)
     print("  Seeding tracking_history...")
     tracking_history = []
     
@@ -1024,7 +1024,7 @@ def seed_performance_tracking_tables(session: Session) -> Dict[str, int]:
     
     # Process in smaller batches to avoid memory issues and transaction failures
     batch_size = 1000
-    total_records = 40000
+    total_records = 4000  # Reduced from 40000 to 4000 for district scale
     
     for batch_start in range(0, total_records, batch_size):
         batch_end = min(batch_start + batch_size, total_records)
@@ -1137,14 +1137,14 @@ def seed_performance_tracking_tables(session: Session) -> Dict[str, int]:
     """, 'routine_progress')
     results['routine_progress'] = len(routine_progress)
     
-    # routine_metrics (200 records)
+    # routine_metrics (500 records)
     print("  Seeding routine_metrics...")
     routine_metrics = []
     
     # Get existing routine_progress IDs dynamically (not progress IDs)
     routine_progress_ids = get_dependency_ids(session, 'routine_progress')
     
-    for i in range(200):
+    for i in range(500):
         metric = {
             'progress_id': random.choice(routine_progress_ids),
             'metric_name': f'Routine Metric #{i+1}',

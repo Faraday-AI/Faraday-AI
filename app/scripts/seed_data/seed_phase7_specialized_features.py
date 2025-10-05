@@ -53,11 +53,34 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
         result = session.execute(text('SELECT id FROM roles'))
         ids['role_ids'] = [row[0] for row in result.fetchall()]
         if not ids['role_ids']:
-            print("⚠️ No existing roles found to migrate from")
-            ids['role_ids'] = []
+            print("⚠️ No existing roles found, creating basic roles...")
+            # Create basic roles if none exist
+            basic_roles = [
+                {'name': 'admin', 'description': 'Administrator role'},
+                {'name': 'teacher', 'description': 'Teacher role'},
+                {'name': 'student', 'description': 'Student role'},
+                {'name': 'parent', 'description': 'Parent role'},
+                {'name': 'staff', 'description': 'Staff role'},
+                {'name': 'guest', 'description': 'Guest role'}
+            ]
+            for role in basic_roles:
+                session.execute(text("""
+                    INSERT INTO roles (name, description, status, is_active)
+                    VALUES (:name, :description, :status, :is_active)
+                """), {
+                    'name': role['name'],
+                    'description': role['description'],
+                    'status': 'ACTIVE',
+                    'is_active': True
+                })
+            session.commit()
+            # Get the newly created role IDs
+            result = session.execute(text('SELECT id FROM roles'))
+            ids['role_ids'] = [row[0] for row in result.fetchall()]
+            print(f"✅ Created {len(ids['role_ids'])} basic roles")
         
         # Get workout exercise IDs (migrate from existing data)
-        result = session.execute(text('SELECT id FROM health_fitness_workout_exercises LIMIT 100'))
+        result = session.execute(text('SELECT id FROM physical_education_workout_exercises LIMIT 100'))
         ids['workout_exercise_ids'] = [row[0] for row in result.fetchall()]
         if not ids['workout_exercise_ids']:
             # Try to get existing workout and exercise IDs from earlier phases
@@ -340,14 +363,43 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
         print(f"  ❌ workout_plans: {e}")
         results['workout_plans'] = 0
     
-    # exercise_sets (SKIP - no workout_exercises available)
-    try:
-        existing_count = session.execute(text('SELECT COUNT(*) FROM exercise_sets')).scalar()
-        results['exercise_sets'] = 0
-        print(f"  ⚠️ exercise_sets: {existing_count} records (skipped - no workout_exercises available)")
-    except Exception as e:
-        print(f"  ❌ exercise_sets: {e}")
-        results['exercise_sets'] = 0
+        # exercise_sets (migrate from workout_exercises)
+        try:
+            existing_count = session.execute(text('SELECT COUNT(*) FROM exercise_sets')).scalar()
+            if existing_count > 0:
+                print(f"  📊 exercise_sets already has {existing_count} records, migrating additional data...")
+            
+            # Get workout_exercises IDs
+            workout_exercise_result = session.execute(text('SELECT id FROM workout_exercises LIMIT 100'))
+            workout_exercise_ids = [row[0] for row in workout_exercise_result.fetchall()]
+            
+            if workout_exercise_ids:
+                additional_exercise_sets = []
+                for i in range(100):  # Create 100 additional exercise sets
+                    workout_exercise_id = random.choice(workout_exercise_ids)
+                    additional_exercise_sets.append({
+                        'workout_exercise_id': workout_exercise_id,
+                        'set_number': random.randint(1, 5),
+                        'reps_completed': random.randint(5, 20),
+                        'weight_used': round(random.uniform(10.0, 100.0), 1),
+                        'duration_seconds': random.randint(30, 300),
+                        'distance_meters': round(random.uniform(0.0, 1000.0), 1),
+                        'rest_time_seconds': random.randint(30, 120),
+                        'notes': f'Exercise set {i+1} notes',
+                        'performance_rating': random.randint(1, 10),
+                        'additional_data': json.dumps({'intensity': 'moderate', 'form_quality': 'good'}),
+                        'created_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                    })
+                
+                inserted = safe_insert(session, 'exercise_sets', additional_exercise_sets)
+                results['exercise_sets'] = existing_count + inserted
+                print(f"  ✅ exercise_sets: +{inserted} additional records (migrated from workout_exercises)")
+            else:
+                results['exercise_sets'] = existing_count
+                print(f"  ⚠️ exercise_sets: {existing_count} records (no workout_exercises available for migration)")
+        except Exception as e:
+            print(f"  ❌ exercise_sets: {e}")
+            results['exercise_sets'] = 0
     
     # exercise_progress (migrate from existing data) - using correct schema
     try:
@@ -884,11 +936,33 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
         print(f"  ❌ dashboard_theme_configs: {e}")
         results['dashboard_theme_configs'] = 0
     
-    # dashboard_filter_configs (SKIP - schema mismatch)
+    # dashboard_filter_configs (create with correct schema)
     try:
         existing_count = session.execute(text('SELECT COUNT(*) FROM dashboard_filter_configs')).scalar()
-        results['dashboard_filter_configs'] = 0
-        print(f"  ⚠️ dashboard_filter_configs: {existing_count} records (skipped due to schema mismatch)")
+        if existing_count > 0:
+            print(f"  📊 dashboard_filter_configs already has {existing_count} records, migrating additional data...")
+        
+        # Create dashboard filter configurations
+        additional_filter_configs = []
+        for i in range(50):  # Create 50 filter configurations
+            additional_filter_configs.append({
+                'filter_type': random.choice(['DATE_RANGE', 'CATEGORY', 'STATUS', 'PRIORITY', 'ASSIGNEE']),
+                'name': f'Filter Config {i+1}',
+                'configuration': json.dumps({
+                    'date_range': {'start': '2024-01-01', 'end': '2024-12-31'},
+                    'categories': ['urgent', 'important'],
+                    'sort_by': 'created_at'
+                }),
+                'applied_to': json.dumps(['dashboard', 'reports', 'analytics']),
+                'user_id': random.choice(ids['user_ids']),
+                'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING']),
+                'is_active': random.choice([True, False]),
+                'metadata': json.dumps({'created_by': 'system', 'version': '1.0'})
+            })
+        
+        inserted = safe_insert(session, 'dashboard_filter_configs', additional_filter_configs)
+        results['dashboard_filter_configs'] = existing_count + inserted
+        print(f"  ✅ dashboard_filter_configs: +{inserted} additional records")
     except Exception as e:
         print(f"  ❌ dashboard_filter_configs: {e}")
         results['dashboard_filter_configs'] = 0

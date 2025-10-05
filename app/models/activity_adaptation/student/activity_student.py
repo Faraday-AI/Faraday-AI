@@ -29,12 +29,12 @@ class StudentActivityPreference(BaseModel, TimestampedMixin):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True, index=True)
-    student_id = Column(Integer, ForeignKey("student_health.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     activity_type = Column(SQLEnum(PreferenceActivityType, name='preferenceactivitytype'), nullable=False)
     preference_score = Column(Float, nullable=False, default=0.5)
 
     # Relationships
-    student = relationship("app.models.physical_education.student.student.StudentHealthProfile", back_populates="adaptation_preferences", overlaps="student,adaptation_preferences")
+    student = relationship("app.models.physical_education.student.models.Student", back_populates="adaptation_preferences")
 
     def __repr__(self):
         return f"<StudentActivityPreference {self.student_id} - {self.activity_type}>"
@@ -65,7 +65,7 @@ class ActivityAdaptation(BaseModel, TimestampedMixin, StatusMixin):
     
     id = Column(Integer, primary_key=True, index=True)
     activity_id = Column(Integer, ForeignKey("activities.id"), nullable=False)
-    student_id = Column(Integer, ForeignKey("student_health.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
     adaptation_type = Column(String, nullable=False)
     modifications = Column(JSON, nullable=False)
     reason = Column(String)
@@ -75,7 +75,7 @@ class ActivityAdaptation(BaseModel, TimestampedMixin, StatusMixin):
 
     # Relationships
     activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="student_adaptations")
-    student = relationship("app.models.physical_education.student.student.StudentHealthProfile", back_populates="student_activity_adaptations")
+    student = relationship("app.models.physical_education.student.models.Student", back_populates="student_activity_adaptations")
     history = relationship("app.models.activity_adaptation.student.activity_student.AdaptationHistory", back_populates="adaptation")
 
     def __repr__(self):

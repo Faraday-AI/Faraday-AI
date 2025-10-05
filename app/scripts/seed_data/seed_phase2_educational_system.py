@@ -116,8 +116,7 @@ def seed_physical_education_classes(session: Session) -> int:
         existing_count = result.scalar()
         
         if existing_count > 0:
-            print(f"  ⚠️  physical_education_classes already has {existing_count} records, skipping...")
-            return existing_count
+            print(f"  📊 physical_education_classes already has {existing_count} records, migrating additional data...")
         
         # Get actual teacher IDs from physical_education_teachers table
         teacher_result = session.execute(text("SELECT id FROM physical_education_teachers ORDER BY id"))
@@ -127,50 +126,42 @@ def seed_physical_education_classes(session: Session) -> int:
             print("  ⚠️  No teachers found, skipping physical education classes...")
             return 0
         
-        # Create sample physical education classes
+        # Create additional physical education classes (always migrate)
         classes = []
-        for i in range(50):  # Create 50 classes
+        additional_count = 50  # Always create 50 additional classes
+        for i in range(additional_count):
             class_data = {
-                'instructor_id': random.choice(teacher_ids),
-                'class_name': f'PE Class {i + 1}',
-                'class_code': f'PE{i + 1:03d}',
+                'teacher_id': random.choice(teacher_ids),
+                'name': f'PE Class {i + 1}',
                 'description': f'Physical Education class focusing on {random.choice(["fitness", "team sports", "individual sports", "recreation"])}',
+                'class_type': random.choice(['REGULAR', 'ADVANCED', 'BEGINNER', 'SPECIAL_NEEDS']),
+                'start_date': datetime.now() - timedelta(days=random.randint(1, 365)),
+                'end_date': datetime.now() + timedelta(days=random.randint(30, 365)),
                 'max_students': random.randint(15, 30),
-                'current_students': random.randint(5, 25),
-                'class_type': random.choice(['Regular', 'Advanced', 'Beginner', 'Special Needs']),
-                'grade_level': random.choice(['K-2', '3-5', '6-8', '9-12']),
-                'is_active': random.choice([True, False]),
-                'class_metadata': json.dumps({
-                    "equipment_needed": random.choice(["balls", "mats", "cones", "jump ropes"]),
-                    "location": f"Gym {random.randint(1, 5)}",
-                    "schedule": "Monday, Wednesday, Friday"
-                }),
+                'location': f"Gym {random.randint(1, 5)}",
+                'schedule': random.choice(['M-W-F', 'T-TH', 'M-F', 'T-W-TH-F']),
+                'grade_level': random.choice(['KINDERGARTEN', 'FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH', 'SEVENTH', 'EIGHTH', 'NINTH', 'TENTH', 'ELEVENTH', 'TWELFTH']),
+                'curriculum_focus': f'Focus on {random.choice(["cardiovascular fitness", "strength training", "flexibility", "coordination"])}',
+                'assessment_methods': f'Assessment via {random.choice(["skill tests", "fitness tests", "participation", "peer evaluation"])}',
                 'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
-                'updated_at': datetime.now(),
-                'last_accessed_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-                'archived_at': None,
-                'deleted_at': None,
-                'scheduled_deletion_at': None,
-                'retention_period': random.randint(30, 365)
+                'updated_at': datetime.now()
             }
             classes.append(class_data)
         
         # Insert classes
         session.execute(text("""
-            INSERT INTO physical_education_classes (instructor_id, class_name, class_code, description, 
-                                                  max_students, current_students, class_type, grade_level,
-                                                  is_active, class_metadata, created_at, updated_at,
-                                                  last_accessed_at, archived_at, deleted_at, 
-                                                  scheduled_deletion_at, retention_period)
-            VALUES (:instructor_id, :class_name, :class_code, :description, :max_students, 
-                   :current_students, :class_type, :grade_level, :is_active, :class_metadata, 
-                   :created_at, :updated_at, :last_accessed_at, :archived_at, :deleted_at, 
-                   :scheduled_deletion_at, :retention_period)
+            INSERT INTO physical_education_classes (teacher_id, name, description, class_type, 
+                                                  start_date, end_date, max_students, location, 
+                                                  schedule, grade_level, curriculum_focus, 
+                                                  assessment_methods, created_at, updated_at)
+            VALUES (:teacher_id, :name, :description, :class_type, :start_date, :end_date, 
+                   :max_students, :location, :schedule, :grade_level, :curriculum_focus, 
+                   :assessment_methods, :created_at, :updated_at)
         """), classes)
         
         session.commit()
-        print(f"  ✅ Created {len(classes)} physical education classes")
-        return len(classes)
+        print(f"  ✅ Created {len(classes)} additional physical education classes")
+        return existing_count + len(classes)
         
     except Exception as e:
         print(f"  ❌ Error seeding physical_education_classes: {e}")
@@ -185,22 +176,26 @@ def seed_activity_plans(session: Session) -> int:
         existing_count = result.scalar()
         
         if existing_count > 0:
-            print(f"  ⚠️  activity_plans already has {existing_count} records, skipping...")
-            return existing_count
+            print(f"  📊 activity_plans already has {existing_count} records, migrating additional data...")
         
-        # Create sample activity plans
+        # Create additional activity plans (always migrate)
         plans = []
-        for i in range(400):  # Create 400 activity plans
+        additional_count = 150  # Always create 150 additional activity plans
+        for i in range(additional_count):
             plan = {
-                'plan_name': f'Activity Plan {i + 1}',
+                'name': f'Activity Plan {i + 1}',
                 'description': f'Physical activity plan focusing on {random.choice(["cardiovascular fitness", "strength training", "flexibility", "coordination", "team building"])}',
-                'activity_type': random.choice(['Cardio', 'Strength', 'Flexibility', 'Sports', 'Games', 'Dance', 'Yoga']),
-                'duration_minutes': random.randint(30, 120),
-                'difficulty_level': random.choice(['Beginner', 'Intermediate', 'Advanced']),
-                'equipment_needed': json.dumps(random.sample(['balls', 'mats', 'cones', 'jump ropes', 'weights', 'resistance bands'], random.randint(1, 3))),
-                'instructions': f'Step-by-step instructions for activity plan {i + 1}',
-                'safety_notes': f'Safety considerations for activity plan {i + 1}',
-                'is_active': random.choice([True, False]),
+                'grade_level': random.choice(['KINDERGARTEN', 'FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH', 'SEVENTH', 'EIGHTH', 'NINTH', 'TENTH', 'ELEVENTH', 'TWELFTH']),
+                'duration': random.randint(30, 120),
+                'difficulty': random.choice(['Beginner', 'Intermediate', 'Advanced']),
+                'student_id': random.choice(range(1, 100)),  # Random student ID
+                'is_completed': random.choice([True, False]),
+                'plan_metadata': json.dumps({
+                    'activity_type': random.choice(['Cardio', 'Strength', 'Flexibility', 'Sports', 'Games', 'Dance', 'Yoga']),
+                    'equipment_needed': random.sample(['balls', 'mats', 'cones', 'jump ropes', 'weights', 'resistance bands'], random.randint(1, 3)),
+                    'instructions': f'Step-by-step instructions for activity plan {i + 1}',
+                    'safety_notes': f'Safety considerations for activity plan {i + 1}'
+                }),
                 'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
                 'updated_at': datetime.now(),
                 'last_accessed_at': datetime.now() - timedelta(days=random.randint(1, 30)),
@@ -213,19 +208,18 @@ def seed_activity_plans(session: Session) -> int:
         
         # Insert activity plans
         session.execute(text("""
-            INSERT INTO activity_plans (plan_name, description, activity_type, duration_minutes, 
-                                      difficulty_level, equipment_needed, instructions, safety_notes,
-                                      is_active, created_at, updated_at, last_accessed_at, 
-                                      archived_at, deleted_at, scheduled_deletion_at, retention_period)
-            VALUES (:plan_name, :description, :activity_type, :duration_minutes, :difficulty_level, 
-                   :equipment_needed, :instructions, :safety_notes, :is_active, :created_at, 
-                   :updated_at, :last_accessed_at, :archived_at, :deleted_at, 
-                   :scheduled_deletion_at, :retention_period)
+            INSERT INTO activity_plans (name, description, grade_level, duration, difficulty, 
+                                      student_id, is_completed, plan_metadata, created_at, updated_at, 
+                                      last_accessed_at, archived_at, deleted_at, scheduled_deletion_at, 
+                                      retention_period)
+            VALUES (:name, :description, :grade_level, :duration, :difficulty, :student_id, 
+                   :is_completed, :plan_metadata, :created_at, :updated_at, :last_accessed_at, 
+                   :archived_at, :deleted_at, :scheduled_deletion_at, :retention_period)
         """), plans)
         
         session.commit()
-        print(f"  ✅ Created {len(plans)} activity plans")
-        return len(plans)
+        print(f"  ✅ Created {len(plans)} additional activity plans")
+        return existing_count + len(plans)
         
     except Exception as e:
         print(f"  ❌ Error seeding activity_plans: {e}")
@@ -419,7 +413,7 @@ def seed_curriculum_lessons(session: Session) -> int:
                 curriculum = {
                     'name': f"PE Curriculum {i+1}",
                     'description': f"Physical Education Curriculum {i+1} for comprehensive PE education",
-                    'grade_level': random.choice(['K-2', '3-5', '6-8', '9-12']),
+                    'grade_level': random.choice(['KINDERGARTEN', 'FIRST', 'SECOND', 'THIRD', 'FOURTH', 'FIFTH', 'SIXTH', 'SEVENTH', 'EIGHTH', 'NINTH', 'TENTH', 'ELEVENTH', 'TWELFTH']),
                     'academic_year': random.choice(academic_years),
                     'curriculum_metadata': f'{{"subject": "Physical Education", "focus": "Comprehensive PE Education", "standards": "National PE Standards"}}',
                     'learning_standards': f'{{"national_standards": ["PE.1", "PE.2", "PE.3"], "state_standards": ["S.1", "S.2"], "grade_level": "{random.choice(["K-2", "3-5", "6-8", "9-12"])}"}}',

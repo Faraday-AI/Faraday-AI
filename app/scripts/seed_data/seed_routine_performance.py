@@ -37,9 +37,9 @@ def seed_routine_performance(session: Session) -> int:
             print("  No routines found, skipping performance creation")
             return 0
         
-        # Get students (limit to 500 for performance)
+        # Get students (limit to 50 for performance)
         print("  Getting students...")
-        students = session.execute(select(Student.id, Student.grade_level).limit(500)).fetchall()
+        students = session.execute(select(Student.id, Student.grade_level).limit(50)).fetchall()
         print(f"  Using {len(students)} students")
         
         if not students:
@@ -75,9 +75,9 @@ def seed_routine_performance(session: Session) -> int:
             print(f"    Processing routine {routine_idx + 1}/{len(routines)}...")
             
             # Determine how many students will perform this routine
-            # More popular routines get more performances
-            routine_popularity = random.uniform(0.3, 1.0)
-            num_performances = int(len(students) * routine_popularity * random.uniform(0.8, 1.2))
+            # More popular routines get more performances (reduced scale)
+            routine_popularity = random.uniform(0.1, 0.3)  # Reduced from 0.3-1.0 to 0.1-0.3
+            num_performances = int(len(students) * routine_popularity)
             
             # Select students for this routine
             selected_students = random.sample(students, min(num_performances, len(students)))

@@ -40,7 +40,7 @@ class Workout(SharedBase, TimestampedMixin):
     workout_metadata = Column(JSON, nullable=True)
 
     # Relationships
-    exercises = relationship("PhysicalEducationWorkoutExercise", back_populates="workout")
+    # exercises relationship removed since PhysicalEducationWorkoutExercise now points to health_fitness_workouts
     student_workouts = relationship("StudentWorkout", back_populates="workout")
     performances = relationship("WorkoutPerformance", back_populates="workout")
     sessions = relationship("app.models.physical_education.workout.models.WorkoutSession", back_populates="workout")
@@ -72,7 +72,7 @@ class PhysicalEducationWorkoutExercise(SharedBase, TimestampMixin):
     __table_args__ = {'extend_existing': True}
     
     id = Column(Integer, primary_key=True)
-    workout_id = Column(Integer, ForeignKey("physical_education_workouts.id"), nullable=False)
+    workout_id = Column(Integer, ForeignKey("health_fitness_workouts.id"), nullable=False)
     exercise_id = Column(Integer, ForeignKey("exercises.id"), nullable=False)
     sets = Column(Integer, nullable=True)
     reps = Column(Integer, nullable=True)
@@ -83,7 +83,7 @@ class PhysicalEducationWorkoutExercise(SharedBase, TimestampMixin):
     exercise_metadata = Column(JSON, nullable=True)
     
     # Relationships
-    workout = relationship('app.models.physical_education.workout.models.Workout', back_populates='exercises')
+    # workout relationship removed since it now points to health_fitness_workouts
     exercise = relationship('app.models.physical_education.exercise.models.Exercise')
 
 class WorkoutPerformance(SharedBase, TimestampMixin):

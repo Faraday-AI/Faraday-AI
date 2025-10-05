@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import random
+import json
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import select, text
@@ -95,9 +96,51 @@ def seed_adapted_activities(session: Session) -> Dict[str, int]:
         print(f"    Could not seed adapted activities: {e}")
         total_records["adapted_activities"] = 0
     
-    # 2. Seed Student Activity Adaptations (skipping - model not found)
-    total_records["student_activity_adaptations"] = 0
-    print("    Skipping student activity adaptations - model not found")
+    # 2. Seed Student Activity Adaptations
+    try:
+        from app.models.activity_adaptation.student.activity_student import ActivityAdaptation
+        
+        # Check if table exists and has data
+        existing_count = session.execute(text("SELECT COUNT(*) FROM student_activity_adaptations")).scalar()
+        if existing_count > 0:
+            print(f"    Student activity adaptations already exist ({existing_count} records), skipping...")
+            total_records["student_activity_adaptations"] = existing_count
+        else:
+            # Create some student activity adaptations
+            adaptations = []
+            for i in range(2000):  # Create 2,000 adaptations for district scale
+                adaptations.append({
+                    'student_id': random.choice(student_ids),
+                    'activity_id': random.choice(activity_ids),
+                    'adaptation_type': random.choice(['MODIFICATION', 'ACCOMMODATION', 'ASSISTIVE_TECHNOLOGY']),
+                    'modifications': json.dumps(['Equipment adjustment', 'Time extension', 'Visual aids']),
+                    'reason': f'Reason for adaptation {i+1}',
+                    'effectiveness_rating': random.randint(1, 5),
+                    'start_date': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'end_date': datetime.now() + timedelta(days=random.randint(30, 90)),
+                    'status': 'ACTIVE',
+                    'is_active': True,
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'updated_at': datetime.now()
+                })
+            
+            # Insert adaptations
+            for adaptation_data in adaptations:
+                session.execute(text("""
+                    INSERT INTO student_activity_adaptations 
+                    (student_id, activity_id, adaptation_type, modifications, reason, 
+                     effectiveness_rating, start_date, end_date, status, is_active, created_at, updated_at)
+                    VALUES (:student_id, :activity_id, :adaptation_type, :modifications, :reason, 
+                            :effectiveness_rating, :start_date, :end_date, :status, :is_active, :created_at, :updated_at)
+                """), adaptation_data)
+            
+            session.commit()
+            print(f"    Created {len(adaptations)} student activity adaptations")
+            total_records["student_activity_adaptations"] = len(adaptations)
+        
+    except Exception as e:
+        print(f"    Could not seed student activity adaptations: {e}")
+        total_records["student_activity_adaptations"] = 0
     
     # 3. Seed Activity Assessments (should be 500+)
     try:
@@ -167,16 +210,16 @@ def seed_adapted_activities(session: Session) -> Dict[str, int]:
         # session.execute(ActivityPreference.__table__.delete())  # REMOVED: Don't clear existing data
         
         activity_preferences_created = 0
-        preference_levels = ["STRONGLY_DISLIKE", "DISLIKE", "NEUTRAL", "LIKE", "STRONGLY_LIKE"]
+        preference_levels = [1, 2, 3, 4, 5]  # 1=STRONGLY_DISLIKE, 2=DISLIKE, 3=NEUTRAL, 4=LIKE, 5=STRONGLY_LIKE
         preference_reasons = ["ENJOYMENT", "SKILL_LEVEL", "CHALLENGE", "SOCIAL", "INDIVIDUAL", "TEAM"]
         
-        for i in range(1200):  # Create 1,200 additional activity preferences
+        for i in range(4000):  # Create 4,000 additional activity preferences for district scale
             preference = ActivityPreference(
                 student_id=random.choice(student_ids),
                 activity_id=random.choice(activity_ids),
                 preference_level=random.choice(preference_levels),
                 preference_reason=random.choice(preference_reasons),
-                notes=f"Additional student preference record {i+1}. " +
+                preference_notes=f"Additional student preference record {i+1}. " +
                       random.choice([
                           "Student enjoys this type of activity.",
                           "Activity matches student's skill level well.",
@@ -202,9 +245,49 @@ def seed_adapted_activities(session: Session) -> Dict[str, int]:
         print(f"    Could not seed activity preferences: {e}")
         total_records["activity_preferences"] = 0
     
-    # 5. Seed Activity Progression History (skipping - model not found)
-    total_records["activity_progression_history"] = 0
-    print("    Skipping progression history - model not found")
+    # 5. Seed Activity Progressions (using existing table)
+    try:
+        # Use existing activity_progressions table
+        activity_progressions_created = 0
+        
+        for i in range(500):  # Create 500 additional activity progressions
+            progression = {
+                'student_id': random.choice(student_ids),
+                'activity_id': random.choice(activity_ids),
+                'level': random.choice(['NOVICE', 'DEVELOPING', 'PROFICIENT', 'ADVANCED', 'EXPERT']),
+                'current_level': random.choice(['NOVICE', 'DEVELOPING', 'PROFICIENT', 'ADVANCED', 'EXPERT']),
+                'requirements': f'Requirements for progression {i+1}',
+                'next_level_id': random.randint(1, 10),
+                'improvement_rate': round(random.uniform(5.0, 50.0), 1),
+                'last_assessment_date': datetime.now() - timedelta(days=random.randint(1, 365)),
+                'next_assessment_date': datetime.now() + timedelta(days=random.randint(30, 90)),
+                'start_date': datetime.now() - timedelta(days=random.randint(1, 365)),
+                'last_updated': datetime.now() - timedelta(days=random.randint(1, 180)),
+                'progression_metadata': '{\"source\": \"adapted_activities_seeding\"}',
+                'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+                'updated_at': datetime.now() - timedelta(days=random.randint(1, 180))
+            }
+            
+            # Insert using raw SQL since we don't have the model
+            columns = list(progression.keys())
+            placeholders = ', '.join([f':{col}' for col in columns])
+            columns_str = ', '.join(columns)
+            query = f'INSERT INTO activity_progressions ({columns_str}) VALUES ({placeholders})'
+            
+            session.execute(text(query), progression)
+            activity_progressions_created += 1
+            
+            if activity_progressions_created % 100 == 0:
+                session.flush()
+                print(f"      Created {activity_progressions_created} additional activity progressions...")
+        
+        session.commit()
+        total_records["activity_progression_history"] = activity_progressions_created
+        print(f"    Created {activity_progressions_created} additional activity progressions (appended to existing data)")
+        
+    except Exception as e:
+        print(f"    Could not seed activity progressions: {e}")
+        total_records["activity_progression_history"] = 0
     
     # Calculate total records
     total_records["total"] = sum(total_records.values())

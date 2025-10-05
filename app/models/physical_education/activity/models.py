@@ -200,7 +200,7 @@ class StudentActivityPreference(SharedBase):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    student = relationship("Student", back_populates="activity_preferences")
+    student = relationship("Student", back_populates="pe_activity_preferences")
     activity = relationship("app.models.physical_education.activity.models.Activity", back_populates="preferences")
 
 class ActivityAssessment(SharedBase):

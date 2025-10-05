@@ -262,7 +262,7 @@ def seed_comprehensive_analytics(session: Session) -> Dict[str, int]:
         # Create additional activity performances for better data distribution
         additional_performances_created = 0
         
-        for i in range(1000):  # Create 1,000 additional performance records
+        for i in range(100):  # Create 100 additional performance records
             from app.models.physical_education.pe_enums.pe_types import PerformanceLevel
             
             # Get random performance level and convert to uppercase string for database compatibility

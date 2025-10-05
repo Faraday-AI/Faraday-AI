@@ -789,7 +789,7 @@ def seed_gpt_ai_integration(session: Session, user_ids: List[int], organization_
     
     # Use the dashboard subscription IDs that were created earlier
     gpt_performance_data = []
-    for i in range(30):
+    for i in range(1000):
         gpt_performance_data.append({
             'subscription_id': random.choice(dashboard_subscription_ids) if dashboard_subscription_ids else 1,
             'model_id': random.choice(model_ids),
@@ -1032,7 +1032,7 @@ def seed_gpt_ai_integration(session: Session, user_ids: List[int], organization_
         core_model_ids = [1]
     
     core_gpt_performance_data = []
-    for i in range(20):
+    for i in range(1000):
         core_gpt_performance_data.append({
             'model_id': random.choice(core_model_ids),  # Use valid model ID from core_gpt_definitions
             'user_id': random.choice(user_ids),
@@ -1121,9 +1121,37 @@ def seed_dashboard_analytics(session: Session, user_ids: List[int], organization
             dashboard_subscription_ids = [1, 2, 3]  # Fallback IDs
             subscription_ids = dashboard_subscription_ids
     else:
-        print(f"  ⚠️ dashboard_gpt_subscriptions already has {len(dashboard_subscription_ids)} records, skipping...")
-        results['dashboard_gpt_subscriptions'] = len(dashboard_subscription_ids)
-        subscription_ids = dashboard_subscription_ids
+        print(f"  📊 dashboard_gpt_subscriptions already has {len(dashboard_subscription_ids)} records, migrating additional data...")
+        # Create additional dashboard subscriptions
+        additional_subscriptions = []
+        for i in range(20):  # Create 20 additional subscriptions
+            additional_subscriptions.append({
+                'user_id': random.choice(user_ids),
+                'organization_id': random.choice(organization_ids),
+                'gpt_definition_id': random.choice(gpt_definition_ids),
+                'name': f'Additional Dashboard Subscription {i+1}',
+                'description': f'Additional GPT subscription for dashboard analytics {i+1}',
+                'model': random.choice(['gpt-4', 'gpt-3.5-turbo', 'claude-3']),
+                'configuration': json.dumps({'temperature': 0.7, 'max_tokens': 2000}),
+                'is_active': True,
+                'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                'updated_at': datetime.now()
+            })
+        
+        try:
+            session.execute(text("""
+                INSERT INTO dashboard_gpt_subscriptions (user_id, organization_id, gpt_definition_id, name, description, model, configuration, is_active, created_at, updated_at)
+                VALUES (:user_id, :organization_id, :gpt_definition_id, :name, :description, :model, :configuration, :is_active, :created_at, :updated_at)
+            """), additional_subscriptions)
+            session.commit()
+            results['dashboard_gpt_subscriptions'] = len(dashboard_subscription_ids) + len(additional_subscriptions)
+            print(f"  ✅ Created {len(additional_subscriptions)} additional dashboard_gpt_subscriptions")
+            dashboard_subscription_ids = get_table_ids(session, "dashboard_gpt_subscriptions")
+            subscription_ids = dashboard_subscription_ids
+        except Exception as e:
+            print(f"  ⚠️ Error creating additional dashboard_gpt_subscriptions: {e}")
+            results['dashboard_gpt_subscriptions'] = len(dashboard_subscription_ids)
+            subscription_ids = dashboard_subscription_ids
     
     # Create dashboard_categories first (needed for gpt_categories foreign key)
     print("  🔧 Creating dashboard categories...")
