@@ -1168,6 +1168,67 @@ def seed_logging_system(session):
         
     except Exception as e:
         print(f"      ⚠️  System logs table not available: {e}")
+    
+    # Seed activity_logs table
+    try:
+        result = session.execute(text("SELECT COUNT(*) FROM activity_logs"))
+        if result.scalar() > 0:
+            print("      ✅ activity_logs already has data")
+        else:
+            # Get user and organization IDs
+            user_result = session.execute(text("SELECT id FROM users LIMIT 10"))
+            user_ids = [row[0] for row in user_result.fetchall()]
+            
+            org_result = session.execute(text("SELECT id FROM organizations LIMIT 5"))
+            org_ids = [row[0] for row in org_result.fetchall()]
+            
+            if not user_ids:
+                user_ids = [1, 2, 3, 4, 5]  # Fallback IDs
+            if not org_ids:
+                org_ids = [1, 2, 3]  # Fallback IDs
+            
+            # Create sample activity logs
+            actions = ['CREATE', 'UPDATE', 'DELETE', 'VIEW', 'EXPORT', 'IMPORT', 'LOGIN', 'LOGOUT']
+            resource_types = ['USER', 'STUDENT', 'LESSON', 'EXERCISE', 'ACTIVITY', 'ASSESSMENT', 'CURRICULUM']
+            
+            activity_logs_data = []
+            for i in range(200):  # Create 200 sample activity log entries
+                activity_logs_data.append({
+                    'action': random.choice(actions),
+                    'resource_type': random.choice(resource_types),
+                    'resource_id': str(random.randint(1, 1000)),
+                    'details': json.dumps({
+                        'description': f'Activity log entry {i+1}',
+                        'ip_address': f"192.168.1.{random.randint(1, 255)}",
+                        'user_agent': 'FaradayAI/1.0',
+                        'session_id': f"session_{random.randint(1000, 9999)}",
+                        'metadata': {
+                            'source': 'web_interface',
+                            'version': '1.0',
+                            'feature': random.choice(['user_management', 'curriculum', 'assessment', 'reporting'])
+                        }
+                    }),
+                    'user_id': random.choice(user_ids) if random.random() > 0.3 else None,
+                    'org_id': random.choice(org_ids) if random.random() > 0.5 else None,
+                    'timestamp': datetime.utcnow() - timedelta(days=random.randint(0, 30)),
+                    'created_at': datetime.utcnow() - timedelta(days=random.randint(0, 30)),
+                    'updated_at': datetime.utcnow() - timedelta(days=random.randint(0, 7))
+                })
+            
+            # Insert activity logs
+            for log in activity_logs_data:
+                session.execute(text("""
+                    INSERT INTO activity_logs (
+                        action, resource_type, resource_id, details, user_id, org_id, timestamp, created_at, updated_at
+                    ) VALUES (
+                        :action, :resource_type, :resource_id, :details, :user_id, :org_id, :timestamp, :created_at, :updated_at
+                    )
+                """), log)
+            
+            print(f"      ✅ Created {len(activity_logs_data)} activity logs")
+        
+    except Exception as e:
+        print(f"      ⚠️  Activity logs table not available: {e}")
 
 def seed_monitoring_system(session):
     """Seed monitoring and audit tables"""
@@ -1547,6 +1608,67 @@ def seed_avatar_system(session):
         print("    📝 Note: User profiles will continue without avatars")
     
     print("  ✅ Avatar and roles system seeding complete!")
+    
+    # Seed activity_logs table
+    try:
+        result = session.execute(text("SELECT COUNT(*) FROM activity_logs"))
+        if result.scalar() > 0:
+            print("      ✅ activity_logs already has data")
+        else:
+            # Get user and organization IDs
+            user_result = session.execute(text("SELECT id FROM users LIMIT 10"))
+            user_ids = [row[0] for row in user_result.fetchall()]
+            
+            org_result = session.execute(text("SELECT id FROM organizations LIMIT 5"))
+            org_ids = [row[0] for row in org_result.fetchall()]
+            
+            if not user_ids:
+                user_ids = [1, 2, 3, 4, 5]  # Fallback IDs
+            if not org_ids:
+                org_ids = [1, 2, 3]  # Fallback IDs
+            
+            # Create sample activity logs
+            actions = ['CREATE', 'UPDATE', 'DELETE', 'VIEW', 'EXPORT', 'IMPORT', 'LOGIN', 'LOGOUT']
+            resource_types = ['USER', 'STUDENT', 'LESSON', 'EXERCISE', 'ACTIVITY', 'ASSESSMENT', 'CURRICULUM']
+            
+            activity_logs_data = []
+            for i in range(200):  # Create 200 sample activity log entries
+                activity_logs_data.append({
+                    'action': random.choice(actions),
+                    'resource_type': random.choice(resource_types),
+                    'resource_id': str(random.randint(1, 1000)),
+                    'details': json.dumps({
+                        'description': f'Activity log entry {i+1}',
+                        'ip_address': f"192.168.1.{random.randint(1, 255)}",
+                        'user_agent': 'FaradayAI/1.0',
+                        'session_id': f"session_{random.randint(1000, 9999)}",
+                        'metadata': {
+                            'source': 'web_interface',
+                            'version': '1.0',
+                            'feature': random.choice(['user_management', 'curriculum', 'assessment', 'reporting'])
+                        }
+                    }),
+                    'user_id': random.choice(user_ids) if random.random() > 0.3 else None,
+                    'org_id': random.choice(org_ids) if random.random() > 0.5 else None,
+                    'timestamp': datetime.utcnow() - timedelta(days=random.randint(0, 30)),
+                    'created_at': datetime.utcnow() - timedelta(days=random.randint(0, 30)),
+                    'updated_at': datetime.utcnow() - timedelta(days=random.randint(0, 7))
+                })
+            
+            # Insert activity logs
+            for log in activity_logs_data:
+                session.execute(text("""
+                    INSERT INTO activity_logs (
+                        action, resource_type, resource_id, details, user_id, org_id, timestamp, created_at, updated_at
+                    ) VALUES (
+                        :action, :resource_type, :resource_id, :details, :user_id, :org_id, :timestamp, :created_at, :updated_at
+                    )
+                """), log)
+            
+            print(f"      ✅ Created {len(activity_logs_data)} activity logs")
+        
+    except Exception as e:
+        print(f"      ⚠️  Activity logs table not available: {e}")
 
 if __name__ == "__main__":
     seed_phase1_foundation() 

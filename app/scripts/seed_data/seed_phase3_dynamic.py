@@ -948,7 +948,7 @@ def generate_enum_value(column_name: str, table_name: str = None) -> str:
     return random.choice(['ACTIVE', 'PENDING', 'COMPLETED'])
 
 def insert_data_dynamic(session: Session, table_name: str, records: List[Dict], schema: Dict[str, Dict]):
-    """Insert data into table using dynamic column names"""
+    """Insert data into table using dynamic column names with batch processing"""
     if not records:
         return
     
@@ -968,9 +968,51 @@ def insert_data_dynamic(session: Session, table_name: str, records: List[Dict], 
     
     query = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
     
-    # Execute insert
-    session.execute(text(query), records)
-    session.commit()
+    # Use batch processing for large tables to prevent SSL timeouts
+    # Use smaller batch size for health_fitness_health_checks to prevent SSL timeout
+    batch_size = 50 if table_name == 'health_fitness_health_checks' else (100 if len(records) > 500 else len(records))
+    
+    if len(records) > batch_size:
+        # Insert in batches with retry logic
+        total_inserted = 0
+        for i in range(0, len(records), batch_size):
+            batch = records[i:i + batch_size]
+            try:
+                session.execute(text(query), batch)
+                session.flush()  # Flush to prevent memory issues
+                total_inserted += len(batch)
+                if len(records) > 1000:  # Only show progress for very large tables
+                    print(f"    📊 Processed {total_inserted}/{len(records)} {table_name} records...")
+            except Exception as e:
+                print(f"    ⚠️ Batch {i//batch_size + 1} failed for {table_name}: {str(e)[:50]}...")
+                # Try smaller batch if SSL timeout
+                if "SSL" in str(e) and batch_size > 25:
+                    print(f"    🔄 Retrying with smaller batch size...")
+                    smaller_batch = batch[:batch_size//2]
+                    try:
+                        session.execute(text(query), smaller_batch)
+                        session.flush()
+                        total_inserted += len(smaller_batch)
+                        print(f"    ✅ Smaller batch succeeded")
+                    except Exception as e2:
+                        print(f"    ❌ Smaller batch also failed: {str(e2)[:50]}...")
+                        continue
+                else:
+                    continue
+        
+        try:
+            session.commit()
+        except Exception as e:
+            print(f"    ⚠️ Commit failed for {table_name}: {str(e)[:50]}...")
+            session.rollback()
+    else:
+        # Insert all at once for small tables
+        try:
+            session.execute(text(query), records)
+            session.commit()
+        except Exception as e:
+            print(f"    ❌ Insert failed for {table_name}: {str(e)[:50]}...")
+            session.rollback()
 
 def seed_student_health_goal_recommendations(session: Session, student_ids: List[int]) -> Dict[str, int]:
     """Seed student_health_goal_recommendations table by referencing student_health_fitness_goals"""

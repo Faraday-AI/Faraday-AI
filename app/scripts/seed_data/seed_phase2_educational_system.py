@@ -219,10 +219,168 @@ def seed_activity_plans(session: Session) -> int:
         
         session.commit()
         print(f"  ✅ Created {len(plans)} additional activity plans")
+        
+        # Now seed activity_plan_objectives for the plans we just created
+        objectives_count = seed_activity_plan_objectives(session, len(plans))
+        
         return existing_count + len(plans)
         
     except Exception as e:
         print(f"  ❌ Error seeding activity_plans: {e}")
+        session.rollback()
+        return 0
+
+def seed_activity_plan_objectives(session: Session, plan_count: int) -> int:
+    """Seed activity_plan_objectives table"""
+    try:
+        # Check if table exists and has data
+        result = session.execute(text("SELECT COUNT(*) FROM activity_plan_objectives"))
+        existing_count = result.scalar()
+        
+        if existing_count > 0:
+            print(f"  📊 activity_plan_objectives already has {existing_count} records, migrating additional data...")
+        
+        # Get the latest activity plan IDs that were just created
+        plan_result = session.execute(text("SELECT id FROM activity_plans ORDER BY id DESC LIMIT :count"), {"count": plan_count})
+        plan_ids = [row[0] for row in plan_result.fetchall()]
+        
+        if not plan_ids:
+            print("  ⚠️ No activity plan IDs found for objectives")
+            return 0
+        
+        # Create objectives for each plan (2-4 objectives per plan)
+        objectives = []
+        objective_templates = [
+            "Improve cardiovascular endurance through sustained physical activity",
+            "Develop fundamental movement skills and coordination",
+            "Enhance muscular strength and endurance",
+            "Promote flexibility and range of motion",
+            "Build teamwork and communication skills",
+            "Increase confidence in physical abilities",
+            "Learn proper exercise techniques and safety",
+            "Develop healthy lifestyle habits",
+            "Improve balance and spatial awareness",
+            "Enhance problem-solving through physical challenges"
+        ]
+        
+        for plan_id in plan_ids:
+            num_objectives = random.randint(2, 4)  # 2-4 objectives per plan
+            selected_objectives = random.sample(objective_templates, num_objectives)
+            
+            for i, objective_text in enumerate(selected_objectives):
+                objective = {
+                    'plan_id': plan_id,
+                    'objective': objective_text,
+                    'objective_metadata': json.dumps({
+                        'priority': random.choice(['HIGH', 'MEDIUM', 'LOW']),
+                        'target_achievement': random.randint(70, 100),  # percentage
+                        'assessment_method': random.choice(['OBSERVATION', 'PERFORMANCE_TEST', 'SELF_ASSESSMENT', 'PEER_REVIEW']),
+                        'timeline': random.choice(['SHORT_TERM', 'MEDIUM_TERM', 'LONG_TERM']),
+                        'success_criteria': f'Success criteria for: {objective_text[:50]}...',
+                        'notes': f'Additional notes for objective {i+1} of plan {plan_id}'
+                    }),
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+                    'updated_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'last_accessed_at': datetime.now() - timedelta(days=random.randint(1, 7)),
+                    'archived_at': None,
+                    'deleted_at': None,
+                    'scheduled_deletion_at': None,
+                    'retention_period': random.randint(30, 365)
+                }
+                objectives.append(objective)
+        
+        # Insert objectives
+        session.execute(text("""
+            INSERT INTO activity_plan_objectives (plan_id, objective, objective_metadata, created_at, updated_at, 
+                                                last_accessed_at, archived_at, deleted_at, scheduled_deletion_at, 
+                                                retention_period)
+            VALUES (:plan_id, :objective, :objective_metadata, :created_at, :updated_at, :last_accessed_at, 
+                   :archived_at, :deleted_at, :scheduled_deletion_at, :retention_period)
+        """), objectives)
+        
+        print(f"  ✅ activity_plan_objectives: +{len(objectives)} records (migrated from activity_plans)")
+        return len(objectives)
+        
+    except Exception as e:
+        print(f"  ❌ activity_plan_objectives: {e}")
+        session.rollback()
+        return 0
+
+def seed_activity_plans_planning(session: Session) -> int:
+    """Seed activity_plans_planning table"""
+    try:
+        # Check if table exists and has data
+        result = session.execute(text("SELECT COUNT(*) FROM activity_plans_planning"))
+        existing_count = result.scalar()
+        
+        if existing_count > 0:
+            print(f"  📊 activity_plans_planning already has {existing_count} records, migrating additional data...")
+        
+        # Get student IDs for planning
+        student_result = session.execute(text("SELECT id FROM students LIMIT 50"))
+        student_ids = [row[0] for row in student_result.fetchall()]
+        
+        if not student_ids:
+            print("  ⚠️ No student IDs found for planning")
+            return 0
+        
+        # Create activity plans for planning
+        planning_plans = []
+        planning_types = ['INDIVIDUAL', 'GROUP', 'CLASS', 'TEAM', 'CUSTOM']
+        planning_levels = ['BASIC', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']
+        planning_statuses = ['DRAFT', 'PENDING', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']
+        
+        for i in range(1500):  # Create 1500 planning activity plans for district scale
+            start_date = datetime.now() - timedelta(days=random.randint(1, 30))
+            end_date = start_date + timedelta(days=random.randint(7, 90))
+            
+            planning_plan = {
+                'plan_name': f'Planning Activity Plan {i + 1}',
+                'plan_description': f'Comprehensive planning for {random.choice(["fitness development", "skill building", "assessment preparation", "remedial support", "enrichment activities"])}',
+                'student_id': random.choice(student_ids),
+                'planning_type': random.choice(planning_types),
+                'planning_level': random.choice(planning_levels),
+                'planning_status': random.choice(planning_statuses),
+                'start_date': start_date,
+                'end_date': end_date,
+                'planning_notes': f'Planning notes for activity plan {i + 1} - focus on {random.choice(["cardiovascular fitness", "muscular strength", "flexibility", "coordination", "teamwork"])}',
+                'planning_metadata': json.dumps({
+                    'priority': random.choice(['HIGH', 'MEDIUM', 'LOW']),
+                    'complexity': random.choice(['SIMPLE', 'MODERATE', 'COMPLEX']),
+                    'estimated_hours': random.randint(10, 100),
+                    'required_resources': random.sample(['equipment', 'facilities', 'personnel', 'materials'], random.randint(1, 3)),
+                    'success_metrics': [f'Metric {j}' for j in range(random.randint(2, 5))],
+                    'risk_factors': [f'Risk {j}' for j in range(random.randint(1, 3))],
+                    'contingency_plans': [f'Contingency {j}' for j in range(random.randint(1, 2))]
+                }),
+                'created_at': start_date - timedelta(days=random.randint(1, 7)),
+                'updated_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                'last_accessed_at': datetime.now() - timedelta(days=random.randint(1, 7)),
+                'archived_at': None,
+                'deleted_at': None,
+                'scheduled_deletion_at': None,
+                'retention_period': random.randint(365, 2555)  # 1-7 years
+            }
+            planning_plans.append(planning_plan)
+        
+        # Insert planning plans
+        session.execute(text("""
+            INSERT INTO activity_plans_planning (plan_name, plan_description, student_id, planning_type, 
+                                               planning_level, planning_status, start_date, end_date, 
+                                               planning_notes, planning_metadata, created_at, updated_at, 
+                                               last_accessed_at, archived_at, deleted_at, scheduled_deletion_at, 
+                                               retention_period)
+            VALUES (:plan_name, :plan_description, :student_id, :planning_type, :planning_level, 
+                   :planning_status, :start_date, :end_date, :planning_notes, :planning_metadata, 
+                   :created_at, :updated_at, :last_accessed_at, :archived_at, :deleted_at, 
+                   :scheduled_deletion_at, :retention_period)
+        """), planning_plans)
+        
+        print(f"  ✅ activity_plans_planning: +{len(planning_plans)} records (migrated from students)")
+        return len(planning_plans)
+        
+    except Exception as e:
+        print(f"  ❌ activity_plans_planning: {e}")
         session.rollback()
         return 0
 
@@ -3115,6 +3273,10 @@ def seed_phase2_educational_system(session: Session) -> Dict[str, int]:
         # Seed activity plans (needed for foreign keys)
         print("Seeding activity plans...")
         results['activity_plans'] = seed_activity_plans(session)
+        
+        # Seed activity plans planning
+        print("Seeding activity plans planning...")
+        results['activity_plans_planning'] = seed_activity_plans_planning(session)
         
         # Seed PE lesson plans
         print("Seeding PE lesson plans...")

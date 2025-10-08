@@ -572,6 +572,61 @@ def seed_risk_assessment(session: Session, user_ids: List[int], student_ids: Lis
         session.rollback()  # Rollback on error
         results['injury_preventions'] = 0
     
+    # Activity Injury Preventions (linking activities to injury prevention measures)
+    try:
+        # Get actual prevention IDs that were just created
+        prevention_result = session.execute(text("SELECT id FROM injury_preventions ORDER BY id"))
+        prevention_ids = [row[0] for row in prevention_result]
+        print(f"  📋 Found {len(prevention_ids)} prevention IDs for activity associations")
+    except Exception as e:
+        print(f"  ⚠️ Error getting prevention IDs for activity associations: {e}")
+        prevention_ids = [121, 122, 123, 124, 125]
+    
+    activity_injury_preventions_data = []
+    for i in range(150):  # 150 activity-injury prevention associations
+        activity_injury_preventions_data.append({
+            'activity_id': random.choice(activity_ids) if activity_ids else random.randint(1, 100),
+            'prevention_id': random.choice(prevention_ids),
+            'priority': random.randint(1, 5),  # 1=lowest, 5=highest priority
+            'prevention_metadata': json.dumps({
+                'association_id': i+1,
+                'effectiveness_rating': random.randint(1, 10),
+                'implementation_difficulty': random.choice(['EASY', 'MEDIUM', 'HARD']),
+                'required_training': random.choice(['NONE', 'BASIC', 'ADVANCED', 'EXPERT']),
+                'equipment_needed': [f'Equipment {j}' for j in range(random.randint(0, 3))],
+                'time_required': random.randint(5, 60),  # minutes
+                'cost_estimate': round(random.uniform(0, 1000), 2),
+                'success_rate': round(random.uniform(0.5, 1.0), 2),
+                'notes': f'Activity-injury prevention association {i+1}',
+                'last_reviewed': (datetime.now() - timedelta(days=random.randint(1, 90))).isoformat(),
+                'next_review': (datetime.now() + timedelta(days=random.randint(30, 365))).isoformat()
+            }),
+            'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+            'updated_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+            'last_accessed_at': datetime.now() - timedelta(days=random.randint(1, 7)),
+            'archived_at': None,
+            'deleted_at': None,
+            'scheduled_deletion_at': None,
+            'retention_period': random.randint(365, 2555)  # 1-7 years
+        })
+    
+    try:
+        session.execute(text("""
+            INSERT INTO activity_injury_preventions (activity_id, prevention_id, priority, prevention_metadata,
+                                                   created_at, updated_at, last_accessed_at, archived_at,
+                                                   deleted_at, scheduled_deletion_at, retention_period)
+            VALUES (:activity_id, :prevention_id, :priority, :prevention_metadata,
+                    :created_at, :updated_at, :last_accessed_at, :archived_at,
+                    :deleted_at, :scheduled_deletion_at, :retention_period)
+        """), activity_injury_preventions_data)
+        session.commit()  # Commit after each table to prevent transaction errors
+        results['activity_injury_preventions'] = len(activity_injury_preventions_data)
+        print(f"  ✅ activity_injury_preventions: {len(activity_injury_preventions_data)} records")
+    except Exception as e:
+        print(f"  ⚠️ activity_injury_preventions: {e}")
+        session.rollback()  # Rollback on error
+        results['activity_injury_preventions'] = 0
+    
     # Injury Risk Assessments
     # Get actual risk factor IDs that were just created
     try:
@@ -2060,6 +2115,61 @@ def seed_compliance_audit(session: Session, user_ids: List[int], activity_ids: L
     except Exception as e:
         print(f"  ⚠️ security_general_audit_logs: {e}")
         results['security_general_audit_logs'] = 0
+    
+    # Activity Injury Preventions (linking activities to injury prevention measures)
+    try:
+        # Get actual prevention IDs that were just created
+        prevention_result = session.execute(text("SELECT id FROM injury_preventions ORDER BY id"))
+        prevention_ids = [row[0] for row in prevention_result]
+        print(f"  📋 Found {len(prevention_ids)} prevention IDs for activity associations")
+    except Exception as e:
+        print(f"  ⚠️ Error getting prevention IDs for activity associations: {e}")
+        prevention_ids = [121, 122, 123, 124, 125]
+    
+    activity_injury_preventions_data = []
+    for i in range(150):  # 150 activity-injury prevention associations
+        activity_injury_preventions_data.append({
+            'activity_id': random.choice(activity_ids) if activity_ids else random.randint(1, 100),
+            'prevention_id': random.choice(prevention_ids),
+            'priority': random.randint(1, 5),  # 1=lowest, 5=highest priority
+            'prevention_metadata': json.dumps({
+                'association_id': i+1,
+                'effectiveness_rating': random.randint(1, 10),
+                'implementation_difficulty': random.choice(['EASY', 'MEDIUM', 'HARD']),
+                'required_training': random.choice(['NONE', 'BASIC', 'ADVANCED', 'EXPERT']),
+                'equipment_needed': [f'Equipment {j}' for j in range(random.randint(0, 3))],
+                'time_required': random.randint(5, 60),  # minutes
+                'cost_estimate': round(random.uniform(0, 1000), 2),
+                'success_rate': round(random.uniform(0.5, 1.0), 2),
+                'notes': f'Activity-injury prevention association {i+1}',
+                'last_reviewed': (datetime.now() - timedelta(days=random.randint(1, 90))).isoformat(),
+                'next_review': (datetime.now() + timedelta(days=random.randint(30, 365))).isoformat()
+            }),
+            'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+            'updated_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+            'last_accessed_at': datetime.now() - timedelta(days=random.randint(1, 7)),
+            'archived_at': None,
+            'deleted_at': None,
+            'scheduled_deletion_at': None,
+            'retention_period': random.randint(365, 2555)  # 1-7 years
+        })
+    
+    try:
+        session.execute(text("""
+            INSERT INTO activity_injury_preventions (activity_id, prevention_id, priority, prevention_metadata,
+                                                   created_at, updated_at, last_accessed_at, archived_at,
+                                                   deleted_at, scheduled_deletion_at, retention_period)
+            VALUES (:activity_id, :prevention_id, :priority, :prevention_metadata,
+                    :created_at, :updated_at, :last_accessed_at, :archived_at,
+                    :deleted_at, :scheduled_deletion_at, :retention_period)
+        """), activity_injury_preventions_data)
+        session.commit()  # Commit after each table to prevent transaction errors
+        results['activity_injury_preventions'] = len(activity_injury_preventions_data)
+        print(f"  ✅ activity_injury_preventions: {len(activity_injury_preventions_data)} records")
+    except Exception as e:
+        print(f"  ⚠️ activity_injury_preventions: {e}")
+        session.rollback()  # Rollback on error
+        results['activity_injury_preventions'] = 0
     
     session.commit()
     return results

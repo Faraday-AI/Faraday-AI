@@ -39,7 +39,7 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
         result = session.execute(text('SELECT id FROM exercises LIMIT 100'))
         ids['exercise_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM workouts LIMIT 100'))
+        result = session.execute(text('SELECT id FROM physical_education_workouts LIMIT 100'))
         ids['workout_ids'] = [row[0] for row in result.fetchall()]
         
         print(f"✅ Retrieved dependency IDs: {len(ids['user_ids'])} users, {len(ids['student_ids'])} students, {len(ids['class_ids'])} classes, {len(ids['pe_class_ids'])} PE classes")
@@ -981,35 +981,43 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
 
     # 25. student_workouts (migrate from students + workouts)
     try:
-        additional_student_workouts = []
-        for i in range(4000):  # 4000 student workouts for district scale
-            student_id = random.choice(ids['student_ids'])
-            workout_id = random.choice(ids['workout_ids'])
-            workout_date = datetime.now() - timedelta(days=random.randint(1, 30))
-            additional_student_workouts.append({
-                'workout_id': workout_id,
-                'student_id': student_id,
-                'assigned_date': workout_date,
-                'completed_date': workout_date + timedelta(hours=random.randint(1, 3)),
-                'status': random.choice(['ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
-                'created_at': workout_date,
-                'updated_at': workout_date,
-                'workout_metadata': json.dumps({'duration_minutes': random.randint(15, 90), 'calories_burned': random.randint(100, 500), 'notes': f'Student workout {i+1}'}),
-                'last_accessed_at': workout_date,
-                'archived_at': None,
-                'deleted_at': None,
-                'scheduled_deletion_at': None,
-                'retention_period': 365
-            })
+        # Get workout IDs from health_fitness_workouts (which has data)
+        workout_result = session.execute(text('SELECT id FROM health_fitness_workouts LIMIT 100'))
+        workout_ids = [row[0] for row in workout_result.fetchall()]
         
-        columns = list(additional_student_workouts[0].keys())
-        placeholders = ', '.join([f':{col}' for col in columns])
-        query = f"INSERT INTO student_workouts ({', '.join(columns)}) VALUES ({placeholders})"
-        
-        session.execute(text(query), additional_student_workouts)
-        session.commit()
-        results['student_workouts'] = len(additional_student_workouts)
-        print(f"  ✅ student_workouts: +{len(additional_student_workouts)} records (migrated from students + workouts)")
+        if not workout_ids:
+            print("  ⚠️ student_workouts: No workouts found")
+            results['student_workouts'] = 0
+        else:
+            additional_student_workouts = []
+            for i in range(4000):  # 4000 student workouts for district scale
+                student_id = random.choice(ids['student_ids'])
+                workout_id = random.choice(workout_ids)
+                workout_date = datetime.now() - timedelta(days=random.randint(1, 30))
+                additional_student_workouts.append({
+                    'workout_id': workout_id,
+                    'student_id': student_id,
+                    'assigned_date': workout_date,
+                    'completed_date': workout_date + timedelta(hours=random.randint(1, 3)),
+                    'status': random.choice(['ASSIGNED', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']),
+                    'created_at': workout_date,
+                    'updated_at': workout_date,
+                    'workout_metadata': json.dumps({'duration_minutes': random.randint(15, 90), 'calories_burned': random.randint(100, 500), 'notes': f'Student workout {i+1}'}),
+                    'last_accessed_at': workout_date,
+                    'archived_at': None,
+                    'deleted_at': None,
+                    'scheduled_deletion_at': None,
+                    'retention_period': 365
+                })
+            
+            columns = list(additional_student_workouts[0].keys())
+            placeholders = ', '.join([f':{col}' for col in columns])
+            query = f"INSERT INTO student_workouts ({', '.join(columns)}) VALUES ({placeholders})"
+            
+            session.execute(text(query), additional_student_workouts)
+            session.commit()
+            results['student_workouts'] = len(additional_student_workouts)
+            print(f"  ✅ student_workouts: +{len(additional_student_workouts)} records (migrated from students + workouts)")
     except Exception as e:
         print(f"  ❌ student_workouts: {e}")
         session.rollback()
@@ -1036,14 +1044,23 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
                 'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
             })
         
+        # Insert in smaller batches to prevent SSL timeout
         columns = list(additional_pe_class_routines[0].keys())
         placeholders = ', '.join([f':{col}' for col in columns])
         query = f"INSERT INTO physical_education_class_routines ({', '.join(columns)}) VALUES ({placeholders})"
         
-        session.execute(text(query), additional_pe_class_routines)
+        batch_size = 100
+        total_inserted = 0
+        for i in range(0, len(additional_pe_class_routines), batch_size):
+            batch = additional_pe_class_routines[i:i + batch_size]
+            session.execute(text(query), batch)
+            session.flush()  # Flush to prevent memory issues
+            total_inserted += len(batch)
+            print(f"    📊 Processed {total_inserted}/{len(additional_pe_class_routines)} PE class routines...")
+        
         session.commit()
-        results['physical_education_class_routines'] = len(additional_pe_class_routines)
-        print(f"  ✅ physical_education_class_routines: +{len(additional_pe_class_routines)} records (migrated from PE classes + routines)")
+        results['physical_education_class_routines'] = total_inserted
+        print(f"  ✅ physical_education_class_routines: +{total_inserted} records (migrated from PE classes + routines)")
     except Exception as e:
         print(f"  ❌ physical_education_class_routines: {e}")
         session.rollback()
@@ -1361,41 +1378,88 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
 
     # 35. workout_performances (migrate from workouts + students) - FIXED SCHEMA
     try:
-        additional_workout_performances = []
-        for i in range(1500):  # 1500 workout performance records
-            student_id = random.choice(ids['student_ids'])
-            workout_id = random.choice(ids['workout_ids'])
-            performance_date = datetime.now() - timedelta(days=random.randint(1, 30))
-            additional_workout_performances.append({
-                'workout_id': workout_id,
-                'student_id': student_id,
-                'performance_date': performance_date,
-                'duration_minutes': random.uniform(15.0, 90.0),  # double precision
-                'calories_burned': random.uniform(100.0, 500.0),  # double precision
-                'completed_exercises': random.randint(5, 20),
-                'performance_metadata': json.dumps({'rating': random.randint(1, 10), 'difficulty': random.choice(['EASY', 'MEDIUM', 'HARD'])}),
-                'notes': f'Workout performance notes for student {student_id}',
-                'created_at': performance_date,
-                'updated_at': performance_date,
-                'last_accessed_at': performance_date,
-                'archived_at': None,
-                'deleted_at': None,
-                'scheduled_deletion_at': None,
-                'retention_period': 365
-            })
+        # Get workout IDs from health_fitness_workouts (which has data)
+        workout_result = session.execute(text('SELECT id FROM health_fitness_workouts LIMIT 100'))
+        workout_ids = [row[0] for row in workout_result.fetchall()]
         
-        columns = list(additional_workout_performances[0].keys())
-        placeholders = ', '.join([f':{col}' for col in columns])
-        query = f"INSERT INTO workout_performances ({', '.join(columns)}) VALUES ({placeholders})"
-        
-        session.execute(text(query), additional_workout_performances)
-        session.commit()
-        results['workout_performances'] = len(additional_workout_performances)
-        print(f"  ✅ workout_performances: +{len(additional_workout_performances)} records (migrated from workouts + students)")
+        if not workout_ids:
+            print("  ⚠️ workout_performances: No workouts found")
+            results['workout_performances'] = 0
+        else:
+            additional_workout_performances = []
+            for i in range(1500):  # 1500 workout performance records
+                student_id = random.choice(ids['student_ids'])
+                workout_id = random.choice(workout_ids)
+                performance_date = datetime.now() - timedelta(days=random.randint(1, 30))
+                additional_workout_performances.append({
+                    'workout_id': workout_id,
+                    'student_id': student_id,
+                    'performance_date': performance_date,
+                    'duration_minutes': random.uniform(15.0, 90.0),  # double precision
+                    'calories_burned': random.uniform(100.0, 500.0),  # double precision
+                    'completed_exercises': random.randint(5, 20),
+                    'performance_metadata': json.dumps({'rating': random.randint(1, 10), 'difficulty': random.choice(['EASY', 'MEDIUM', 'HARD'])}),
+                    'notes': f'Workout performance notes for student {student_id}',
+                    'created_at': performance_date,
+                    'updated_at': performance_date,
+                    'last_accessed_at': performance_date,
+                    'archived_at': None,
+                    'deleted_at': None,
+                    'scheduled_deletion_at': None,
+                    'retention_period': 365
+                })
+            
+            columns = list(additional_workout_performances[0].keys())
+            placeholders = ', '.join([f':{col}' for col in columns])
+            query = f"INSERT INTO workout_performances ({', '.join(columns)}) VALUES ({placeholders})"
+            
+            session.execute(text(query), additional_workout_performances)
+            session.commit()
+            results['workout_performances'] = len(additional_workout_performances)
+            print(f"  ✅ workout_performances: +{len(additional_workout_performances)} records (migrated from workouts + students)")
     except Exception as e:
         print(f"  ❌ workout_performances: {e}")
         session.rollback()
         results['workout_performances'] = 0
+
+    # 36. adaptation_activity_preferences (migrate from students + activities)
+    try:
+        # Get student IDs
+        student_result = session.execute(text('SELECT id FROM students LIMIT 100'))
+        student_ids = [row[0] for row in student_result.fetchall()]
+        
+        if not student_ids:
+            print("  ⚠️ adaptation_activity_preferences: No students found")
+            results['adaptation_activity_preferences'] = 0
+        else:
+            additional_adaptation_preferences = []
+            activity_types = ['WARM_UP', 'SKILL_DEVELOPMENT', 'FITNESS_TRAINING', 'GAME', 'COOL_DOWN']
+            
+            for i in range(2000):  # 2000 adaptation activity preferences
+                student_id = random.choice(student_ids)
+                activity_type = random.choice(activity_types)
+                preference_score = round(random.uniform(0.1, 1.0), 2)  # 0.1 to 1.0
+                
+                additional_adaptation_preferences.append({
+                    'student_id': student_id,
+                    'activity_type': activity_type,
+                    'preference_score': preference_score,
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'updated_at': datetime.now() - timedelta(days=random.randint(1, 7))
+                })
+            
+            columns = list(additional_adaptation_preferences[0].keys())
+            placeholders = ', '.join([f':{col}' for col in columns])
+            query = f"INSERT INTO adaptation_activity_preferences ({', '.join(columns)}) VALUES ({placeholders})"
+            
+            session.execute(text(query), additional_adaptation_preferences)
+            session.commit()
+            results['adaptation_activity_preferences'] = len(additional_adaptation_preferences)
+            print(f"  ✅ adaptation_activity_preferences: +{len(additional_adaptation_preferences)} records (migrated from students + activities)")
+    except Exception as e:
+        print(f"  ❌ adaptation_activity_preferences: {e}")
+        session.rollback()
+        results['adaptation_activity_preferences'] = 0
 
     print()
     print("🎉 Phase 8 Complete Fixed: {} records created".format(sum(results.values())))
