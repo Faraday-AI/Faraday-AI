@@ -29,6 +29,11 @@ def seed_unused_tables(session: Session) -> Dict[str, int]:
     
     # Get student IDs first to avoid variable scope issues
     try:
+        # Check if session is in a valid state
+        if hasattr(session, 'is_active') and not session.is_active:
+            print(f"  ⚠️  Session is not active, skipping unused tables seeding")
+            return {}
+            
         student_ids = session.execute(text("SELECT id FROM students")).fetchall()
         if student_ids:
             student_ids = [s[0] for s in student_ids]
@@ -36,6 +41,10 @@ def seed_unused_tables(session: Session) -> Dict[str, int]:
             student_ids = [1]  # Default fallback
     except Exception as e:
         print(f"  ⚠️  Could not get student IDs: {e}")
+        # If it's a connection error, return early
+        if "prepared" in str(e).lower() or "SSL SYSCALL" in str(e):
+            print(f"  🔄 Connection error detected, skipping unused tables seeding")
+            return {}
         student_ids = [1]  # Default fallback
     
     # 0. First, populate student_health table if it's empty

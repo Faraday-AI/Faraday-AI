@@ -73,7 +73,8 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
                     'status': 'ACTIVE',
                     'is_active': True
                 })
-            session.commit()
+            # Don't commit here - let main script handle commits
+            # session.commit()
             # Get the newly created role IDs
             result = session.execute(text('SELECT id FROM roles'))
             ids['role_ids'] = [row[0] for row in result.fetchall()]

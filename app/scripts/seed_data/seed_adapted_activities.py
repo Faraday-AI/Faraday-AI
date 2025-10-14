@@ -250,36 +250,50 @@ def seed_adapted_activities(session: Session) -> Dict[str, int]:
         # Use existing activity_progressions table
         activity_progressions_created = 0
         
-        for i in range(500):  # Create 500 additional activity progressions
-            progression = {
-                'student_id': random.choice(student_ids),
-                'activity_id': random.choice(activity_ids),
-                'level': random.choice(['NOVICE', 'DEVELOPING', 'PROFICIENT', 'ADVANCED', 'EXPERT']),
-                'current_level': random.choice(['NOVICE', 'DEVELOPING', 'PROFICIENT', 'ADVANCED', 'EXPERT']),
-                'requirements': f'Requirements for progression {i+1}',
-                'next_level_id': random.randint(1, 10),
-                'improvement_rate': round(random.uniform(5.0, 50.0), 1),
-                'last_assessment_date': datetime.now() - timedelta(days=random.randint(1, 365)),
-                'next_assessment_date': datetime.now() + timedelta(days=random.randint(30, 90)),
-                'start_date': datetime.now() - timedelta(days=random.randint(1, 365)),
-                'last_updated': datetime.now() - timedelta(days=random.randint(1, 180)),
-                'progression_metadata': '{\"source\": \"adapted_activities_seeding\"}',
-                'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
-                'updated_at': datetime.now() - timedelta(days=random.randint(1, 180))
-            }
-            
-            # Insert using raw SQL since we don't have the model
-            columns = list(progression.keys())
-            placeholders = ', '.join([f':{col}' for col in columns])
-            columns_str = ', '.join(columns)
-            query = f'INSERT INTO activity_progressions ({columns_str}) VALUES ({placeholders})'
-            
-            session.execute(text(query), progression)
-            activity_progressions_created += 1
-            
-            if activity_progressions_created % 100 == 0:
-                session.flush()
-                print(f"      Created {activity_progressions_created} additional activity progressions...")
+        # Process in smaller batches to avoid connection timeouts
+        batch_size = 50
+        total_batches = 500 // batch_size
+        
+        for batch_num in range(total_batches):
+            try:
+                progressions = []
+                for i in range(batch_size):
+                    progression = {
+                        'student_id': random.choice(student_ids),
+                        'activity_id': random.choice(activity_ids),
+                        'level': random.choice(['NOVICE', 'DEVELOPING', 'PROFICIENT', 'ADVANCED', 'EXPERT']),
+                        'current_level': random.choice(['NOVICE', 'DEVELOPING', 'PROFICIENT', 'ADVANCED', 'EXPERT']),
+                        'requirements': f'Requirements for progression {batch_num * batch_size + i + 1}',
+                        'next_level_id': random.randint(1, 10),
+                        'improvement_rate': round(random.uniform(5.0, 50.0), 1),
+                        'last_assessment_date': datetime.now() - timedelta(days=random.randint(1, 365)),
+                        'next_assessment_date': datetime.now() + timedelta(days=random.randint(30, 90)),
+                        'start_date': datetime.now() - timedelta(days=random.randint(1, 365)),
+                        'last_updated': datetime.now() - timedelta(days=random.randint(1, 180)),
+                        'progression_metadata': '{\"source\": \"adapted_activities_seeding\"}',
+                        'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+                        'updated_at': datetime.now() - timedelta(days=random.randint(1, 180))
+                    }
+                    progressions.append(progression)
+                
+                # Batch insert using raw SQL
+                if progressions:
+                    columns = list(progressions[0].keys())
+                    placeholders = ', '.join([f':{col}' for col in columns])
+                    columns_str = ', '.join(columns)
+                    query = f'INSERT INTO activity_progressions ({columns_str}) VALUES ({placeholders})'
+                    
+                    for progression in progressions:
+                        session.execute(text(query), progression)
+                    
+                    session.flush()
+                    activity_progressions_created += len(progressions)
+                    print(f"      Created {activity_progressions_created} additional activity progressions...")
+                
+            except Exception as batch_error:
+                print(f"      ⚠️  Batch {batch_num + 1} failed: {batch_error}")
+                # Continue with next batch instead of failing completely
+                continue
         
         session.commit()
         total_records["activity_progression_history"] = activity_progressions_created
@@ -287,6 +301,11 @@ def seed_adapted_activities(session: Session) -> Dict[str, int]:
         
     except Exception as e:
         print(f"    Could not seed activity progressions: {e}")
+        # Try to rollback to clean state
+        try:
+            session.rollback()
+        except:
+            pass
         total_records["activity_progression_history"] = 0
     
     # Calculate total records

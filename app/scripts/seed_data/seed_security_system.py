@@ -440,4 +440,130 @@ def seed_security_system(session: Session) -> None:
         except Exception as e:
             print(f"Warning: Could not seed rate limit {limit_data['endpoint']}: {e}")
     
-    print("Security system seeded successfully!") 
+    # Seed rate limit related tables
+    seed_rate_limit_policies(session)
+    seed_rate_limit_metrics(session)
+    seed_rate_limit_logs(session)
+    
+    print("Security system seeded successfully!")
+
+def seed_rate_limit_policies(session):
+    """Seed rate limit policies"""
+    print("  🔄 Seeding rate limit policies...")
+    
+    # Check if already has data
+    result = session.execute(text("SELECT COUNT(*) FROM rate_limit_policies"))
+    if result.scalar() > 0:
+        print("    ✅ rate_limit_policies already has data")
+        return
+    
+    # Get rate limit IDs
+    rate_limits = session.execute(text("SELECT id FROM rate_limits")).fetchall()
+    if not rate_limits:
+        print("    ⚠️ No rate limits found, skipping rate_limit_policies")
+        return
+    
+    policies = []
+    for rate_limit_id, in rate_limits:
+        policies.append({
+            'rate_limit_id': rate_limit_id,
+            'name': f'Policy for Rate Limit {rate_limit_id}',
+            'description': f'Policy configuration for rate limit {rate_limit_id}',
+            'trigger': 'THRESHOLD',
+            'action': 'BLOCK_REQUEST',
+            'parameters': '{"message": "Rate limit exceeded"}',
+            'is_active': True,
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
+        })
+    
+    # Insert rate limit policies
+    for policy in policies:
+        session.execute(text("""
+            INSERT INTO rate_limit_policies (rate_limit_id, name, description, trigger, action, parameters, is_active, created_at, updated_at)
+            VALUES (:rate_limit_id, :name, :description, :trigger, :action, :parameters, :is_active, :created_at, :updated_at)
+        """), policy)
+    
+    print(f"    ✅ Created {len(policies)} rate limit policies")
+
+def seed_rate_limit_metrics(session):
+    """Seed rate limit metrics"""
+    print("  🔄 Seeding rate limit metrics...")
+    
+    # Check if already has data
+    result = session.execute(text("SELECT COUNT(*) FROM rate_limit_metrics"))
+    if result.scalar() > 0:
+        print("    ✅ rate_limit_metrics already has data")
+        return
+    
+    # Get rate limit IDs
+    rate_limits = session.execute(text("SELECT id FROM rate_limits")).fetchall()
+    if not rate_limits:
+        print("    ⚠️ No rate limits found, skipping rate_limit_metrics")
+        return
+    
+    metrics = []
+    for rate_limit_id, in rate_limits:
+        for i in range(5):  # Create 5 metrics per rate limit
+            metrics.append({
+                'rate_limit_id': rate_limit_id,
+                'window_start': datetime.utcnow(),
+                'request_count': 0,
+                'violation_count': 0,
+                'average_latency': 150.0,
+                'max_latency': 300.0,
+                'burst_count': 0,
+                'metrics_data': '{"status": "normal"}',
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
+            })
+    
+    # Insert rate limit metrics
+    for metric in metrics:
+        session.execute(text("""
+            INSERT INTO rate_limit_metrics (rate_limit_id, window_start, request_count, violation_count, average_latency, max_latency, burst_count, metrics_data, created_at, updated_at)
+            VALUES (:rate_limit_id, :window_start, :request_count, :violation_count, :average_latency, :max_latency, :burst_count, :metrics_data, :created_at, :updated_at)
+        """), metric)
+    
+    print(f"    ✅ Created {len(metrics)} rate limit metrics")
+
+def seed_rate_limit_logs(session):
+    """Seed rate limit logs"""
+    print("  🔄 Seeding rate limit logs...")
+    
+    # Check if already has data
+    result = session.execute(text("SELECT COUNT(*) FROM rate_limit_logs"))
+    if result.scalar() > 0:
+        print("    ✅ rate_limit_logs already has data")
+        return
+    
+    # Get rate limit IDs and API keys
+    rate_limits = session.execute(text("SELECT id FROM rate_limits")).fetchall()
+    api_keys = session.execute(text("SELECT id FROM api_keys LIMIT 3")).fetchall()
+    
+    if not rate_limits or not api_keys:
+        print("    ⚠️ No rate limits or API keys found, skipping rate_limit_logs")
+        return
+    
+    logs = []
+    for rate_limit_id, in rate_limits:
+        for api_key_id, in api_keys:
+            for i in range(3):  # Create 3 logs per rate limit + API key combination
+                logs.append({
+                    'api_key_id': api_key_id,
+                    'endpoint': f'/api/v1/test{i}',
+                    'method': 'GET',
+                    'timestamp': datetime.utcnow(),
+                    'ip_address': f'192.168.1.{i+1}',
+                    'user_agent': f'TestAgent/{i+1}',
+                    'created_at': datetime.utcnow()
+                })
+    
+    # Insert rate limit logs
+    for log in logs:
+        session.execute(text("""
+            INSERT INTO rate_limit_logs (api_key_id, endpoint, method, timestamp, ip_address, user_agent, created_at)
+            VALUES (:api_key_id, :endpoint, :method, :timestamp, :ip_address, :user_agent, :created_at)
+        """), log)
+    
+    print(f"    ✅ Created {len(logs)} rate limit logs") 
