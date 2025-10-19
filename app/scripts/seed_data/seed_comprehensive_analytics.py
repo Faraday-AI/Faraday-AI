@@ -77,7 +77,7 @@ def seed_comprehensive_analytics(session: Session) -> Dict[str, int]:
         
         # Get users for foreign key relationships
         try:
-            users = session.execute(text("SELECT id FROM users LIMIT 100")).fetchall()
+            users = session.execute(text("SELECT id FROM users ")).fetchall()
             user_ids = [u[0] for u in users] if users else [1]
         except:
             user_ids = [1]  # Default fallback
@@ -152,7 +152,7 @@ def seed_comprehensive_analytics(session: Session) -> Dict[str, int]:
         
         # Get dashboard users for foreign key relationships
         try:
-            dashboard_users = session.execute(text("SELECT id FROM dashboard_users LIMIT 100")).fetchall()
+            dashboard_users = session.execute(text("SELECT id FROM dashboard_users ")).fetchall()
             dashboard_user_ids = [u[0] for u in dashboard_users] if dashboard_users else [1]
         except:
             dashboard_user_ids = [1]  # Default fallback

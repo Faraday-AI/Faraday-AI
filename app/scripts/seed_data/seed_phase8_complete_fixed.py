@@ -21,25 +21,25 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
     ids = {}
     
     try:
-        result = session.execute(text('SELECT id FROM users LIMIT 50'))
+        result = session.execute(text('SELECT id FROM users '))
         ids['user_ids'] = [row[0] for row in result.fetchall()]
         
         result = session.execute(text('SELECT id FROM students'))
         ids['student_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM activities LIMIT 100'))
+        result = session.execute(text('SELECT id FROM activities '))
         ids['activity_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM educational_classes LIMIT 100'))
+        result = session.execute(text('SELECT id FROM educational_classes '))
         ids['class_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM physical_education_classes LIMIT 100'))
+        result = session.execute(text('SELECT id FROM physical_education_classes '))
         ids['pe_class_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM exercises LIMIT 100'))
+        result = session.execute(text('SELECT id FROM exercises '))
         ids['exercise_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM physical_education_workouts LIMIT 100'))
+        result = session.execute(text('SELECT id FROM physical_education_workouts '))
         ids['workout_ids'] = [row[0] for row in result.fetchall()]
         
         print(f"✅ Retrieved dependency IDs: {len(ids['user_ids'])} users, {len(ids['student_ids'])} students, {len(ids['class_ids'])} classes, {len(ids['pe_class_ids'])} PE classes")
@@ -382,7 +382,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 11. workout_sessions (migrate from students + workouts) - FIXED FOREIGN KEY
     try:
         # Get actual physical_education_workouts IDs (now available)
-        pe_workout_ids_result = session.execute(text('SELECT id FROM physical_education_workouts LIMIT 100'))
+        pe_workout_ids_result = session.execute(text('SELECT id FROM physical_education_workouts '))
         pe_workout_ids = [row[0] for row in pe_workout_ids_result.fetchall()]
         
         if not pe_workout_ids:
@@ -424,32 +424,40 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
 
     # 12. physical_education_workout_exercises (migrate from workouts + exercises) - FIXED SCHEMA
     try:
-        additional_pe_workout_exercises = []
-        for i in range(400):  # 400 PE workout exercises
-            workout_id = random.choice(ids['workout_ids']) if ids['workout_ids'] else random.randint(1, 40)
-            exercise_id = random.choice(ids['exercise_ids']) if ids['exercise_ids'] else random.randint(1, 50)
-            additional_pe_workout_exercises.append({
-                'workout_id': workout_id,
-                'exercise_id': exercise_id,
-                'sets': random.randint(1, 5),
-                'reps': random.randint(5, 20),
-                'duration': random.randint(30, 300),  # FIXED: was 'duration_seconds'
-                'order': i + 1,  # FIXED: added 'order' column
-                'exercise_metadata': json.dumps({'intensity': 'moderate', 'focus': 'strength'}),
-                'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-                'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
-            })
+        # Get actual physical_education_workouts IDs
+        pe_workout_result = session.execute(text('SELECT id FROM physical_education_workouts LIMIT 200'))
+        pe_workout_ids = [row[0] for row in pe_workout_result.fetchall()]
         
-        columns = list(additional_pe_workout_exercises[0].keys())
-        # Quote the 'order' column as it's a reserved keyword
-        quoted_columns = [f'"{col}"' if col == 'order' else col for col in columns]
-        placeholders = ', '.join([f':{col}' for col in columns])
-        query = f"INSERT INTO physical_education_workout_exercises ({', '.join(quoted_columns)}) VALUES ({placeholders})"
-        
-        session.execute(text(query), additional_pe_workout_exercises)
-        session.commit()
-        results['physical_education_workout_exercises'] = len(additional_pe_workout_exercises)
-        print(f"  ✅ physical_education_workout_exercises: +{len(additional_pe_workout_exercises)} records (migrated from workouts + exercises)")
+        if not pe_workout_ids:
+            print("  ⚠️ physical_education_workout_exercises: No PE workouts found")
+            results['physical_education_workout_exercises'] = 0
+        else:
+            additional_pe_workout_exercises = []
+            for i in range(400):  # 400 PE workout exercises
+                workout_id = random.choice(pe_workout_ids)  # Use actual PE workout IDs
+                exercise_id = random.choice(ids['exercise_ids']) if ids['exercise_ids'] else random.randint(1, 50)
+                additional_pe_workout_exercises.append({
+                    'workout_id': workout_id,
+                    'exercise_id': exercise_id,
+                    'sets': random.randint(1, 5),
+                    'reps': random.randint(5, 20),
+                    'duration': random.randint(30, 300),  # FIXED: was 'duration_seconds'
+                    'order': i + 1,  # FIXED: added 'order' column
+                    'exercise_metadata': json.dumps({'intensity': 'moderate', 'focus': 'strength'}),
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                })
+            
+            columns = list(additional_pe_workout_exercises[0].keys())
+            # Quote the 'order' column as it's a reserved keyword
+            quoted_columns = [f'"{col}"' if col == 'order' else col for col in columns]
+            placeholders = ', '.join([f':{col}' for col in columns])
+            query = f"INSERT INTO physical_education_workout_exercises ({', '.join(quoted_columns)}) VALUES ({placeholders})"
+            
+            session.execute(text(query), additional_pe_workout_exercises)
+            session.commit()
+            results['physical_education_workout_exercises'] = len(additional_pe_workout_exercises)
+            print(f"  ✅ physical_education_workout_exercises: +{len(additional_pe_workout_exercises)} records (migrated from workouts + exercises)")
     except Exception as e:
         print(f"  ❌ physical_education_workout_exercises: {e}")
         session.rollback()
@@ -573,7 +581,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
         
         if backup_count == 0:
             # Get actual adapted_routines IDs from the database
-            routine_ids_result = session.execute(text('SELECT id FROM adapted_routines ORDER BY id LIMIT 150'))
+            routine_ids_result = session.execute(text('SELECT id FROM adapted_routines ORDER BY id '))
             routine_ids = [row[0] for row in routine_ids_result.fetchall()]
             
             # Create some backup performance records
@@ -608,7 +616,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
         
         # Now create performance metrics referencing the backup records
         # Get actual backup performance IDs from the database
-        backup_ids_result = session.execute(text('SELECT id FROM adapted_routine_performances_backup ORDER BY id LIMIT 200'))
+        backup_ids_result = session.execute(text('SELECT id FROM adapted_routine_performances_backup ORDER BY id '))
         backup_ids = [row[0] for row in backup_ids_result.fetchall()]
         
         additional_metrics = []
@@ -640,7 +648,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 17. adapted_routine_activities (migrate from adapted routines + activities)
     try:
         # Get actual adapted_routines IDs from the database
-        routine_ids_result = session.execute(text('SELECT id FROM adapted_routines ORDER BY id LIMIT 150'))
+        routine_ids_result = session.execute(text('SELECT id FROM adapted_routines ORDER BY id '))
         routine_ids = [row[0] for row in routine_ids_result.fetchall()]
         
         additional_routine_activities = []
@@ -681,7 +689,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 18. adapted_routine_performances (migrate from adapted routines + students)
     try:
         # Get actual adapted_routines IDs from the database
-        routine_ids_result = session.execute(text('SELECT id FROM adapted_routines ORDER BY id LIMIT 150'))
+        routine_ids_result = session.execute(text('SELECT id FROM adapted_routines ORDER BY id '))
         routine_ids = [row[0] for row in routine_ids_result.fetchall()]
         
         additional_routine_performances = []
@@ -721,36 +729,40 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
 
     # 19. adapted_routine_performances_backup (migrate from adapted_routine_performances)
     try:
-        # First get existing performances
-        existing_performances = session.execute(text('SELECT * FROM adapted_routine_performances LIMIT 1000')).fetchall()
-        
         # Get actual student_health IDs from the database (the correct foreign key)
-        student_health_ids_result = session.execute(text('SELECT id FROM student_health ORDER BY id LIMIT 1000'))
+        student_health_ids_result = session.execute(text('SELECT id FROM student_health ORDER BY id LIMIT 200'))
         student_health_ids = [row[0] for row in student_health_ids_result.fetchall()]
         
-        additional_backups = []
-        for i, performance in enumerate(existing_performances):
-            # Ensure created_at and updated_at are datetime objects, not dictionaries
-            created_at = performance[7] if isinstance(performance[7], datetime) else datetime.now() - timedelta(days=random.randint(1, 30))
-            updated_at = performance[8] if isinstance(performance[8], datetime) else datetime.now() - timedelta(days=random.randint(1, 30))
-            
-            additional_backups.append({
-                'routine_id': performance[1],
-                'student_id': random.choice(student_health_ids),  # Use student_health IDs (correct foreign key)
-                'date_performed': datetime.now() - timedelta(days=random.randint(1, 30)),
-                'completion_time': random.uniform(15.0, 90.0),  # double precision
-                'energy_level': random.randint(1, 10),
-                'engagement_level': random.randint(1, 10),
-                'accuracy_score': random.uniform(0.0, 100.0),  # NOT NULL
-                'effort_score': random.uniform(0.0, 100.0),    # NOT NULL
-                'is_completed': random.choice([True, False]),
-                'notes': f'Backup: {performance[6]}',
-                'performance_metrics': json.dumps({'completion_percentage': random.uniform(50.0, 100.0)}),
-                'created_at': created_at,
-                'updated_at': updated_at
-            })
+        # Get adapted routine IDs
+        adapted_routine_result = session.execute(text('SELECT id FROM adapted_routines LIMIT 200'))
+        adapted_routine_ids = [row[0] for row in adapted_routine_result.fetchall()]
         
-        if additional_backups:
+        if not student_health_ids or not adapted_routine_ids:
+            print("  ⚠️ adapted_routine_performances_backup: No student health or adapted routine data found")
+            results['adapted_routine_performances_backup'] = 0
+        else:
+            additional_backups = []
+            for i in range(200):  # Create 200 backup records
+                routine_id = random.choice(adapted_routine_ids)
+                student_id = random.choice(student_health_ids)
+                performance_date = datetime.now() - timedelta(days=random.randint(1, 30))
+                
+                additional_backups.append({
+                    'routine_id': routine_id,
+                    'student_id': student_id,
+                    'date_performed': performance_date,
+                    'completion_time': random.uniform(15.0, 90.0),  # double precision
+                    'energy_level': random.randint(1, 10),
+                    'engagement_level': random.randint(1, 10),
+                    'accuracy_score': random.uniform(0.0, 100.0),  # NOT NULL
+                    'effort_score': random.uniform(0.0, 100.0),    # NOT NULL
+                    'is_completed': random.choice([True, False]),
+                    'notes': f'Backup performance {i+1}',
+                    'performance_metrics': json.dumps({'completion_percentage': random.uniform(50.0, 100.0)}),
+                    'created_at': performance_date,
+                    'updated_at': performance_date
+                })
+        
             columns = list(additional_backups[0].keys())
             placeholders = ', '.join([f':{col}' for col in columns])
             query = f"INSERT INTO adapted_routine_performances_backup ({', '.join(columns)}) VALUES ({placeholders})"
@@ -758,10 +770,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
             session.execute(text(query), additional_backups)
             session.commit()
             results['adapted_routine_performances_backup'] = len(additional_backups)
-            print(f"  ✅ adapted_routine_performances_backup: +{len(additional_backups)} records (migrated from adapted_routine_performances)")
-        else:
-            results['adapted_routine_performances_backup'] = 0
-            print(f"  ⚠️ adapted_routine_performances_backup: no existing performances to backup")
+            print(f"  ✅ adapted_routine_performances_backup: +{len(additional_backups)} records (sample backup created)")
     except Exception as e:
         print(f"  ❌ adapted_routine_performances_backup: {e}")
         session.rollback()
@@ -769,31 +778,43 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
 
     # 20. adapted_workout_exercises (migrate from adapted workouts + exercises)
     try:
-        additional_adapted_workout_exercises = []
-        for i in range(1000):  # 1000 adapted workout exercises
-            workout_id = random.randint(1, 200)  # Assume adapted workouts exist
-            exercise_id = random.choice(ids['exercise_ids'])
-            additional_adapted_workout_exercises.append({
-                'workout_id': workout_id,
-                'exercise_id': exercise_id,
-                'sets': random.randint(1, 5),
-                'reps': random.randint(5, 20),
-                'duration_minutes': random.uniform(0.5, 5.0),  # Duration in minutes as double precision
-                'order': i + 1,
-                'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-                'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
-            })
+        # Get actual adapted workout IDs from the database
+        adapted_workout_result = session.execute(text('SELECT id FROM adapted_workouts LIMIT 200'))
+        adapted_workout_ids = [row[0] for row in adapted_workout_result.fetchall()]
         
-        columns = list(additional_adapted_workout_exercises[0].keys())
-        # Quote the 'order' column as it's a reserved keyword
-        quoted_columns = [f'"{col}"' if col == 'order' else col for col in columns]
-        placeholders = ', '.join([f':{col}' for col in columns])
-        query = f"INSERT INTO adapted_workout_exercises ({', '.join(quoted_columns)}) VALUES ({placeholders})"
+        # Get actual adapted exercise IDs from the database (foreign key constraint points to adapted_exercises)
+        adapted_exercise_result = session.execute(text('SELECT id FROM adapted_exercises LIMIT 200'))
+        adapted_exercise_ids = [row[0] for row in adapted_exercise_result.fetchall()]
         
-        session.execute(text(query), additional_adapted_workout_exercises)
-        session.commit()
-        results['adapted_workout_exercises'] = len(additional_adapted_workout_exercises)
-        print(f"  ✅ adapted_workout_exercises: +{len(additional_adapted_workout_exercises)} records (migrated from adapted workouts + exercises)")
+        if not adapted_workout_ids or not adapted_exercise_ids:
+            print("  ⚠️ adapted_workout_exercises: No adapted workouts or exercises found")
+            results['adapted_workout_exercises'] = 0
+        else:
+            additional_adapted_workout_exercises = []
+            for i in range(1000):  # 1000 adapted workout exercises
+                workout_id = random.choice(adapted_workout_ids)  # Use actual adapted workout IDs
+                exercise_id = random.choice(adapted_exercise_ids)  # Use adapted exercises table IDs
+                additional_adapted_workout_exercises.append({
+                    'workout_id': workout_id,
+                    'exercise_id': exercise_id,
+                    'sets': random.randint(1, 5),
+                    'reps': random.randint(5, 20),
+                    'duration_minutes': random.uniform(0.5, 5.0),  # Duration in minutes as double precision
+                    'order': i + 1,
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                })
+            
+            columns = list(additional_adapted_workout_exercises[0].keys())
+            # Quote the 'order' column as it's a reserved keyword
+            quoted_columns = [f'"{col}"' if col == 'order' else col for col in columns]
+            placeholders = ', '.join([f':{col}' for col in columns])
+            query = f"INSERT INTO adapted_workout_exercises ({', '.join(quoted_columns)}) VALUES ({placeholders})"
+            
+            session.execute(text(query), additional_adapted_workout_exercises)
+            session.commit()
+            results['adapted_workout_exercises'] = len(additional_adapted_workout_exercises)
+            print(f"  ✅ adapted_workout_exercises: +{len(additional_adapted_workout_exercises)} records (migrated from adapted workouts + exercises)")
     except Exception as e:
         print(f"  ❌ adapted_workout_exercises: {e}")
         session.rollback()
@@ -892,7 +913,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 23. student_adaptation_history (migrate from students + adaptations)
     try:
         # Get actual student_activity_adaptations IDs from the database
-        adaptation_ids_result = session.execute(text('SELECT id FROM student_activity_adaptations ORDER BY id LIMIT 1000'))
+        adaptation_ids_result = session.execute(text('SELECT id FROM student_activity_adaptations ORDER BY id LIMIT 200'))
         adaptation_ids = [row[0] for row in adaptation_ids_result.fetchall()]
         
         additional_adaptation_history = []
@@ -981,8 +1002,8 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
 
     # 25. student_workouts (migrate from students + workouts)
     try:
-        # Get workout IDs from health_fitness_workouts (which has data)
-        workout_result = session.execute(text('SELECT id FROM health_fitness_workouts LIMIT 100'))
+        # Get workout IDs from physical_education_workouts (which has data)
+        workout_result = session.execute(text('SELECT id FROM physical_education_workouts '))
         workout_ids = [row[0] for row in workout_result.fetchall()]
         
         if not workout_ids:
@@ -1174,7 +1195,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 30. pe_activity_adaptation_history (migrate from physical_education_activity_adaptations) - FIXED FOREIGN KEY
     try:
         # Get actual adaptation IDs from physical_education_activity_adaptations
-        adaptation_ids_result = session.execute(text('SELECT id FROM physical_education_activity_adaptations LIMIT 200'))
+        adaptation_ids_result = session.execute(text('SELECT id FROM physical_education_activity_adaptations '))
         adaptation_ids = [row[0] for row in adaptation_ids_result.fetchall()]
         
         if not adaptation_ids:
@@ -1212,7 +1233,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 31. pe_adaptation_history_backup (USE EXISTING TABLE: pe_adaptation_history)
     try:
         # Get existing adaptation history to create backup-like records
-        existing_history = session.execute(text('SELECT * FROM pe_adaptation_history LIMIT 100')).fetchall()
+        existing_history = session.execute(text('SELECT * FROM pe_adaptation_history ')).fetchall()
         
         if existing_history:
             additional_backup_records = []
@@ -1247,7 +1268,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 32. physical_education_activity_adaptation_history (USE EXISTING TABLE: pe_activity_adaptation_history)
     try:
         # Get existing PE activity adaptation history to create additional records
-        existing_pe_history = session.execute(text('SELECT * FROM pe_activity_adaptation_history LIMIT 100')).fetchall()
+        existing_pe_history = session.execute(text('SELECT * FROM pe_activity_adaptation_history ')).fetchall()
         
         if existing_pe_history:
             additional_pe_activity_history = []
@@ -1288,7 +1309,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 33. physical_education_student_health_records (USE EXISTING TABLE: physical_education_student_health_health_records)
     try:
         # Get existing PE student health records to create additional records
-        existing_health_records = session.execute(text('SELECT * FROM physical_education_student_health_health_records LIMIT 100')).fetchall()
+        existing_health_records = session.execute(text('SELECT * FROM physical_education_student_health_health_records ')).fetchall()
         
         if existing_health_records:
             additional_health_records = []
@@ -1315,7 +1336,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
                     'archived_at': archived_at,  # Ensure datetime object or None
                     'deleted_at': deleted_at,  # Ensure datetime object or None
                     'scheduled_deletion_at': scheduled_deletion_at,  # Ensure datetime object or None
-                    'retention_period': record[13]  # retention_period
+                    'retention_period': 365 if record[13] is None else int(record[13]) if isinstance(record[13], (int, float)) else 365  # retention_period as integer
                 })
             
             # Insert into physical_education_student_health_health_records as additional records
@@ -1338,7 +1359,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 34. physical_education_student_student_health_records_backup (USE EXISTING TABLE: physical_education_student_student_health_records)
     try:
         # Get existing PE student-student health records to create backup-like records
-        existing_student_student_records = session.execute(text('SELECT * FROM physical_education_student_student_health_records LIMIT 100')).fetchall()
+        existing_student_student_records = session.execute(text('SELECT * FROM physical_education_student_student_health_records ')).fetchall()
         
         if existing_student_student_records:
             additional_backup_records = []
@@ -1378,8 +1399,8 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
 
     # 35. workout_performances (migrate from workouts + students) - FIXED SCHEMA
     try:
-        # Get workout IDs from health_fitness_workouts (which has data)
-        workout_result = session.execute(text('SELECT id FROM health_fitness_workouts LIMIT 100'))
+        # Get workout IDs from physical_education_workouts (which has data)
+        workout_result = session.execute(text('SELECT id FROM physical_education_workouts '))
         workout_ids = [row[0] for row in workout_result.fetchall()]
         
         if not workout_ids:
@@ -1425,7 +1446,7 @@ def seed_phase8_complete_fixed(session: Session) -> Dict[str, int]:
     # 36. adaptation_activity_preferences (migrate from students + activities)
     try:
         # Get student IDs
-        student_result = session.execute(text('SELECT id FROM students LIMIT 100'))
+        student_result = session.execute(text('SELECT id FROM students '))
         student_ids = [row[0] for row in student_result.fetchall()]
         
         if not student_ids:

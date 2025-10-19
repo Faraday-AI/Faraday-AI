@@ -233,6 +233,9 @@ from app.scripts.seed_data.seed_simple_activity_library import seed_simple_activ
 def seed_database():
     """Seed the database with initial data."""
     print("Running seed data script...")
+    print("🚨 FAIL-FAST MODE ENABLED - Script will stop on first error")
+    print("=" * 60)
+    
     try:
         # Ensure all tables are created first
         from app.models.shared_base import SharedBase
@@ -395,30 +398,260 @@ def seed_database():
                 seed_schools(session)
                 session.commit()
                 
+                # Create basic organizations that schools and users depend on
+                print("Creating basic organizations...")
+                try:
+                    # Check if organization already exists
+                    existing_org = session.execute(text("SELECT COUNT(*) FROM organizations WHERE name = :name"), 
+                                                 {'name': 'Springfield School District'}).scalar()
+                    
+                    if existing_org == 0:
+                        # Create a basic organization for the district
+                        session.execute(text("""
+                            INSERT INTO organizations (name, type, subscription_tier, status, is_active, created_at, updated_at)
+                            VALUES (:name, :type, :tier, :status, :is_active, :created_at, :updated_at)
+                        """), {
+                            'name': 'Springfield School District',
+                            'type': 'SCHOOL_DISTRICT',
+                            'tier': 'PREMIUM',
+                            'status': 'ACTIVE',
+                            'is_active': True,
+                            'created_at': datetime.now(),
+                            'updated_at': datetime.now()
+                        })
+                        session.commit()
+                        print("✅ Created basic organization: Springfield School District")
+                    else:
+                        print("✅ Basic organization already exists: Springfield School District")
+                except Exception as e:
+                    print(f"⚠️  Error creating basic organization: {e}")
+                    session.rollback()
+                
                 # Core system tables
                 seed_users(session)
                 session.commit()
                 
+                # TEACHER MIGRATION - Create teachers table and migrate data
+                print("\n" + "="*50)
+                print("TEACHER MIGRATION SYSTEM")
+                print("="*50)
+                try:
+                    from app.scripts.seed_data.migrate_teachers_full import migrate_teachers_full
+                    migrate_teachers_full()
+                    session.commit()
+                    print("✅ Teacher migration completed successfully!")
+                except Exception as e:
+                    print(f"❌ Teacher migration failed: {e}")
+                    session.rollback()
+                    raise
+                
+                # DASHBOARD USERS MIGRATION - Migrate teachers to dashboard_users
+                print("\n" + "="*50)
+                print("DASHBOARD USERS MIGRATION")
+                print("="*50)
+                try:
+                    from app.scripts.seed_data.migrate_teachers_to_dashboard_users import migrate_teachers_to_dashboard_users
+                    migrate_teachers_to_dashboard_users(session)
+                    session.commit()
+                    print("✅ Dashboard users migration completed successfully!")
+                except Exception as e:
+                    print(f"❌ Dashboard users migration failed: {e}")
+                    session.rollback()
+                    raise
+                
+                # IMMEDIATE TEACHER-DEPENDENT TABLES SEEDING
+                print("\n" + "="*50)
+                print("SEEDING TEACHER-DEPENDENT TABLES")
+                print("="*50)
+                try:
+                    from app.scripts.seed_data.seed_phase2_educational_system import (
+                        seed_physical_education_teachers,
+                        seed_physical_education_classes,
+                        seed_pe_lesson_plans,
+                        seed_educational_teachers
+                    )
+                    
+                    # Seed physical education teachers
+                    print("🔄 Seeding physical_education_teachers...")
+                    pe_teachers_count = seed_physical_education_teachers(session)
+                    print(f"✅ Created {pe_teachers_count} physical education teachers")
+                    
+                    # Seed physical education classes
+                    print("🔄 Seeding physical_education_classes...")
+                    pe_classes_count = seed_physical_education_classes(session)
+                    print(f"✅ Created {pe_classes_count} physical education classes")
+                    
+                    # Seed PE lesson plans
+                    print("🔄 Seeding pe_lesson_plans...")
+                    pe_lesson_plans_count = seed_pe_lesson_plans(session)
+                    print(f"✅ Created {pe_lesson_plans_count} PE lesson plans")
+                    
+                    # Seed educational teachers
+                    print("🔄 Seeding educational_teachers...")
+                    educational_teachers_count = seed_educational_teachers(session)
+                    print(f"✅ Created {educational_teachers_count} educational teachers")
+                    
+                    session.commit()
+                    print("✅ Teacher-dependent tables seeded successfully!")
+                    
+                    # VERIFY TEACHER-DEPENDENT TABLES
+                    print("\n4️⃣ VERIFYING TEACHER-DEPENDENT TABLES")
+                    print("-" * 50)
+                    
+                    # Check teachers table
+                    result = session.execute(text('SELECT COUNT(*) FROM teachers'))
+                    teacher_count = result.fetchone()[0]
+                    print(f'Teachers in new table: {teacher_count}')
+                    
+                    # Check teacher-dependent tables
+                    verification_tables = [
+                        'educational_teachers',
+                        'physical_education_teachers', 
+                        'pe_lesson_plans',
+                        'physical_education_classes'
+                    ]
+                    
+                    for table in verification_tables:
+                        try:
+                            result = session.execute(text(f'SELECT COUNT(*) FROM {table}'))
+                            count = result.fetchone()[0]
+                            print(f'{table}: {count} records')
+                        except Exception as e:
+                            print(f'{table}: Error - {e}')
+                    
+                except Exception as e:
+                    print(f"❌ Teacher-dependent tables seeding failed: {e}")
+                    session.rollback()
+                    raise
+                
+                # K-12 DISTRICT FIXES - Ensure proper K-12 district data
+                print("\n" + "="*50)
+                print("K-12 DISTRICT FIXES")
+                print("="*50)
+                try:
+                    from app.scripts.seed_data.fix_k12_district import fix_k12_district
+                    fix_k12_district()
+                    session.commit()
+                    print("✅ K-12 district fixes completed successfully!")
+                except Exception as e:
+                    print(f"❌ K-12 district fixes failed: {e}")
+                    session.rollback()
+                    raise
+                
+                # DISTRICT CONSISTENCY - Ensure district data consistency
+                print("\n" + "="*50)
+                print("DISTRICT CONSISTENCY")
+                print("="*50)
+                try:
+                    from app.scripts.seed_data.seed_phase1_district_consistency import seed_district_consistency
+                    seed_district_consistency()
+                    session.commit()
+                    print("✅ District consistency completed successfully!")
+                except Exception as e:
+                    print(f"❌ District consistency failed: {e}")
+                    session.rollback()
+                    raise
+                
+                # LOW RECORD TABLES FIXES - Fix tables with low record counts
+                print("\n" + "="*50)
+                print("LOW RECORD TABLES FIXES")
+                print("="*50)
+                try:
+                    from app.scripts.seed_data.fix_low_record_tables import fix_low_record_tables
+                    fix_low_record_tables()
+                    session.commit()
+                    print("✅ Low record tables fixes completed successfully!")
+                except Exception as e:
+                    print(f"❌ Low record tables fixes failed: {e}")
+                    session.rollback()
+                    raise
+                
+                # JOB TABLES CREATION - Create missing job and job_run_details tables
+                print("\n" + "="*50)
+                print("JOB TABLES CREATION")
+                print("="*50)
+                try:
+                    # Create job table
+                    session.execute(text("""
+                        CREATE TABLE IF NOT EXISTS job (
+                            id SERIAL PRIMARY KEY,
+                            name VARCHAR(255) NOT NULL,
+                            description TEXT,
+                            status VARCHAR(50) DEFAULT 'PENDING',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                    
+                    # Create job_run_details table
+                    session.execute(text("""
+                        CREATE TABLE IF NOT EXISTS job_run_details (
+                            id SERIAL PRIMARY KEY,
+                            job_id INTEGER REFERENCES job(id),
+                            status VARCHAR(50) DEFAULT 'RUNNING',
+                            started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            completed_at TIMESTAMP,
+                            error_message TEXT,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """))
+                    
+                    session.commit()
+                    print("✅ Job tables created successfully!")
+                except Exception as e:
+                    print(f"❌ Job tables creation failed: {e}")
+                    session.rollback()
+                    raise
+                
+                # DEBUG: Check what we have in the database at this point
+                print("\n🔍 DEBUG: Checking database state after all foundational seeding...")
+                user_count = session.execute(text("SELECT COUNT(*) FROM users")).scalar()
+                org_count = session.execute(text("SELECT COUNT(*) FROM organizations")).scalar()
+                school_count = session.execute(text("SELECT COUNT(*) FROM schools")).scalar()
+                try:
+                    teacher_count = session.execute(text("SELECT COUNT(*) FROM teachers")).scalar()
+                    print(f"  📊 Users: {user_count}, Organizations: {org_count}, Schools: {school_count}, Teachers: {teacher_count}")
+                except Exception as e:
+                    print(f"  📊 Users: {user_count}, Organizations: {org_count}, Schools: {school_count}, Teachers: ERROR - {e}")
+                
+                # Check job tables
+                try:
+                    job_count = session.execute(text("SELECT COUNT(*) FROM job")).scalar()
+                    job_run_count = session.execute(text("SELECT COUNT(*) FROM job_run_details")).scalar()
+                    print(f"  📊 Job tables: job={job_count}, job_run_details={job_run_count}")
+                except Exception as e:
+                    print(f"  📊 Job tables: ERROR - {e}")
+                
+                # Check total table count
+                try:
+                    total_tables = session.execute(text("""
+                        SELECT COUNT(*) 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_type = 'BASE TABLE'
+                    """)).scalar()
+                    print(f"  📊 Total tables in database: {total_tables}")
+                except Exception as e:
+                    print(f"  📊 Total table count: ERROR - {e}")
+                
                 # Seed activity_logs table
-                print("Seeding activity logs...")
+                print("\nSeeding activity logs...")
                 try:
                     # Always seed activity_logs regardless of existing data
-                    # Get user and organization IDs
-                    user_result = session.execute(text("SELECT id FROM users LIMIT 10"))
+                    # Get user and organization IDs - ensure we have fresh data after commits
+                    user_result = session.execute(text("SELECT id FROM users ORDER BY id LIMIT 50"))
                     user_ids = [row[0] for row in user_result.fetchall()]
                     
-                    # Try to get organization IDs, but don't fail if they don't exist yet
-                    try:
-                        org_result = session.execute(text("SELECT id FROM organizations"))
-                        org_ids = [row[0] for row in org_result.fetchall()]
-                    except Exception as e:
-                        print(f"  ⚠️ Organizations table not ready yet: {e}")
-                        org_ids = []
+                    # Get organization IDs - should be available after schools seeding
+                    org_result = session.execute(text("SELECT id FROM organizations ORDER BY id"))
+                    org_ids = [row[0] for row in org_result.fetchall()]
                     
                     if not user_ids:
+                        print("  ❌ No users found in database!")
                         user_ids = [1, 2, 3, 4, 5]  # Fallback IDs
                     if not org_ids:
-                        print("  ⚠️ No organizations found, using None for org_id in activity logs")
+                        print("  ❌ No organizations found in database!")
+                        print("  🔍 This indicates a problem with the schools seeding process")
                         org_ids = [None]  # Use None instead of invalid ID
                     
                     print(f"  📋 Found {len(user_ids)} users and {len(org_ids)} organizations")
@@ -427,47 +660,63 @@ def seed_database():
                     actions = ['CREATE', 'UPDATE', 'DELETE', 'VIEW', 'EXPORT', 'IMPORT', 'LOGIN', 'LOGOUT']
                     resource_types = ['USER', 'STUDENT', 'LESSON', 'EXERCISE', 'ACTIVITY', 'ASSESSMENT', 'CURRICULUM']
                     
-                    activity_logs_data = []
-                    for i in range(5000):  # Create 5000 activity log entries for district scale
-                        activity_logs_data.append({
-                            'action': random.choice(actions),
-                            'resource_type': random.choice(resource_types),
-                            'resource_id': str(random.randint(1, 1000)),
-                            'details': json.dumps({
-                                'description': f'Activity log entry {i+1}',
-                                'ip_address': f"192.168.1.{random.randint(1, 255)}",
-                                'user_agent': 'FaradayAI/1.0',
-                                'session_id': f"session_{random.randint(1000, 9999)}",
-                                'metadata': {
-                                    'source': 'web_interface',
-                                    'version': '1.0',
-                                    'feature': random.choice(['user_management', 'curriculum', 'assessment', 'reporting'])
-                                }
-                            }),
-                            'user_id': random.choice(user_ids) if random.random() > 0.3 else None,
-                            'org_id': random.choice(org_ids) if random.random() > 0.5 else None,
-                            'timestamp': datetime.utcnow() - timedelta(days=random.randint(0, 30)),
-                            'created_at': datetime.utcnow() - timedelta(days=random.randint(0, 30)),
-                            'updated_at': datetime.utcnow() - timedelta(days=random.randint(0, 7))
-                        })
+                    # Process activity logs in batches to avoid connection timeouts
+                    batch_size = 500
+                    total_records = 5000
+                    total_created = 0
                     
-                    # Insert activity logs
-                    for log in activity_logs_data:
-                        session.execute(text("""
-                            INSERT INTO activity_logs (
-                                action, resource_type, resource_id, details, user_id, org_id, timestamp, created_at, updated_at
-                            ) VALUES (
-                                :action, :resource_type, :resource_id, :details, :user_id, :org_id, :timestamp, :created_at, :updated_at
-                            )
-                        """), log)
+                    for batch_start in range(0, total_records, batch_size):
+                        batch_end = min(batch_start + batch_size, total_records)
+                        activity_logs_data = []
+                        
+                        for i in range(batch_start, batch_end):
+                            activity_logs_data.append({
+                                'action': random.choice(actions),
+                                'resource_type': random.choice(resource_types),
+                                'resource_id': str(random.randint(1, 1000)),
+                                'details': json.dumps({
+                                    'description': f'Activity log entry {i+1}',
+                                    'ip_address': f"192.168.1.{random.randint(1, 255)}",
+                                    'user_agent': 'FaradayAI/1.0',
+                                    'session_id': f"session_{random.randint(1000, 9999)}",
+                                    'metadata': {
+                                        'source': 'web_interface',
+                                        'version': '1.0',
+                                        'feature': random.choice(['user_management', 'curriculum', 'assessment', 'reporting'])
+                                    }
+                                }),
+                                'user_id': random.choice(user_ids) if random.random() > 0.3 else None,
+                                'org_id': random.choice(org_ids) if random.random() > 0.5 else None,
+                                'timestamp': datetime.utcnow() - timedelta(days=random.randint(0, 30)),
+                                'created_at': datetime.utcnow() - timedelta(days=random.randint(0, 30)),
+                                'updated_at': datetime.utcnow() - timedelta(days=random.randint(0, 7))
+                            })
+                        
+                        # Insert batch
+                        for log in activity_logs_data:
+                            session.execute(text("""
+                                INSERT INTO activity_logs (
+                                    action, resource_type, resource_id, details, user_id, org_id, timestamp, created_at, updated_at
+                                ) VALUES (
+                                    :action, :resource_type, :resource_id, :details, :user_id, :org_id, :timestamp, :created_at, :updated_at
+                                )
+                            """), log)
+                        
+                        session.commit()
+                        total_created += len(activity_logs_data)
+                        print(f"  📝 Created batch {batch_start//batch_size + 1}: {len(activity_logs_data)} activity logs (total: {total_created})")
                     
-                    print(f"  ✅ Created {len(activity_logs_data)} activity logs")
+                    print(f"  ✅ Created {total_created} activity logs")
                     
                 except Exception as e:
                     print(f"  ❌ CRITICAL ERROR: Activity logs seeding failed: {e}")
-                    print("  🛑 Stopping script execution due to early failure")
+                    print("  🛑 FAIL-FAST: Stopping script execution immediately")
+                    print(f"  📍 Error location: Activity logs creation")
+                    print(f"  🔍 Error details: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
                     session.rollback()
-                    raise Exception(f"Activity logs seeding failed: {e}")
+                    raise Exception(f"FAIL-FAST: Activity logs seeding failed: {e}")
                 
                 session.commit()
                 
@@ -629,28 +878,39 @@ def seed_database():
                         exercise_ids = [row[0] for row in exercise_result.fetchall()]
                         
                         if workout_ids and exercise_ids:
-                            workout_exercises = []
-                            for i in range(5000):  # Scale up for district size
-                                workout_exercises.append({
-                                    'workout_id': random.choice(workout_ids),
-                                    'exercise_id': random.choice(exercise_ids),
-                                    'sets': random.randint(1, 5),
-                                    'reps': random.randint(5, 20),
-                                    'duration_minutes': round(random.uniform(5.0, 60.0), 1),
-                                    'order': i + 1,
-                                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-                                    'updated_at': datetime.now()
-                                })
+                            # Process in smaller batches to avoid connection timeouts
+                            batch_size = 500
+                            total_records = 5000
+                            total_created = 0
                             
-                            # Insert workout exercises
-                            columns = list(workout_exercises[0].keys())
-                            quoted_columns = [f'"{col}"' if col in ['order'] else col for col in columns]
-                            placeholders = ', '.join([f':{col}' for col in columns])
-                            query = f"INSERT INTO health_fitness_workout_exercises ({', '.join(quoted_columns)}) VALUES ({placeholders})"
+                            for batch_start in range(0, total_records, batch_size):
+                                batch_end = min(batch_start + batch_size, total_records)
+                                workout_exercises = []
+                                
+                                for i in range(batch_start, batch_end):
+                                    workout_exercises.append({
+                                        'workout_id': random.choice(workout_ids),
+                                        'exercise_id': random.choice(exercise_ids),
+                                        'sets': random.randint(1, 5),
+                                        'reps': random.randint(5, 20),
+                                        'duration_minutes': round(random.uniform(5.0, 60.0), 1),
+                                        'order': i + 1,
+                                        'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                                        'updated_at': datetime.now()
+                                    })
+                                
+                                # Insert batch
+                                columns = list(workout_exercises[0].keys())
+                                quoted_columns = [f'"{col}"' if col in ['order'] else col for col in columns]
+                                placeholders = ', '.join([f':{col}' for col in columns])
+                                query = f"INSERT INTO health_fitness_workout_exercises ({', '.join(quoted_columns)}) VALUES ({placeholders})"
+                                
+                                session.execute(text(query), workout_exercises)
+                                session.commit()
+                                total_created += len(workout_exercises)
+                                print(f'  📝 Created batch {batch_start//batch_size + 1}: {len(workout_exercises)} records (total: {total_created})')
                             
-                            session.execute(text(query), workout_exercises)
-                            session.commit()
-                            print(f'  ✅ Created {len(workout_exercises)} health_fitness_workout_exercises records')
+                            print(f'  ✅ Created {total_created} health_fitness_workout_exercises records')
                         else:
                             print('  ⚠️ No workouts or exercises found')
                     else:
@@ -666,30 +926,41 @@ def seed_database():
                         we_ids = [row[0] for row in we_result.fetchall()]
                         
                         if we_ids:
-                            exercise_sets = []
-                            for i in range(2000):  # Scale up for district size
-                                exercise_sets.append({
-                                    'workout_exercise_id': random.choice(we_ids),
-                                    'set_number': random.randint(1, 5),
-                                    'reps_completed': random.randint(5, 20),
-                                    'weight_used': round(random.uniform(10.0, 100.0), 1),
-                                    'duration_seconds': random.randint(30, 300),
-                                    'distance_meters': round(random.uniform(0.0, 1000.0), 1),
-                                    'rest_time_seconds': random.randint(30, 120),
-                                    'notes': f'Exercise set {i+1} notes',
-                                    'performance_rating': random.randint(1, 10),
-                                    'additional_data': json.dumps({'intensity': 'moderate', 'form_quality': 'good'}),
-                                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30))
-                                })
+                            # Process in smaller batches to avoid connection timeouts
+                            batch_size = 500
+                            total_records = 2000
+                            total_created = 0
                             
-                            # Insert exercise sets
-                            columns = list(exercise_sets[0].keys())
-                            placeholders = ', '.join([f':{col}' for col in columns])
-                            query = f"INSERT INTO exercise_sets ({', '.join(columns)}) VALUES ({placeholders})"
+                            for batch_start in range(0, total_records, batch_size):
+                                batch_end = min(batch_start + batch_size, total_records)
+                                exercise_sets = []
+                                
+                                for i in range(batch_start, batch_end):
+                                    exercise_sets.append({
+                                        'workout_exercise_id': random.choice(we_ids),
+                                        'set_number': random.randint(1, 5),
+                                        'reps_completed': random.randint(5, 20),
+                                        'weight_used': round(random.uniform(10.0, 100.0), 1),
+                                        'duration_seconds': random.randint(30, 300),
+                                        'distance_meters': round(random.uniform(0.0, 1000.0), 1),
+                                        'rest_time_seconds': random.randint(30, 120),
+                                        'notes': f'Exercise set {i+1} notes',
+                                        'performance_rating': random.randint(1, 10),
+                                        'additional_data': json.dumps({'intensity': 'moderate', 'form_quality': 'good'}),
+                                        'created_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                                    })
+                                
+                                # Insert batch
+                                columns = list(exercise_sets[0].keys())
+                                placeholders = ', '.join([f':{col}' for col in columns])
+                                query = f"INSERT INTO exercise_sets ({', '.join(columns)}) VALUES ({placeholders})"
+                                
+                                session.execute(text(query), exercise_sets)
+                                session.commit()
+                                total_created += len(exercise_sets)
+                                print(f'  📝 Created batch {batch_start//batch_size + 1}: {len(exercise_sets)} records (total: {total_created})')
                             
-                            session.execute(text(query), exercise_sets)
-                            session.commit()
-                            print(f'  ✅ Created {len(exercise_sets)} exercise_sets records')
+                            print(f'  ✅ Created {total_created} exercise_sets records')
                         else:
                             print('  ⚠️ No workout_exercises found for exercise_sets')
                     else:
@@ -708,28 +979,39 @@ def seed_database():
                         exercise_ids = [row[0] for row in exercise_result.fetchall()]
                         
                         if workout_ids and exercise_ids:
-                            pe_workout_exercises = []
-                            for i in range(3000):  # Scale up for district size
-                                pe_workout_exercises.append({
-                                    'workout_id': random.choice(workout_ids),
-                                    'exercise_id': random.choice(exercise_ids),
-                                    'sets': random.randint(1, 5),
-                                    'reps': random.randint(5, 20),
-                                    'duration': random.randint(300, 3600),  # duration in seconds (5-60 minutes)
-                                    'order': i + 1,
-                                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-                                    'updated_at': datetime.now()
-                                })
+                            # Process in smaller batches to avoid connection timeouts
+                            batch_size = 500
+                            total_records = 3000
+                            total_created = 0
                             
-                            # Insert physical education workout exercises
-                            columns = list(pe_workout_exercises[0].keys())
-                            quoted_columns = [f'"{col}"' if col in ['order'] else col for col in columns]
-                            placeholders = ', '.join([f':{col}' for col in columns])
-                            query = f"INSERT INTO physical_education_workout_exercises ({', '.join(quoted_columns)}) VALUES ({placeholders})"
+                            for batch_start in range(0, total_records, batch_size):
+                                batch_end = min(batch_start + batch_size, total_records)
+                                pe_workout_exercises = []
+                                
+                                for i in range(batch_start, batch_end):
+                                    pe_workout_exercises.append({
+                                        'workout_id': random.choice(workout_ids),
+                                        'exercise_id': random.choice(exercise_ids),
+                                        'sets': random.randint(1, 5),
+                                        'reps': random.randint(5, 20),
+                                        'duration': random.randint(300, 3600),  # duration in seconds (5-60 minutes)
+                                        'order': i + 1,
+                                        'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                                        'updated_at': datetime.now()
+                                    })
+                                
+                                # Insert batch
+                                columns = list(pe_workout_exercises[0].keys())
+                                quoted_columns = [f'"{col}"' if col in ['order'] else col for col in columns]
+                                placeholders = ', '.join([f':{col}' for col in columns])
+                                query = f"INSERT INTO physical_education_workout_exercises ({', '.join(quoted_columns)}) VALUES ({placeholders})"
+                                
+                                session.execute(text(query), pe_workout_exercises)
+                                session.commit()
+                                total_created += len(pe_workout_exercises)
+                                print(f'  📝 Created batch {batch_start//batch_size + 1}: {len(pe_workout_exercises)} records (total: {total_created})')
                             
-                            session.execute(text(query), pe_workout_exercises)
-                            session.commit()
-                            print(f'  ✅ Created {len(pe_workout_exercises)} physical_education_workout_exercises records')
+                            print(f'  ✅ Created {total_created} physical_education_workout_exercises records')
                         else:
                             print('  ⚠️ No workouts or exercises found')
                     else:
@@ -738,8 +1020,14 @@ def seed_database():
                     print("✅ Missing dependencies created successfully!")
                     
                 except Exception as e:
-                    print(f"❌ Error creating missing dependencies: {e}")
+                    print(f"❌ FAIL-FAST ERROR: Missing dependencies creation failed: {e}")
+                    print("🛑 STOPPING SCRIPT EXECUTION IMMEDIATELY - Dependencies are required")
+                    print(f"📍 Error location: Creating Missing Dependencies")
+                    print(f"🔍 Error details: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
                     session.rollback()
+                    raise Exception(f"FAIL-FAST: Missing dependencies creation failed: {e}")
                 
                 # Phase 3 dependency tables - MUST be seeded before Phase 3
                 print("\n" + "="*50)
@@ -994,12 +1282,14 @@ def seed_database():
                     print("✅ Phase 1 foundation & core infrastructure completed successfully!")
                     print("🔒 Phase 1 data committed - protected from later phase rollbacks")
                 except Exception as e:
-                    print(f"❌ CRITICAL ERROR: Phase 1 foundation seeding failed: {e}")
-                    print("🛑 STOPPING SCRIPT EXECUTION - Phase 1 is required for all other phases")
+                    print(f"❌ FAIL-FAST ERROR: Phase 1 foundation seeding failed: {e}")
+                    print("🛑 STOPPING SCRIPT EXECUTION IMMEDIATELY - Phase 1 is required for all other phases")
+                    print(f"📍 Error location: Phase 1 Foundation & Core Infrastructure")
+                    print(f"🔍 Error details: {str(e)}")
                     import traceback
                     traceback.print_exc()
                     session.rollback()
-                    raise Exception(f"Phase 1 foundation seeding failed: {e}")
+                    raise Exception(f"FAIL-FAST: Phase 1 foundation seeding failed: {e}")
                 
                 print("🔍 DEBUG: Phase 1 completed successfully, continuing to additional data seeding...")
                 
@@ -1010,8 +1300,7 @@ def seed_database():
                 
                 # Check if Phase 1 tables are actually populated
                 phase1_tables = [
-                    'permissions', 'role_permissions', 'permission_overrides',
-                    'feedback_user_tool_settings', 'user_management_voice_preferences'
+                    'permissions', 'role_permissions', 'permission_overrides'
                 ]
                 
                 phase1_success = True
@@ -1289,7 +1578,7 @@ def seed_database():
                         print("✅ Project_id=1 already exists")
                     
                     # Get organization IDs for Phase 5
-                    org_result = session.execute(text("SELECT id FROM organizations LIMIT 10"))
+                    org_result = session.execute(text("SELECT id FROM organizations"))
                     organization_ids = [row[0] for row in org_result.fetchall()]
                     if not organization_ids:
                         organization_ids = [1]  # Fallback
@@ -1710,6 +1999,27 @@ def seed_database():
                 print("="*50)
                 print("🎉 COMPREHENSIVE DATABASE SEEDING COMPLETE! 🎉")
                 print("="*50)
+                
+                # Final table count verification
+                try:
+                    final_table_count = session.execute(text("""
+                        SELECT COUNT(*) 
+                        FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_type = 'BASE TABLE'
+                    """)).scalar()
+                    print(f"📊 Total tables in database: {final_table_count}")
+                    
+                    # Check for job tables
+                    try:
+                        job_exists = session.execute(text("SELECT COUNT(*) FROM job")).scalar()
+                        job_run_exists = session.execute(text("SELECT COUNT(*) FROM job_run_details")).scalar()
+                        print(f"📊 Job tables: job={job_exists}, job_run_details={job_run_exists}")
+                    except:
+                        print("📊 Job tables: Not created")
+                        
+                except Exception as e:
+                    print(f"📊 Final table count: ERROR - {e}")
                 print("✅ Phase 1: Foundation & Core Infrastructure")
                 print("✅ Phase 2: Educational System Enhancement (38 tables)")
                 print("✅ Phase 3: Health & Fitness System (41 tables - 100% complete)")
@@ -1731,14 +2041,30 @@ def seed_database():
                 print("="*50)
                 
             except Exception as e:
-                print(f"Error seeding data: {str(e)}")
+                print(f"❌ FAIL-FAST ERROR: Database seeding failed: {str(e)}")
+                print("🛑 SCRIPT EXECUTION STOPPED IMMEDIATELY")
+                print(f"📍 Error occurred during: {type(e).__name__}")
+                print(f"🔍 Full error details:")
+                import traceback
+                traceback.print_exc()
+                print("=" * 60)
+                print("🚨 FAIL-FAST MODE: Fix the error above and re-run the script")
+                print("=" * 60)
                 raise
                 
         finally:
             session.close()
             
     except Exception as e:
-        print(f"Error in seed_database: {str(e)}")
+        print(f"❌ FAIL-FAST ERROR: Critical failure in seed_database: {str(e)}")
+        print("🛑 SCRIPT EXECUTION TERMINATED")
+        print(f"📍 Error type: {type(e).__name__}")
+        print("🔍 Full error details:")
+        import traceback
+        traceback.print_exc()
+        print("=" * 60)
+        print("🚨 FAIL-FAST MODE: Fix the critical error above and re-run")
+        print("=" * 60)
         raise
 
 if __name__ == "__main__":

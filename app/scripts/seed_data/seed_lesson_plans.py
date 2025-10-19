@@ -27,8 +27,8 @@ def seed_lesson_plans(session: Session) -> None:
     
     # Get existing data for references
     try:
-        # Get teachers
-        teachers = session.execute(text("SELECT id FROM educational_teachers LIMIT 10")).fetchall()
+        # Get teachers - get all teachers, not just 10
+        teachers = session.execute(text("SELECT id FROM educational_teachers")).fetchall()
         teacher_ids = [t[0] for t in teachers] if teachers else [1]
         
         # Get subjects

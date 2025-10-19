@@ -132,7 +132,7 @@ def get_table_ids(session: Session, table_name: str) -> List[int]:
 def get_plan_ids_or_create_default(session: Session) -> List[int]:
     """Get plan IDs from gpt_subscription_plans or create default if table doesn't exist"""
     try:
-        result = session.execute(text("SELECT id FROM gpt_subscription_plans LIMIT 10"))
+        result = session.execute(text("SELECT id FROM gpt_subscription_plans "))
         plan_ids = [row[0] for row in result.fetchall()]
         if plan_ids:
             return plan_ids

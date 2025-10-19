@@ -273,14 +273,23 @@ def fix_low_record_tables():
             ]
             
             for i, suite_name in enumerate(ai_suites[current_count:], start=current_count + 1):
+                # Get a valid user_id from dashboard_users
+                user_result = session.execute(text("SELECT id FROM dashboard_users LIMIT 1"))
+                user_id = user_result.scalar()
+                
+                if not user_id:
+                    print(f"⚠️  No dashboard_users found, skipping {suite_name}")
+                    continue
+                
                 session.execute(text('''
-                    INSERT INTO ai_suites (name, description, suite_type, capabilities, is_active, created_at, updated_at)
-                    VALUES (:name, :description, :suite_type, :capabilities, :is_active, :created_at, :updated_at)
+                    INSERT INTO ai_suites (name, description, version, user_id, configuration, is_active, created_at, updated_at)
+                    VALUES (:name, :description, :version, :user_id, :configuration, :is_active, :created_at, :updated_at)
                 '''), {
                     'name': suite_name,
                     'description': f'AI suite for {suite_name}',
-                    'suite_type': 'EDUCATIONAL' if 'Student' in suite_name or 'Curriculum' in suite_name else 'ANALYTICS',
-                    'capabilities': json.dumps(['analysis', 'prediction', 'recommendation']),
+                    'version': '1.0.0',
+                    'user_id': user_id,
+                    'configuration': json.dumps({"type": "educational" if 'Student' in suite_name or 'Curriculum' in suite_name else "analytics", "capabilities": ["analysis", "prediction", "recommendation"]}),
                     'is_active': True,
                     'created_at': datetime.now(),
                     'updated_at': datetime.now()

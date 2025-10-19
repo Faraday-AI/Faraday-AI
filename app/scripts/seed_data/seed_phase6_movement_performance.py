@@ -268,7 +268,6 @@ def seed_movement_analysis_tables(session: Session) -> Dict[str, int]:
             SELECT id, name, description, type, difficulty_level 
             FROM activities 
             WHERE type IS NOT NULL AND difficulty_level IS NOT NULL
-            LIMIT 100
         """)).fetchall()
         
         if not existing_activities:

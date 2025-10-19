@@ -21,10 +21,10 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
     ids = {}
     
     try:
-        result = session.execute(text('SELECT id FROM users LIMIT 10'))
+        result = session.execute(text('SELECT id FROM users '))
         ids['user_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM students LIMIT 100'))
+        result = session.execute(text('SELECT id FROM students 0'))
         ids['student_ids'] = [row[0] for row in result.fetchall()]
         
         result = session.execute(text('SELECT id FROM activities LIMIT 50'))

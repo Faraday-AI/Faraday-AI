@@ -119,7 +119,7 @@ def create_missing_dependencies():
             print('🔧 Creating activity_tracking...')
             
             # Get student and activity IDs
-            student_result = session.execute(text('SELECT id FROM students LIMIT 100'))
+            student_result = session.execute(text('SELECT id FROM students '))
             student_ids = [row[0] for row in student_result.fetchall()]
             
             activity_result = session.execute(text('SELECT id FROM activities LIMIT 50'))

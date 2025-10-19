@@ -2647,7 +2647,7 @@ def seed_organization_members(session: Session) -> int:
         org_result = session.execute(text("SELECT id FROM organizations LIMIT 5"))
         organization_ids = [row[0] for row in org_result.fetchall()]
         
-        user_result = session.execute(text("SELECT id FROM dashboard_users LIMIT 100"))
+        user_result = session.execute(text("SELECT id FROM dashboard_users "))
         user_ids = [row[0] for row in user_result.fetchall()]
         
         role_result = session.execute(text("SELECT id FROM organization_roles LIMIT 15"))
@@ -3052,7 +3052,7 @@ def seed_organization_feedback(session: Session) -> int:
             return existing_count
         
         # Get actual user_ids, project_ids, gpt_ids, and category_ids from database
-        user_result = session.execute(text("SELECT id FROM dashboard_users LIMIT 100"))
+        user_result = session.execute(text("SELECT id FROM dashboard_users "))
         user_ids = [row[0] for row in user_result.fetchall()]
         
         project_result = session.execute(text("SELECT id FROM feedback_projects ORDER BY id"))
@@ -3188,7 +3188,7 @@ def seed_team_members(session: Session) -> int:
         team_result = session.execute(text("SELECT id FROM teams LIMIT 12"))
         team_ids = [row[0] for row in team_result.fetchall()]
         
-        user_result = session.execute(text("SELECT id FROM dashboard_users LIMIT 100"))
+        user_result = session.execute(text("SELECT id FROM dashboard_users "))
         user_ids = [row[0] for row in user_result.fetchall()]
         
         if not team_ids or not user_ids:

@@ -24,19 +24,19 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
         result = session.execute(text('SELECT id FROM users LIMIT 50'))
         ids['user_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM students LIMIT 1000'))
+        result = session.execute(text('SELECT id FROM students '))
         ids['student_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM activities LIMIT 100'))
+        result = session.execute(text('SELECT id FROM activities '))
         ids['activity_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM educational_classes LIMIT 100'))
+        result = session.execute(text('SELECT id FROM educational_classes '))
         ids['class_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM exercises LIMIT 100'))
+        result = session.execute(text('SELECT id FROM exercises '))
         ids['exercise_ids'] = [row[0] for row in result.fetchall()]
         
-        result = session.execute(text('SELECT id FROM workouts LIMIT 100'))
+        result = session.execute(text('SELECT id FROM workouts '))
         ids['workout_ids'] = [row[0] for row in result.fetchall()]
         
         print(f"✅ Retrieved dependency IDs: {len(ids['user_ids'])} users, {len(ids['student_ids'])} students, {len(ids['class_ids'])} classes")

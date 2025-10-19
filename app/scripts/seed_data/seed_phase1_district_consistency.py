@@ -309,24 +309,21 @@ def seed_district_consistency():
         
         if current_count < 6:
             elementary_grades = [
-                {"name": "Kindergarten", "level": 0, "age_range": "5-6", "description": "Kindergarten level"},
-                {"name": "1st Grade", "level": 1, "age_range": "6-7", "description": "First grade level"},
-                {"name": "2nd Grade", "level": 2, "age_range": "7-8", "description": "Second grade level"},
-                {"name": "3rd Grade", "level": 3, "age_range": "8-9", "description": "Third grade level"},
-                {"name": "4th Grade", "level": 4, "age_range": "9-10", "description": "Fourth grade level"},
-                {"name": "5th Grade", "level": 5, "age_range": "10-11", "description": "Fifth grade level"}
+                {"name": "K", "level": 0, "age_range": "5-6", "description": "Kindergarten level"},
+                {"name": "1st", "level": 1, "age_range": "6-7", "description": "First grade level"},
+                {"name": "2nd", "level": 2, "age_range": "7-8", "description": "Second grade level"},
+                {"name": "3rd", "level": 3, "age_range": "8-9", "description": "Third grade level"},
+                {"name": "4th", "level": 4, "age_range": "9-10", "description": "Fourth grade level"},
+                {"name": "5th", "level": 5, "age_range": "10-11", "description": "Fifth grade level"}
             ]
             
             for grade in elementary_grades[current_count:]:
                 session.execute(text("""
-                    INSERT INTO grade_levels (name, level, age_range, description, is_active, created_at, updated_at)
-                    VALUES (:name, :level, :age_range, :description, :is_active, :created_at, :updated_at)
+                    INSERT INTO grade_levels (name, description, created_at, updated_at)
+                    VALUES (:name, :description, :created_at, :updated_at)
                 """), {
                     'name': grade['name'],
-                    'level': grade['level'],
-                    'age_range': grade['age_range'],
                     'description': grade['description'],
-                    'is_active': True,
                     'created_at': datetime.now(),
                     'updated_at': datetime.now()
                 })
@@ -349,12 +346,12 @@ def seed_district_consistency():
             
             for i, role_name in enumerate(security_roles[current_count:], start=current_count + 1):
                 session.execute(text("""
-                    INSERT INTO access_control_roles (name, description, role_type, is_active, created_at, updated_at)
-                    VALUES (:name, :description, :role_type, :is_active, :created_at, :updated_at)
+                    INSERT INTO access_control_roles (name, description, status, is_active, created_at, updated_at)
+                    VALUES (:name, :description, :status, :is_active, :created_at, :updated_at)
                 """), {
                     'name': role_name,
                     'description': f"Security role: {role_name}",
-                    'role_type': 'ADMIN' if 'Admin' in role_name else 'USER',
+                    'status': 'ACTIVE',
                     'is_active': True,
                     'created_at': datetime.now(),
                     'updated_at': datetime.now()
@@ -372,12 +369,12 @@ def seed_district_consistency():
         if current_count < 8:
             for i in range(current_count, 8):
                 session.execute(text("""
-                    INSERT INTO dashboard_teams (name, description, team_type, is_active, created_at, updated_at)
-                    VALUES (:name, :description, :team_type, :is_active, :created_at, :updated_at)
+                    INSERT INTO dashboard_teams (name, description, organization_id, is_active, created_at, updated_at)
+                    VALUES (:name, :description, :organization_id, :is_active, :created_at, :updated_at)
                 """), {
                     'name': f"Team {i + 1}",
                     'description': f"Dashboard team {i + 1}",
-                    'team_type': 'ADMIN' if i < 2 else 'TEACHER' if i < 5 else 'STUDENT',
+                    'organization_id': 1,  # Use the first organization
                     'is_active': True,
                     'created_at': datetime.now(),
                     'updated_at': datetime.now()
@@ -400,14 +397,24 @@ def seed_district_consistency():
             ]
             
             for i, suite_name in enumerate(ai_suites[current_count:], start=current_count + 1):
+                # Get a valid user_id from the dashboard_users table
+                user_result = session.execute(text("SELECT id FROM dashboard_users LIMIT 1"))
+                user_id = user_result.scalar()
+                
+                if not user_id:
+                    print(f"⚠️  No dashboard_users found, skipping {suite_name}")
+                    continue
+                
+                # Insert with user_id from dashboard_users table
                 session.execute(text("""
-                    INSERT INTO ai_suites (name, description, suite_type, capabilities, is_active, created_at, updated_at)
-                    VALUES (:name, :description, :suite_type, :capabilities, :is_active, :created_at, :updated_at)
+                    INSERT INTO ai_suites (name, description, version, user_id, configuration, is_active, created_at, updated_at)
+                    VALUES (:name, :description, :version, :user_id, :configuration, :is_active, :created_at, :updated_at)
                 """), {
                     'name': suite_name,
                     'description': f"AI suite for {suite_name}",
-                    'suite_type': 'EDUCATIONAL' if 'Student' in suite_name or 'Curriculum' in suite_name else 'ANALYTICS',
-                    'capabilities': json.dumps(["analysis", "prediction", "recommendation"]),
+                    'version': '1.0.0',
+                    'user_id': user_id,  # Use a valid user_id from dashboard_users table
+                    'configuration': json.dumps({"type": "educational" if 'Student' in suite_name or 'Curriculum' in suite_name else "analytics", "capabilities": ["analysis", "prediction", "recommendation"]}),
                     'is_active': True,
                     'created_at': datetime.now(),
                     'updated_at': datetime.now()

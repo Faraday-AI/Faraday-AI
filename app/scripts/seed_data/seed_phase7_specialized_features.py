@@ -81,14 +81,14 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
             print(f"✅ Created {len(ids['role_ids'])} basic roles")
         
         # Get workout exercise IDs (migrate from existing data)
-        result = session.execute(text('SELECT id FROM physical_education_workout_exercises LIMIT 100'))
+        result = session.execute(text('SELECT id FROM physical_education_workout_exercises '))
         ids['workout_exercise_ids'] = [row[0] for row in result.fetchall()]
         if not ids['workout_exercise_ids']:
             # Try to get existing workout and exercise IDs from earlier phases
             result = session.execute(text('SELECT id FROM health_fitness_workouts ORDER BY id LIMIT 5'))
             existing_workout_ids = [row[0] for row in result.fetchall()]
             
-            result = session.execute(text('SELECT id FROM health_fitness_exercises ORDER BY id LIMIT 10'))
+            result = session.execute(text('SELECT id FROM health_fitness_exercises ORDER BY id '))
             existing_exercise_ids = [row[0] for row in result.fetchall()]
             
             if existing_workout_ids and existing_exercise_ids:
@@ -371,7 +371,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 print(f"  📊 exercise_sets already has {existing_count} records, migrating additional data...")
             
             # Get workout_exercises IDs
-            workout_exercise_result = session.execute(text('SELECT id FROM workout_exercises LIMIT 100'))
+            workout_exercise_result = session.execute(text('SELECT id FROM workout_exercises '))
             workout_exercise_ids = [row[0] for row in workout_exercise_result.fetchall()]
             
             if workout_exercise_ids:
@@ -807,7 +807,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     # general_assessments (migrate from existing students)
     try:
         # Always create assessments from all students
-        result = session.execute(text('SELECT id FROM students LIMIT 100'))
+        result = session.execute(text('SELECT id FROM students '))
         all_students = [row[0] for row in result.fetchall()]
         
         if all_students:

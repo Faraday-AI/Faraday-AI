@@ -81,11 +81,17 @@ def seed_phase1_foundation(session=None):
             print(f"❌ Phase 1.3 failed: {e}")
             # Continue to next phase
         
-        # Phase 1.4: Basic Infrastructure (SKIPPED - causes transaction issues)
+        # Phase 1.4: Basic Infrastructure
         print("\n📋 PHASE 1.4: Basic Infrastructure")
         print("-" * 40)
-        print("⏭️  Skipping Phase 1.4 to avoid transaction issues")
-        print("✅ Phase 1.4 skipped successfully!")
+        try:
+            seed_basic_infrastructure(session)
+            session.commit()
+            print("✅ Phase 1.4 completed successfully!")
+        except Exception as e:
+            session.rollback()
+            print(f"❌ Phase 1.4 failed: {e}")
+            # Continue to next phase
         
         print("\n✅ Phase 1 Foundation seeding completed!")
         
@@ -163,7 +169,7 @@ def seed_user_profiles(session):
         return
     
     # Get user IDs
-    result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id FROM dashboard_users"))
     user_ids = [row[0] for row in result.fetchall()]
     
     if not user_ids:
@@ -252,7 +258,7 @@ def seed_user_roles(session):
         print("    📊 Roles table does not exist or is empty")
     
     # Get user IDs and create role assignments
-    result = session.execute(text("SELECT id, role FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id, role FROM dashboard_users"))
     users = result.fetchall()
     
     if not users:
@@ -287,7 +293,7 @@ def seed_user_sessions(session):
         return
     
     # Get user IDs
-    result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id FROM dashboard_users"))
     user_ids = [row[0] for row in result.fetchall()]
     
     if not user_ids:
@@ -352,7 +358,7 @@ def seed_user_activities(session):
         return
     
     # Get user IDs
-    result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id FROM dashboard_users"))
     user_ids = [row[0] for row in result.fetchall()]
     
     if not user_ids:
@@ -410,7 +416,7 @@ def seed_user_behaviors(session):
         return
     
     # Get user IDs
-    result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id FROM dashboard_users"))
     user_ids = [row[0] for row in result.fetchall()]
     
     if not user_ids:
@@ -460,7 +466,7 @@ def seed_user_engagements(session):
         return
     
     # Get user IDs
-    result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id FROM dashboard_users"))
     user_ids = [row[0] for row in result.fetchall()]
     
     if not user_ids:
@@ -517,7 +523,7 @@ def seed_user_insights(session):
         return
     
     # Get user IDs
-    result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id FROM dashboard_users"))
     user_ids = [row[0] for row in result.fetchall()]
     
     if not user_ids:
@@ -594,7 +600,7 @@ def seed_user_trends(session):
         return
     
     # Get user IDs
-    result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id FROM dashboard_users"))
     user_ids = [row[0] for row in result.fetchall()]
     
     if not user_ids:
@@ -653,7 +659,7 @@ def seed_user_predictions(session):
         return
     
     # Get user IDs
-    result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id FROM dashboard_users"))
     user_ids = [row[0] for row in result.fetchall()]
     
     if not user_ids:
@@ -708,7 +714,7 @@ def seed_user_comparisons(session):
         return
     
     # Get user IDs
-    result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id FROM dashboard_users"))
     user_ids = [row[0] for row in result.fetchall()]
     
     if not user_ids:
@@ -1075,7 +1081,7 @@ def seed_permission_overrides(session):
         return
     
     # Get some users and permissions
-    users = session.execute(text("SELECT id FROM users LIMIT 5")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     permissions = session.execute(text("SELECT id FROM access_control_permissions LIMIT 3")).fetchall()
     
     if not users or not permissions:
@@ -1115,13 +1121,13 @@ def seed_feedback_user_tool_settings(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping feedback_user_tool_settings")
         return
     
     # Get existing tool IDs or create a default one
-    tools = session.execute(text("SELECT id FROM dashboard_tools LIMIT 5")).fetchall()
+    tools = session.execute(text("SELECT id FROM dashboard_tools")).fetchall()
     if not tools:
         # Create a default tool if none exist
         result = session.execute(text("""
@@ -1164,7 +1170,7 @@ def seed_user_management_voice_preferences(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 5")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping user_management_voice_preferences")
         return
@@ -1205,7 +1211,7 @@ def seed_user_management_preferences(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping user_management_preferences")
         return
@@ -1242,8 +1248,8 @@ def seed_user_management_user_organizations(session):
         return
     
     # Get some users and organizations
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
-    organizations = session.execute(text("SELECT id FROM organizations LIMIT 3")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
+    organizations = session.execute(text("SELECT id FROM organizations")).fetchall()
     
     if not users or not organizations:
         print("        ⚠️ No users or organizations found, skipping user_management_user_organizations")
@@ -1280,8 +1286,8 @@ def seed_user_tool_settings(session):
         return
     
     # Get some users and tools
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
-    tools = session.execute(text("SELECT id FROM dashboard_tools LIMIT 3")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
+    tools = session.execute(text("SELECT id FROM dashboard_tools")).fetchall()
     
     if not users or not tools:
         print("        ⚠️ No users or tools found, skipping user_tool_settings")
@@ -1326,8 +1332,8 @@ def seed_user_tools(session):
         return
     
     # Get some users and tools
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
-    tools = session.execute(text("SELECT id FROM dashboard_tools LIMIT 3")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
+    tools = session.execute(text("SELECT id FROM dashboard_tools")).fetchall()
     
     if not users or not tools:
         print("        ⚠️ No users or tools found, skipping user_tools")
@@ -1414,7 +1420,7 @@ def seed_user_preference_template_assignments(session):
         return
     
     # Get some users and templates
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     templates = session.execute(text("SELECT id FROM user_preference_templates LIMIT 4")).fetchall()
     
     if not users or not templates:
@@ -1449,7 +1455,7 @@ def seed_user_recommendations(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping user_recommendations")
         return
@@ -1488,7 +1494,7 @@ def seed_role_hierarchy(session):
         return
     
     # Get some roles
-    roles = session.execute(text("SELECT id FROM access_control_roles LIMIT 5")).fetchall()
+    roles = session.execute(text("SELECT id FROM access_control_roles")).fetchall()
     if not roles:
         print("        ⚠️ No roles found, skipping role_hierarchy")
         return
@@ -1557,7 +1563,7 @@ def seed_security_preferences(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping security_preferences")
         return
@@ -1626,7 +1632,7 @@ def seed_sessions(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping sessions")
         return
@@ -1662,7 +1668,7 @@ def seed_shared_contexts(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 5")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping shared_contexts")
         return
@@ -1818,8 +1824,8 @@ def seed_voices(session):
         return
     
     # Get some users and avatars
-    users = session.execute(text("SELECT id FROM users LIMIT 5")).fetchall()
-    avatars = session.execute(text("SELECT id FROM avatars LIMIT 3")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
+    avatars = session.execute(text("SELECT id FROM avatars")).fetchall()
     
     if not users or not avatars:
         print("        ⚠️ No users or avatars found, skipping voices")
@@ -1887,8 +1893,8 @@ def seed_avatar_customizations(session):
         return
     
     # Get some users and avatars
-    users = session.execute(text("SELECT id FROM users LIMIT 5")).fetchall()
-    avatars = session.execute(text("SELECT id FROM avatars LIMIT 3")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
+    avatars = session.execute(text("SELECT id FROM avatars")).fetchall()
     
     if not users or not avatars:
         print("        ⚠️ No users or avatars found, skipping avatar_customizations")
@@ -1934,13 +1940,13 @@ def seed_user_avatars(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping user_avatars")
         return
     
     # Get avatar templates
-    templates = session.execute(text("SELECT id FROM avatar_templates LIMIT 3")).fetchall()
+    templates = session.execute(text("SELECT id FROM avatar_templates")).fetchall()
     if not templates:
         print("        ⚠️ No avatar templates found, skipping user_avatars")
         return
@@ -1982,13 +1988,13 @@ def seed_user_avatar_customizations(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping user_avatar_customizations")
         return
     
     # Get user avatars
-    user_avatars = session.execute(text("SELECT id FROM user_avatars LIMIT 10")).fetchall()
+    user_avatars = session.execute(text("SELECT id FROM user_avatars")).fetchall()
     if not user_avatars:
         print("        ⚠️ No user avatars found, skipping user_avatar_customizations")
         return
@@ -2027,8 +2033,8 @@ def seed_student_avatar_customizations(session):
         return
     
     # Get some users and avatars (using users as students)
-    users = session.execute(text("SELECT id FROM users LIMIT 5")).fetchall()
-    avatars = session.execute(text("SELECT id FROM avatars LIMIT 3")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
+    avatars = session.execute(text("SELECT id FROM avatars")).fetchall()
     
     if not users or not avatars:
         print("        ⚠️ No users or avatars found, skipping student_avatar_customizations")
@@ -2068,7 +2074,7 @@ def seed_security_logs(session):
         return
     
     # Get some users
-    users = session.execute(text("SELECT id FROM users LIMIT 10")).fetchall()
+    users = session.execute(text("SELECT id FROM users")).fetchall()
     if not users:
         print("        ⚠️ No users found, skipping security_logs")
         return
@@ -2105,7 +2111,7 @@ def seed_user_role_assignments(session):
         return
     
     # Get users and their dashboard roles
-    result = session.execute(text("SELECT id, role FROM dashboard_users LIMIT 10"))
+    result = session.execute(text("SELECT id, role FROM dashboard_users"))
     users = result.fetchall()
     
     # Get access control roles
@@ -2203,67 +2209,89 @@ def seed_notifications_system(session):
     """Seed notifications system tables"""
     print("    🔄 Seeding notifications system...")
     
-    # Check if notifications table exists and seed it
+    # Check if dashboard_notification_channels table exists and seed it
     try:
-        result = session.execute(text("SELECT COUNT(*) FROM notifications"))
+        result = session.execute(text("SELECT COUNT(*) FROM dashboard_notification_channels"))
         if result.scalar() > 0:
-            print("      ✅ notifications already has data")
+            print("      ✅ dashboard_notification_channels already has data")
             return
         
+        # Create some notification models first
+        print("      🔄 Creating notification models...")
+        notification_models = []
+        for i in range(10):  # Create 10 notification models
+            notification_models.append({
+                'user_id': random.randint(1, 10),  # Required user_id
+                'type': random.choice(['SYSTEM', 'ALERT', 'UPDATE', 'REMINDER', 'ACHIEVEMENT']),
+                'title': f'Notification Model {i+1}',
+                'message': f'This is notification model {i+1}',
+                'data': json.dumps({'model_id': i+1, 'category': 'test'}),
+                'priority': random.choice(['LOW', 'NORMAL', 'HIGH', 'URGENT']),
+                'status': random.choice(['PENDING', 'SENT', 'DELIVERED', 'READ']),
+                'created_at': datetime.now() - timedelta(days=random.randint(0, 30)),
+                'read_at': datetime.now() - timedelta(days=random.randint(0, 15)) if random.random() > 0.5 else None,
+                'expires_at': datetime.now() + timedelta(days=random.randint(1, 30)),
+                'is_active': True,
+                'metadata': json.dumps({'source': 'phase1_seeding', 'version': '1.0'})
+            })
+        
+        # Insert notification models and get their IDs
+        notification_ids = []
+        for model in notification_models:
+            result = session.execute(text("""
+                INSERT INTO dashboard_notification_models (
+                    user_id, type, title, message, data, priority, status, created_at, read_at, expires_at, is_active, metadata
+                ) VALUES (
+                    :user_id, :type, :title, :message, :data, :priority, :status, :created_at, :read_at, :expires_at, :is_active, :metadata
+                ) RETURNING id
+            """), model)
+            notification_ids.append(result.scalar())
+        
+        print(f"      ✅ Created {len(notification_models)} notification models with IDs: {notification_ids}")
+        
         # Get user IDs for notifications
-        result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
+        result = session.execute(text("SELECT id FROM dashboard_users"))
         user_ids = [row[0] for row in result.fetchall()]
         
         if not user_ids:
             print("      ⚠️  No users found for notifications")
             return
         
-        # Create sample notifications
-        notification_types = ['SYSTEM', 'EDUCATIONAL', 'REMINDER', 'ACHIEVEMENT', 'ALERT']
+        # Create sample notification channels
+        channels = ['EMAIL', 'PUSH', 'SMS', 'WEBSOCKET', 'IN_APP']
+        statuses = ['PENDING', 'SENT', 'FAILED', 'DELIVERED']
         notification_data = []
         
         for user_id in user_ids:
-            # Create multiple notifications per user
-            for i in range(random.randint(2, 5)):
+            # Create multiple notification channels per user
+            for i in range(random.randint(1, 2)):
                 notification_data.append({
-                    'user_id': user_id,
-                    'type': random.choice(notification_types),
-                    'title': random.choice([
-                        'Welcome to Faraday AI!',
-                        'New lesson available',
-                        'Exercise reminder',
-                        'Achievement unlocked!',
-                        'System maintenance notice',
-                        'Weekly progress report',
-                        'New feature available',
-                        'Safety reminder'
-                    ]),
-                    'message': random.choice([
-                        'Welcome to the platform! We\'re excited to have you here.',
-                        'A new lesson has been added to your curriculum.',
-                        'Time for your daily exercise routine!',
-                        'Congratulations! You\'ve reached a new milestone.',
-                        'Scheduled maintenance will occur tonight.',
-                        'Here\'s your weekly progress summary.',
-                        'Check out our latest feature updates.',
-                        'Remember to warm up before exercising.'
-                    ]),
-                    'is_read': random.choice([True, False]),
-                    'priority': random.choice(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-                    'created_at': datetime.utcnow() - timedelta(days=random.randint(0, 30))
+                    'notification_id': random.choice(notification_ids),  # Use actual IDs from models we just created
+                    'channel': random.choice(channels),
+                    'status': random.choice(statuses),
+                    'sent_at': datetime.now() - timedelta(days=random.randint(0, 30)) if random.random() > 0.3 else None,
+                    'error': None if random.random() > 0.1 else 'Connection timeout',
+                    'retry_count': random.randint(0, 3),
+                    'last_retry': datetime.now() - timedelta(hours=random.randint(1, 24)) if random.random() > 0.5 else None,
+                    'is_active': random.choice([True, False]),
+                    'metadata': json.dumps({
+                        'user_id': user_id,
+                        'priority': random.choice(['LOW', 'MEDIUM', 'HIGH']),
+                        'template': f'template_{i+1}'
+                    })
                 })
         
         # Insert notifications
         for notif in notification_data:
             session.execute(text("""
-                INSERT INTO notifications (
-                    user_id, type, title, message, is_read, priority, created_at
+                INSERT INTO dashboard_notification_channels (
+                    notification_id, channel, status, sent_at, error, retry_count, last_retry, is_active, metadata
                 ) VALUES (
-                    :user_id, :type, :title, :message, :is_read, :priority, :created_at
+                    :notification_id, :channel, :status, :sent_at, :error, :retry_count, :last_retry, :is_active, :metadata
                 )
             """), notif)
         
-        print(f"      ✅ Created {len(notification_data)} notifications")
+        print(f"      ✅ Created {len(notification_data)} notification channels")
         
     except Exception as e:
         print(f"      ⚠️  Notifications table not available: {e}")
@@ -2272,11 +2300,11 @@ def seed_logging_system(session):
     """Seed logging system tables"""
     print("    🔄 Seeding logging system...")
     
-    # Check if system_logs table exists and seed it
+    # Check if activity_logs table exists and seed it
     try:
-        result = session.execute(text("SELECT COUNT(*) FROM system_logs"))
+        result = session.execute(text("SELECT COUNT(*) FROM activity_logs"))
         if result.scalar() > 0:
-            print("      ✅ system_logs already has data")
+            print("      ✅ activity_logs already has data")
             return
         
         # Create sample system logs
@@ -2312,14 +2340,14 @@ def seed_logging_system(session):
         # Insert logs
         for log in log_data:
             session.execute(text("""
-                INSERT INTO system_logs (
+                INSERT INTO activity_logs (
                     level, category, message, details, timestamp
                 ) VALUES (
                     :level, :category, :message, :details, :timestamp
                 )
             """), log)
         
-        print(f"      ✅ Created {len(log_data)} system logs")
+        print(f"      ✅ Created {len(log_data)} activity logs")
         
     except Exception as e:
         print(f"      ⚠️  System logs table not available: {e}")
@@ -2408,8 +2436,6 @@ def seed_monitoring_system(session):
                 'resource_type': random.choice(audit_resources),
                 'resource_id': random.randint(1, 100),
                 'details': json.dumps({
-                    'ip_address': f"192.168.1.{random.randint(1, 255)}",
-                    'user_agent': 'FaradayAI/1.0',
                     'changes': random.choice([
                         {'field': 'status', 'old_value': 'INACTIVE', 'new_value': 'ACTIVE'},
                         {'field': 'name', 'old_value': 'Old Name', 'new_value': 'New Name'},
@@ -2417,16 +2443,19 @@ def seed_monitoring_system(session):
                         None
                     ])
                 }),
-                'timestamp': datetime.utcnow() - timedelta(days=random.randint(0, 30))
+                'ip_address': f"192.168.1.{random.randint(1, 255)}",
+                'user_agent': 'FaradayAI/1.0',
+                'created_at': datetime.utcnow() - timedelta(days=random.randint(0, 30)),
+                'updated_at': datetime.utcnow() - timedelta(days=random.randint(0, 15))
             })
         
         # Insert audit logs
         for audit in audit_data:
             session.execute(text("""
                 INSERT INTO audit_logs (
-                    user_id, action, resource_type, resource_id, details, timestamp
+                    user_id, action, resource_type, resource_id, details, ip_address, user_agent, created_at, updated_at
                 ) VALUES (
-                    :user_id, :action, :resource_type, :resource_id, :details, :timestamp
+                    :user_id, :action, :resource_type, :resource_id, :details, :ip_address, :user_agent, :created_at, :updated_at
                 )
             """), audit)
         
@@ -2439,147 +2468,109 @@ def seed_system_utilities(session):
     """Seed other system utility tables"""
     print("    🔄 Seeding system utilities...")
     
-    # Check if system_settings table exists and seed it
+    # Check if organization_settings table exists and seed it
     try:
-        result = session.execute(text("SELECT COUNT(*) FROM system_settings"))
+        result = session.execute(text("SELECT COUNT(*) FROM organization_settings"))
         if result.scalar() > 0:
-            print("      ✅ system_settings already has data")
-            return
-        
-        # Create sample system settings
-        settings_data = [
-            {
-                'key': 'maintenance_mode',
-                'value': 'false',
-                'description': 'System maintenance mode flag',
-                'category': 'SYSTEM'
-            },
-            {
-                'key': 'max_file_size',
-                'value': '10485760',
-                'description': 'Maximum file upload size in bytes',
-                'category': 'UPLOAD'
-            },
-            {
-                'key': 'session_timeout',
-                'value': '3600',
-                'description': 'User session timeout in seconds',
-                'category': 'SECURITY'
-            },
-            {
-                'key': 'email_notifications',
-                'value': 'true',
-                'description': 'Enable email notifications',
-                'category': 'NOTIFICATIONS'
-            },
-            {
-                'key': 'debug_mode',
-                'value': 'false',
-                'description': 'Enable debug mode for development',
-                'category': 'DEVELOPMENT'
-            },
-            {
-                'key': 'backup_frequency',
-                'value': 'daily',
-                'description': 'System backup frequency',
-                'category': 'BACKUP'
-            },
-            {
-                'key': 'max_concurrent_users',
-                'value': '1000',
-                'description': 'Maximum concurrent users allowed',
-                'category': 'PERFORMANCE'
-            },
-            {
-                'key': 'content_moderation',
-                'value': 'true',
-                'description': 'Enable content moderation',
-                'category': 'CONTENT'
-            }
-        ]
-        
-        # Insert system settings
-        for setting in settings_data:
-            session.execute(text("""
-                INSERT INTO system_settings (
-                    key, value, description, category, created_at, updated_at
-                ) VALUES (
-                    :key, :value, :description, :category, :now, :now
-                )
-            """), {
-                **setting,
-                "now": datetime.utcnow()
-            })
-        
-        print(f"      ✅ Created {len(settings_data)} system settings")
+            print("      ✅ organization_settings already has data")
+        else:
+            # Get organization_id
+            result = session.execute(text("SELECT id FROM organizations LIMIT 1"))
+            org_id = result.scalar()
+            if not org_id:
+                print("      ⚠️  No organizations found, skipping organization settings")
+                return
+            
+            # Create sample organization settings
+            settings_data = [
+                {
+                    'organization_id': org_id,
+                    'theme': 'modern',
+                    'language': 'en',
+                    'timezone': 'America/New_York',
+                    'features': json.dumps(['ai_assistant', 'analytics', 'collaboration']),
+                    'enabled_modules': json.dumps(['lessons', 'assessments', 'reports']),
+                    'experimental_features': json.dumps(['ai_grading', 'voice_commands']),
+                    'notification_preferences': json.dumps({'email': True, 'push': True, 'sms': False}),
+                    'email_settings': json.dumps({'smtp_host': 'smtp.example.com', 'from_email': 'noreply@example.com'}),
+                    'security_policies': json.dumps({'password_min_length': 8, 'session_timeout': 3600}),
+                    'status': 'ACTIVE',
+                    'is_active': True,
+                    'created_at': datetime.utcnow(),
+                    'updated_at': datetime.utcnow()
+                }
+            ]
+            
+            # Insert organization settings
+            for setting in settings_data:
+                session.execute(text("""
+                    INSERT INTO organization_settings (
+                        organization_id, theme, language, timezone, features, enabled_modules, experimental_features, notification_preferences, email_settings, security_policies, status, is_active, created_at, updated_at
+                    ) VALUES (
+                        :organization_id, :theme, :language, :timezone, :features, :enabled_modules, :experimental_features, :notification_preferences, :email_settings, :security_policies, :status, :is_active, :created_at, :updated_at
+                    )
+                """), setting)
+            
+            print(f"      ✅ Created {len(settings_data)} organization settings")
         
     except Exception as e:
-        print(f"      ⚠️  System settings table not available: {e}")
+        print(f"      ⚠️  Organization settings table not available: {e}")
     
-    # Check if feature_flags table exists and seed it
+    # Feature flags are handled via organization_settings.features JSON column
+    print("      ✅ Feature flags handled via organization_settings.features")
+    
+    # Check if project_settings table exists and seed it
     try:
-        result = session.execute(text("SELECT COUNT(*) FROM feature_flags"))
+        result = session.execute(text("SELECT COUNT(*) FROM project_settings"))
         if result.scalar() > 0:
-            print("      ✅ feature_flags already has data")
-            return
-        
-        # Create sample feature flags
-        feature_data = [
-            {
-                'name': 'ai_assistant',
-                'is_enabled': True,
-                'description': 'AI-powered teaching assistant',
-                'category': 'AI_FEATURES'
-            },
-            {
-                'name': 'real_time_analytics',
-                'is_enabled': True,
-                'description': 'Real-time performance analytics',
-                'category': 'ANALYTICS'
-            },
-            {
-                'name': 'mobile_app',
-                'is_enabled': False,
-                'description': 'Mobile application access',
-                'category': 'PLATFORM'
-            },
-            {
-                'name': 'advanced_reporting',
-                'is_enabled': True,
-                'description': 'Advanced reporting and insights',
-                'category': 'REPORTING'
-            },
-            {
-                'name': 'social_features',
-                'is_enabled': False,
-                'description': 'Social learning features',
-                'category': 'SOCIAL'
-            },
-            {
-                'name': 'gamification',
-                'is_enabled': True,
-                'description': 'Gamification elements',
-                'category': 'ENGAGEMENT'
+            print("      ✅ project_settings already has data")
+        else:
+            # Get a project_id from organization_projects
+            result = session.execute(text("SELECT id FROM organization_projects LIMIT 1"))
+            project_id = result.scalar()
+            if not project_id:
+                # Create a sample project if none exists
+                session.execute(text("""
+                    INSERT INTO organization_projects (name, description, status, created_at, updated_at)
+                    VALUES ('Sample Project', 'A sample project for testing', 'ACTIVE', :now, :now)
+                    RETURNING id
+                """), {"now": datetime.utcnow()})
+                result = session.execute(text("SELECT id FROM organization_projects ORDER BY id DESC LIMIT 1"))
+                project_id = result.scalar()
+            
+            # Create sample project settings
+            project_setting = {
+                'project_id': project_id,
+                'theme': 'modern',
+                'language': 'en',
+                'timezone': 'America/New_York',
+                'features': json.dumps(['analytics', 'collaboration', 'reporting']),
+                'enabled_modules': json.dumps(['dashboard', 'reports', 'settings']),
+                'experimental_features': json.dumps(['ai_insights', 'advanced_charts']),
+                'notification_preferences': json.dumps({'email': True, 'push': False, 'sms': False}),
+                'email_settings': json.dumps({'smtp_host': 'smtp.project.com', 'from_email': 'noreply@project.com'}),
+                'security_policies': json.dumps({'password_min_length': 8, 'session_timeout': 7200}),
+                'status': 'ACTIVE',
+                'is_active': True,
+                'created_at': datetime.utcnow(),
+                'updated_at': datetime.utcnow()
             }
-        ]
-        
-        # Insert feature flags
-        for feature in feature_data:
+            
+            # Insert project settings
             session.execute(text("""
-                INSERT INTO feature_flags (
-                    name, is_enabled, description, category, created_at, updated_at
+                INSERT INTO project_settings (
+                    project_id, theme, language, timezone, features, enabled_modules, experimental_features, 
+                    notification_preferences, email_settings, security_policies, status, is_active, created_at, updated_at
                 ) VALUES (
-                    :name, :is_enabled, :description, :category, :now, :now
+                    :project_id, :theme, :language, :timezone, :features, :enabled_modules, :experimental_features,
+                    :notification_preferences, :email_settings, :security_policies, :status, :is_active, :created_at, :updated_at
                 )
-            """), {
-                **feature,
-                "now": datetime.utcnow()
-            })
-        
-        print(f"      ✅ Created {len(feature_data)} feature flags")
+            """), project_setting)
+            
+            print("      ✅ Created 1 project settings")
         
     except Exception as e:
-        print(f"      ⚠️  Feature flags table not available: {e}")
+        print(f"      ⚠️  Project settings table not available: {e}")
 
 def seed_avatar_system(session):
     """Seed avatar system to complete user profiles"""
@@ -2624,7 +2615,7 @@ def seed_avatar_system(session):
             role_mapping = {role_name: role_id for role_id, role_name in result.fetchall()}
             
             # Get users and their dashboard roles
-            result = session.execute(text("SELECT id, role FROM dashboard_users LIMIT 10"))
+            result = session.execute(text("SELECT id, role FROM dashboard_users"))
             users = result.fetchall()
             
             # Update user_roles table

@@ -1031,7 +1031,6 @@ def seed_student_health_goal_recommendations(session: Session, student_ids: List
         goal_data = session.execute(text("""
             SELECT id, student_id, goal_type, target_value
             FROM student_health_fitness_goals
-            LIMIT 100
         """)).fetchall()
         
         if not goal_data:

@@ -71,7 +71,7 @@ def create_dynamic_insert(session: Session, table_name: str, data: List[Dict], s
 def get_table_ids(session: Session, table_name: str) -> List[int]:
     """Get IDs from a table for foreign key references"""
     try:
-        result = session.execute(text(f"SELECT id FROM {table_name} LIMIT 100"))
+        result = session.execute(text(f"SELECT id FROM {table_name} "))
         return [row[0] for row in result.fetchall()]
     except Exception as e:
         print(f"⚠️ No {table_name} found: {e}")
@@ -191,7 +191,7 @@ def seed_phase4_safety_risk(session: Session, user_ids: List[int] = None, school
 def get_table_ids(session: Session, table_name: str) -> List[int]:
     """Get existing IDs from a table"""
     try:
-        result = session.execute(text(f"SELECT id FROM {table_name} LIMIT 100"))
+        result = session.execute(text(f"SELECT id FROM {table_name} "))
         return [row[0] for row in result.fetchall()]
     except:
         return list(range(1, 101))  # Fallback range
@@ -1885,7 +1885,7 @@ def seed_environmental_monitoring(session: Session, user_ids: List[int], school_
     # Skill Assessment Equipment Checks (depends on skill_assessment_safety_checks)
     # Get actual equipment IDs from physical_education_equipment table
     try:
-        equipment_result = session.execute(text("SELECT id FROM physical_education_equipment LIMIT 100"))
+        equipment_result = session.execute(text("SELECT id FROM physical_education_equipment "))
         equipment_ids = [row[0] for row in equipment_result.fetchall()]
         print(f"  📋 Found {len(equipment_ids)} equipment IDs for skill_assessment_equipment_checks")
     except Exception as e:

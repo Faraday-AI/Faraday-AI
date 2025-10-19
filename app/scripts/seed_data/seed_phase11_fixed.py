@@ -78,11 +78,11 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
         user_ids = [row[0] for row in user_result.fetchall()]
         
         # Get student IDs
-        student_result = session.execute(text("SELECT id FROM students LIMIT 100"))
+        student_result = session.execute(text("SELECT id FROM students "))
         student_ids = [row[0] for row in student_result.fetchall()]
         
         # Get organization IDs
-        org_result = session.execute(text("SELECT id FROM organizations LIMIT 10"))
+        org_result = session.execute(text("SELECT id FROM organizations "))
         org_ids = [row[0] for row in org_result.fetchall()]
         
         # Get dashboard user IDs
@@ -90,17 +90,17 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
         dashboard_user_ids = [row[0] for row in dashboard_user_result.fetchall()]
         
         # Get activity IDs
-        activity_result = session.execute(text("SELECT id FROM activities LIMIT 100"))
+        activity_result = session.execute(text("SELECT id FROM activities "))
         activity_ids = [row[0] for row in activity_result.fetchall()]
         
         # Get existing IDs for foreign key references
-        ai_tools_result = session.execute(text("SELECT id FROM ai_tools LIMIT 10"))
+        ai_tools_result = session.execute(text("SELECT id FROM ai_tools "))
         ai_tool_ids = [row[0] for row in ai_tools_result.fetchall()]
         
-        dashboard_tools_result = session.execute(text("SELECT id FROM dashboard_tools LIMIT 10"))
+        dashboard_tools_result = session.execute(text("SELECT id FROM dashboard_tools "))
         dashboard_tool_ids = [row[0] for row in dashboard_tools_result.fetchall()]
         
-        dashboard_teams_result = session.execute(text("SELECT id FROM dashboard_teams LIMIT 10"))
+        dashboard_teams_result = session.execute(text("SELECT id FROM dashboard_teams "))
         dashboard_team_ids = [row[0] for row in dashboard_teams_result.fetchall()]
         
         organization_projects_result = session.execute(text("SELECT id FROM organization_projects LIMIT 20"))
@@ -112,7 +112,7 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
         # Get additional dependency IDs for Phase 11
         try:
             # Get existing circuit breaker IDs
-            circuit_breaker_result = session.execute(text("SELECT id FROM circuit_breakers LIMIT 10"))
+            circuit_breaker_result = session.execute(text("SELECT id FROM circuit_breakers "))
             circuit_breaker_ids = [row[0] for row in circuit_breaker_result.fetchall()]
         except:
             circuit_breaker_ids = []
@@ -140,7 +140,7 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
             
         try:
             # Get existing user memory IDs
-            user_memory_result = session.execute(text("SELECT id FROM user_memories LIMIT 100"))
+            user_memory_result = session.execute(text("SELECT id FROM user_memories "))
             user_memory_ids = [row[0] for row in user_memory_result.fetchall()]
         except:
             user_memory_ids = []
@@ -1000,7 +1000,7 @@ def seed_competition_events_system(session: Session, deps: Dict[str, List[int]])
         event_result = session.execute(text("SELECT id FROM competition_base_events LIMIT 20"))
         event_ids = [row[0] for row in event_result.fetchall()]
         
-        participant_result = session.execute(text("SELECT id FROM competition_base_participants LIMIT 100"))
+        participant_result = session.execute(text("SELECT id FROM competition_base_participants "))
         participant_ids = [row[0] for row in participant_result.fetchall()]
         
         if not event_ids or not participant_ids:
@@ -1759,8 +1759,10 @@ def seed_resource_management_system(session: Session, deps: Dict[str, List[int]]
                 results['project_settings'] = insert_data_flexible(session, 'project_settings', project_settings_data)
                 print(f"    ✅ Created {results['project_settings']} project settings")
             else:
-                print("    ⚠️  All projects already have settings, skipping project_settings")
-                results['project_settings'] = 0
+                # Count existing project settings as successful
+                existing_count = session.execute(text("SELECT COUNT(*) FROM project_settings")).scalar()
+                results['project_settings'] = existing_count
+                print(f"    ✅ Found {existing_count} existing project settings, using for foreign key references")
     except Exception as e:
         print(f"    ❌ Error seeding project_settings: {e}")
         results['project_settings'] = 0
@@ -1863,7 +1865,7 @@ def seed_communication_feedback_system(session: Session, deps: Dict[str, List[in
     print("  Seeding message_board_posts...")
     try:
         # Get actual message_boards IDs
-        board_result = session.execute(text("SELECT id FROM message_boards LIMIT 10"))
+        board_result = session.execute(text("SELECT id FROM message_boards "))
         board_ids = [row[0] for row in board_result.fetchall()]
         
         if not board_ids:
@@ -1920,19 +1922,40 @@ def seed_communication_feedback_system(session: Session, deps: Dict[str, List[in
             print(f"    ✅ Found {existing_count} existing feedback user tool settings, using for foreign key references")
             results['feedback_user_tool_settings'] = existing_count
         else:
+            # Get existing combinations to avoid duplicates
+            existing_combinations = set()
+            existing_result = session.execute(text("SELECT user_id, tool_id FROM feedback_user_tool_settings"))
+            for row in existing_result.fetchall():
+                existing_combinations.add((row[0], row[1]))
+            
             feedback_user_tool_settings_data = []
+            user_ids = deps['user_ids'] if deps['user_ids'] else list(range(1, 33))
+            tool_ids = deps['dashboard_tool_ids'] if deps['dashboard_tool_ids'] else list(range(1, 11))
+            
             for i in range(50):
+                user_id = random.choice(user_ids)
+                tool_id = random.choice(tool_ids)
+                
+                # Skip if combination already exists
+                if (user_id, tool_id) in existing_combinations:
+                    continue
+                    
                 feedback_user_tool_settings_data.append({
-                    'user_id': random.choice(deps['user_ids']) if deps['user_ids'] else random.randint(1, 32),
-                    'tool_id': random.choice(deps['dashboard_tool_ids']) if deps['dashboard_tool_ids'] else random.randint(1, 10),
+                    'user_id': user_id,
+                    'tool_id': tool_id,
                     'notification_enabled': random.choice([True, False]),
                     'auto_response': random.choice([True, False]),
                     'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
                     'updated_at': datetime.now() - timedelta(days=random.randint(1, 7))
                 })
+                existing_combinations.add((user_id, tool_id))
             
-            results['feedback_user_tool_settings'] = insert_data_flexible(session, 'feedback_user_tool_settings', feedback_user_tool_settings_data)
-            print(f"    ✅ Created {results['feedback_user_tool_settings']} feedback user tool settings")
+            if feedback_user_tool_settings_data:
+                results['feedback_user_tool_settings'] = insert_data_flexible(session, 'feedback_user_tool_settings', feedback_user_tool_settings_data)
+                print(f"    ✅ Created {results['feedback_user_tool_settings']} feedback user tool settings")
+            else:
+                results['feedback_user_tool_settings'] = 0
+                print(f"    ⚠️ No new feedback user tool settings created (all combinations already exist)")
     except Exception as e:
         print(f"    ❌ Error seeding feedback_user_tool_settings: {e}")
         results['feedback_user_tool_settings'] = 0
@@ -2011,10 +2034,10 @@ def seed_core_system_integration(session: Session, deps: Dict[str, List[int]]) -
     print("  Seeding subject_assistant...")
     try:
         # Get actual subject_category and assistant_profile IDs
-        subject_category_result = session.execute(text("SELECT id FROM subject_categories LIMIT 10"))
+        subject_category_result = session.execute(text("SELECT id FROM subject_categories "))
         subject_category_ids = [row[0] for row in subject_category_result.fetchall()]
         
-        assistant_profile_result = session.execute(text("SELECT id FROM assistant_profiles LIMIT 10"))
+        assistant_profile_result = session.execute(text("SELECT id FROM assistant_profiles "))
         assistant_profile_ids = [row[0] for row in assistant_profile_result.fetchall()]
         
         if not subject_category_ids or not assistant_profile_ids:
@@ -2228,12 +2251,25 @@ def seed_billing_subscription_system(session: Session, deps: Dict[str, List[int]
             print("    ⚠️  No gpt_subscription_billing or gpt_subscriptions found, skipping gpt_subscription_invoices")
             results['gpt_subscription_invoices'] = 0
         else:
+            # Get existing invoice numbers to avoid duplicates
+            existing_invoices = session.execute(text("SELECT invoice_number FROM gpt_subscription_invoices")).fetchall()
+            existing_invoice_numbers = {row[0] for row in existing_invoices}
+            
             gpt_subscription_invoices_data = []
+            invoice_counter = 1
             for i in range(35):
+                # Generate unique invoice number
+                while f'INV-{invoice_counter:06d}' in existing_invoice_numbers:
+                    invoice_counter += 1
+                
+                invoice_number = f'INV-{invoice_counter:06d}'
+                existing_invoice_numbers.add(invoice_number)
+                invoice_counter += 1
+                
                 gpt_subscription_invoices_data.append({
                     'subscription_id': random.choice(subscription_ids),  # Use actual subscription IDs
                     'billing_cycle_id': random.choice(billing_ids),  # Use actual billing cycle IDs
-                    'invoice_number': f'INV-{i+1:06d}',
+                    'invoice_number': invoice_number,
                     'invoice_date': datetime.now() - timedelta(days=random.randint(1, 30)),  # Required NOT NULL field
                     'subtotal': round(random.uniform(9.99, 99.99), 2),  # Required NOT NULL field
                     'total_amount': round(random.uniform(9.99, 99.99), 2),  # Required NOT NULL field
@@ -2312,7 +2348,7 @@ def seed_additional_user_management(session: Session, deps: Dict[str, List[int]]
     print("  Seeding memory_interactions...")
     try:
         # Get actual user_memories IDs
-        memory_result = session.execute(text("SELECT id FROM user_memories LIMIT 100"))
+        memory_result = session.execute(text("SELECT id FROM user_memories "))
         memory_ids = [row[0] for row in memory_result.fetchall()]
         
         if not memory_ids:

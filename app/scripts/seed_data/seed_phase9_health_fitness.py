@@ -17,11 +17,11 @@ def get_dependency_ids(session: Session) -> Dict[str, List[int]]:
     """Get dependency IDs for seeding"""
     try:
         # Get student IDs
-        student_result = session.execute(text("SELECT id FROM students ORDER BY id LIMIT 1000"))
+        student_result = session.execute(text("SELECT id FROM students ORDER BY id "))
         student_ids = [row[0] for row in student_result.fetchall()]
         
         # Get user IDs
-        user_result = session.execute(text("SELECT id FROM users ORDER BY id LIMIT 100"))
+        user_result = session.execute(text("SELECT id FROM users ORDER BY id "))
         user_ids = [row[0] for row in user_result.fetchall()]
         
         # Get exercise IDs
@@ -72,7 +72,7 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
     # 1. health_fitness_exercises (migrate from exercises)
     try:
         # Get existing exercises to migrate
-        existing_exercises = session.execute(text("SELECT id, name, description FROM exercises LIMIT 1000")).fetchall()
+        existing_exercises = session.execute(text("SELECT id, name, description FROM exercises ")).fetchall()
         
         health_fitness_exercises = []
         for i, (exercise_id, name, description) in enumerate(existing_exercises):
@@ -726,7 +726,7 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
     # 20. general_health_metric_history (migrate from health_metrics) - MOVED AFTER
     try:
         # First ensure general_health_metrics exist
-        existing_metrics = session.execute(text("SELECT id FROM general_health_metrics LIMIT 100")).fetchall()
+        existing_metrics = session.execute(text("SELECT id FROM general_health_metrics ")).fetchall()
         if not existing_metrics:
             print("  ⚠️ No general_health_metrics found, skipping general_health_metric_history")
             results['general_health_metric_history'] = 0
