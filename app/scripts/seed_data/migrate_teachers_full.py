@@ -29,7 +29,7 @@ def migrate_teachers_full():
 
     print('🚀 FULL TEACHER MIGRATION - CLEAN ARCHITECTURE')
     print('=' * 80)
-    print('⚠️  FALLBACK POINT: Commit b141a8eb (K-12 district fixes)')
+    print('⚠️  FALLBACK POINT: Commit 2ab865dd (Complete database seeding system overhaul)')
     print('=' * 80)
 
     try:
@@ -357,7 +357,7 @@ def migrate_teachers_full():
     except Exception as e:
         print(f'❌ Error during migration: {e}')
         session.rollback()
-        print('🔄 All changes rolled back - fallback to commit b141a8eb')
+        print('🔄 All changes rolled back - fallback to commit 2ab865dd')
         import traceback
         traceback.print_exc()
         raise
