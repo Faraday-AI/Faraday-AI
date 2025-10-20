@@ -228,6 +228,12 @@ from app.scripts.seed_data.seed_phase11_fixed import seed_phase11_advanced_syste
 from app.scripts.seed_data.seed_daily_pe_curriculum import seed_daily_pe_curriculum
 from app.scripts.seed_data.seed_comprehensive_exercise_library import seed_comprehensive_exercise_library
 from app.scripts.seed_data.seed_simple_activity_library import seed_simple_activity_library
+from app.scripts.seed_data.post_seed_validation import validate as post_seed_validate
+import os
+
+def env_true(name: str) -> bool:
+    val = os.getenv(name, "").strip().lower()
+    return val in ("1", "true", "yes", "on")
 
 
 def seed_database():
@@ -770,19 +776,28 @@ def seed_database():
                 from app.scripts.seed_data.seed_comprehensive_exercise_library import seed_comprehensive_exercise_library
                 
                 # Seed comprehensive daily PE curriculum (972 lessons)
-                print("Seeding comprehensive daily PE curriculum...")
-                seed_daily_pe_curriculum(session)
-                session.commit()
+                if not env_true('SKIP_PHASE_2'):
+                    print("Seeding comprehensive daily PE curriculum...")
+                    seed_daily_pe_curriculum(session)
+                    session.commit()
+                else:
+                    print("⏭️  SKIP_PHASE_2 enabled: skipping daily PE curriculum")
                 
                 # Seed comprehensive exercise library (3,000+ exercises)
-                print("Seeding comprehensive exercise library...")
-                seed_comprehensive_exercise_library(session)
-                session.commit()
+                if not env_true('SKIP_PHASE_2'):
+                    print("Seeding comprehensive exercise library...")
+                    seed_comprehensive_exercise_library(session)
+                    session.commit()
+                else:
+                    print("⏭️  SKIP_PHASE_2 enabled: skipping exercise library")
                 
                 # Seed simple activity library (150 activities)
-                print("Seeding simple activity library...")
-                seed_simple_activity_library(session)
-                session.commit()
+                if not env_true('SKIP_PHASE_2'):
+                    print("Seeding simple activity library...")
+                    seed_simple_activity_library(session)
+                    session.commit()
+                else:
+                    print("⏭️  SKIP_PHASE_2 enabled: skipping simple activity library")
                 
                 print("\n" + "="*50)
                 print("PHASE 1 FOUNDATION COMPLETE")
@@ -794,6 +809,12 @@ def seed_database():
                 # Student and class organization
                 seed_students(session)
                 session.commit()
+                # Post-seed validation (fail-fast if invalid)
+                print("\nRunning post-seed validation...")
+                ok = post_seed_validate()
+                if not ok:
+                    raise Exception("Post-seed validation failed")
+
                 
                 # Create missing dependencies that other phases need
                 print("\n" + "="*50)
@@ -1034,17 +1055,23 @@ def seed_database():
                 print("SEEDING PHASE 3 DEPENDENCY TABLES")
                 print("="*50)
                 
-                from app.scripts.seed_data.seed_phase3_dependencies import seed_phase3_dependencies
-                seed_phase3_dependencies(session)
-                session.commit()
+                if not env_true('SKIP_PHASE_3'):
+                    from app.scripts.seed_data.seed_phase3_dependencies import seed_phase3_dependencies
+                    seed_phase3_dependencies(session)
+                    session.commit()
+                else:
+                    print("⏭️  SKIP_PHASE_3 enabled: skipping Phase 3 dependencies")
                 
                 print("✅ Phase 3 dependency tables seeded successfully!")
                 
                 # Additional Phase 3 dependency tables that need to be seeded early
-                print("Seeding additional Phase 3 dependency tables...")
-                from app.scripts.seed_data.seed_phase3_dependencies import seed_additional_phase3_dependencies
-                seed_additional_phase3_dependencies(session)
-                session.commit()
+                if not env_true('SKIP_PHASE_3'):
+                    print("Seeding additional Phase 3 dependency tables...")
+                    from app.scripts.seed_data.seed_phase3_dependencies import seed_additional_phase3_dependencies
+                    seed_additional_phase3_dependencies(session)
+                    session.commit()
+                else:
+                    print("⏭️  SKIP_PHASE_3 enabled: skipping additional Phase 3 dependency tables")
                 
                 print("✅ Additional Phase 3 dependency tables seeded successfully!")
                 
@@ -1511,294 +1538,318 @@ def seed_database():
                 print("🔧 Equipment management & maintenance")
                 print("📋 Compliance & audit systems")
                 print("="*50)
-                
-                try:
-                    # Get required IDs for Phase 4 (use all available IDs)
-                    user_result = session.execute(text('SELECT id FROM users'))
-                    user_ids = [row[0] for row in user_result.fetchall()]
-                    
-                    school_result = session.execute(text('SELECT id FROM schools'))
-                    school_ids = [row[0] for row in school_result.fetchall()]
-                    
-                    activity_result = session.execute(text('SELECT id FROM activities'))
-                    activity_ids = [row[0] for row in activity_result.fetchall()]
-                    
-                    student_result = session.execute(text('SELECT id FROM students'))
-                    student_ids = [row[0] for row in student_result.fetchall()]
-                    
-                    print(f"Found {len(user_ids)} users, {len(school_ids)} schools, {len(activity_ids)} activities, {len(student_ids)} students")
-                    
-                    # First seed Phase 4 dependencies
-                    from app.scripts.seed_data.seed_phase4_safety_risk_corrected import seed_phase4_dependencies
-                    dep_results = seed_phase4_dependencies(session, user_ids, school_ids, activity_ids)
-                    session.commit()
-                    print("✅ Phase 4 dependencies completed successfully!")
-                    print(f"🎉 Created {sum(dep_results.values())} dependency records across {len(dep_results)} tables")
-                    
-                    # Then seed main Phase 4 tables
-                    from app.scripts.seed_data.seed_phase4_safety_risk_corrected import seed_phase4_safety_risk
-                    results = seed_phase4_safety_risk(session, user_ids, school_ids, activity_ids, student_ids)
-                    session.commit()
-                    print("✅ Phase 4 safety & risk management system completed successfully!")
-                    print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
-                    print("🏆 All Phase 4 tables successfully seeded!")
-                except Exception as e:
-                    print(f"❌ CRITICAL ERROR: Phase 4 safety & risk management system seeding failed: {e}")
-                    print("🛑 STOPPING SCRIPT EXECUTION - Phase 4 is required for safety features")
-                    print(f"Full error details: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    session.rollback()
-                    raise Exception(f"Phase 4 safety & risk management system seeding failed: {e}")
+
+                if not env_true('SKIP_PHASE_4'):
+                    try:
+                        # Get required IDs for Phase 4 (use all available IDs)
+                        user_result = session.execute(text('SELECT id FROM users'))
+                        user_ids = [row[0] for row in user_result.fetchall()]
+
+                        school_result = session.execute(text('SELECT id FROM schools'))
+                        school_ids = [row[0] for row in school_result.fetchall()]
+
+                        activity_result = session.execute(text('SELECT id FROM activities'))
+                        activity_ids = [row[0] for row in activity_result.fetchall()]
+
+                        student_result = session.execute(text('SELECT id FROM students'))
+                        student_ids = [row[0] for row in student_result.fetchall()]
+
+                        print(f"Found {len(user_ids)} users, {len(school_ids)} schools, {len(activity_ids)} activities, {len(student_ids)} students")
+
+                        # First seed Phase 4 dependencies
+                        from app.scripts.seed_data.seed_phase4_safety_risk_corrected import seed_phase4_dependencies
+                        dep_results = seed_phase4_dependencies(session, user_ids, school_ids, activity_ids)
+                        session.commit()
+                        print("✅ Phase 4 dependencies completed successfully!")
+                        print(f"🎉 Created {sum(dep_results.values())} dependency records across {len(dep_results)} tables")
+
+                        # Then seed main Phase 4 tables
+                        from app.scripts.seed_data.seed_phase4_safety_risk_corrected import seed_phase4_safety_risk
+                        results = seed_phase4_safety_risk(session, user_ids, school_ids, activity_ids, student_ids)
+                        session.commit()
+                        print("✅ Phase 4 safety & risk management system completed successfully!")
+                        print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
+                        print("🏆 All Phase 4 tables successfully seeded!")
+                    except Exception as e:
+                        print(f"❌ CRITICAL ERROR: Phase 4 safety & risk management system seeding failed: {e}")
+                        print("🛑 STOPPING SCRIPT EXECUTION - Phase 4 is required for safety features")
+                        print(f"Full error details: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                        raise Exception(f"Phase 4 safety & risk management system seeding failed: {e}")
+                else:
+                    print("⏭️  SKIP_PHASE_4 enabled: skipping Phase 4 safety & risk management")
                 
                 # Phase 5: Advanced Analytics & AI
-                try:
-                    print("🔄 Running Phase 5 advanced analytics & AI...")
-                    
-                    # Ensure project_id=1 exists for Phase 5 foreign key constraints
-                    print("🔧 Ensuring project dependency for Phase 5...")
-                    project_check = session.execute(text("SELECT id FROM organization_projects WHERE id = 1"))
-                    if not project_check.fetchone():
-                        # Get a user_id for the project
-                        user_result = session.execute(text("SELECT id FROM users LIMIT 1"))
-                        user_id = user_result.scalar()
-                        
-                        # Create the required project
-                        session.execute(text("""
-                            INSERT INTO organization_projects (
-                                id, name, description, user_id, created_at, updated_at, status, is_active
-                            ) VALUES (
-                                1, 'Default Project', 'Default project for Phase 5 GPT systems',
-                                :user_id, NOW(), NOW(), 'ACTIVE', true
-                            )
-                        """), {'user_id': user_id})
+                if not env_true('SKIP_PHASE_5'):
+                    try:
+                        print("🔄 Running Phase 5 advanced analytics & AI...")
+
+                        # Ensure project_id=1 exists for Phase 5 foreign key constraints
+                        print("🔧 Ensuring project dependency for Phase 5...")
+                        project_check = session.execute(text("SELECT id FROM organization_projects WHERE id = 1"))
+                        if not project_check.fetchone():
+                            # Get a user_id for the project
+                            user_result = session.execute(text("SELECT id FROM users LIMIT 1"))
+                            user_id = user_result.scalar()
+
+                            # Create the required project
+                            session.execute(text("""
+                                INSERT INTO organization_projects (
+                                    id, name, description, user_id, created_at, updated_at, status, is_active
+                                ) VALUES (
+                                    1, 'Default Project', 'Default project for Phase 5 GPT systems',
+                                    :user_id, NOW(), NOW(), 'ACTIVE', true
+                                )
+                            """), {'user_id': user_id})
+                            session.commit()
+                            print("✅ Created project_id=1 for Phase 5 dependencies")
+                        else:
+                            print("✅ Project_id=1 already exists")
+
+                        # Get organization IDs for Phase 5
+                        org_result = session.execute(text("SELECT id FROM organizations"))
+                        organization_ids = [row[0] for row in org_result.fetchall()]
+                        if not organization_ids:
+                            organization_ids = [1]  # Fallback
+
+                        # Import and run the Phase 5 seeding
+                        from app.scripts.seed_data.seed_phase5_analytics_ai import seed_phase5_analytics_ai
+                        results = seed_phase5_analytics_ai(session, user_ids, organization_ids)
                         session.commit()
-                        print("✅ Created project_id=1 for Phase 5 dependencies")
-                    else:
-                        print("✅ Project_id=1 already exists")
-                    
-                    # Get organization IDs for Phase 5
-                    org_result = session.execute(text("SELECT id FROM organizations"))
-                    organization_ids = [row[0] for row in org_result.fetchall()]
-                    if not organization_ids:
-                        organization_ids = [1]  # Fallback
-                    
-                    # Import and run the Phase 5 seeding
-                    from app.scripts.seed_data.seed_phase5_analytics_ai import seed_phase5_analytics_ai
-                    results = seed_phase5_analytics_ai(session, user_ids, organization_ids)
-                    session.commit()
-                    
-                    # GPT system is already seeded by seed_phase5_analytics_ai above
-                    # No need to call seed_gpt_system separately
-                    
-                    print("✅ Phase 5 advanced analytics & AI completed successfully!")
-                    print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
-                    print("🏆 All Phase 5 tables successfully seeded!")
-                except Exception as e:
-                    print(f"❌ CRITICAL ERROR: Phase 5 advanced analytics & AI seeding failed: {e}")
-                    print("🛑 STOPPING SCRIPT EXECUTION - Phase 5 is required for analytics features")
-                    print(f"Full error details: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    session.rollback()
-                    raise Exception(f"Phase 5 advanced analytics & AI seeding failed: {e}")
+
+                        # GPT system is already seeded by seed_phase5_analytics_ai above
+                        # No need to call seed_gpt_system separately
+
+                        print("✅ Phase 5 advanced analytics & AI completed successfully!")
+                        print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
+                        print("🏆 All Phase 5 tables successfully seeded!")
+                    except Exception as e:
+                        print(f"❌ CRITICAL ERROR: Phase 5 advanced analytics & AI seeding failed: {e}")
+                        print("🛑 STOPPING SCRIPT EXECUTION - Phase 5 is required for analytics features")
+                        print(f"Full error details: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                        raise Exception(f"Phase 5 advanced analytics & AI seeding failed: {e}")
+                else:
+                    print("⏭️  SKIP_PHASE_5 enabled: skipping Phase 5 advanced analytics & AI")
                 
                 # Phase 6: Movement & Performance Analysis
                 print("\n🎯 PHASE 6: MOVEMENT & PERFORMANCE ANALYSIS")
                 print("-" * 50)
-                try:
-                    from app.scripts.seed_data.seed_phase6_movement_performance import seed_phase6_movement_performance
-                    results = seed_phase6_movement_performance(session)
-                    session.commit()
-                    print("✅ Phase 6 movement & performance analysis completed successfully!")
-                    print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
-                    print("🏆 All Phase 6 tables successfully seeded!")
-                except Exception as e:
-                    print(f"❌ CRITICAL ERROR: Phase 6 movement & performance analysis seeding failed: {e}")
-                    print("🛑 STOPPING SCRIPT EXECUTION - Phase 6 is required for movement analysis")
-                    print(f"Full error details: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    session.rollback()
-                    raise Exception(f"Phase 6 movement & performance analysis seeding failed: {e}")
+                if not env_true('SKIP_PHASE_6'):
+                    try:
+                        from app.scripts.seed_data.seed_phase6_movement_performance import seed_phase6_movement_performance
+                        results = seed_phase6_movement_performance(session)
+                        session.commit()
+                        print("✅ Phase 6 movement & performance analysis completed successfully!")
+                        print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
+                        print("🏆 All Phase 6 tables successfully seeded!")
+                    except Exception as e:
+                        print(f"❌ CRITICAL ERROR: Phase 6 movement & performance analysis seeding failed: {e}")
+                        print("🛑 STOPPING SCRIPT EXECUTION - Phase 6 is required for movement analysis")
+                        print(f"Full error details: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                        raise Exception(f"Phase 6 movement & performance analysis seeding failed: {e}")
+                else:
+                    print("⏭️  SKIP_PHASE_6 enabled: skipping Phase 6 movement & performance analysis")
                 
                 # Phase 7: Specialized Features
                 print("\n🎯 PHASE 7: SPECIALIZED FEATURES")
                 print("-" * 50)
-                try:
-                    from app.scripts.seed_data.seed_phase7_specialized_features import seed_phase7_specialized_features
-                    results = seed_phase7_specialized_features(session)
-                    # Commit Phase 7 separately to avoid transaction abortion
+                if not env_true('SKIP_PHASE_7'):
                     try:
-                        session.commit()
-                        print("✅ Phase 7 specialized features completed successfully!")
-                        print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
-                        print("🏆 All Phase 7 tables successfully seeded!")
-                        
-                        # Verify Phase 7 data persistence
-                        print("🔍 Verifying Phase 7 data persistence...")
-                        phase7_verification = session.execute(text("SELECT COUNT(*) FROM pe_activity_adaptations")).scalar()
-                        print(f"  pe_activity_adaptations: {phase7_verification} records")
-                        
-                    except Exception as commit_error:
-                        print(f"⚠️ Phase 7 commit error (some records may not be saved): {commit_error}")
-                        session.rollback()
-                        # Try to commit individual successful tables
-                        print("🔄 Attempting to save successful Phase 7 records...")
+                        from app.scripts.seed_data.seed_phase7_specialized_features import seed_phase7_specialized_features
+                        results = seed_phase7_specialized_features(session)
+                        # Commit Phase 7 separately to avoid transaction abortion
                         try:
                             session.commit()
-                            print("✅ Phase 7 records saved successfully!")
-                        except:
-                            print("❌ Could not save Phase 7 records")
-                except Exception as e:
-                    print(f"❌ CRITICAL ERROR: Phase 7 specialized features seeding failed: {e}")
-                    print("🛑 STOPPING SCRIPT EXECUTION - Phase 7 is required for specialized features")
-                    print(f"Full error details: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    session.rollback()
-                    raise Exception(f"Phase 7 specialized features seeding failed: {e}")
+                            print("✅ Phase 7 specialized features completed successfully!")
+                            print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
+                            print("🏆 All Phase 7 tables successfully seeded!")
+
+                            # Verify Phase 7 data persistence
+                            print("🔍 Verifying Phase 7 data persistence...")
+                            phase7_verification = session.execute(text("SELECT COUNT(*) FROM pe_activity_adaptations")).scalar()
+                            print(f"  pe_activity_adaptations: {phase7_verification} records")
+
+                        except Exception as commit_error:
+                            print(f"⚠️ Phase 7 commit error (some records may not be saved): {commit_error}")
+                            session.rollback()
+                            # Try to commit individual successful tables
+                            print("🔄 Attempting to save successful Phase 7 records...")
+                            try:
+                                session.commit()
+                                print("✅ Phase 7 records saved successfully!")
+                            except:
+                                print("❌ Could not save Phase 7 records")
+                    except Exception as e:
+                        print(f"❌ CRITICAL ERROR: Phase 7 specialized features seeding failed: {e}")
+                        print("🛑 STOPPING SCRIPT EXECUTION - Phase 7 is required for specialized features")
+                        print(f"Full error details: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                        raise Exception(f"Phase 7 specialized features seeding failed: {e}")
+                else:
+                    print("⏭️  SKIP_PHASE_7 enabled: skipping Phase 7 specialized features")
                 
                 # Phase 8: Advanced Physical Education & Adaptations
                 print("\n🎯 PHASE 8: ADVANCED PHYSICAL EDUCATION & ADAPTATIONS")
                 print("-" * 50)
-                try:
-                    from app.scripts.seed_data.seed_phase8_complete_fixed import seed_phase8_complete_fixed
-                    results = seed_phase8_complete_fixed(session)
-                    # Commit Phase 8 separately to avoid transaction abortion
+                if not env_true('SKIP_PHASE_8'):
                     try:
-                        session.commit()
-                        print("✅ Phase 8 advanced PE & adaptations completed successfully!")
-                        print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
-                        print("🏆 All Phase 8 tables successfully seeded!")
-                    except Exception as commit_error:
-                        print(f"⚠️ Phase 8 commit error (some records may not be saved): {commit_error}")
-                        session.rollback()
-                        # Try to commit individual successful tables
-                        print("🔄 Attempting to save successful Phase 8 records...")
+                        from app.scripts.seed_data.seed_phase8_complete_fixed import seed_phase8_complete_fixed
+                        results = seed_phase8_complete_fixed(session)
+                        # Commit Phase 8 separately to avoid transaction abortion
                         try:
                             session.commit()
-                            print("✅ Phase 8 records saved successfully!")
-                        except:
-                            print("❌ Could not save Phase 8 records")
-                except Exception as e:
-                    print(f"❌ CRITICAL ERROR: Phase 8 advanced PE & adaptations seeding failed: {e}")
-                    print("🛑 STOPPING SCRIPT EXECUTION - Phase 8 is required for advanced PE features")
-                    print(f"Full error details: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    session.rollback()
-                    raise Exception(f"Phase 8 advanced PE & adaptations seeding failed: {e}")
+                            print("✅ Phase 8 advanced PE & adaptations completed successfully!")
+                            print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
+                            print("🏆 All Phase 8 tables successfully seeded!")
+                        except Exception as commit_error:
+                            print(f"⚠️ Phase 8 commit error (some records may not be saved): {commit_error}")
+                            session.rollback()
+                            # Try to commit individual successful tables
+                            print("🔄 Attempting to save successful Phase 8 records...")
+                            try:
+                                session.commit()
+                                print("✅ Phase 8 records saved successfully!")
+                            except:
+                                print("❌ Could not save Phase 8 records")
+                    except Exception as e:
+                        print(f"❌ CRITICAL ERROR: Phase 8 advanced PE & adaptations seeding failed: {e}")
+                        print("🛑 STOPPING SCRIPT EXECUTION - Phase 8 is required for advanced PE features")
+                        print(f"Full error details: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                        raise Exception(f"Phase 8 advanced PE & adaptations seeding failed: {e}")
+                else:
+                    print("⏭️  SKIP_PHASE_8 enabled: skipping Phase 8 advanced PE & adaptations")
                 
                 # Phase 9: Health & Fitness System
                 print("\n🎯 PHASE 9: HEALTH & FITNESS SYSTEM")
                 print("-" * 50)
-                try:
-                    from app.scripts.seed_data.seed_phase9_health_fitness import seed_phase9_health_fitness
-                    results = seed_phase9_health_fitness(session)
-                    # Commit Phase 9 separately to avoid transaction abortion
+                if not env_true('SKIP_PHASE_9'):
                     try:
-                        session.commit()
-                        print("✅ Phase 9 health & fitness system completed successfully!")
-                        print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
-                        print("🏆 All Phase 9 tables successfully seeded!")
-                    except Exception as commit_error:
-                        print(f"⚠️ Phase 9 commit error (some records may not be saved): {commit_error}")
-                        session.rollback()
-                        # Try to commit individual successful tables
-                        print("🔄 Attempting to save successful Phase 9 records...")
+                        from app.scripts.seed_data.seed_phase9_health_fitness import seed_phase9_health_fitness
+                        results = seed_phase9_health_fitness(session)
+                        # Commit Phase 9 separately to avoid transaction abortion
                         try:
                             session.commit()
-                            print("✅ Phase 9 records saved successfully!")
-                        except:
-                            print("❌ Could not save Phase 9 records")
-                except Exception as e:
-                    print(f"❌ CRITICAL ERROR: Phase 9 health & fitness system seeding failed: {e}")
-                    print("🛑 STOPPING SCRIPT EXECUTION - Phase 9 is required for health & fitness features")
-                    print(f"Full error details: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    session.rollback()
-                    raise Exception(f"Phase 9 health & fitness system seeding failed: {e}")
+                            print("✅ Phase 9 health & fitness system completed successfully!")
+                            print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
+                            print("🏆 All Phase 9 tables successfully seeded!")
+                        except Exception as commit_error:
+                            print(f"⚠️ Phase 9 commit error (some records may not be saved): {commit_error}")
+                            session.rollback()
+                            # Try to commit individual successful tables
+                            print("🔄 Attempting to save successful Phase 9 records...")
+                            try:
+                                session.commit()
+                                print("✅ Phase 9 records saved successfully!")
+                            except:
+                                print("❌ Could not save Phase 9 records")
+                    except Exception as e:
+                        print(f"❌ CRITICAL ERROR: Phase 9 health & fitness system seeding failed: {e}")
+                        print("🛑 STOPPING SCRIPT EXECUTION - Phase 9 is required for health & fitness features")
+                        print(f"Full error details: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                        raise Exception(f"Phase 9 health & fitness system seeding failed: {e}")
+                else:
+                    print("⏭️  SKIP_PHASE_9 enabled: skipping Phase 9 health & fitness")
                 
                 # Phase 10: Assessment & Skill Management
-                
+
                 print("\n🎯 PHASE 10: ASSESSMENT & SKILL MANAGEMENT")
                 print("-" * 50)
-                try:
-                    from app.scripts.seed_data.seed_phase10_assessment_skill_management import seed_phase10_assessment_skill_management
-                    success = seed_phase10_assessment_skill_management(session)
-                    # Commit Phase 10 separately to avoid transaction abortion
+                if not env_true('SKIP_PHASE_10'):
                     try:
-                        session.commit()
-                        if success:
-                            print("✅ Phase 10 assessment & skill management completed successfully!")
-                            print("🏆 All Phase 10 tables successfully seeded!")
-                        else:
-                            print("⚠️ Phase 10 partially completed - some tables failed")
-                            print("🔄 Attempting to save successful Phase 10 records...")
-                    except Exception as commit_error:
-                        print(f"⚠️ Phase 10 commit error (some records may not be saved): {commit_error}")
-                        session.rollback()
-                        # Try to commit individual successful tables
-                        print("🔄 Attempting to save successful Phase 10 records...")
+                        from app.scripts.seed_data.seed_phase10_assessment_skill_management import seed_phase10_assessment_skill_management
+                        success = seed_phase10_assessment_skill_management(session)
+                        # Commit Phase 10 separately to avoid transaction abortion
                         try:
                             session.commit()
-                            print("✅ Phase 10 records saved successfully!")
-                        except:
-                            print("❌ Could not save Phase 10 records")
-                    
-                    # Verify Phase 7 data is still intact after Phase 10
-                    print("🔍 Verifying Phase 7 data integrity after Phase 10...")
-                    try:
-                        phase7_check = session.execute(text("SELECT COUNT(*) FROM pe_activity_adaptations")).scalar()
-                        print(f"  pe_activity_adaptations after Phase 10: {phase7_check} records")
-                        if phase7_check == 0:
-                            print("⚠️ WARNING: Phase 7 data was rolled back by Phase 10!")
-                        else:
-                            print("✅ Phase 7 data intact after Phase 10")
+                            if success:
+                                print("✅ Phase 10 assessment & skill management completed successfully!")
+                                print("🏆 All Phase 10 tables successfully seeded!")
+                            else:
+                                print("⚠️ Phase 10 partially completed - some tables failed")
+                                print("🔄 Attempting to save successful Phase 10 records...")
+                        except Exception as commit_error:
+                            print(f"⚠️ Phase 10 commit error (some records may not be saved): {commit_error}")
+                            session.rollback()
+                            # Try to commit individual successful tables
+                            print("🔄 Attempting to save successful Phase 10 records...")
+                            try:
+                                session.commit()
+                                print("✅ Phase 10 records saved successfully!")
+                            except:
+                                print("❌ Could not save Phase 10 records")
+
+                        # Verify Phase 7 data is still intact after Phase 10
+                        print("🔍 Verifying Phase 7 data integrity after Phase 10...")
+                        try:
+                            phase7_check = session.execute(text("SELECT COUNT(*) FROM pe_activity_adaptations")).scalar()
+                            print(f"  pe_activity_adaptations after Phase 10: {phase7_check} records")
+                            if phase7_check == 0:
+                                print("⚠️ WARNING: Phase 7 data was rolled back by Phase 10!")
+                            else:
+                                print("✅ Phase 7 data intact after Phase 10")
+                        except Exception as e:
+                            print(f"⚠️ Could not verify Phase 7 data: {e}")
                     except Exception as e:
-                        print(f"⚠️ Could not verify Phase 7 data: {e}")
-                except Exception as e:
-                    print(f"❌ CRITICAL ERROR: Phase 10 assessment & skill management seeding failed: {e}")
-                    print("🛑 STOPPING SCRIPT EXECUTION - Phase 10 is required for assessment features")
-                    print(f"Full error details: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    session.rollback()
-                    raise Exception(f"Phase 10 assessment & skill management seeding failed: {e}")
+                        print(f"❌ CRITICAL ERROR: Phase 10 assessment & skill management seeding failed: {e}")
+                        print("🛑 STOPPING SCRIPT EXECUTION - Phase 10 is required for assessment features")
+                        print(f"Full error details: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                        raise Exception(f"Phase 10 assessment & skill management seeding failed: {e}")
+                else:
+                    print("⏭️  SKIP_PHASE_10 enabled: skipping Phase 10 assessment & skill management")
                 
                 # Phase 11: Advanced System Features
                 print("\n🚀 PHASE 11: ADVANCED SYSTEM FEATURES")
                 print("-" * 50)
-                try:
-                    print("🔄 Running Phase 11 advanced system features...")
-                    results = seed_phase11_advanced_system_features(session)
-                    # Commit Phase 11 separately to avoid transaction abortion
+                if not env_true('SKIP_PHASE_11'):
                     try:
-                        session.commit()
-                        print("✅ Phase 11 advanced system features completed successfully!")
-                        print(f"🎉 Created {sum(results.values()):,} records across {len(results)} tables")
-                        print("🏆 All Phase 11 tables successfully seeded!")
-                    except Exception as commit_error:
-                        print(f"⚠️ Phase 11 commit error (some records may not be saved): {commit_error}")
-                        session.rollback()
-                        # Try to commit individual successful tables
-                        print("🔄 Attempting to save successful Phase 11 records...")
+                        print("🔄 Running Phase 11 advanced system features...")
+                        results = seed_phase11_advanced_system_features(session)
+                        # Commit Phase 11 separately to avoid transaction abortion
                         try:
                             session.commit()
-                            print("✅ Phase 11 records saved successfully!")
-                        except:
-                            print("❌ Could not save Phase 11 records")
-                except Exception as e:
-                    print(f"❌ ERROR: Phase 11 advanced system features seeding failed: {e}")
-                    print("⚠️  Continuing with remaining phases - Phase 11 can be run separately")
-                    print(f"Full error details: {str(e)}")
-                    import traceback
-                    traceback.print_exc()
-                    session.rollback()
-                    # Don't stop execution, just log the error and continue
-                    print("🔄 Phase 11 will be skipped, continuing with remaining phases...")
+                            print("✅ Phase 11 advanced system features completed successfully!")
+                            print(f"🎉 Created {sum(results.values()):,} records across {len(results)} tables")
+                            print("🏆 All Phase 11 tables successfully seeded!")
+                        except Exception as commit_error:
+                            print(f"⚠️ Phase 11 commit error (some records may not be saved): {commit_error}")
+                            session.rollback()
+                            # Try to commit individual successful tables
+                            print("🔄 Attempting to save successful Phase 11 records...")
+                            try:
+                                session.commit()
+                                print("✅ Phase 11 records saved successfully!")
+                            except:
+                                print("❌ Could not save Phase 11 records")
+                    except Exception as e:
+                        print(f"❌ ERROR: Phase 11 advanced system features seeding failed: {e}")
+                        print("⚠️  Continuing with remaining phases - Phase 11 can be run separately")
+                        print(f"Full error details: {str(e)}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                        # Don't stop execution, just log the error and continue
+                        print("🔄 Phase 11 will be skipped, continuing with remaining phases...")
+                else:
+                    print("⏭️  SKIP_PHASE_11 enabled: skipping Phase 11 advanced system features")
                 
                 # Performance tracking summary
                 print("\n" + "="*50)
@@ -1871,7 +1922,25 @@ def seed_database():
                     print(f"📊 Assessment Criteria: {total_assessment_criteria} criteria")
                     print(f"📊 Skill Assessments: {total_skill_assessments} assessments")
                     print(f"📊 Skill Progress: {total_skill_progress} progress records")
-                
+                # Refresh planner stats on key tables
+                try:
+                    print("\n🧮 Running ANALYZE on key tables...")
+                    analyze_tables = [
+                        'students',
+                        'student_school_enrollments',
+                        'courses',
+                        'course_enrollments'
+                    ]
+                    for t in analyze_tables:
+                        try:
+                            session.execute(text(f"ANALYZE {t}"))
+                        except Exception as e:
+                            print(f"⚠️  ANALYZE failed for {t}: {e}")
+                    session.commit()
+                    print("✅ ANALYZE complete")
+                except Exception as e:
+                    print(f"⚠️  Could not run ANALYZE: {e}")
+
                 print("="*50)
                 
                 

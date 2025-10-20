@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import random
+import os
 from typing import List
 from sqlalchemy.orm import Session
 from app.models.core.core_models import (
@@ -14,6 +15,13 @@ from sqlalchemy import text
 
 def seed_students(session):
     """Seed the students table with 2,500+ students for our 6-school district structure."""
+    # Optional deterministic RNG for reproducible seeding
+    rng_seed = os.getenv("SEED_RNG")
+    if rng_seed is not None and rng_seed != "":
+        try:
+            random.seed(int(rng_seed))
+        except Exception:
+            random.seed(rng_seed)
     
     # Check if students already exist - if so, skip seeding to preserve existing data
     result = session.execute(text("SELECT COUNT(*) FROM students"))
@@ -110,6 +118,11 @@ def seed_students(session):
     # Generate students for each school
     student_id = 1001  # Start with 1001 to avoid conflicts
     
+    # Env caps for development runs
+    max_total_students = os.getenv("MAX_TOTAL_STUDENTS")
+    max_total_students = int(max_total_students) if max_total_students else None
+    generated_total = 0
+
     for school_name, school_id, min_grade, max_grade in schools:
         # Calculate target students per school based on capacity
         if min_grade == "K" and max_grade == "5":  # Elementary
@@ -131,6 +144,8 @@ def seed_students(session):
                 students_per_grade = target_students // 4  # 9, 10, 11, 12 = 4 grades
             
             for i in range(students_per_grade):
+                if max_total_students is not None and generated_total >= max_total_students:
+                    break
                 # Randomly select gender
                 gender = random.choice([Gender.MALE, Gender.FEMALE])
                 first_names = first_names_male if gender == Gender.MALE else first_names_female
@@ -182,6 +197,11 @@ def seed_students(session):
                 
                 students.append(student_data)
                 student_id += 1
+                generated_total += 1
+            if max_total_students is not None and generated_total >= max_total_students:
+                break
+        if max_total_students is not None and generated_total >= max_total_students:
+            break
 
     # Create and add students in batches to avoid connection timeouts
     created_students = []
