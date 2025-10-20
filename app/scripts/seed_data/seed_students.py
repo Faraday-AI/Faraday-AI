@@ -15,11 +15,15 @@ from sqlalchemy import text
 def seed_students(session):
     """Seed the students table with 2,500+ students for our 6-school district structure."""
     
-    # First delete existing students and related data to avoid foreign key violations
-    print("Clearing existing student data...")
+    # Check if students already exist - if so, skip seeding to preserve existing data
+    result = session.execute(text("SELECT COUNT(*) FROM students"))
+    existing_students = result.scalar()
     
-    # Note: No need to delete existing data - initial cascade drop cleared everything
-    # All data should be additive from this point forward
+    if existing_students > 0:
+        print(f"✅ Students already exist ({existing_students} students), preserving existing data...")
+        return []
+    
+    print("Seeding new student data...")
     
     # Note: Students table was already cleared by initial cascade drop
     
@@ -349,6 +353,109 @@ def seed_students(session):
     
     session.commit()
     print(f"Created {enrollments_created} school enrollments")
+    
+    # Relative rule: ensure High >= Middle + one grade worth of students
+    GRADE_SIZE = 420
+    
+    # Helper to get school IDs by type
+    def get_school_ids_by_type(school_type: str):
+        rows = session.execute(text("SELECT id FROM schools WHERE school_type = :t ORDER BY name"), {"t": school_type}).fetchall()
+        return [r.id for r in rows]
+    
+    # Helper to count students for a school
+    def count_students_for_school(school_id: int) -> int:
+        return session.execute(text("SELECT COUNT(*) FROM student_school_enrollments WHERE school_id = :sid"), {"sid": school_id}).scalar() or 0
+    
+    # Helper to move N students between schools
+    def move_students(src_school_id: int, dst_school_id: int, num_to_move: int) -> int:
+        if num_to_move <= 0:
+            return 0
+        ids = session.execute(
+            text("SELECT student_id FROM student_school_enrollments WHERE school_id = :sid LIMIT :lim"),
+            {"sid": src_school_id, "lim": num_to_move}
+        ).fetchall()
+        moved = 0
+        for row in ids:
+            session.execute(
+                text("UPDATE student_school_enrollments SET school_id = :dst WHERE student_id = :stu AND school_id = :src"),
+                {"dst": dst_school_id, "stu": row.student_id, "src": src_school_id}
+            )
+            moved += 1
+        session.commit()
+        return moved
+    
+    try:
+        # Identify schools
+        elementary_ids = get_school_ids_by_type('ELEMENTARY')
+        middle_ids = get_school_ids_by_type('MIDDLE')
+        high_ids = get_school_ids_by_type('HIGH')
+        
+        if middle_ids and high_ids and elementary_ids:
+            middle_id = middle_ids[0]
+            high_id = high_ids[0]
+
+            # Ensure High has at least one grade more students than Middle.
+            safety_loops = 0
+            while safety_loops < 20:
+                cur_mid = count_students_for_school(middle_id)
+                cur_high = count_students_for_school(high_id)
+                required = (cur_mid + GRADE_SIZE) - cur_high
+                if required <= 0:
+                    break
+                # Pull from middle first
+                moved = move_students(middle_id, high_id, min(required, 500))
+                required -= moved
+                if required > 0:
+                    # Pull remainder from elementaries round-robin
+                    idx = 0
+                    while required > 0 and elementary_ids:
+                        src = elementary_ids[idx % len(elementary_ids)]
+                        did = move_students(src, high_id, min(required, 200))
+                        required -= did
+                        idx += 1
+                safety_loops += 1
+            
+            # 3) Evenly rebalance elementaries with remaining students
+            elem_counts = [(sid, count_students_for_school(sid)) for sid in elementary_ids]
+            total_elem = sum(c for _, c in elem_counts)
+            if elementary_ids:
+                target_each = total_elem // len(elementary_ids)
+                # Bring every elementary close to target_each by moving from overfull to underfull
+                # Loop a few passes to converge
+                for _ in range(3):
+                    elem_counts = [(sid, count_students_for_school(sid)) for sid in elementary_ids]
+                    overfull = [(sid, c - target_each) for sid, c in elem_counts if c > target_each]
+                    underfull = [(sid, target_each - c) for sid, c in elem_counts if c < target_each]
+                    if not overfull or not underfull:
+                        break
+                    oi = 0
+                    ui = 0
+                    while oi < len(overfull) and ui < len(underfull):
+                        src, extra = overfull[oi]
+                        dst, need = underfull[ui]
+                        moved = move_students(src, dst, min(extra, need, 200))
+                        overfull[oi] = (src, extra - moved)
+                        underfull[ui] = (dst, need - moved)
+                        if overfull[oi][1] <= 0:
+                            oi += 1
+                        if underfull[ui][1] <= 0:
+                            ui += 1
+        
+        # Final report
+        print("\n📊 OVERALL SCHOOL DISTRIBUTION (post-balancing):")
+        rows = session.execute(text(
+            """
+            SELECT s.name, s.school_type, COUNT(e.student_id) AS student_count
+            FROM schools s
+            LEFT JOIN student_school_enrollments e ON s.id = e.school_id
+            GROUP BY s.id, s.name, s.school_type
+            ORDER BY s.school_type, s.name
+            """
+        )).fetchall()
+        for r in rows:
+            print(f"  {r.name} ({r.school_type}): {r.student_count} students")
+    except Exception as e:
+        print(f"Post-enrollment balancing skipped due to error: {e}")
     
     # Print students by school
     try:

@@ -32,7 +32,7 @@ def seed_district_consistency():
     print('=' * 60)
 
     try:
-        # 1. SCHOOLS (6 → 8 elementary schools)
+        # 1. SCHOOLS (ensure we have 6 schools total)
         print('\n🏫 1. ENHANCING SCHOOLS (Elementary District)')
         print('-' * 40)
         
@@ -41,16 +41,13 @@ def seed_district_consistency():
         current_count = result.fetchone()[0]
         print(f"Current schools: {current_count}")
         
-        if current_count < 8:
+        # Only add schools if we have fewer than 6 (our target structure)
+        if current_count < 6:
             elementary_schools = [
                 "Lincoln Elementary School",
                 "Washington Elementary School", 
                 "Roosevelt Elementary School",
-                "Jefferson Elementary School",
-                "Madison Elementary School",
-                "Adams Elementary School",
-                "Jackson Elementary School",
-                "Monroe Elementary School"
+                "Jefferson Elementary School"
             ]
             
             for i, school_name in enumerate(elementary_schools[current_count:], start=current_count + 1):
@@ -85,9 +82,9 @@ def seed_district_consistency():
                     'updated_at': datetime.now()
                 })
             
-            print(f"✅ Added {8 - current_count} elementary schools")
+            print(f"✅ Added {6 - current_count} elementary schools")
 
-        # 2. ORGANIZATIONS (1 → 8, one per school)
+        # 2. ORGANIZATIONS (1 → 6, one per school)
         print('\n🏢 2. ENHANCING ORGANIZATIONS')
         print('-' * 40)
         
@@ -95,7 +92,7 @@ def seed_district_consistency():
         current_count = result.fetchone()[0]
         print(f"Current organizations: {current_count}")
         
-        if current_count < 8:
+        if current_count < 6:
             # Get school IDs
             result = session.execute(text("SELECT id, name FROM schools ORDER BY id"))
             schools = result.fetchall()
@@ -117,7 +114,7 @@ def seed_district_consistency():
                     'updated_at': datetime.now()
                 })
             
-            print(f"✅ Added {8 - current_count} school organizations")
+            print(f"✅ Added {6 - current_count} school organizations")
 
         # 3. DEPARTMENTS (8 → 80, 10 per school)
         print('\n🏛️ 3. ENHANCING DEPARTMENTS')

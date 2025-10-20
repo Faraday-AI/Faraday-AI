@@ -1276,7 +1276,7 @@ def seed_database():
                 print("🌱 PHASE 1: FOUNDATION & CORE INFRASTRUCTURE")
                 print("="*50)
                 try:
-                    from app.scripts.seed_data.seed_phase1_foundation import seed_phase1_foundation
+                    from app.scripts.seed_data.seed_phase1_foundation_fixed import seed_phase1_foundation
                     seed_phase1_foundation(session)
                     session.commit()
                     print("✅ Phase 1 foundation & core infrastructure completed successfully!")

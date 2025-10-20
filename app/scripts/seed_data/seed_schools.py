@@ -18,7 +18,15 @@ import random
 def seed_schools(session):
     """Seed the schools table with our 6-school district structure."""
     
-    # First delete existing schools and related data - use safer deletion
+    # Check if schools already exist - if so, skip seeding to preserve existing data
+    result = session.execute(text("SELECT COUNT(*) FROM schools"))
+    existing_schools = result.scalar()
+    
+    if existing_schools > 0:
+        print(f"✅ Schools already exist ({existing_schools} schools), preserving existing data...")
+        return []
+    
+    # Only delete related data if we're creating new schools
     try:
         session.execute(text("DELETE FROM school_facilities"))
     except:
@@ -29,56 +37,67 @@ def seed_schools(session):
     except:
         pass  # Table doesn't exist yet
     
-    try:
-        session.execute(text("DELETE FROM student_school_enrollments"))
-    except:
-        pass  # Table doesn't exist yet
-    
-    try:
-        session.execute(text("DELETE FROM class_school_assignments"))
-    except:
-        pass  # Table doesn't exist yet
-    
-    try:
-        session.execute(text("DELETE FROM school_academic_years"))
-    except:
-        pass  # Table doesn't exist yet
-    
-    try:
-        session.execute(text("DELETE FROM schools"))
-    except:
-        pass  # Table doesn't exist yet
-    
     # Set up academic year - check if it already exists
     current_year = datetime.now().year
     academic_year = f"{current_year}-{current_year + 1}"
     
-    # Check if academic year already exists
-    existing_year = session.execute(text("SELECT id FROM school_academic_years WHERE academic_year = :year"), 
-                                   {"year": academic_year}).fetchone()
-    
-    if existing_year:
-        print(f"  📋 Academic year {academic_year} already exists, using existing record")
-        academic_year_id = existing_year[0]
-    else:
-        print(f"  📝 Creating new academic year {academic_year}")
-        start_date = datetime(current_year, 9, 1)  # September 1st
-        end_date = datetime(current_year + 1, 6, 15)  # June 15th next year
+    # Check if academic year already exists - use UPSERT approach
+    try:
+        # First try to find existing academic year
+        existing_year = session.execute(text("SELECT id FROM school_academic_years WHERE academic_year = :year"), 
+                                       {"year": academic_year}).fetchone()
         
-        # Create academic year
-        academic_year_record = SchoolAcademicYear(
-            academic_year=academic_year,
-            start_date=start_date,
-            end_date=end_date,
-            is_current=True,
-            status="ACTIVE",
-            description=f"Academic Year {academic_year}",
-            special_events="Olympics Week, Fitness Challenge, Sports Tournament, Wellness Fair",
-            notes="Standard academic year with enhanced PE programs"
-        )
-        session.add(academic_year_record)
-        session.flush()  # Get the ID
-        academic_year_id = academic_year_record.id
+        if existing_year:
+            print(f"  📋 Academic year {academic_year} already exists, using existing record")
+            academic_year_id = existing_year[0]
+        else:
+            print(f"  📝 Creating new academic year {academic_year}")
+            start_date = datetime(current_year, 9, 1)  # September 1st
+            end_date = datetime(current_year + 1, 6, 15)  # June 15th next year
+            
+            # Use INSERT ... ON CONFLICT to handle potential race conditions
+            try:
+                result = session.execute(text("""
+                    INSERT INTO school_academic_years 
+                    (academic_year, start_date, end_date, is_current, status, description, special_events, notes, created_at, updated_at)
+                    VALUES (:academic_year, :start_date, :end_date, :is_current, :status, :description, :special_events, :notes, :created_at, :updated_at)
+                    ON CONFLICT (academic_year) DO UPDATE SET
+                        start_date = EXCLUDED.start_date,
+                        end_date = EXCLUDED.end_date,
+                        is_current = EXCLUDED.is_current,
+                        status = EXCLUDED.status,
+                        description = EXCLUDED.description,
+                        special_events = EXCLUDED.special_events,
+                        notes = EXCLUDED.notes,
+                        updated_at = EXCLUDED.updated_at
+                    RETURNING id
+                """), {
+                    "academic_year": academic_year,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "is_current": True,
+                    "status": "ACTIVE",
+                    "description": f"Academic Year {academic_year}",
+                    "special_events": "Olympics Week, Fitness Challenge, Sports Tournament, Wellness Fair",
+                    "notes": "Standard academic year with enhanced PE programs",
+                    "created_at": datetime.now(),
+                    "updated_at": datetime.now()
+                })
+                academic_year_id = result.fetchone()[0]
+                print(f"  ✅ Academic year {academic_year} created/updated with ID: {academic_year_id}")
+            except Exception as insert_error:
+                print(f"  ⚠️  Insert failed, trying to find existing: {insert_error}")
+                # Fallback: try to find the academic year again
+                existing_year = session.execute(text("SELECT id FROM school_academic_years WHERE academic_year = :year"), 
+                                               {"year": academic_year}).fetchone()
+                if existing_year:
+                    academic_year_id = existing_year[0]
+                    print(f"  ✅ Found existing academic year with ID: {academic_year_id}")
+                else:
+                    raise insert_error
+    except Exception as e:
+        print(f"  ❌ Failed to handle academic year: {e}")
+        raise e
     
     # Create the 6 schools
     schools = [
