@@ -1,6 +1,8 @@
 """
-Teacher Dashboard Service
+Beta Teacher Dashboard Service
 Handles personal workspace, activity analytics, and dashboard management for beta teachers
+This is a separate system from the main teacher dashboard, designed to work independently
+without school district or student data.
 """
 
 from typing import List, Optional, Dict, Any, Tuple
@@ -10,8 +12,8 @@ from sqlalchemy import and_, or_, func, desc, asc, text
 import uuid
 import json
 
-from app.models.teacher_dashboard import (
-    DashboardWidget,
+from app.models.beta_teacher_dashboard import (
+    BetaDashboardWidget,
     TeacherDashboardLayout,
     DashboardWidgetInstance,
     TeacherActivityLog,
@@ -19,20 +21,21 @@ from app.models.teacher_dashboard import (
     TeacherAchievement,
     TeacherAchievementProgress,
     TeacherQuickAction,
-    TeacherPreference,
+    BetaTeacherPreference,
     TeacherStatistics,
     TeacherGoal,
     TeacherLearningPath,
     LearningPathStep
 )
-from app.schemas.teacher_dashboard import (
-    DashboardWidgetResponse,
+from app.schemas.beta_teacher_dashboard import (
+    DashboardConfigResponse,
+    BetaDashboardWidgetResponse,
     TeacherDashboardLayoutCreate,
     TeacherDashboardLayoutUpdate,
     TeacherDashboardLayoutResponse,
-    DashboardWidgetInstanceCreate,
-    DashboardWidgetInstanceUpdate,
-    DashboardWidgetInstanceResponse,
+    BetaDashboardWidgetInstanceCreate,
+    BetaDashboardWidgetInstanceUpdate,
+    BetaDashboardWidgetInstanceResponse,
     TeacherActivityLogCreate,
     TeacherActivityLogResponse,
     TeacherNotificationResponse,
@@ -41,9 +44,9 @@ from app.schemas.teacher_dashboard import (
     TeacherQuickActionCreate,
     TeacherQuickActionUpdate,
     TeacherQuickActionResponse,
-    TeacherPreferenceCreate,
-    TeacherPreferenceUpdate,
-    TeacherPreferenceResponse,
+    BetaTeacherPreferenceCreate,
+    BetaTeacherPreferenceUpdate,
+    BetaTeacherPreferenceResponse,
     TeacherStatisticsResponse,
     TeacherGoalCreate,
     TeacherGoalUpdate,
@@ -54,13 +57,282 @@ from app.schemas.teacher_dashboard import (
     LearningPathStepCreate,
     LearningPathStepResponse,
     DashboardAnalyticsResponse,
-    TeacherDashboardSummaryResponse
+    TeacherDashboardSummaryResponse,
+    DashboardLayoutUpdate,
+    DashboardPreferencesUpdate,
+    BetaDashboardWidgetConfigUpdate,
+    DashboardFeedbackResponse
 )
 
 
-class TeacherDashboardService:
+class BetaTeacherDashboardService:
     def __init__(self, db: Session):
         self.db = db
+
+    # ==================== DASHBOARD CONFIGURATION (Endpoint Methods) ====================
+    
+    def get_dashboard(self, teacher_id: str) -> DashboardConfigResponse:
+        """Get teacher's dashboard configuration"""
+        # Get default layout or create one
+        layout = self.get_default_dashboard_layout(teacher_id)
+        if not layout:
+            # Create default layout if none exists
+            default_layout = TeacherDashboardLayoutCreate(
+                layout_name="Default Layout",
+                layout_description="Default dashboard layout",
+                is_default=True
+            )
+            layout = self.create_dashboard_layout(teacher_id, default_layout)
+        
+        return DashboardConfigResponse(
+            id=str(layout.id),
+            teacher_id=teacher_id,
+            layout_name=layout.layout_name,
+            layout_config={"widgets": [wi.model_dump() for wi in layout.widget_instances]} if hasattr(layout, 'widget_instances') else {},
+            is_default=getattr(layout, 'is_default', False),
+            is_active=getattr(layout, 'is_active', True),
+            created_at=getattr(layout, 'created_at', datetime.utcnow()),
+            updated_at=getattr(layout, 'updated_at', datetime.utcnow())
+        )
+    
+    def update_dashboard(self, teacher_id: str, update_data: DashboardLayoutUpdate) -> DashboardConfigResponse:
+        """Update teacher's dashboard"""
+        layout = self.get_default_dashboard_layout(teacher_id)
+        if not layout:
+            raise Exception("Dashboard not found")
+        
+        # Update layout with new data
+        layout_data = TeacherDashboardLayoutUpdate(**update_data.dict(exclude_unset=True))
+        updated_layout = self.update_dashboard_layout(layout.id, teacher_id, layout_data)
+        
+        return DashboardConfigResponse(
+            id=str(updated_layout.id),
+            teacher_id=teacher_id,
+            layout_name=updated_layout.layout_name,
+            layout_config={"widgets": [wi.model_dump() for wi in updated_layout.widget_instances]} if hasattr(updated_layout, 'widget_instances') else {},
+            is_default=getattr(updated_layout, 'is_default', False),
+            is_active=getattr(updated_layout, 'is_active', True),
+            created_at=getattr(updated_layout, 'created_at', datetime.utcnow()),
+            updated_at=getattr(updated_layout, 'updated_at', datetime.utcnow())
+        )
+    
+    def get_dashboard_widgets(self, teacher_id: str, widget_type: Optional[str], is_active: Optional[bool], limit: int, offset: int) -> List[BetaDashboardWidgetResponse]:
+        """Get teacher's dashboard widgets"""
+        query = self.db.query(BetaDashboardWidget)
+        
+        if widget_type:
+            query = query.filter(BetaDashboardWidget.widget_type == widget_type)
+        if is_active is not None:
+            query = query.filter(BetaDashboardWidget.is_active == is_active)
+        
+        widgets = query.order_by(asc(BetaDashboardWidget.created_at)).offset(offset).limit(limit).all()
+        return [self._widget_to_response(widget) for widget in widgets]
+    
+    def get_dashboard_widget(self, widget_id: str, teacher_id: str) -> Optional[BetaDashboardWidgetResponse]:
+        """Get specific widget"""
+        widget = self.db.query(BetaDashboardWidget).filter(BetaDashboardWidget.id == widget_id).first()
+        return self._widget_to_response(widget) if widget else None
+    
+    def update_dashboard_widget(self, widget_id: str, teacher_id: str, update_data: BetaDashboardWidgetConfigUpdate) -> Optional[BetaDashboardWidgetResponse]:
+        """Update widget configuration"""
+        widget = self.db.query(BetaDashboardWidget).filter(BetaDashboardWidget.id == widget_id).first()
+        if not widget:
+            return None
+        
+        # Update widget fields
+        for field, value in update_data.dict(exclude_unset=True).items():
+            setattr(widget, field, value)
+        
+        widget.updated_at = datetime.utcnow()
+        self.db.commit()
+        
+        return self._widget_to_response(widget)
+    
+    def activate_widget(self, widget_id: str, teacher_id: str) -> Optional[BetaDashboardWidgetResponse]:
+        """Activate a widget"""
+        widget = self.db.query(BetaDashboardWidget).filter(BetaDashboardWidget.id == widget_id).first()
+        if not widget:
+            return None
+        
+        widget.is_active = True
+        widget.updated_at = datetime.utcnow()
+        self.db.commit()
+        
+        return self._widget_to_response(widget)
+    
+    def deactivate_widget(self, widget_id: str, teacher_id: str) -> Optional[BetaDashboardWidgetResponse]:
+        """Deactivate a widget"""
+        widget = self.db.query(BetaDashboardWidget).filter(BetaDashboardWidget.id == widget_id).first()
+        if not widget:
+            return None
+        
+        widget.is_active = False
+        widget.updated_at = datetime.utcnow()
+        self.db.commit()
+        
+        return self._widget_to_response(widget)
+    
+    def get_widget_analytics(self, teacher_id: str, widget_id: Optional[str], days: int) -> Dict[str, Any]:
+        """Get widget analytics"""
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        query = self.db.query(
+            TeacherActivityLog.activity_type,
+            func.count(TeacherActivityLog.id).label('count')
+        ).filter(
+            and_(
+                TeacherActivityLog.teacher_id == teacher_id,
+                TeacherActivityLog.created_at >= start_date
+            )
+        )
+        
+        if widget_id:
+            query = query.filter(TeacherActivityLog.resource_id == widget_id)
+        
+        results = query.group_by(TeacherActivityLog.activity_type).all()
+        
+        return {
+            "analytics": {item.activity_type: item.count for item in results},
+            "period_days": days,
+            "widget_id": widget_id
+        }
+    
+    def submit_dashboard_feedback(self, teacher_id: str, feedback_data: Dict[str, Any]) -> DashboardFeedbackResponse:
+        """Submit dashboard feedback"""
+        # This is a placeholder implementation
+        # In a real system, this would save to a feedback table
+        feedback_id = str(uuid.uuid4())
+        
+        return DashboardFeedbackResponse(
+            id=feedback_id,
+            teacher_id=teacher_id,
+            feedback_type=feedback_data.get("feedback_type", "general"),
+            feedback_text=feedback_data.get("feedback_text", ""),
+            rating=feedback_data.get("rating"),
+            created_at=datetime.utcnow()
+        )
+    
+    def get_dashboard_feedback(self, teacher_id: str, feedback_type: Optional[str], limit: int, offset: int) -> List[DashboardFeedbackResponse]:
+        """Get dashboard feedback"""
+        # This is a placeholder implementation
+        # In a real system, this would query a feedback table
+        return []
+    
+    def get_dashboard_preferences(self, teacher_id: str) -> Dict[str, Any]:
+        """Get dashboard preferences"""
+        preferences = self.get_teacher_preferences(teacher_id)
+        prefs_dict = {}
+        for pref in preferences:
+            prefs_dict[pref.preference_key] = pref.preference_value
+        
+        return prefs_dict
+    
+    def update_dashboard_preferences(self, teacher_id: str, update_data: DashboardPreferencesUpdate) -> Dict[str, Any]:
+        """Update dashboard preferences"""
+        prefs_dict = update_data.dict(exclude_unset=True)
+        
+        # Update preferences
+        for key, value in prefs_dict.items():
+            if key == "preferences" and isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    pref_data = BetaTeacherPreferenceCreate(
+                        preference_key=sub_key,
+                        preference_value=str(sub_value),
+                        preference_type="string"
+                    )
+                    self.set_teacher_preference(teacher_id, pref_data)
+        
+        # Get updated preferences
+        return self.get_dashboard_preferences(teacher_id)
+    
+    def get_beta_widgets(self, widget_type: Optional[str], is_active: Optional[bool], limit: int, offset: int) -> List[BetaDashboardWidgetResponse]:
+        """Get all beta widgets (330 widgets from beta_widgets table)"""
+        # Query beta_widgets table
+        from app.models.beta_widgets import BetaWidget
+        
+        query = self.db.query(BetaWidget)
+        
+        if widget_type:
+            query = query.filter(BetaWidget.widget_type == widget_type)
+        if is_active is not None:
+            query = query.filter(BetaWidget.is_active == is_active)
+        
+        widgets = query.offset(offset).limit(limit).all()
+        
+        # Convert to BetaDashboardWidgetResponse
+        result = []
+        for widget in widgets:
+            widget_name = getattr(widget, 'widget_name', None) or getattr(widget, 'name', 'Unknown Widget')
+            widget_description = getattr(widget, 'widget_description', None) or getattr(widget, 'description', '')
+            widget_config = getattr(widget, 'widget_config', None) or getattr(widget, 'configuration', {})
+            is_system_widget = getattr(widget, 'is_system_widget', False)
+            display_order = getattr(widget, 'display_order', 0)
+            
+            result.append(BetaDashboardWidgetResponse(
+                id=str(widget.id) if widget.id else '',
+                name=widget_name,
+                widget_type=getattr(widget, 'widget_type', ''),
+                configuration=widget_config,
+                is_active=getattr(widget, 'is_active', True),
+                created_at=getattr(widget, 'created_at', datetime.utcnow()),
+                updated_at=getattr(widget, 'updated_at', None) or datetime.utcnow()
+            ))
+        
+        return result
+    
+    def get_beta_avatars(self, voice_enabled: Optional[bool]) -> List[Dict[str, Any]]:
+        """Get all beta avatars (10 avatars from beta_avatars table)"""
+        from app.models.beta_avatars import BetaAvatar
+        
+        query = self.db.query(BetaAvatar)
+        
+        if voice_enabled is not None:
+            query = query.filter(BetaAvatar.voice_enabled == voice_enabled)
+        
+        avatars = query.all()
+        
+        return [
+            {
+                "id": str(avatar.id),
+                "avatar_name": getattr(avatar, 'avatar_name', getattr(avatar, 'name', getattr(avatar, 'type', 'Unknown Avatar'))),
+                "avatar_type": getattr(avatar, 'avatar_type', getattr(avatar, 'type', '')),
+                "description": getattr(avatar, 'description', ''),
+                "voice_enabled": getattr(avatar, 'voice_enabled', False),
+                "avatar_config": getattr(avatar, 'avatar_config', getattr(avatar, 'config', {})),
+                "created_at": avatar.created_at.isoformat() if avatar.created_at else None
+            }
+            for avatar in avatars
+        ]
+    
+    def get_beta_avatar(self, avatar_id: str) -> Optional[Dict[str, Any]]:
+        """Get specific beta avatar"""
+        from app.models.beta_avatars import BetaAvatar
+        
+        avatar = self.db.query(BetaAvatar).filter(BetaAvatar.id == avatar_id).first()
+        
+        if not avatar:
+            return None
+        
+        return {
+            "id": str(avatar.id),
+            "avatar_name": getattr(avatar, 'avatar_name', getattr(avatar, 'name', getattr(avatar, 'type', 'Unknown Avatar'))),
+            "avatar_type": getattr(avatar, 'avatar_type', getattr(avatar, 'type', '')),
+            "description": getattr(avatar, 'description', ''),
+            "voice_enabled": getattr(avatar, 'voice_enabled', False),
+            "avatar_config": getattr(avatar, 'avatar_config', getattr(avatar, 'config', {})),
+            "created_at": avatar.created_at.isoformat() if avatar.created_at else None
+        }
+    
+    def reset_dashboard(self, teacher_id: str) -> DashboardConfigResponse:
+        """Reset dashboard to default"""
+        # Delete all existing layouts for teacher
+        self.db.query(TeacherDashboardLayout).filter(
+            TeacherDashboardLayout.teacher_id == teacher_id
+        ).delete()
+        self.db.commit()
+        
+        # Create new default layout
+        return self.get_dashboard(teacher_id)
 
     # ==================== DASHBOARD LAYOUTS ====================
     
@@ -231,11 +503,11 @@ class TeacherDashboardService:
 
     # ==================== WIDGET MANAGEMENT ====================
     
-    def get_available_widgets(self) -> List[DashboardWidgetResponse]:
+    def get_available_widgets(self) -> List[BetaDashboardWidgetResponse]:
         """Get all available dashboard widgets"""
-        widgets = self.db.query(DashboardWidget).filter(
-            DashboardWidget.is_active == True
-        ).order_by(asc(DashboardWidget.display_order)).all()
+        widgets = self.db.query(BetaDashboardWidget).filter(
+            BetaDashboardWidget.is_active == True
+        ).order_by(asc(BetaDashboardWidget.created_at)).all()
         
         return [self._widget_to_response(widget) for widget in widgets]
 
@@ -243,8 +515,8 @@ class TeacherDashboardService:
         self, 
         layout_id: str, 
         teacher_id: str, 
-        widget_instance_data: DashboardWidgetInstanceCreate
-    ) -> Optional[DashboardWidgetInstanceResponse]:
+        widget_instance_data: BetaDashboardWidgetInstanceCreate
+    ) -> Optional[BetaDashboardWidgetInstanceResponse]:
         """Add a widget to a dashboard layout"""
         # Verify layout ownership
         layout = self.db.query(TeacherDashboardLayout).filter(
@@ -277,8 +549,8 @@ class TeacherDashboardService:
         self, 
         instance_id: str, 
         teacher_id: str, 
-        update_data: DashboardWidgetInstanceUpdate
-    ) -> Optional[DashboardWidgetInstanceResponse]:
+        update_data: BetaDashboardWidgetInstanceUpdate
+    ) -> Optional[BetaDashboardWidgetInstanceResponse]:
         """Update a widget instance"""
         widget_instance = self.db.query(DashboardWidgetInstance).join(TeacherDashboardLayout).filter(
             and_(
@@ -336,7 +608,7 @@ class TeacherDashboardService:
             resource_type=activity_data.resource_type,
             resource_id=activity_data.resource_id,
             resource_title=activity_data.resource_title,
-            metadata=activity_data.metadata,
+            activity_metadata=activity_data.metadata,
             ip_address=activity_data.ip_address,
             user_agent=activity_data.user_agent,
             session_id=activity_data.session_id
@@ -584,25 +856,25 @@ class TeacherDashboardService:
     def get_teacher_preferences(
         self, 
         teacher_id: str
-    ) -> List[TeacherPreferenceResponse]:
+    ) -> List[BetaTeacherPreferenceResponse]:
         """Get teacher preferences"""
-        preferences = self.db.query(TeacherPreference).filter(
-            TeacherPreference.teacher_id == teacher_id
-        ).order_by(asc(TeacherPreference.preference_key)).all()
+        preferences = self.db.query(BetaTeacherPreference).filter(
+            BetaTeacherPreference.teacher_id == teacher_id
+        ).order_by(asc(BetaTeacherPreference.preference_key)).all()
         
         return [self._preference_to_response(preference) for preference in preferences]
 
     def set_teacher_preference(
         self, 
         teacher_id: str, 
-        preference_data: TeacherPreferenceCreate
-    ) -> TeacherPreferenceResponse:
+        preference_data: BetaTeacherPreferenceCreate
+    ) -> BetaTeacherPreferenceResponse:
         """Set a teacher preference"""
         # Check if preference already exists
-        existing = self.db.query(TeacherPreference).filter(
+        existing = self.db.query(BetaTeacherPreference).filter(
             and_(
-                TeacherPreference.teacher_id == teacher_id,
-                TeacherPreference.preference_key == preference_data.preference_key
+                BetaTeacherPreference.teacher_id == teacher_id,
+                BetaTeacherPreference.preference_key == preference_data.preference_key
             )
         ).first()
         
@@ -615,7 +887,7 @@ class TeacherDashboardService:
             return self._preference_to_response(existing)
         
         # Create new preference
-        preference = TeacherPreference(
+        preference = BetaTeacherPreference(
             id=str(uuid.uuid4()),
             teacher_id=teacher_id,
             preference_key=preference_data.preference_key,
@@ -839,7 +1111,7 @@ class TeacherDashboardService:
         ).group_by(TeacherActivityLog.activity_type).all()
         
         # Recent achievements
-        recent_achievements = self.db.query(TeacherAchievementProgress).join(TeacherAchievement).filter(
+        recent_achievements = self.db.query(TeacherAchievementProgress).filter(
             and_(
                 TeacherAchievementProgress.teacher_id == teacher_id,
                 TeacherAchievementProgress.is_completed == True,
@@ -865,17 +1137,21 @@ class TeacherDashboardService:
         ).scalar()
         
         return DashboardAnalyticsResponse(
-            activity_summary={item.activity_type: item.count for item in activity_summary},
-            recent_achievements=[self._achievement_progress_to_response(achievement) for achievement in recent_achievements],
-            active_goals=[self._goal_to_response(goal) for goal in active_goals],
-            unread_notifications=unread_notifications,
-            total_achievements=self.db.query(func.count(TeacherAchievementProgress.id)).filter(
-                and_(
-                    TeacherAchievementProgress.teacher_id == teacher_id,
-                    TeacherAchievementProgress.is_completed == True
-                )
-            ).scalar(),
-            completion_rate=self._calculate_completion_rate(teacher_id)
+            total_widgets=self.db.query(func.count(BetaDashboardWidget.id)).scalar() or 0,
+            active_widgets=self.db.query(func.count(BetaDashboardWidget.id)).filter(BetaDashboardWidget.is_active == True).scalar() or 0,
+            widget_usage_stats={item.activity_type: item.count for item in activity_summary},
+            recent_activity=[achievement.__dict__ for achievement in recent_achievements[:5]] if recent_achievements else [],
+            performance_metrics={
+                "completion_rate": self._calculate_completion_rate(teacher_id),
+                "unread_notifications": unread_notifications,
+                "total_achievements": self.db.query(func.count(TeacherAchievementProgress.id)).filter(
+                    and_(
+                        TeacherAchievementProgress.teacher_id == teacher_id,
+                        TeacherAchievementProgress.is_completed == True
+                    )
+                ).scalar() or 0
+            },
+            last_updated=datetime.utcnow()
         )
 
     def get_dashboard_summary(
@@ -918,12 +1194,12 @@ class TeacherDashboardService:
         ).scalar()
         
         return TeacherDashboardSummaryResponse(
-            recent_activity_count=recent_activity_count,
-            unread_notifications=unread_notifications,
-            active_goals=active_goals,
-            learning_paths_in_progress=learning_paths_in_progress,
-            last_login=self._get_last_login(teacher_id),
-            dashboard_last_updated=datetime.utcnow()
+            teacher_id=teacher_id,
+            total_widgets=self.db.query(func.count(BetaDashboardWidget.id)).scalar() or 0,
+            active_widgets=self.db.query(func.count(BetaDashboardWidget.id)).filter(BetaDashboardWidget.is_active == True).scalar() or 0,
+            total_achievements=self.db.query(func.count(TeacherAchievementProgress.id)).filter(TeacherAchievementProgress.teacher_id == teacher_id).scalar() or 0,
+            total_goals=self.db.query(func.count(TeacherGoal.id)).filter(TeacherGoal.teacher_id == teacher_id).scalar() or 0,
+            active_goals=active_goals
         )
 
     # ==================== HELPER METHODS ====================
@@ -932,9 +1208,9 @@ class TeacherDashboardService:
         """Create default dashboard layout for a teacher"""
         try:
             # Get default widgets
-            default_widgets = self.db.query(DashboardWidget).filter(
-                DashboardWidget.is_system_widget == True
-            ).order_by(asc(DashboardWidget.display_order)).all()
+            default_widgets = self.db.query(BetaDashboardWidget).filter(
+                BetaDashboardWidget.is_system_widget == True
+            ).order_by(asc(BetaDashboardWidget.created_at)).all()
             
             # Create default layout
             layout = TeacherDashboardLayout(
@@ -1032,23 +1308,28 @@ class TeacherDashboardService:
             widget_instances=[self._widget_instance_to_response(instance) for instance in widget_instances]
         )
 
-    def _widget_to_response(self, widget: DashboardWidget) -> DashboardWidgetResponse:
+    def _widget_to_response(self, widget: BetaDashboardWidget) -> BetaDashboardWidgetResponse:
         """Convert widget model to response"""
-        return DashboardWidgetResponse(
-            id=widget.id,
-            widget_type=widget.widget_type,
-            widget_name=widget.widget_name,
-            widget_description=widget.widget_description,
-            widget_config=widget.widget_config,
-            is_system_widget=widget.is_system_widget,
-            is_active=widget.is_active,
-            display_order=widget.display_order,
-            created_at=widget.created_at
+        # Map existing columns to response
+        widget_name = getattr(widget, 'widget_name', None) or getattr(widget, 'name', 'Unknown Widget')
+        widget_description = getattr(widget, 'widget_description', None) or getattr(widget, 'description', '')
+        widget_config = getattr(widget, 'widget_config', None) or getattr(widget, 'configuration', {})
+        is_system_widget = getattr(widget, 'is_system_widget', False)
+        display_order = getattr(widget, 'display_order', 0)
+        
+        return BetaDashboardWidgetResponse(
+            id=str(widget.id) if widget.id else '',
+            name=widget_name,
+            widget_type=getattr(widget, 'widget_type', ''),
+            configuration=widget_config,
+            is_active=getattr(widget, 'is_active', True),
+            created_at=getattr(widget, 'created_at', datetime.utcnow()),
+            updated_at=getattr(widget, 'updated_at', None) or datetime.utcnow()
         )
 
-    def _widget_instance_to_response(self, instance: DashboardWidgetInstance) -> DashboardWidgetInstanceResponse:
+    def _widget_instance_to_response(self, instance: DashboardWidgetInstance) -> BetaDashboardWidgetInstanceResponse:
         """Convert widget instance model to response"""
-        return DashboardWidgetInstanceResponse(
+        return BetaDashboardWidgetInstanceResponse(
             id=instance.id,
             layout_id=instance.layout_id,
             widget_id=instance.widget_id,
@@ -1072,7 +1353,7 @@ class TeacherDashboardService:
             resource_type=log.resource_type,
             resource_id=log.resource_id,
             resource_title=log.resource_title,
-            metadata=log.metadata,
+            metadata=log.activity_metadata,
             ip_address=str(log.ip_address) if log.ip_address else None,
             user_agent=log.user_agent,
             session_id=log.session_id,
@@ -1147,9 +1428,9 @@ class TeacherDashboardService:
             updated_at=action.updated_at
         )
 
-    def _preference_to_response(self, preference: TeacherPreference) -> TeacherPreferenceResponse:
+    def _preference_to_response(self, preference: BetaTeacherPreference) -> BetaTeacherPreferenceResponse:
         """Convert preference model to response"""
-        return TeacherPreferenceResponse(
+        return BetaTeacherPreferenceResponse(
             id=preference.id,
             teacher_id=preference.teacher_id,
             preference_key=preference.preference_key,

@@ -494,6 +494,20 @@ class ResourceFavoriteResponse(BaseModel):
         from_attributes = True
 
 
+# ==================== DOWNLOAD SCHEMAS ====================
+
+class ResourceDownloadResponse(BaseModel):
+    """Resource download response"""
+    id: str
+    resource_id: str
+    teacher_id: str
+    downloaded_at: datetime
+    download_count: int
+
+    class Config:
+        from_attributes = True
+
+
 # Update forward references
 EducationalResourceResponse.model_rebuild()
 ResourceCategoryResponse.model_rebuild()
