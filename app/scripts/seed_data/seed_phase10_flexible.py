@@ -257,7 +257,7 @@ def seed_skill_assessment_assessments(session, student_ids, user_ids, activity_i
         data.append({
             'student_id': random.choice(student_ids),
             'assessor_id': random.choice(user_ids),
-            'curriculum_id': random.randint(1, 50),
+            'curriculum_id': random.randint(1, 5),
             'assessment_date': datetime.now() - timedelta(days=random.randint(1, 365)),
             'assessment_type': random.choice(['SKILL', 'FITNESS', 'MOVEMENT', 'BEHAVIORAL', 'PROGRESS']),
             'score': random.uniform(0, 100),

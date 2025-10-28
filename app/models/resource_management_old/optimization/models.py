@@ -10,7 +10,7 @@ from sqlalchemy.orm import relationship
 
 from app.models.physical_education.base.base_class import Base
 from app.models.core.base import BaseModel, StatusMixin, MetadataMixin
-from app.models.resource_management.base import ResourceType, ResourceMetric
+from app.models.resource_management_old.base.models import ResourceType, ResourceMetric
 
 class ResourceOptimizationThreshold(BaseModel, StatusMixin, MetadataMixin):
     """Model for storing resource optimization thresholds."""

@@ -134,6 +134,16 @@ def insert_data_flexible(session, table_name, data, schema, batch_size=100):
         print(f"  ⚠️ Error inserting into {table_name}: {e}")
         return 0
 
+def recover_transaction(session):
+    """Recover from failed transaction by rolling back and starting fresh"""
+    try:
+        session.rollback()
+        print("  🔄 Transaction rolled back, continuing...")
+        return True
+    except Exception as e:
+        print(f"  ❌ Failed to rollback transaction: {e}")
+        return False
+
 def seed_phase10_assessment_skill_management(session):
     """
     Seed Phase 10: Assessment & Skill Management System
@@ -156,17 +166,18 @@ def seed_phase10_assessment_skill_management(session):
         # Get dependency IDs with fallbacks
         print("🔍 Retrieving dependency IDs...")
         
-        # Get students, users, activities, assessments with fallbacks
+        # Get students, users, activities, assessments, curriculum with fallbacks
         student_ids = get_table_ids_safe(session, "students", 100)
         user_ids = get_table_ids_safe(session, "users", 50)
         activity_ids = get_table_ids_safe(session, "activities", 100)
+        curriculum_ids = get_table_ids_safe(session, "curriculum", 10)
         assessment_ids = get_table_ids_safe(session, "skill_assessment_skill_assessments", 50)
         
         # Fallback to general_assessments if skill_assessment_skill_assessments doesn't exist
         if not assessment_ids:
             assessment_ids = get_table_ids_safe(session, "general_assessments", 50)
         
-        print(f"✅ Retrieved dependency IDs: {len(user_ids)} users, {len(student_ids)} students, {len(activity_ids)} activities, {len(assessment_ids)} assessments")
+        print(f"✅ Retrieved dependency IDs: {len(user_ids)} users, {len(student_ids)} students, {len(activity_ids)} activities, {len(curriculum_ids)} curriculum, {len(assessment_ids)} assessments")
         
         # 10.1 SKILL ASSESSMENT SYSTEM (6 tables)
         print("\n📊 10.1 SKILL ASSESSMENT SYSTEM")
@@ -237,12 +248,13 @@ def seed_phase10_assessment_skill_management(session):
                 for i in range(1000):
                     student_id = random.choice(student_ids)
                     assessor_id = random.choice(user_ids)
+                    curriculum_id = random.choice(curriculum_ids) if curriculum_ids else None
                     start_date = datetime.now() - timedelta(days=random.randint(1, 365))
                     
                     assessments_data.append({
                         'student_id': student_id,
                         'assessor_id': assessor_id,
-                        'curriculum_id': random.randint(1, 10),
+                        'curriculum_id': curriculum_id,
                         'assessment_date': start_date,
                         'assessment_type': random.choice(['SKILL', 'FITNESS', 'MOVEMENT', 'BEHAVIORAL', 'PROGRESS']),
                         'score': random.uniform(0, 100),
@@ -280,6 +292,7 @@ def seed_phase10_assessment_skill_management(session):
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_assessments: {e}")
+            recover_transaction(session)
         
         # skill_assessment_risk_assessments
         print("  Seeding skill_assessment_risk_assessments...")
@@ -295,7 +308,7 @@ def seed_phase10_assessment_skill_management(session):
                 for i in range(500):
                     student_id = random.choice(student_ids)
                     assessor_id = random.choice(user_ids)
-                    assessment_id = random.choice(assessment_ids) if assessment_ids else random.randint(1, 50)
+                    assessment_id = random.choice(assessment_ids) if assessment_ids else None
                     
                     risk_data.append({
                         'activity_id': random.choice(activity_ids),
@@ -350,6 +363,7 @@ def seed_phase10_assessment_skill_management(session):
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_risk_assessments: {e}")
+            recover_transaction(session)
         
         # skill_assessment_safety_alerts
         print("  Seeding skill_assessment_safety_alerts...")
@@ -366,7 +380,7 @@ def seed_phase10_assessment_skill_management(session):
                 for i in range(200):
                     student_id = random.choice(student_ids)
                     assessor_id = random.choice(user_ids)
-                    assessment_id = random.choice(assessment_ids) if assessment_ids else random.randint(1, 50)
+                    assessment_id = random.choice(assessment_ids) if assessment_ids else None
                     
                     alerts_data.append({
                         'alert_type': random.choice(['RISK_THRESHOLD', 'EMERGENCY', 'PROTOCOL', 'MAINTENANCE', 'WEATHER']),
@@ -415,7 +429,7 @@ def seed_phase10_assessment_skill_management(session):
                 for i in range(100):
                     student_id = random.choice(student_ids)
                     assessor_id = random.choice(user_ids)
-                    assessment_id = random.choice(assessment_ids) if assessment_ids else random.randint(1, 50)
+                    assessment_id = random.choice(assessment_ids) if assessment_ids else None
                     
                     incidents_data.append({
                         'activity_id': random.choice(activity_ids),
@@ -515,7 +529,7 @@ def seed_phase10_assessment_skill_management(session):
                 
                 for i in range(200):
                     criteria_data.append({
-                        'assessment_id': random.randint(1, 50),
+                        'assessment_id': random.choice(assessment_ids) if assessment_ids else None,
                         'type': random.choice(['TECHNICAL', 'PERFORMANCE', 'PROGRESS', 'SAFETY']),
                         'score': random.uniform(0, 100),
                         'feedback': f'Assessment feedback for criteria {i+1}: {random.choice(["Excellent progress", "Needs improvement", "On track", "Requires attention"])}',
@@ -556,7 +570,7 @@ def seed_phase10_assessment_skill_management(session):
                 for i in range(2000):
                     student_id = random.choice(student_ids)
                     assessor_id = random.choice(user_ids)
-                    assessment_id = random.choice(assessment_ids) if assessment_ids else random.randint(1, 50)
+                    assessment_id = random.choice(assessment_ids) if assessment_ids else None
                     assessment_date = datetime.now() - timedelta(days=random.randint(1, 365))
                     
                     history_data.append({
@@ -1524,6 +1538,7 @@ def seed_phase10_assessment_skill_management(session):
         
     except Exception as e:
         print(f"❌ Error in Phase 10: {e}")
+        recover_transaction(session)
         return False
 
 

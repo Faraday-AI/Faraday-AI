@@ -9,6 +9,7 @@ from .permission_management import router as permission_management_router
 from .organization_management import router as organization_management_router
 from .team_management import router as team_management_router
 from .user_analytics import router as user_analytics_router
+from .beta_testing import router as beta_testing_router
 
 __all__ = [
     'activity_router',
@@ -21,5 +22,6 @@ __all__ = [
     'permission_management_router',
     'organization_management_router',
     'team_management_router',
-    'user_analytics_router'
+    'user_analytics_router',
+    'beta_testing_router'
 ] 

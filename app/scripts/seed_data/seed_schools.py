@@ -18,6 +18,15 @@ import random
 def seed_schools(session):
     """Seed the schools table with our 6-school district structure."""
     
+    # Ensure schools table is empty before seeding
+    try:
+        session.execute(text("DELETE FROM schools CASCADE"))
+        session.commit()
+        print("✓ Cleared existing schools data")
+    except Exception as e:
+        print(f"⚠️ Warning clearing schools: {e}")
+        session.rollback()
+    
     # Check if schools already exist - if so, skip seeding to preserve existing data
     result = session.execute(text("SELECT COUNT(*) FROM schools"))
     existing_schools = result.scalar()

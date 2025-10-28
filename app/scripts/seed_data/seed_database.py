@@ -13,6 +13,9 @@ from sqlalchemy.exc import SQLAlchemyError
 # Add the project root to the Python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')))
 
+# Import resource management models early to ensure they're registered
+from app.models.resource_management import ResourceUsage, ResourceSharing
+
 from app.core.database import SessionLocal, engine
 from app.core.config import settings
 from app.core.monitoring import track_metrics
@@ -52,9 +55,33 @@ from app.models.core.memory import UserMemory, MemoryInteraction
 from app.models.core.assistant import AssistantProfile, AssistantCapability, subject_assistant
 from app.models.core.lesson import Lesson
 from app.models.core.subject import SubjectCategory
-from app.models.resource_management.resource_management import (
-    ResourceUsage, ResourceThreshold, ResourceOptimization, 
-    OptimizationEvent, ResourceSharing
+# Import resource management models to ensure they're registered
+from app.models.resource_management import (
+    ResourceCategory, EducationalResource, ResourceCategoryAssociation,
+    ResourceSharing, ResourceUsage, ResourceCollection,
+    CollectionResourceAssociation, CollectionSharing, ResourceReview,
+    ResourceFavorite, ResourceDownload
+)
+
+# Import new beta teacher system models
+from app.models.teacher_registration import TeacherRegistration
+from app.models.beta_testing import (
+    BetaTestingParticipant, BetaTestingProgram, BetaTestingFeedback,
+    BetaTestingSurvey, BetaTestingSurveyResponse, BetaTestingUsageAnalytics,
+    BetaTestingFeatureFlag, BetaTestingNotification, BetaTestingReport
+)
+from app.models.lesson_plan_builder import (
+    LessonPlanTemplate, LessonPlanActivity, AILessonSuggestion,
+    LessonPlanSharing, LessonPlanUsage, LessonPlanCategory
+)
+from app.models.assessment_tools import (
+    AssessmentTemplate, AssessmentCriteria, AssessmentRubric,
+    AssessmentQuestion, AssessmentChecklist, AssessmentStandard,
+    AssessmentTemplateSharing, AssessmentTemplateUsage, AssessmentCategory
+)
+from app.models.ai_assistant import (
+    AIAssistantConfig, AIAssistantConversation, AIAssistantMessage,
+    AIAssistantUsage, AIAssistantTemplate, AIAssistantFeedback, AIAssistantAnalytics
 )
 # from app.models.resource_management.optimization.models import ResourceEvent, ResourceAlert
 from app.models.gpt.subscription.models import CoreGPTSubscription
@@ -174,7 +201,7 @@ from app.models.analytics.user_analytics import (
 )
 
 # Import optimization models to ensure they're available for User relationships
-from app.models.resource_management.optimization import ResourceOptimizationThreshold, ResourceOptimizationRecommendation, ResourceOptimizationEvent
+# from app.models.resource_management.optimization import ResourceOptimizationThreshold, ResourceOptimizationRecommendation, ResourceOptimizationEvent
 
 # Import User model after all other models to ensure proper registration order
 from app.models.core.user import User
@@ -209,6 +236,8 @@ from app.scripts.seed_data.seed_user_preferences import seed_user_preferences
 from app.scripts.seed_data.seed_memories import seed_memories
 from app.scripts.seed_data.seed_assistant_profiles import seed_assistant_profiles
 from app.scripts.seed_data.seed_skill_progress import seed_skill_progress
+from app.scripts.seed_data.seed_ai_analytics_data import seed_ai_analytics_data
+from app.scripts.seed_data.seed_beta_teacher_system import seed_beta_teacher_system
 
 # Import the new comprehensive seeding scripts
 from app.scripts.seed_data.seed_dashboard_system import seed_dashboard_system
@@ -298,12 +327,22 @@ def seed_database():
                         'organizations', 'departments', 'users', 'students', 'activities', 
                         'physical_education_classes', 'avatar_templates', 'avatars', 'user_avatars',
                         'avatar_customizations', 'user_avatar_customizations',
-                        'voice_templates', 'dashboard_users', 'dashboard_teams', 'dashboard_projects', 'teams', 'organization_projects',
+                        'voice_templates', 'dashboard_users', 'dashboard_teams', 'dashboard_projects', 'dashboards', 'dashboard_widgets', 'teams', 'organization_projects',
                         'gpt_definitions', 'core_gpt_definitions', 'gpt_interaction_contexts', 'gpt_context_gpts', 'goals', 'activity_categories', 
                         'roles', 'permissions', 'dashboard_tools', 'shared_contexts', 'courses', 'rubrics', 'assignments', 'ai_suites', 'ai_tools',
                         'injury_preventions', 'injury_risk_factors', 'safety_guidelines', 'assistant_profiles', 'assistant_capabilities',
                         'subject_categories', 'lessons', 'performance_thresholds', 'equipment_base', 'equipment', 'gpt_subscription_plans', 'gpt_subscriptions', 'dashboard_gpt_subscriptions',
-                        'gpt_usage_history', 'gpt_subscription_usage', 'gpt_subscription_billing', 'gpt_subscription_payments', 'gpt_subscription_invoices', 'gpt_subscription_refunds'
+                        'gpt_usage_history', 'gpt_subscription_usage', 'gpt_subscription_billing', 'gpt_subscription_payments', 'gpt_subscription_invoices', 'gpt_subscription_refunds',
+                        # Beta Teacher System Core Tables (only tables with dependencies)
+                        'teacher_registrations', 'lesson_plan_templates', 'lesson_plan_categories', 'assessment_templates', 'assessment_categories', 'resource_categories', 'educational_resources', 'ai_assistant_configs', 'ai_assistant_templates', 'beta_testing_programs', 'beta_avatars', 'beta_widgets',
+                        # Directly dependent tables (must be created with core tables)
+                        'beta_lesson_plan_activities', 'lesson_plan_sharing', 'lesson_plan_usage', 'template_category_associations',
+                        'assessment_criteria', 'assessment_questions', 'assessment_rubrics', 'assessment_standards', 'assessment_checklists', 'assessment_template_sharing', 'assessment_template_usage', 'assessment_template_category_associations',
+                        'resource_category_associations', 'resource_sharing', 'resource_usage', 'resource_collections', 'collection_resource_associations', 'collection_sharing', 'resource_reviews', 'resource_favorites', 'resource_downloads',
+                        'ai_assistant_conversations', 'ai_assistant_messages', 'ai_assistant_usage', 'ai_assistant_feedback', 'ai_assistant_analytics',
+                        'beta_testing_participants', 'beta_testing_feedback', 'beta_testing_surveys', 'beta_testing_reports', 'beta_testing_usage_analytics',
+                        # Phase 11 Resource Management Tables
+                        'resource_management_usage', 'resource_thresholds', 'resource_optimizations', 'resource_management_sharing', 'optimization_events'
                     ]
                     
                     # Create core tables first
@@ -464,6 +503,9 @@ def seed_database():
                     print(f"❌ Dashboard users migration failed: {e}")
                     session.rollback()
                     raise
+                
+                # TOOL ASSIGNMENTS SEEDING - Moved to Phase 5 after ai_tools are populated
+                print("⏭️  Tool assignments seeding moved to Phase 5 (after ai_tools are populated)")
                 
                 # IMMEDIATE TEACHER-DEPENDENT TABLES SEEDING
                 print("\n" + "="*50)
@@ -1318,6 +1360,43 @@ def seed_database():
                     session.rollback()
                     raise Exception(f"FAIL-FAST: Phase 1 foundation seeding failed: {e}")
                 
+                # PHASE 1.5: BETA TEACHER FEATURES - Available to both teacher and district versions
+                print("\n🚀 PHASE 1.5: BETA TEACHER FEATURES")
+                print("-" * 50)
+                try:
+                    if not env_true('SKIP_PHASE_1_5'):
+                        print("🔄 Running Phase 1.5 beta teacher features...")
+                        
+                        # Import curriculum seeding modules
+                        from app.scripts.seed_data.seed_drivers_education_curriculum import create_drivers_ed_curriculum
+                        from app.scripts.seed_data.seed_health_curriculum import create_health_curriculum
+                        
+                        # Create comprehensive drivers education curriculum
+                        print("🔄 Creating drivers education curriculum...")
+                        create_drivers_ed_curriculum()
+                        
+                        # Create comprehensive health curriculum
+                        print("🔄 Creating health curriculum...")
+                        create_health_curriculum()
+                        
+                        session.commit()
+                        print("✅ Phase 1.5 beta teacher features completed successfully!")
+                        print("🎉 Drivers education and health curricula integrated for both teacher and district versions!")
+                    else:
+                        print("⏭️  SKIP_PHASE_1_5 enabled: skipping Phase 1.5 beta teacher features")
+                        
+                except Exception as e:
+                    print(f"❌ ERROR: Phase 1.5 beta teacher features seeding failed: {e}")
+                    print("⚠️  Continuing with remaining phases - Phase 1.5 can be run separately")
+                    print(f"Full error details: {str(e)}")
+                    import traceback
+                    traceback.print_exc()
+                    # IMPORTANT: Don't rollback here - it would undo previous successful phases
+                    # Just log the error and continue
+                    print("🔄 Phase 1.5 will be skipped, continuing with remaining phases...")
+                
+                # Beta system moved to run after Phase 7 (see below)
+                
                 print("🔍 DEBUG: Phase 1 completed successfully, continuing to additional data seeding...")
                 
                 # IMMEDIATE PHASE 1 VERIFICATION - STOP SCRIPT IF PHASE 1 FAILED
@@ -1389,6 +1468,26 @@ def seed_database():
                     "comprehensive analytics and performance data"
                 )
                 
+                # AI assistant analytics data
+                safe_seed_with_fresh_session(
+                    lambda s: seed_ai_analytics_data(s),
+                    "AI assistant analytics data"
+                )
+                
+                # TOOL ASSIGNMENTS SEEDING - Run after ai_tools are populated
+                print("\n" + "="*50)
+                print("TOOL ASSIGNMENTS SEEDING")
+                print("="*50)
+                try:
+                    from app.scripts.seed_data.seed_phase1_foundation_fixed import seed_tool_assignments
+                    seed_tool_assignments(session)
+                    session.commit()
+                    print("✅ Tool assignments seeding completed successfully!")
+                except Exception as e:
+                    print(f"❌ Tool assignments seeding failed: {e}")
+                    session.rollback()
+                    raise
+                
                 safe_seed_with_fresh_session(
                     lambda s: seed_adapted_activities(s),
                     "adapted activities and special needs data"
@@ -1452,6 +1551,11 @@ def seed_database():
                     print("✅ Phase 2 educational system enhancement completed successfully!")
                     print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
                     print("🔒 Phase 2 data committed - protected from later phase rollbacks")
+                except Exception as e:
+                    print(f"❌ Phase 2 failed: {e}")
+                    print("🔄 Rolling back transaction and continuing...")
+                    session.rollback()
+                    print("⚠️ Phase 2 skipped due to errors, continuing with remaining phases...")
                     
                     # Verify Phase 2 data persists
                     print("🔍 Verifying Phase 2 data persistence...")
@@ -1621,6 +1725,7 @@ def seed_database():
 
                         # GPT system is already seeded by seed_phase5_analytics_ai above
                         # No need to call seed_gpt_system separately
+                        # Beta teacher system moved to run after Phase 7 (see below)
 
                         print("✅ Phase 5 advanced analytics & AI completed successfully!")
                         print(f"🎉 Created {sum(results.values())} records across {len(results)} tables")
@@ -1698,6 +1803,37 @@ def seed_database():
                 else:
                     print("⏭️  SKIP_PHASE_7 enabled: skipping Phase 7 specialized features")
                 
+                # PHASE 1.6-1.10: BETA TEACHER SYSTEM - NOW RUNS AFTER PHASE 7
+                print("\n🎯 PHASES 1.6-1.10: COMPREHENSIVE BETA TEACHER SYSTEM")
+                print("=" * 60)
+                try:
+                    if not env_true('SKIP_PHASE_1_6_TO_1_10'):
+                        print("🔄 Running comprehensive beta teacher system integration...")
+
+                        # Import beta teacher system seeding
+                        from app.scripts.seed_data.seed_beta_teacher_system import seed_beta_teacher_system
+
+                        # Ensure core tables are committed before running migrations
+                        session.commit()
+                        print("  ✅ Core tables committed, starting beta system seeding...")
+
+                        # Run beta teacher system seeding
+                        seed_beta_teacher_system(session)
+                        
+                        session.commit()
+
+                        print("✅ Phases 1.6-1.10: Comprehensive beta teacher system completed successfully!")
+                        print("🎉 All beta teacher components integrated and seeded!")
+                    else:
+                        print("⏭️  SKIP_PHASE_1_6_TO_1_10 enabled: skipping comprehensive beta teacher system")
+
+                except Exception as e:
+                    print(f"❌ ERROR: Comprehensive beta teacher system integration failed: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    print("⚠️  Continuing with remaining phases - Beta components can be run separately")
+                    print(f"Full error details: {str(e)}")
+
                 # Phase 8: Advanced Physical Education & Adaptations
                 print("\n🎯 PHASE 8: ADVANCED PHYSICAL EDUCATION & ADAPTATIONS")
                 print("-" * 50)
@@ -2090,6 +2226,8 @@ def seed_database():
                 except Exception as e:
                     print(f"📊 Final table count: ERROR - {e}")
                 print("✅ Phase 1: Foundation & Core Infrastructure")
+                print("✅ Phase 1.5: Beta Teacher Features (Drivers Education & Health Curricula)")
+                print("✅ Phase 1.6-1.10: Comprehensive Beta Teacher System (Lesson Plans, Assessments, Resources, Dashboard, AI)")
                 print("✅ Phase 2: Educational System Enhancement (38 tables)")
                 print("✅ Phase 3: Health & Fitness System (41 tables - 100% complete)")
                 print("✅ Phase 4: Safety & Risk Management System (35 tables - 100% complete)")

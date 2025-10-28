@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, JSON, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from datetime import datetime
+from app.models.shared_base import SharedBase as Base
 
 class Filter(Base):
     """Model for filters."""

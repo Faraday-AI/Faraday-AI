@@ -32,7 +32,7 @@ class ResourceMetric(str, enum.Enum):
     COST = "cost"
     EFFICIENCY = "efficiency"
 
-class ResourceUsage(BaseModel, MetadataMixin):
+class Phase11ResourceUsage(BaseModel, MetadataMixin):
     """Model for storing resource usage metrics."""
     __tablename__ = "resource_management_usage"
     __table_args__ = {'extend_existing': True}
@@ -58,7 +58,7 @@ class ResourceUsage(BaseModel, MetadataMixin):
     # project = relationship("Project", back_populates="resource_usage")
     # organization = relationship("Organization", back_populates="resource_usage")
 
-class ResourceThreshold(BaseModel, StatusMixin, MetadataMixin):
+class Phase11ResourceThreshold(BaseModel, StatusMixin, MetadataMixin):
     """Model for storing resource usage thresholds."""
     __tablename__ = "resource_thresholds"
     __table_args__ = {'extend_existing': True}
@@ -84,7 +84,7 @@ class ResourceThreshold(BaseModel, StatusMixin, MetadataMixin):
     # project = relationship("Project", back_populates="resource_thresholds")
     # organization = relationship("Organization", back_populates="resource_thresholds")
 
-class ResourceOptimization(BaseModel, StatusMixin, MetadataMixin):
+class Phase11ResourceOptimization(BaseModel, StatusMixin, MetadataMixin):
     """Model for storing resource optimization recommendations."""
     __tablename__ = "resource_optimizations"
     __table_args__ = {'extend_existing': True}
@@ -113,7 +113,7 @@ class ResourceOptimization(BaseModel, StatusMixin, MetadataMixin):
     # project = relationship("Project", back_populates="resource_optimizations")
     # organization = relationship("Organization", back_populates="resource_optimizations")
 
-class ResourceSharing(BaseModel, StatusMixin, MetadataMixin):
+class Phase11ResourceSharing(BaseModel, StatusMixin, MetadataMixin):
     """Model for managing resource sharing between users and projects."""
     __tablename__ = "resource_management_sharing"
     __table_args__ = {'extend_existing': True}
@@ -145,7 +145,7 @@ class ResourceSharing(BaseModel, StatusMixin, MetadataMixin):
     # shared_with_project = relationship("Project", back_populates="shared_resources")
     # shared_with_organization = relationship("Organization", back_populates="shared_resources")
 
-class OptimizationEvent(BaseModel, StatusMixin, MetadataMixin):
+class Phase11OptimizationEvent(BaseModel, StatusMixin, MetadataMixin):
     """Model for tracking optimization events and their status."""
     __tablename__ = "optimization_events"
     __table_args__ = {'extend_existing': True}

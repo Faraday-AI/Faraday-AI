@@ -37,7 +37,7 @@ class LessonPlan(SharedBase, TimestampedMixin):
     lesson_metadata = Column(JSON)
     
     # Relationships
-    activities = relationship("LessonPlanActivity", back_populates="lesson_plan")
+    activities = relationship("app.models.lesson_plan.models.LessonPlanActivity", back_populates="lesson_plan")
     lesson_objectives = relationship("LessonPlanObjective", back_populates="lesson_plan")
     physical_education_class = relationship("PhysicalEducationClass", back_populates="lesson_plans")
     teacher = relationship("User", back_populates="lesson_plans")

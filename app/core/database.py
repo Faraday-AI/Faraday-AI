@@ -43,7 +43,11 @@ engine = create_engine(
         "check_same_thread": False
     } if DATABASE_URL.startswith("sqlite") else {
         "sslmode": "require",  # Always require SSL for security
-        "application_name": "faraday-ai"  # Add application name for better monitoring
+        "application_name": "faraday-ai",  # Add application name for better monitoring
+        "connect_timeout": 30,  # Connection timeout in seconds
+        "keepalives_idle": 600,  # TCP keepalive idle time
+        "keepalives_interval": 30,  # TCP keepalive interval
+        "keepalives_count": 3  # TCP keepalive count
     },
     poolclass=QueuePool,
     pool_size=5,

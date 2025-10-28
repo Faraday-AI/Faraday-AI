@@ -55,14 +55,21 @@ def seed_physical_education_teachers(session: Session) -> int:
         existing_count = result.scalar()
         
         if existing_count > 0:
-            print(f"  ⚠️  physical_education_teachers already has {existing_count} records, skipping...")
-            return existing_count
+            print(f"  🔄 physical_education_teachers already has {existing_count} records, continuing with migration...")
         
-        # Create physical education teachers (32 to match 32 users)
+        # Get actual user IDs from the users table to ensure flexibility
+        user_result = session.execute(text("SELECT id FROM users ORDER BY id"))
+        user_ids = [row[0] for row in user_result.fetchall()]
+        
+        if not user_ids:
+            print("  ❌ No users found, cannot create physical education teachers")
+            return 0
+        
+        # Create physical education teachers for existing users
         teachers = []
-        for i in range(32):  # Create 32 teachers
+        for i, user_id in enumerate(user_ids):
             teacher = {
-                'user_id': i + 1,  # Simple user ID
+                'user_id': user_id,  # Use actual user ID from database
                 'first_name': f'PE Teacher {i + 1}',
                 'last_name': f'Smith{i + 1}',
                 'email': f'pe.teacher{i + 1}@school.edu',
@@ -86,21 +93,47 @@ def seed_physical_education_teachers(session: Session) -> int:
             }
             teachers.append(teacher)
         
-        # Insert teachers
-        session.execute(text("""
-            INSERT INTO physical_education_teachers (user_id, first_name, last_name, email, phone, 
-                                                   specialization, certification, experience_years, 
-                                                   is_active, created_at, updated_at, teacher_metadata,
-                                                   last_accessed_at, archived_at, deleted_at, 
-                                                   scheduled_deletion_at, retention_period)
-            VALUES (:user_id, :first_name, :last_name, :email, :phone, :specialization, 
-                   :certification, :experience_years, :is_active, :created_at, :updated_at, 
-                   :teacher_metadata, :last_accessed_at, :archived_at, :deleted_at, 
-                   :scheduled_deletion_at, :retention_period)
-        """), teachers)
+        # Insert/update teachers with proper conflict handling
+        for teacher in teachers:
+            # Check if teacher with this user_id already exists
+            existing = session.execute(text("""
+                SELECT id FROM physical_education_teachers WHERE user_id = :user_id
+            """), {"user_id": teacher["user_id"]}).fetchone()
+            
+            if existing:
+                # Update existing teacher
+                session.execute(text("""
+                    UPDATE physical_education_teachers SET
+                        first_name = :first_name,
+                        last_name = :last_name,
+                        email = :email,
+                        phone = :phone,
+                        specialization = :specialization,
+                        certification = :certification,
+                        experience_years = :experience_years,
+                        is_active = :is_active,
+                        updated_at = :updated_at,
+                        teacher_metadata = :teacher_metadata,
+                        last_accessed_at = :last_accessed_at,
+                        retention_period = :retention_period
+                    WHERE user_id = :user_id
+                """), teacher)
+            else:
+                # Insert new teacher
+                session.execute(text("""
+                    INSERT INTO physical_education_teachers (user_id, first_name, last_name, email, phone, 
+                                                           specialization, certification, experience_years, 
+                                                           is_active, created_at, updated_at, teacher_metadata,
+                                                           last_accessed_at, archived_at, deleted_at, 
+                                                           scheduled_deletion_at, retention_period)
+                    VALUES (:user_id, :first_name, :last_name, :email, :phone, :specialization, 
+                           :certification, :experience_years, :is_active, :created_at, :updated_at, 
+                           :teacher_metadata, :last_accessed_at, :archived_at, :deleted_at, 
+                           :scheduled_deletion_at, :retention_period)
+                """), teacher)
         
         session.commit()
-        print(f"  ✅ Created {len(teachers)} physical education teachers")
+        print(f"  ✅ Migrated {len(teachers)} physical education teachers (based on {len(user_ids)} users)")
         return len(teachers)
         
     except Exception as e:
@@ -392,8 +425,8 @@ def seed_pe_lesson_plans(session: Session) -> int:
         existing_count = result.scalar()
         
         if existing_count > 0:
-            print(f"  ⚠️  pe_lesson_plans already has {existing_count} records, skipping...")
-            return existing_count
+            print(f"  🔄 pe_lesson_plans already has {existing_count} records, continuing with migration...")
+            # Continue with seeding - let ON CONFLICT clauses handle duplicates
         
         # Create sample PE lesson plans
         lesson_plans = []
@@ -441,8 +474,8 @@ def seed_lesson_plan_activities(session: Session) -> int:
         existing_count = result.scalar()
         
         if existing_count > 0:
-            print(f"  ⚠️  lesson_plan_activities already has {existing_count} records, skipping...")
-            return existing_count
+            print(f"  🔄 lesson_plan_activities already has {existing_count} records, continuing with migration...")
+            # Continue with seeding - let ON CONFLICT clauses handle duplicates
         
         # Get actual lesson plan IDs from the database
         lesson_plan_result = session.execute(text("SELECT id FROM pe_lesson_plans ORDER BY id"))
@@ -2043,8 +2076,8 @@ def seed_educational_teachers(session: Session) -> int:
         
         # Additive approach - work with existing data
         if existing_count > 0:
-            print(f"  ⚠️  educational_teachers already has {existing_count} records, skipping...")
-            return existing_count
+            print(f"  📊 educational_teachers already has {existing_count} records, continuing with migration...")
+            # Continue with migration instead of skipping
         
         print(f"  🔍 Querying users table...")
         # Get user data from users table (not dashboard_users)
@@ -2088,20 +2121,52 @@ def seed_educational_teachers(session: Session) -> int:
                 'is_active': True
             })
         
-        session.execute(text("""
-            INSERT INTO educational_teachers (user_id, name, school, department, subjects, grade_levels, 
-                                           certifications, specialties, bio, last_login, created_at, updated_at,
-                                           last_accessed_at, archived_at, deleted_at, scheduled_deletion_at,
-                                           retention_period, status, is_active)
-            VALUES (:user_id, :name, :school, :department, :subjects, :grade_levels, 
-                   :certifications, :specialties, :bio, :last_login, :created_at, :updated_at,
-                   :last_accessed_at, :archived_at, :deleted_at, :scheduled_deletion_at,
-                   :retention_period, :status, :is_active)
-        """), teachers)
+        # Use upsert logic to handle existing records
+        migrated_count = 0
+        for teacher in teachers:
+            # Check if teacher already exists
+            existing_result = session.execute(text("""
+                SELECT id FROM educational_teachers WHERE user_id = :user_id
+            """), {'user_id': teacher['user_id']})
+            existing_teacher = existing_result.fetchone()
+            
+            if existing_teacher:
+                # Update existing teacher
+                session.execute(text("""
+                    UPDATE educational_teachers SET
+                        name = :name,
+                        school = :school,
+                        department = :department,
+                        subjects = :subjects,
+                        grade_levels = :grade_levels,
+                        certifications = :certifications,
+                        specialties = :specialties,
+                        bio = :bio,
+                        last_login = :last_login,
+                        updated_at = :updated_at,
+                        last_accessed_at = :last_accessed_at,
+                        retention_period = :retention_period,
+                        status = :status,
+                        is_active = :is_active
+                    WHERE user_id = :user_id
+                """), teacher)
+            else:
+                # Insert new teacher
+                session.execute(text("""
+                    INSERT INTO educational_teachers (user_id, name, school, department, subjects, grade_levels, 
+                                                   certifications, specialties, bio, last_login, created_at, updated_at,
+                                                   last_accessed_at, archived_at, deleted_at, scheduled_deletion_at,
+                                                   retention_period, status, is_active)
+                    VALUES (:user_id, :name, :school, :department, :subjects, :grade_levels, 
+                           :certifications, :specialties, :bio, :last_login, :created_at, :updated_at,
+                           :last_accessed_at, :archived_at, :deleted_at, :scheduled_deletion_at,
+                           :retention_period, :status, :is_active)
+                """), teacher)
+            migrated_count += 1
         
         session.commit()
-        print(f"  ✅ Migrated {len(teachers)} users to educational teachers")
-        return len(teachers)
+        print(f"  ✅ Migrated {migrated_count} educational teachers (updated existing + inserted new)")
+        return migrated_count
         
     except Exception as e:
         print(f"  ❌ Error migrating educational_teachers: {e}")
@@ -2445,8 +2510,8 @@ def seed_departments(session: Session) -> int:
         existing_count = result.scalar()
         
         if existing_count > 0:
-            print(f"  ⚠️  departments already has {existing_count} records, skipping...")
-            return existing_count
+            print(f"  🔄 departments already has {existing_count} records, continuing with migration...")
+            # Continue with seeding - let ON CONFLICT clauses handle duplicates
         
         # Create sample departments
         departments = []
@@ -2780,8 +2845,8 @@ def seed_organization_projects(session: Session) -> int:
         existing_count = result.scalar()
         
         if existing_count > 0:
-            print(f"  ⚠️  organization_projects already has {existing_count} records, skipping...")
-            return existing_count
+            print(f"  🔄 organization_projects already has {existing_count} records, continuing with migration...")
+            # Continue with seeding - let ON CONFLICT clauses handle duplicates
         
         # Get actual user_ids and team_ids from database
         user_result = session.execute(text("SELECT id FROM dashboard_users LIMIT 50"))
@@ -2925,8 +2990,8 @@ def seed_organization_settings(session: Session) -> int:
         existing_count = result.scalar()
         
         if existing_count > 0:
-            print(f"  ⚠️  organization_settings already has {existing_count} records, skipping...")
-            return existing_count
+            print(f"  🔄 organization_settings already has {existing_count} records, continuing with migration...")
+            # Continue with seeding - let ON CONFLICT clauses handle duplicates
         
         # Get actual organization_ids from database
         org_result = session.execute(text("SELECT id FROM organizations LIMIT 5"))
@@ -2936,11 +3001,22 @@ def seed_organization_settings(session: Session) -> int:
             print("  ⚠️  No organizations found, skipping organization_settings...")
             return 0
         
+        # Check which organizations already have settings
+        existing_settings_result = session.execute(text("SELECT organization_id FROM organization_settings"))
+        existing_org_ids = {row[0] for row in existing_settings_result.fetchall()}
+        
+        # Filter out organizations that already have settings
+        new_organization_ids = [org_id for org_id in organization_ids if org_id not in existing_org_ids]
+        
+        if not new_organization_ids:
+            print("  ✅ All organizations already have settings, skipping...")
+            return len(organization_ids)
+        
         # Create sample organization settings (one per organization)
         settings = []
         statuses = ['ACTIVE', 'INACTIVE', 'PENDING', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'ON_HOLD']
         
-        for i, org_id in enumerate(organization_ids):
+        for i, org_id in enumerate(new_organization_ids):
             setting = {
                 'organization_id': org_id,
                 'theme': random.choice(['light', 'dark', 'auto']),
@@ -3038,6 +3114,7 @@ def seed_organization_settings(session: Session) -> int:
         
     except Exception as e:
         print(f"  ❌ Error seeding organization_settings: {e}")
+        recover_transaction(session)
         return 0
 
 def seed_organization_feedback(session: Session) -> int:
@@ -3241,6 +3318,16 @@ def seed_team_members(session: Session) -> int:
 # ============================================================================
 # MAIN SEEDING FUNCTION
 # ============================================================================
+
+def recover_transaction(session):
+    """Recover from failed transaction by rolling back and starting fresh"""
+    try:
+        session.rollback()
+        print("  🔄 Transaction rolled back, continuing...")
+        return True
+    except Exception as e:
+        print(f"  ❌ Failed to rollback transaction: {e}")
+        return False
 
 def seed_phase2_educational_system(session: Session) -> Dict[str, int]:
     """

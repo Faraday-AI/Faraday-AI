@@ -69,6 +69,7 @@ class DashboardUser(SharedBase):
         back_populates="assigned_users"
     )
     tool_usage_logs = relationship("ToolUsageLog", back_populates="user")
+    filters = relationship("Filter", back_populates="user")
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

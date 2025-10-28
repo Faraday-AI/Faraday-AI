@@ -88,6 +88,7 @@ services:
       - "${APP_WEBSOCKET_PORT:-9100}:${APP_WEBSOCKET_PORT:-9100}"
     volumes:
       - ./app:/app/app
+      - ./migrations:/app/migrations
       - ./models:/app/models
       - ./static:/app/static
       - ./exports:/app/exports

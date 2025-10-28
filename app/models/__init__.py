@@ -7,6 +7,7 @@ the application.
 """
 
 # Base models
+from .shared_base import SharedBase
 from .core import (
     BaseModel,
     User,
@@ -17,6 +18,77 @@ from .core import (
     Lesson,
     SubjectCategory
 )
+
+# Teacher Registration
+from .teacher_registration import TeacherRegistration
+
+# Lesson Plan Builder
+from .lesson_plan_builder import (
+    LessonPlanTemplate,
+    LessonPlanActivity,
+    AILessonSuggestion,
+    LessonPlanSharing,
+    LessonPlanUsage,
+    LessonPlanCategory,
+    TemplateCategoryAssociation
+)
+
+# Assessment Tools
+from .assessment_tools import (
+    AssessmentTemplate,
+    AssessmentCriteria,
+    AssessmentRubric,
+    AssessmentQuestion,
+    AssessmentChecklist,
+    AssessmentStandard,
+    AssessmentTemplateSharing,
+    AssessmentTemplateUsage,
+    AssessmentCategory,
+    AssessmentTemplateCategoryAssociation
+)
+
+# AI Assistant
+from .ai_assistant import (
+    AIAssistantConfig,
+    AIAssistantConversation,
+    AIAssistantMessage,
+    AIAssistantUsage,
+    AIAssistantTemplate,
+    AIAssistantFeedback,
+    AIAssistantAnalytics
+)
+
+# Resource Management
+from .resource_management import (
+    ResourceCategory,
+    EducationalResource,
+    ResourceCategoryAssociation,
+    ResourceSharing,
+    ResourceUsage,
+    ResourceCollection,
+    CollectionResourceAssociation,
+    CollectionSharing,
+    ResourceReview,
+    ResourceFavorite,
+    ResourceDownload
+)
+
+# Beta Testing
+from .beta_testing import (
+    BetaTestingParticipant,
+    BetaTestingProgram,
+    BetaTestingFeedback,
+    BetaTestingSurvey,
+    BetaTestingSurveyResponse,
+    BetaTestingUsageAnalytics,
+    BetaTestingFeatureFlag,
+    BetaTestingNotification,
+    BetaTestingReport
+)
+
+# Beta Avatars & Widgets
+from .beta_avatars import BetaAvatar
+from .beta_widgets import BetaWidget
 
 # Type definitions
 from .core.core_models import (
@@ -483,6 +555,31 @@ from app.dashboard.models.user import DashboardUser
 from app.dashboard.models.project import DashboardProject
 from app.dashboard.models.association_tables import gpt_sharing
 from app.dashboard.models.ai_tool import tool_assignments
+
+# Additional Dashboard models for Phase 11
+from app.dashboard.models.security import DashboardAPIKey, DashboardRateLimit, AuditLog, Session
+from app.dashboard.models.filter import Filter
+from app.dashboard.models.marketplace_listing import MarketplaceListing
+from app.dashboard.models.notification_models import Notification
+from app.dashboard.models.team import DashboardTeamMember
+from app.dashboard.models.tool_usage_log import ToolUsageLog
+
+# Resource Management models for Phase 11 - Renamed to avoid conflicts with original models
+from app.models.resource_management_old.resource_management import (
+    Phase11ResourceUsage,
+    Phase11ResourceThreshold,
+    Phase11ResourceOptimization,
+    Phase11ResourceSharing,
+    Phase11OptimizationEvent
+)
+from app.models.resource_management_old.optimization.models import (
+    ResourceOptimizationThreshold,
+    ResourceOptimizationRecommendation,
+    ResourceOptimizationEvent,
+    ResourceEvent,
+    ResourceAlert
+)
+
 from app.models.health_fitness.workouts.injury_prevention import injury_risk_factor_safety_guidelines
 from app.dashboard.models.gpt_models import (
     GPTDefinition,
@@ -546,19 +643,18 @@ from .physical_education.safety.models import (
 # General SkillAssessment (secondary) - already imported as GeneralSkillAssessment
 
 # Resource Management Models
-from .resource_management.resource_management import (
+from .resource_management import (
+    ResourceCategory,
+    EducationalResource,
+    ResourceCategoryAssociation,
+    ResourceSharing,
     ResourceUsage,
-    ResourceThreshold,
-    ResourceOptimization,
-    OptimizationEvent,
-    ResourceSharing
-)
-from .resource_management.optimization.models import (
-    ResourceEvent,
-    ResourceAlert,
-    ResourceOptimizationThreshold as OptimizationResourceThreshold,
-    ResourceOptimizationRecommendation as OptimizationResourceOptimization,
-    ResourceOptimizationEvent as OptimizationOptimizationEvent
+    ResourceCollection,
+    CollectionResourceAssociation,
+    CollectionSharing,
+    ResourceReview,
+    ResourceFavorite,
+    ResourceDownload
 )
 
 # Context Models
@@ -660,6 +756,7 @@ from .security.rate_limit.rate_limit import RateLimit, RateLimitPolicy, RateLimi
 from .circuit_breaker import CircuitBreakerMetrics
 
 __all__ = [
+    'SharedBase',
     'BaseModel',
     'User',
     'UserMemory',
@@ -768,8 +865,8 @@ __all__ = [
     # Physical Education Safety Models
     'SafetyIncidentBase', 'SafetyCheck', 'EnvironmentalCheck', 'SafetyProtocol', 'SafetyAlert',
 
-    # Resource Management Models
-    'ResourceUsage', 'ResourceThreshold', 'ResourceOptimization', 'OptimizationEvent', 'ResourceSharing',
+    # Resource Management Models (Phase 11 models renamed to avoid conflicts)
+    'Phase11ResourceUsage', 'Phase11ResourceThreshold', 'Phase11ResourceOptimization', 'Phase11ResourceSharing', 'Phase11OptimizationEvent',
     'ResourceEvent', 'ResourceAlert', 'OptimizationResourceThreshold', 'OptimizationResourceOptimization', 'OptimizationOptimizationEvent',
 
     # Context Models
@@ -802,4 +899,30 @@ __all__ = [
     
     # Additional missing models
     'MetadataModel', 'HealthMetric', 'AuditableModel', 'ProgressTracking', 'ValidatableModel', 'ProgressMilestone', 'ProgressReport', 'Safety', 'EventParticipant', 'EquipmentCheck', 'RiskLevel', 'AlertType', 'CheckType',
+    
+    # Teacher Registration models
+    'TeacherRegistration',
+    
+    # Lesson Plan Builder models
+    'LessonPlanTemplate', 'LessonPlanActivity', 'AILessonSuggestion', 'LessonPlanSharing', 
+    'LessonPlanUsage', 'LessonPlanCategory', 'TemplateCategoryAssociation',
+    
+    # Assessment Tools models
+    'AssessmentTemplate', 'AssessmentCriteria', 'AssessmentRubric', 'AssessmentQuestion', 
+    'AssessmentChecklist', 'AssessmentStandard', 'AssessmentTemplateSharing', 
+    'AssessmentTemplateUsage', 'AssessmentCategory', 'AssessmentTemplateCategoryAssociation',
+    
+    # AI Assistant models
+    'AIAssistantConfig', 'AIAssistantConversation', 'AIAssistantMessage', 'AIAssistantUsage', 
+    'AIAssistantTemplate', 'AIAssistantFeedback', 'AIAssistantAnalytics',
+    
+    # Resource Management models
+    'ResourceCategory', 'EducationalResource', 'ResourceCategoryAssociation', 'ResourceSharing', 
+    'ResourceUsage', 'ResourceCollection', 'CollectionResourceAssociation', 'CollectionSharing', 
+    'ResourceReview', 'ResourceFavorite', 'ResourceDownload',
+    
+    # Beta Testing models
+    'BetaTestingParticipant', 'BetaTestingProgram', 'BetaTestingFeedback', 'BetaTestingSurvey', 
+    'BetaTestingSurveyResponse', 'BetaTestingUsageAnalytics', 'BetaTestingFeatureFlag', 
+    'BetaTestingNotification', 'BetaTestingReport',
 ] 

@@ -190,7 +190,7 @@ def seed_curriculum_lessons(session: Session) -> int:
         
         for i in range(600):
             lesson = {
-                'curriculum_id': random.randint(1, 30),  # Assuming 30 curriculum records exist
+                'curriculum_id': random.randint(1, 5),  # Using actual curriculum IDs 1-5
                 'title': f"Curriculum Lesson {i+1}",
                 'subject': random.choice(subjects),
                 'grade_level': random.choice(grade_levels),
@@ -274,7 +274,7 @@ def seed_curriculum_standard_associations(session: Session) -> int:
         
         for i in range(200):
             association = {
-                'curriculum_id': random.randint(1, 30),  # Assuming 30 curriculum records exist
+                'curriculum_id': random.randint(1, 5),  # Using actual curriculum IDs 1-5
                 'standard_id': random.randint(1, 50),    # Assuming 50 standards exist
                 'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
                 'updated_at': datetime.now()

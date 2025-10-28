@@ -29,7 +29,7 @@ def migrate_teachers_full():
 
     print('🚀 FULL TEACHER MIGRATION - CLEAN ARCHITECTURE')
     print('=' * 80)
-    print('⚠️  FALLBACK POINT: Commit 2ab865dd (Complete database seeding system overhaul)')
+    print('⚠️  FALLBACK POINT: Commit 897efa95 (Add SKIP flags phases 4-11, extend validation, add indexes and CI fast-seed)')
     print('=' * 80)
 
     try:

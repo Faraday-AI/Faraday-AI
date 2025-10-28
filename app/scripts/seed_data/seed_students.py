@@ -370,9 +370,43 @@ def seed_students(session):
             )
             session.add(enrollment)
             enrollments_created += 1
+            
+            # Commit in smaller batches to avoid connection timeouts
+            if enrollments_created % 100 == 0:
+                try:
+                    session.commit()
+                    print(f"  Committed {enrollments_created} enrollments so far...")
+                except Exception as e:
+                    print(f"  Batch commit failed, retrying: {e}")
+                    session.rollback()
+                    # Retry the batch
+                    for i in range(100):
+                        if enrollments_created - 100 + i < len(students):
+                            student_id = students[enrollments_created - 100 + i].id
+                            school_id = random.choice(school_ids)
+                            grade_str = random.choice(grade_levels)
+                            
+                            enrollment = StudentSchoolEnrollment(
+                                student_id=student_id,
+                                school_id=school_id,
+                                enrollment_date=datetime.now(),
+                                grade_level=grade_str,
+                                academic_year=current_academic_year,
+                                status="ACTIVE",
+                                enrollment_type="REGULAR"
+                            )
+                            session.add(enrollment)
+                    session.commit()
+                    print(f"  Retry successful: {enrollments_created} enrollments committed")
     
-    session.commit()
-    print(f"Created {enrollments_created} school enrollments")
+    # Final commit for any remaining enrollments
+    try:
+        session.commit()
+        print(f"Created {enrollments_created} school enrollments")
+    except Exception as e:
+        print(f"Final commit failed: {e}")
+        session.rollback()
+        raise
     
     # Relative rule: ensure High >= Middle + one grade worth of students
     GRADE_SIZE = 420

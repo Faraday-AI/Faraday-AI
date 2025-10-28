@@ -858,7 +858,7 @@ def seed_access_control_system(session):
     seed_security_logs(session)
     seed_sessions(session)
     seed_shared_contexts(session)
-    seed_tool_assignments(session)
+    # seed_tool_assignments(session)  # Moved to main seeding section after dashboard users migration
     seed_voice_templates(session)
     seed_voices(session)
     

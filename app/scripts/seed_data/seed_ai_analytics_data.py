@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import random
+import json
 from typing import List
 from sqlalchemy.orm import Session
 from sqlalchemy import select, text
@@ -14,10 +15,12 @@ def seed_ai_analytics_data(session):
     try:
         from app.dashboard.models.ai_suite import AISuite
         
-        # Clear existing data first - delete in correct order to handle foreign keys
-        session.execute(text("DELETE FROM ai_tools"))  # Delete dependent table first
-        session.execute(text("DELETE FROM ai_suites"))  # Then delete parent table
-        session.commit()  # Commit the deletions
+        # Check existing data instead of clearing (due to foreign key constraints)
+        existing_tools_result = session.execute(text("SELECT COUNT(*) FROM ai_tools"))
+        existing_tools_count = existing_tools_result.scalar()
+        existing_suites_result = session.execute(text("SELECT COUNT(*) FROM ai_suites"))
+        existing_suites_count = existing_suites_result.scalar()
+        print(f"    Found {existing_tools_count} existing AI tools and {existing_suites_count} existing AI suites, using upsert approach...")
         
         # Get user IDs for foreign key references
         user_result = session.execute(text("SELECT id FROM dashboard_users LIMIT 10"))
@@ -32,7 +35,7 @@ def seed_ai_analytics_data(session):
                 "description": "AI system for analyzing physical education performance",
                 "version": "1.0.0",
                 "user_id": random.choice(user_ids),
-                "configuration": {"capabilities": ["performance_analysis", "skill_assessment", "progress_tracking"]},
+                "configuration": json.dumps({"capabilities": ["performance_analysis", "skill_assessment", "progress_tracking"]}),
                 "is_active": True,
                 "created_at": datetime.now() - timedelta(days=30)
             },
@@ -41,7 +44,7 @@ def seed_ai_analytics_data(session):
                 "description": "AI system for recognizing and analyzing movement patterns",
                 "version": "2.1.0",
                 "user_id": random.choice(user_ids),
-                "configuration": {"capabilities": ["pattern_recognition", "form_analysis", "injury_prevention"]},
+                "configuration": json.dumps({"capabilities": ["pattern_recognition", "form_analysis", "injury_prevention"]}),
                 "is_active": True,
                 "created_at": datetime.now() - timedelta(days=25)
             },
@@ -50,19 +53,42 @@ def seed_ai_analytics_data(session):
                 "description": "AI system for adaptive physical education learning",
                 "version": "1.5.0",
                 "user_id": random.choice(user_ids),
-                "configuration": {"capabilities": ["adaptive_curriculum", "personalized_goals", "skill_progression"]},
+                "configuration": json.dumps({"capabilities": ["adaptive_curriculum", "personalized_goals", "skill_progression"]}),
                 "is_active": True,
                 "created_at": datetime.now() - timedelta(days=20)
             }
         ]
         
+        # Use upsert logic to handle existing suites
+        created_count = 0
         for suite_data in ai_suites:
-            suite = AISuite(**suite_data)
-            session.add(suite)
+            # Check if suite already exists by name
+            existing_result = session.execute(text("""
+                SELECT id FROM ai_suites WHERE name = :name
+            """), {'name': suite_data['name']})
+            existing_suite = existing_result.fetchone()
+            
+            if existing_suite:
+                # Update existing suite
+                session.execute(text("""
+                    UPDATE ai_suites SET
+                        description = :description,
+                        version = :version,
+                        user_id = :user_id,
+                        configuration = :configuration,
+                        is_active = :is_active,
+                        created_at = :created_at
+                    WHERE name = :name
+                """), suite_data)
+            else:
+                # Insert new suite
+                suite = AISuite(**suite_data)
+                session.add(suite)
+            created_count += 1
             total_records += 1
         
         session.commit()  # Commit AI suites before creating tools
-        print(f"    Created {len(ai_suites)} AI suites")
+        print(f"    Migrated {created_count} AI suites (updated existing + inserted new)")
         
     except Exception as e:
         print(f"    Could not seed AI suites: {e}")
@@ -71,9 +97,10 @@ def seed_ai_analytics_data(session):
     try:
         from app.dashboard.models.ai_tool import AITool
         
-        # Clear existing data first
-        session.execute(text("DELETE FROM ai_tools"))
-        session.commit()  # Commit the deletion
+        # Check existing data instead of clearing (due to foreign key constraints)
+        existing_result = session.execute(text("SELECT COUNT(*) FROM ai_tools"))
+        existing_count = existing_result.scalar()
+        print(f"    Found {existing_count} existing AI tools, using upsert approach...")
         
         # Get suite IDs for foreign key references
         suite_result = session.execute(text("SELECT id FROM ai_suites LIMIT 10"))
@@ -89,7 +116,7 @@ def seed_ai_analytics_data(session):
                 "tool_type": "VISUALIZATION",
                 "status": "ACTIVE",
                 "suite_id": random.choice(suite_ids),
-                "configuration": {"capabilities": ["charts", "graphs", "reports"]},
+                "configuration": json.dumps({"capabilities": ["charts", "graphs", "reports"]}),
                 "created_at": datetime.now() - timedelta(days=15)
             },
             {
@@ -98,7 +125,7 @@ def seed_ai_analytics_data(session):
                 "tool_type": "CHATBOT",
                 "status": "ACTIVE",
                 "suite_id": random.choice(suite_ids),
-                "configuration": {"capabilities": ["conversation", "assessment", "feedback"]},
+                "configuration": json.dumps({"capabilities": ["conversation", "assessment", "feedback"]}),
                 "created_at": datetime.now() - timedelta(days=10)
             },
             {
@@ -107,18 +134,40 @@ def seed_ai_analytics_data(session):
                 "tool_type": "TRACKING",
                 "status": "ACTIVE",
                 "suite_id": random.choice(suite_ids),
-                "configuration": {"capabilities": ["progress_monitoring", "goal_setting", "milestone_tracking"]},
+                "configuration": json.dumps({"capabilities": ["progress_monitoring", "goal_setting", "milestone_tracking"]}),
                 "created_at": datetime.now() - timedelta(days=5)
             }
         ]
         
+        # Use upsert logic to handle existing tools
+        created_count = 0
         for tool_data in ai_tools:
-            tool = AITool(**tool_data)
-            session.add(tool)
-            total_records += 1
+            # Check if tool already exists by name
+            existing_result = session.execute(text("""
+                SELECT id FROM ai_tools WHERE name = :name
+            """), {'name': tool_data['name']})
+            existing_tool = existing_result.fetchone()
+            
+            if existing_tool:
+                # Update existing tool
+                session.execute(text("""
+                    UPDATE ai_tools SET
+                        description = :description,
+                        tool_type = :tool_type,
+                        status = :status,
+                        suite_id = :suite_id,
+                        configuration = :configuration,
+                        created_at = :created_at
+                    WHERE name = :name
+                """), tool_data)
+            else:
+                # Insert new tool
+                tool = AITool(**tool_data)
+                session.add(tool)
+            created_count += 1
         
         session.commit()  # Commit AI tools
-        print(f"    Created {len(ai_tools)} AI tools")
+        print(f"    Migrated {created_count} AI tools (updated existing + inserted new)")
         
     except Exception as e:
         print(f"    Could not seed AI tools: {e}")
@@ -127,8 +176,10 @@ def seed_ai_analytics_data(session):
     try:
         from app.models.analytics.user_analytics import AnalyticsEvent
         
-        # Clear existing data first
-        session.execute(text("DELETE FROM analytics_events"))
+        # Check existing data instead of clearing (due to foreign key constraints)
+        existing_result = session.execute(text("SELECT COUNT(*) FROM analytics_events"))
+        existing_count = existing_result.scalar()
+        print(f"    Found {existing_count} existing analytics events, using upsert approach...")
         
         # Get user IDs for foreign key references
         user_result = session.execute(text("SELECT id FROM users LIMIT 50"))
@@ -165,8 +216,10 @@ def seed_ai_analytics_data(session):
     try:
         from app.dashboard.models.feedback import Feedback
         
-        # Clear existing data first
-        session.execute(text("DELETE FROM dashboard_feedback"))
+        # Check existing data instead of clearing (due to foreign key constraints)
+        existing_result = session.execute(text("SELECT COUNT(*) FROM dashboard_feedback"))
+        existing_count = existing_result.scalar()
+        print(f"    Found {existing_count} existing feedback records, using upsert approach...")
         
         # Get user IDs for foreign key references
         user_result = session.execute(text("SELECT id FROM dashboard_users LIMIT 50"))

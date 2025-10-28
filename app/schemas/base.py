@@ -194,7 +194,7 @@ class BaseFilterSchema(BaseSchema):
     page: int = Field(default=1, ge=1)
     per_page: int = Field(default=10, ge=1, le=100)
     sort_by: Optional[str] = None
-    sort_order: Optional[str] = Field(None, regex="^(asc|desc)$")
+    sort_order: Optional[str] = Field(None, pattern="^(asc|desc)$")
     search: Optional[str] = None
 
 class BaseSearchSchema(BaseSchema):
@@ -204,17 +204,17 @@ class BaseSearchSchema(BaseSchema):
     page: int = Field(default=1, ge=1)
     per_page: int = Field(default=10, ge=1, le=100)
     sort_by: Optional[str] = None
-    sort_order: Optional[str] = Field(None, regex="^(asc|desc)$")
+    sort_order: Optional[str] = Field(None, pattern="^(asc|desc)$")
 
 class BaseExportSchema(BaseSchema):
     """Base export schema."""
-    format: str = Field(..., regex="^(csv|json|excel)$")
+    format: str = Field(..., pattern="^(csv|json|excel)$")
     fields: Optional[List[str]] = None
     filters: Optional[Dict[str, Any]] = None
 
 class BaseImportSchema(BaseSchema):
     """Base import schema."""
-    format: str = Field(..., regex="^(csv|json|excel)$")
+    format: str = Field(..., pattern="^(csv|json|excel)$")
     file: bytes
     options: Optional[Dict[str, Any]] = None
 
@@ -336,7 +336,7 @@ class AuditSchema(BaseSchema):
 # Export/Import Schemas
 class ExportSchema(BaseSchema):
     """Schema with export fields."""
-    format: str = Field(..., regex="^(csv|json|excel|pdf)$")
+    format: str = Field(..., pattern="^(csv|json|excel|pdf)$")
     fields: Optional[List[str]] = None
     filters: Optional[Dict[str, Any]] = None
     options: Optional[Dict[str, Any]] = None
@@ -344,7 +344,7 @@ class ExportSchema(BaseSchema):
 
 class ImportSchema(BaseSchema):
     """Schema with import fields."""
-    format: str = Field(..., regex="^(csv|json|excel)$")
+    format: str = Field(..., pattern="^(csv|json|excel)$")
     file: bytes
     options: Optional[Dict[str, Any]] = None
     import_metadata: Dict[str, Any] = Field(default_factory=dict)

@@ -9,6 +9,12 @@ def seed_security_system(session: Session) -> None:
     """Seed comprehensive security system data."""
     print("Seeding security system...")
     
+    # Reset any failed transaction state
+    try:
+        session.rollback()
+    except:
+        pass
+    
     # Seed security policies - using the actual schema
     policies = [
         {"name": "Data Access Policy", "description": "Controls access to student and class data", "policy_type": "access_control", "status": "ACTIVE", "rules": {"enforcement": "strict", "audit_required": True}},
@@ -18,6 +24,9 @@ def seed_security_system(session: Session) -> None:
         {"name": "Data Privacy Policy", "description": "Student data privacy and protection", "policy_type": "privacy", "status": "ACTIVE", "rules": {"encryption_required": True, "access_logging": True}}
     ]
     
+    # First commit policies to get their IDs
+    policy_ids = {}
+    
     for policy_data in policies:
         try:
             existing = session.execute(
@@ -26,10 +35,11 @@ def seed_security_system(session: Session) -> None:
             ).first()
             
             if not existing:
-                session.execute(
+                result = session.execute(
                     text("""
                         INSERT INTO security_policies (name, description, policy_type, status, rules, created_at, updated_at)
                         VALUES (:name, :description, :policy_type, :status, :rules, :created_at, :updated_at)
+                        RETURNING id
                     """),
                     {
                         **policy_data,
@@ -38,20 +48,39 @@ def seed_security_system(session: Session) -> None:
                         "updated_at": datetime.utcnow()
                     }
                 )
+                policy_id = result.fetchone()[0]
+                policy_ids[policy_data["name"]] = policy_id
+            else:
+                policy_ids[policy_data["name"]] = existing[0]
         except Exception as e:
             print(f"Warning: Could not seed security policy {policy_data['name']}: {e}")
     
-    # Seed security rules
+    # Commit policies first
+    try:
+        session.commit()
+        print(f"✅ Created {len(policy_ids)} security policies")
+    except Exception as e:
+        print(f"Warning: Could not commit policies: {e}")
+        return  # Exit early if policies couldn't be committed
+    
+    # Seed security rules using policy IDs from above
     rules = [
-        {"name": "Student Data Access", "description": "Only authorized staff can access student data", "policy_id": 1, "rule_type": "access_control", "severity": "high", "conditions": {"role_required": "staff", "data_type": "student"}},
-        {"name": "API Rate Limiting", "description": "API requests are rate limited", "policy_id": 2, "rule_type": "rate_limiting", "severity": "medium", "conditions": {"max_requests": 100, "time_window": "1_minute"}},
-        {"name": "Audit Trail", "description": "All access must be logged", "policy_id": 3, "rule_type": "logging", "severity": "high", "conditions": {"log_level": "all", "retention": "365_days"}},
-        {"name": "Incident Reporting", "description": "Security incidents must be reported within 1 hour", "policy_id": 4, "rule_type": "incident_response", "severity": "critical", "conditions": {"response_time": "1_hour", "escalation": "required"}},
-        {"name": "Data Encryption", "description": "All sensitive data must be encrypted", "policy_id": 5, "rule_type": "encryption", "severity": "high", "conditions": {"algorithm": "AES256", "key_rotation": "90_days"}}
+        {"name": "Student Data Access", "description": "Only authorized staff can access student data", "policy_name": "Data Access Policy", "rule_type": "access_control", "severity": "high", "conditions": {"role_required": "staff", "data_type": "student"}},
+        {"name": "API Rate Limiting", "description": "API requests are rate limited", "policy_name": "API Security Policy", "rule_type": "rate_limiting", "severity": "medium", "conditions": {"max_requests": 100, "time_window": "1_minute"}},
+        {"name": "Audit Trail", "description": "All access must be logged", "policy_name": "Audit Logging Policy", "rule_type": "logging", "severity": "high", "conditions": {"log_level": "all", "retention": "365_days"}},
+        {"name": "Incident Reporting", "description": "Security incidents must be reported within 1 hour", "policy_name": "Incident Response Policy", "rule_type": "incident_response", "severity": "critical", "conditions": {"response_time": "1_hour", "escalation": "required"}},
+        {"name": "Data Encryption", "description": "All sensitive data must be encrypted", "policy_name": "Data Privacy Policy", "rule_type": "encryption", "severity": "high", "conditions": {"algorithm": "AES256", "key_rotation": "90_days"}}
     ]
     
     for rule_data in rules:
         try:
+            # Get policy_id from policy_name
+            policy_name = rule_data.pop("policy_name")
+            if policy_name not in policy_ids:
+                print(f"Warning: Policy '{policy_name}' not found, skipping rule '{rule_data['name']}'")
+                continue
+            policy_id = policy_ids[policy_name]
+            
             existing = session.execute(
                 text("SELECT id FROM security_rules WHERE name = :name"),
                 {"name": rule_data["name"]}
@@ -65,6 +94,7 @@ def seed_security_system(session: Session) -> None:
                     """),
                     {
                         **rule_data,
+                        "policy_id": policy_id,
                         "conditions": json.dumps(rule_data["conditions"]),
                         "actions": json.dumps({"action": "block", "notify": True, "log": True}),
                         "status": "ACTIVE",
