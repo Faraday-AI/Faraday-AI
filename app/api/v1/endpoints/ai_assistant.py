@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
+from app.models.core.user import User
 from app.services.pe.ai_assistant_service import AIAssistantService
 from app.schemas.ai_assistant import (
     AIAssistantConfigCreate,
@@ -30,9 +31,15 @@ from app.schemas.ai_assistant import (
     AIAssistantBulkCreateRequest,
     AIAssistantBulkCreateResponse,
     AIAssistantBulkDeleteRequest,
-    AIAssistantBulkDeleteResponse
+    AIAssistantBulkDeleteResponse,
+    ContentGenerationRequest,
+    LessonPlanRequest,
+    AssessmentRequest
 )
-from app.schemas.teacher_auth import TeacherResponse
+
+# Export schemas for test imports
+__all__ = ['ContentGenerationRequest', 'LessonPlanRequest', 'AssessmentRequest']
+# TeacherResponse doesn't exist - using User from auth_models instead
 
 router = APIRouter(prefix="/ai-assistant", tags=["AI Assistant"])
 
@@ -42,7 +49,7 @@ router = APIRouter(prefix="/ai-assistant", tags=["AI Assistant"])
 @router.post("/configs", response_model=AIAssistantConfigResponse)
 async def create_assistant_config(
     config_data: AIAssistantConfigCreate,
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Create a new AI assistant configuration"""
@@ -59,7 +66,7 @@ async def create_assistant_config(
 @router.get("/configs", response_model=List[AIAssistantConfigResponse])
 async def get_assistant_configs(
     assistant_type: Optional[str] = Query(None, description="Filter by assistant type"),
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get AI assistant configurations for the current teacher"""
@@ -76,7 +83,7 @@ async def get_assistant_configs(
 @router.get("/configs/{config_id}", response_model=AIAssistantConfigResponse)
 async def get_assistant_config(
     config_id: str = Path(..., description="Configuration ID"),
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get a specific AI assistant configuration"""
@@ -105,7 +112,7 @@ async def get_assistant_config(
 async def update_assistant_config(
     config_id: str = Path(..., description="Configuration ID"),
     update_data: AIAssistantConfigUpdate = None,
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Update an AI assistant configuration"""
@@ -132,7 +139,7 @@ async def update_assistant_config(
 @router.delete("/configs/{config_id}")
 async def delete_assistant_config(
     config_id: str = Path(..., description="Configuration ID"),
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Delete an AI assistant configuration"""
@@ -161,7 +168,7 @@ async def delete_assistant_config(
 @router.post("/conversations", response_model=AIAssistantConversationResponse)
 async def create_conversation(
     conversation_data: AIAssistantConversationCreate,
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Create a new AI assistant conversation"""
@@ -180,7 +187,7 @@ async def get_conversations(
     conversation_type: Optional[str] = Query(None, description="Filter by conversation type"),
     limit: int = Query(50, ge=1, le=100, description="Number of conversations to return"),
     offset: int = Query(0, ge=0, description="Number of conversations to skip"),
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get conversations for the current teacher"""
@@ -204,7 +211,7 @@ async def get_conversation_messages(
     conversation_id: str = Path(..., description="Conversation ID"),
     limit: int = Query(100, ge=1, le=200, description="Number of messages to return"),
     offset: int = Query(0, ge=0, description="Number of messages to skip"),
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get messages for a conversation"""
@@ -228,7 +235,7 @@ async def get_conversation_messages(
 @router.post("/chat", response_model=AIAssistantChatResponse)
 async def send_chat_message(
     chat_request: AIAssistantChatRequest,
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Send a message to the AI assistant and get a response"""
@@ -283,7 +290,7 @@ async def use_template(
 @router.post("/feedback", response_model=AIAssistantFeedbackResponse)
 async def submit_feedback(
     feedback_data: AIAssistantFeedbackCreate,
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Submit feedback for an AI assistant interaction"""
@@ -300,7 +307,7 @@ async def submit_feedback(
 @router.get("/conversations/{conversation_id}/feedback", response_model=List[AIAssistantFeedbackResponse])
 async def get_conversation_feedback(
     conversation_id: str = Path(..., description="Conversation ID"),
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get feedback for a conversation"""
@@ -319,7 +326,7 @@ async def get_conversation_feedback(
 @router.get("/analytics", response_model=List[AIAssistantAnalyticsResponse])
 async def get_teacher_analytics(
     days: int = Query(30, ge=1, le=365, description="Number of days to include"),
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get AI assistant analytics for the current teacher"""
@@ -336,7 +343,7 @@ async def get_teacher_analytics(
 @router.get("/analytics/summary", response_model=AIAssistantUsageSummary)
 async def get_usage_summary(
     days: int = Query(30, ge=1, le=365, description="Number of days to include"),
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get usage summary for the current teacher"""
@@ -352,7 +359,7 @@ async def get_usage_summary(
 
 @router.get("/dashboard/summary", response_model=AIAssistantDashboardSummary)
 async def get_dashboard_summary(
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get dashboard summary for the current teacher"""
@@ -398,7 +405,7 @@ async def get_dashboard_summary(
 @router.post("/configs/bulk", response_model=AIAssistantBulkCreateResponse)
 async def bulk_create_configs(
     bulk_request: AIAssistantBulkCreateRequest,
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Bulk create AI assistant configurations"""
@@ -434,7 +441,7 @@ async def bulk_create_configs(
 @router.delete("/configs/bulk", response_model=AIAssistantBulkDeleteResponse)
 async def bulk_delete_configs(
     bulk_request: AIAssistantBulkDeleteRequest,
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Bulk delete AI assistant configurations"""
@@ -488,7 +495,7 @@ async def health_check():
 
 @router.get("/status")
 async def get_service_status(
-    current_teacher: TeacherResponse = Depends(get_current_user),
+    current_teacher: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Get AI assistant service status for the current teacher"""

@@ -129,11 +129,23 @@ RUN mkdir -p \
     /app/data \
     /app/scripts
 
+# Pre-download MediaPipe models during build as root to avoid permission issues at runtime
+# MediaPipe downloads models to site-packages, so we'll trigger the download here BEFORE creating non-root user
+# Use timeout to prevent hanging during build if network is unavailable
+RUN timeout 60 python -c "import mediapipe as mp; mp.solutions.pose.Pose(static_image_mode=False, model_complexity=2)" 2>/dev/null || \
+    (echo "MediaPipe model download skipped or timed out - models will download at runtime if needed" && true)
+
+# Make MediaPipe modules directory writable for model downloads/cache (as root, before user creation)
+RUN chmod -R 777 /usr/local/lib/python3.10/site-packages/mediapipe/modules 2>/dev/null || \
+    (echo "Note: Some mediapipe permissions may not be changeable" && true)
+
 # Create non-root user and set permissions
 RUN useradd -m -u 1000 appuser \
     && chown -R appuser:appuser /opt/venv /app \
     && chmod -R 755 /opt/venv /app \
-    && chmod -R 777 /app/logs /app/exports /app/data /app/services/physical_education/models /app/models /app/scripts
+    && chmod -R 777 /app/logs /app/exports /app/data /app/services/physical_education/models /app/models /app/scripts \
+    && chown -R appuser:appuser /usr/local/lib/python3.10/site-packages/mediapipe/modules 2>/dev/null || true \
+    && chmod -R 777 /usr/local/lib/python3.10/site-packages/mediapipe/modules 2>/dev/null || true
 
 # Copy everything from builder stage
 COPY --from=builder --chown=appuser:appuser /app /app

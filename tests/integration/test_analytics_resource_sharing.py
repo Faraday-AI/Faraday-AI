@@ -163,12 +163,13 @@ async def test_error_handling(analytics_service, mock_db):
     # Act & Assert
     with pytest.raises(Exception) as exc_info:
         await analytics_service.get_resource_usage_metrics("test_org", "24h")
-    assert "Error getting resource usage metrics" in str(exc_info.value)
+    # HTTPException detail is in .detail attribute, not str() representation
+    assert "Error getting resource usage metrics" in (str(exc_info.value.detail) if hasattr(exc_info.value, 'detail') else str(exc_info.value))
 
     with pytest.raises(Exception) as exc_info:
         await analytics_service.get_sharing_patterns("test_org", "24h")
-    assert "Error analyzing sharing patterns" in str(exc_info.value)
+    assert "Error analyzing sharing patterns" in (str(exc_info.value.detail) if hasattr(exc_info.value, 'detail') else str(exc_info.value))
 
     with pytest.raises(Exception) as exc_info:
         await analytics_service.get_sharing_trends("test_org", "24h")
-    assert "Error analyzing sharing trends" in str(exc_info.value) 
+    assert "Error analyzing sharing trends" in (str(exc_info.value.detail) if hasattr(exc_info.value, 'detail') else str(exc_info.value)) 

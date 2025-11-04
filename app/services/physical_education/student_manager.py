@@ -10,7 +10,8 @@ from app.models.physical_education.student import (
     Student,
     StudentHealthFitnessGoal,
     StudentHealthGoalProgress,
-    StudentHealthGoalRecommendation
+    StudentHealthGoalRecommendation,
+    StudentHealthProfile
 )
 from app.models.health_fitness.metrics.health import HealthMetric
 from app.models.physical_education.pe_enums.pe_types import (
@@ -699,11 +700,68 @@ class StudentManager:
         timeframe: str = "medium_term",
         description: str = None
     ) -> Dict[str, Any]:
-        """Create a new goal for a student."""
+        """Create a new goal for a student.
+        
+        NOTE: StudentHealthFitnessGoal requires student_health.id (StudentHealthProfile),
+        not students.id. This method will create/get the StudentHealthProfile first.
+        """
         try:
-            # Create a new health fitness goal
+            if not self.db:
+                return {
+                    "goal_created": False,
+                    "error": "Database session not initialized"
+                }
+            
+            # Get the Student record to extract name/DOB for StudentHealthProfile
+            student = self.db.query(Student).filter(Student.id == student_id).first()
+            if not student:
+                return {
+                    "goal_created": False,
+                    "error": f"Student {student_id} not found"
+                }
+            
+            # Find or create StudentHealthProfile
+            # The foreign key is student_health.id, not students.id
+            # Use text query to avoid relationship mapping issues
+            from sqlalchemy import text
+            student_health_result = self.db.execute(
+                text("""
+                    SELECT id FROM student_health 
+                    WHERE student_id = :student_id
+                    LIMIT 1
+                """),
+                {
+                    "student_id": student.id
+                }
+            ).fetchone()
+            
+            if student_health_result:
+                student_health_id = student_health_result[0]
+            else:
+                # Create StudentHealthProfile if it doesn't exist using raw SQL
+                # NOTE: student_health table has a student_id column that references students.id
+                result = self.db.execute(
+                    text("""
+                        INSERT INTO student_health (student_id, first_name, last_name, date_of_birth, grade_level, created_at, updated_at)
+                        VALUES (:student_id, :first_name, :last_name, :date_of_birth, :grade_level, :created_at, :updated_at)
+                        RETURNING id
+                    """),
+                    {
+                        "student_id": student.id,  # Link to students.id
+                        "first_name": student.first_name,
+                        "last_name": student.last_name,
+                        "date_of_birth": student.date_of_birth,
+                        "grade_level": getattr(student, 'grade_level', None),
+                        "created_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow()
+                    }
+                )
+                student_health_id = result.scalar()
+                self.db.flush()  # Use flush for SAVEPOINT transactions
+            
+            # Create a new health fitness goal using student_health.id
             goal = StudentHealthFitnessGoal(
-                student_id=student_id,
+                student_id=student_health_id,  # Use student_health.id, not students.id
                 goal_type=GoalType(goal_type),
                 category=GoalCategory.ENDURANCE,  # Add the required category field
                 target_value=target_value,
@@ -715,10 +773,10 @@ class StudentManager:
             )
             
             self.db.add(goal)
-            self.db.commit()
+            self.db.flush()  # Use flush for SAVEPOINT transactions
             self.db.refresh(goal)
             
-            self.logger.info(f"Created goal {goal.id} for student {student_id}")
+            self.logger.info(f"Created goal {goal.id} for student_health {student_health_id} (student {student_id})")
             
             return {
                 "goal_created": True,

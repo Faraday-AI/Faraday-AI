@@ -5,10 +5,10 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.dashboard.services.access_control_service import AccessControlService
 from app.dashboard.schemas.access_control import ResourceType, ActionType
-from app.dashboard.dependencies.auth import auth_deps
+from app.dashboard.dependencies.auth import get_current_user, get_auth_deps
 
 # Re-export the auth dependencies
-get_current_user = auth_deps.get_current_user
+__all__ = ["get_current_user", "get_auth_deps"]
 
 async def require_admin(
     user_id: str = Depends(get_current_user),

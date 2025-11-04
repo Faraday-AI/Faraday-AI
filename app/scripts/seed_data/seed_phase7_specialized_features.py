@@ -9,6 +9,7 @@ import sys
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 import json
+import uuid
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy import text
 import random
@@ -161,6 +162,11 @@ def safe_insert(session: Session, table_name: str, data: List[Dict], batch_size:
         return total_inserted
     except Exception as e:
         print(f"⚠️ Error inserting into {table_name}: {e}")
+        # Rollback any pending changes for this operation
+        try:
+            session.rollback()
+        except:
+            pass
         return 0
 
 def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
@@ -304,13 +310,24 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     print("-" * 40)
     
     # dashboard_widgets (migrate from existing users)
+    savepoint = session.begin_nested()
     try:
+        # Check if id column requires a value by checking schema
+        schema_result = session.execute(
+            text("""
+                SELECT column_name, data_type, column_default, is_nullable
+                FROM information_schema.columns
+                WHERE table_name = 'dashboard_widgets' AND column_name = 'id'
+            """)
+        ).first()
+        
         # Always create widgets from all users
         additional_widgets = []
         for i in range(320):  # Create 320 widgets (10 per user)
             user_id = random.choice(ids['user_ids'])
             dashboard_id = random.choice(ids['dashboard_ids'])
-            additional_widgets.append({
+            
+            widget_data = {
                 'user_id': user_id,
                 'dashboard_id': dashboard_id,
                 'name': f'Widget {i+1}',
@@ -322,13 +339,22 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 'is_active': True,
                 'is_visible': True,
                 'created_at': datetime.now() - timedelta(days=random.randint(1, 90))
-            })
+            }
+            
+            # Add id if required (NOT NULL with no default)
+            if schema_result and schema_result[2] is None and schema_result[3] == 'NO':
+                widget_data['id'] = str(uuid.uuid4())
+            
+            additional_widgets.append(widget_data)
         
         inserted = safe_insert(session, 'dashboard_widgets', additional_widgets)
+        savepoint.commit()
+        session.commit()
         results['dashboard_widgets'] = inserted
         print(f"  ✅ dashboard_widgets: +{inserted} records (migrated from all users)")
     except Exception as e:
         print(f"  ❌ dashboard_widgets: {e}")
+        savepoint.rollback()
         results['dashboard_widgets'] = 0
     
     # 4. Physical Education Advanced Tables (15 tables)
@@ -336,10 +362,12 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     print("-" * 40)
     
     # workout_plans (migrate from existing students)
+    savepoint = session.begin_nested()
     try:
-        # Always create workout plans from all students
+        # Always create workout plans from all students (limit to 100 to avoid too many records)
         additional_plans = []
-        for i in range(len(ids['student_ids'])):  # Create one plan per student
+        plan_count = min(100, len(ids['student_ids']))
+        for i in range(plan_count):
             student_id = ids['student_ids'][i % len(ids['student_ids'])]
             teacher_id = ids['user_ids'][i % len(ids['user_ids'])]
             
@@ -358,51 +386,87 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             })
         
         inserted = safe_insert(session, 'workout_plans', additional_plans)
+        savepoint.commit()
+        session.commit()
         results['workout_plans'] = inserted
         print(f"  ✅ workout_plans: +{inserted} records (migrated from all students)")
     except Exception as e:
         print(f"  ❌ workout_plans: {e}")
+        savepoint.rollback()
         results['workout_plans'] = 0
     
-        # exercise_sets (migrate from workout_exercises)
+    # exercise_sets (migrate from workout_exercises or alternative sources)
+    savepoint = session.begin_nested()
+    try:
+        existing_count = session.execute(text('SELECT COUNT(*) FROM exercise_sets')).scalar()
+        if existing_count > 0:
+            print(f"  📊 exercise_sets already has {existing_count} records, migrating additional data...")
+        
+        # Try to get workout_exercises IDs from multiple possible tables
+        # Check tables that are populated in earlier phases first
+        workout_exercise_ids = []
+        
+        # First check health_fitness_workout_exercises (populated in earlier phases)
         try:
-            existing_count = session.execute(text('SELECT COUNT(*) FROM exercise_sets')).scalar()
-            if existing_count > 0:
-                print(f"  📊 exercise_sets already has {existing_count} records, migrating additional data...")
-            
-            # Get workout_exercises IDs
-            workout_exercise_result = session.execute(text('SELECT id FROM workout_exercises '))
+            workout_exercise_result = session.execute(text('SELECT id FROM health_fitness_workout_exercises LIMIT 100'))
             workout_exercise_ids = [row[0] for row in workout_exercise_result.fetchall()]
+        except:
+            pass
+        
+        # If no health_fitness_workout_exercises, try physical_education_workout_exercises (also populated in earlier phases)
+        if not workout_exercise_ids:
+            try:
+                workout_exercise_result = session.execute(text('SELECT id FROM physical_education_workout_exercises LIMIT 100'))
+                workout_exercise_ids = [row[0] for row in workout_exercise_result.fetchall()]
+            except:
+                pass
+        
+        # Finally try workout_exercises table (populated in Phase 9, after Phase 7)
+        if not workout_exercise_ids:
+            try:
+                workout_exercise_result = session.execute(text('SELECT id FROM workout_exercises LIMIT 100'))
+                workout_exercise_ids = [row[0] for row in workout_exercise_result.fetchall()]
+            except:
+                pass
+        
+        # If we have workout_exercise_ids, create additional exercise_sets
+        if workout_exercise_ids:
+            additional_exercise_sets = []
+            for i in range(100):  # Create 100 additional exercise sets
+                workout_exercise_id = random.choice(workout_exercise_ids)
+                additional_exercise_sets.append({
+                    'workout_exercise_id': workout_exercise_id,
+                    'set_number': random.randint(1, 5),
+                    'reps_completed': random.randint(5, 20),
+                    'weight_used': round(random.uniform(10.0, 100.0), 1),
+                    'duration_seconds': random.randint(30, 300),
+                    'distance_meters': round(random.uniform(0.0, 1000.0), 1),
+                    'rest_time_seconds': random.randint(30, 120),
+                    'notes': f'Exercise set {i+1} notes',
+                    'performance_rating': random.randint(1, 10),
+                    'additional_data': json.dumps({'intensity': 'moderate', 'form_quality': 'good'}),
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                })
             
-            if workout_exercise_ids:
-                additional_exercise_sets = []
-                for i in range(100):  # Create 100 additional exercise sets
-                    workout_exercise_id = random.choice(workout_exercise_ids)
-                    additional_exercise_sets.append({
-                        'workout_exercise_id': workout_exercise_id,
-                        'set_number': random.randint(1, 5),
-                        'reps_completed': random.randint(5, 20),
-                        'weight_used': round(random.uniform(10.0, 100.0), 1),
-                        'duration_seconds': random.randint(30, 300),
-                        'distance_meters': round(random.uniform(0.0, 1000.0), 1),
-                        'rest_time_seconds': random.randint(30, 120),
-                        'notes': f'Exercise set {i+1} notes',
-                        'performance_rating': random.randint(1, 10),
-                        'additional_data': json.dumps({'intensity': 'moderate', 'form_quality': 'good'}),
-                        'created_at': datetime.now() - timedelta(days=random.randint(1, 30))
-                    })
-                
-                inserted = safe_insert(session, 'exercise_sets', additional_exercise_sets)
-                results['exercise_sets'] = existing_count + inserted
-                print(f"  ✅ exercise_sets: +{inserted} additional records (migrated from workout_exercises)")
+            inserted = safe_insert(session, 'exercise_sets', additional_exercise_sets)
+            savepoint.commit()
+            session.commit()
+            results['exercise_sets'] = existing_count + inserted
+            print(f"  ✅ exercise_sets: +{inserted} additional records (migrated from workout_exercises)")
+        else:
+            # No workout_exercises available - this is OK, exercise_sets already has data
+            results['exercise_sets'] = existing_count
+            if existing_count > 0:
+                print(f"  ✅ exercise_sets: {existing_count} records (workout_exercises not available, but existing data is sufficient)")
             else:
-                results['exercise_sets'] = existing_count
-                print(f"  ⚠️ exercise_sets: {existing_count} records (no workout_exercises available for migration)")
-        except Exception as e:
-            print(f"  ❌ exercise_sets: {e}")
-            results['exercise_sets'] = 0
+                print(f"  ⚠️ exercise_sets: 0 records (workout_exercises not available - will be populated in later phases)")
+    except Exception as e:
+        print(f"  ❌ exercise_sets: {e}")
+        savepoint.rollback()
+        results['exercise_sets'] = existing_count if 'existing_count' in locals() else 0
     
     # exercise_progress (migrate from existing data) - using correct schema
+    savepoint = session.begin_nested()
     try:
         # Always create exercise progress from existing data
         student_data = session.execute(text('SELECT id FROM students LIMIT 50')).fetchall()
@@ -428,6 +492,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 })
             
             inserted = safe_insert(session, 'exercise_progress', additional_progress)
+            savepoint.commit()
+            session.commit()
             results['exercise_progress'] = inserted
             print(f"  ✅ exercise_progress: +{inserted} records (migrated from students & exercises)")
         else:
@@ -435,6 +501,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ exercise_progress: no student/exercise data to migrate")
     except Exception as e:
         print(f"  ❌ exercise_progress: {e}")
+        savepoint.rollback()
         results['exercise_progress'] = 0
     
     # 5. Security & Access Tables (10 tables)
@@ -442,6 +509,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     print("-" * 40)
     
     # security_policies (migrate from existing schools)
+    savepoint = session.begin_nested()
     try:
         # Always create security policies from all schools
         additional_policies = []
@@ -469,13 +537,17 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             })
         
         inserted = safe_insert(session, 'security_policies', additional_policies)
+        savepoint.commit()
+        session.commit()
         results['security_policies'] = inserted
         print(f"  ✅ security_policies: +{inserted} records (migrated from all schools)")
     except Exception as e:
         print(f"  ❌ security_policies: {e}")
+        savepoint.rollback()
         results['security_policies'] = 0
     
     # user_roles (create basic roles and assign to users)
+    savepoint = session.begin_nested()
     try:
         # First create some basic roles if they don't exist
         existing_roles = session.execute(text('SELECT COUNT(*) FROM roles')).scalar()
@@ -506,6 +578,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 })
             
             inserted = safe_insert(session, 'user_roles', additional_roles)
+            savepoint.commit()
+            session.commit()
             results['user_roles'] = inserted
             print(f"  ✅ user_roles: +{inserted} records (assigned roles to users)")
         else:
@@ -513,6 +587,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ user_roles: no users or roles found")
     except Exception as e:
         print(f"  ❌ user_roles: {e}")
+        savepoint.rollback()
         results['user_roles'] = 0
     
     # 6. Assessment & Progress Tables (15 tables)
@@ -520,6 +595,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     print("-" * 40)
     
     # progress_metrics (migrate from existing data) - using correct schema
+    savepoint = session.begin_nested()
     try:
         # Always create progress metrics from existing data
         progress_data = session.execute(text('SELECT id FROM exercise_progress LIMIT 50')).fetchall()
@@ -543,6 +619,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 })
             
             inserted = safe_insert(session, 'progress_metrics', additional_metrics)
+            savepoint.commit()
+            session.commit()
             results['progress_metrics'] = inserted
             print(f"  ✅ progress_metrics: +{inserted} records (migrated from exercise_progress)")
         else:
@@ -550,6 +628,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ progress_metrics: no progress data to migrate from")
     except Exception as e:
         print(f"  ❌ progress_metrics: {e}")
+        savepoint.rollback()
         results['progress_metrics'] = 0
     
     # 7. Additional User Management Tables (15 tables)
@@ -557,6 +636,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     print("-" * 40)
     
     # user_activities (migrate from existing users)
+    savepoint = session.begin_nested()
     try:
         # Always create activities from all users
         result = session.execute(text('SELECT id FROM users'))
@@ -587,6 +667,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                     })
             
             inserted = safe_insert(session, 'user_activities', additional_activities)
+            savepoint.commit()
+            session.commit()
             results['user_activities'] = inserted
             print(f"  ✅ user_activities: +{inserted} records (migrated from all users)")
         else:
@@ -594,9 +676,11 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ user_activities: no users found to migrate from")
     except Exception as e:
         print(f"  ❌ user_activities: {e}")
+        savepoint.rollback()
         results['user_activities'] = 0
     
     # user_behaviors (migrate from existing users)
+    savepoint = session.begin_nested()
     try:
         # Always create behaviors from all users
         result = session.execute(text('SELECT id FROM users'))
@@ -623,6 +707,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 })
             
             inserted = safe_insert(session, 'user_behaviors', additional_behaviors)
+            savepoint.commit()
+            session.commit()
             results['user_behaviors'] = inserted
             print(f"  ✅ user_behaviors: +{inserted} records (migrated from all users)")
         else:
@@ -630,9 +716,11 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ user_behaviors: no users found to migrate from")
     except Exception as e:
         print(f"  ❌ user_behaviors: {e}")
+        savepoint.rollback()
         results['user_behaviors'] = 0
     
     # user_engagements (migrate from existing users)
+    savepoint = session.begin_nested()
     try:
         # Always create engagements from all users
         result = session.execute(text('SELECT id FROM users'))
@@ -662,6 +750,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 })
             
             inserted = safe_insert(session, 'user_engagements', additional_engagements)
+            savepoint.commit()
+            session.commit()
             results['user_engagements'] = inserted
             print(f"  ✅ user_engagements: +{inserted} records (migrated from all users)")
         else:
@@ -669,6 +759,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ user_engagements: no users found to migrate from")
     except Exception as e:
         print(f"  ❌ user_engagements: {e}")
+        savepoint.rollback()
         results['user_engagements'] = 0
 
     # 8. Additional Communication Tables (10 tables)
@@ -676,6 +767,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     print("-" * 40)
     
     # dashboard_notification_preferences (migrate from existing users)
+    savepoint = session.begin_nested()
     try:
         # Always create notification preferences from all users
         result = session.execute(text('SELECT id FROM users'))
@@ -708,6 +800,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 })
             
             inserted = safe_insert(session, 'dashboard_notification_preferences', additional_notification_prefs)
+            savepoint.commit()
+            session.commit()
             results['dashboard_notification_preferences'] = inserted
             print(f"  ✅ dashboard_notification_preferences: +{inserted} records (migrated from all users)")
         else:
@@ -715,6 +809,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ dashboard_notification_preferences: no users found to migrate from")
     except Exception as e:
         print(f"  ❌ dashboard_notification_preferences: {e}")
+        savepoint.rollback()
         results['dashboard_notification_preferences'] = 0
 
     # 9. Analytics & Reporting Tables (15 tables)
@@ -722,6 +817,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     print("-" * 40)
     
     # analytics_events (migrate from existing users)
+    savepoint = session.begin_nested()
     try:
         # Always create analytics events from all users
         result = session.execute(text('SELECT id FROM users'))
@@ -752,6 +848,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                     })
             
             inserted = safe_insert(session, 'analytics_events', additional_analytics)
+            savepoint.commit()
+            session.commit()
             results['analytics_events'] = inserted
             print(f"  ✅ analytics_events: +{inserted} records (migrated from all users)")
         else:
@@ -759,9 +857,11 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ analytics_events: no users found to migrate from")
     except Exception as e:
         print(f"  ❌ analytics_events: {e}")
+        savepoint.rollback()
         results['analytics_events'] = 0
     
     # user_performances (migrate from existing users)
+    savepoint = session.begin_nested()
     try:
         # Always create performance data from all users
         result = session.execute(text('SELECT id FROM users'))
@@ -791,6 +891,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 })
             
             inserted = safe_insert(session, 'user_performances', additional_performance)
+            savepoint.commit()
+            session.commit()
             results['user_performances'] = inserted
             print(f"  ✅ user_performances: +{inserted} records (migrated from all users)")
         else:
@@ -798,6 +900,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ user_performances: no users found to migrate from")
     except Exception as e:
         print(f"  ❌ user_performances: {e}")
+        savepoint.rollback()
         results['user_performances'] = 0
 
     # 10. Assessment & Learning Tables (20 tables)
@@ -805,9 +908,10 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     print("-" * 40)
     
     # general_assessments (migrate from existing students)
+    savepoint = session.begin_nested()
     try:
-        # Always create assessments from all students
-        result = session.execute(text('SELECT id FROM students '))
+        # Always create assessments from all students (limit to avoid too many)
+        result = session.execute(text('SELECT id FROM students LIMIT 100'))
         all_students = [row[0] for row in result.fetchall()]
         
         if all_students:
@@ -818,31 +922,33 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                     # Get a random activity_id from existing activities
                     activity_result = session.execute(text('SELECT id FROM activities LIMIT 1')).fetchone()
                     activity_id = activity_result[0] if activity_result else 1
-                
-                additional_assessments.append({
-                    'activity_id': activity_id,
-                    'student_id': student_id,
-                    'type': random.choice(['SKILL', 'FITNESS', 'BEHAVIOR', 'PROGRESS', 'SAFETY', 'MOVEMENT']),
-                    'status': random.choice(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']),
-                    'level': random.choice(['EXCELLENT', 'GOOD', 'AVERAGE', 'NEEDS_IMPROVEMENT', 'POOR']),
-                    'trigger': random.choice(['MANUAL', 'SCHEDULED', 'PERFORMANCE', 'PROGRESS', 'SAFETY', 'ADAPTATION', 'SYSTEM']),
-                    'result': random.choice(['PASS', 'FAIL', 'PENDING', 'NEEDS_REVIEW']),
-                    'score': round(random.uniform(0.0, 100.0), 2),
-                    'feedback': f'Assessment feedback for student {student_id}',
-                    'criteria': json.dumps({
-                        'rubric': 'Standard assessment rubric',
-                        'weighting': {'accuracy': 0.4, 'completeness': 0.3, 'timeliness': 0.3}
-                    }),
-                    'meta_data': json.dumps({
-                        'subject': random.choice(['MATH', 'SCIENCE', 'ENGLISH', 'HISTORY']),
-                        'difficulty': random.choice(['EASY', 'MEDIUM', 'HARD'])
-                    }),
-                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-                    'updated_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-                    'completed_at': datetime.now() - timedelta(days=random.randint(1, 30))
-                })
+                    
+                    additional_assessments.append({
+                        'activity_id': activity_id,
+                        'student_id': student_id,
+                        'type': random.choice(['SKILL', 'FITNESS', 'BEHAVIOR', 'PROGRESS', 'SAFETY', 'MOVEMENT']),
+                        'status': random.choice(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']),
+                        'level': random.choice(['EXCELLENT', 'GOOD', 'AVERAGE', 'NEEDS_IMPROVEMENT', 'POOR']),
+                        'trigger': random.choice(['MANUAL', 'SCHEDULED', 'PERFORMANCE', 'PROGRESS', 'SAFETY', 'ADAPTATION', 'SYSTEM']),
+                        'result': random.choice(['PASS', 'FAIL', 'PENDING', 'NEEDS_REVIEW']),
+                        'score': round(random.uniform(0.0, 100.0), 2),
+                        'feedback': f'Assessment feedback for student {student_id}',
+                        'criteria': json.dumps({
+                            'rubric': 'Standard assessment rubric',
+                            'weighting': {'accuracy': 0.4, 'completeness': 0.3, 'timeliness': 0.3}
+                        }),
+                        'meta_data': json.dumps({
+                            'subject': random.choice(['MATH', 'SCIENCE', 'ENGLISH', 'HISTORY']),
+                            'difficulty': random.choice(['EASY', 'MEDIUM', 'HARD'])
+                        }),
+                        'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                        'updated_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                        'completed_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                    })
             
             inserted = safe_insert(session, 'general_assessments', additional_assessments)
+            savepoint.commit()
+            session.commit()
             results['general_assessments'] = inserted
             print(f"  ✅ general_assessments: +{inserted} records (migrated from all students)")
         else:
@@ -850,9 +956,11 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ general_assessments: no students found to migrate from")
     except Exception as e:
         print(f"  ❌ general_assessments: {e}")
+        savepoint.rollback()
         results['general_assessments'] = 0
     
     # general_skill_assessments (migrate from existing assessments)
+    savepoint = session.begin_nested()
     try:
         # Always create skill assessments from existing assessments
         assessment_result = session.execute(text('SELECT id FROM general_assessments LIMIT 50')).fetchall()
@@ -888,6 +996,8 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
                 })
             
             inserted = safe_insert(session, 'general_skill_assessments', additional_skill_assessments)
+            savepoint.commit()
+            session.commit()
             results['general_skill_assessments'] = inserted
             print(f"  ✅ general_skill_assessments: +{inserted} records (migrated from assessments)")
         else:
@@ -895,6 +1005,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             print(f"  ⚠️ general_skill_assessments: no assessments available to migrate from")
     except Exception as e:
         print(f"  ❌ general_skill_assessments: {e}")
+        savepoint.rollback()
         results['general_skill_assessments'] = 0
 
     # 11. System & Configuration Tables (15 tables)
@@ -902,6 +1013,7 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
     print("-" * 40)
     
     # dashboard_theme_configs (create with correct schema)
+    savepoint = session.begin_nested()
     try:
         # Always create theme configurations
         additional_themes = []
@@ -931,13 +1043,17 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             })
         
         inserted = safe_insert(session, 'dashboard_theme_configs', additional_themes)
+        savepoint.commit()
+        session.commit()
         results['dashboard_theme_configs'] = inserted
         print(f"  ✅ dashboard_theme_configs: +{inserted} records (migrated from all users)")
     except Exception as e:
         print(f"  ❌ dashboard_theme_configs: {e}")
+        savepoint.rollback()
         results['dashboard_theme_configs'] = 0
     
     # dashboard_filter_configs (create with correct schema)
+    savepoint = session.begin_nested()
     try:
         existing_count = session.execute(text('SELECT COUNT(*) FROM dashboard_filter_configs')).scalar()
         if existing_count > 0:
@@ -962,10 +1078,13 @@ def seed_phase7_specialized_features(session: Session) -> Dict[str, int]:
             })
         
         inserted = safe_insert(session, 'dashboard_filter_configs', additional_filter_configs)
+        savepoint.commit()
+        session.commit()
         results['dashboard_filter_configs'] = existing_count + inserted
         print(f"  ✅ dashboard_filter_configs: +{inserted} additional records")
     except Exception as e:
         print(f"  ❌ dashboard_filter_configs: {e}")
+        savepoint.rollback()
         results['dashboard_filter_configs'] = 0
 
     # 12. Miscellaneous Tables (20 tables)

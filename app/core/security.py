@@ -48,7 +48,95 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 # Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use bcrypt directly to avoid passlib's bug detection issues
+try:
+    import bcrypt
+    _bcrypt_available = True
+except ImportError:
+    _bcrypt_available = False
+    logger.warning("bcrypt not available, falling back to passlib with pbkdf2_sha256")
+
+_pwd_context = None
+_use_direct_bcrypt = False
+
+def _initialize_password_context():
+    """Initialize password context with lazy loading."""
+    global _pwd_context, _use_direct_bcrypt
+    
+    # Check if already initialized (either direct bcrypt or passlib context)
+    if _use_direct_bcrypt or (isinstance(_pwd_context, CryptContext)):
+        return  # Already initialized
+    
+    if _bcrypt_available:
+        try:
+            # Try to use bcrypt directly first (bypasses passlib's bug detection)
+            # Test with a short password
+            test_hash = bcrypt.hashpw(b"test", bcrypt.gensalt(rounds=12))
+            if bcrypt.checkpw(b"test", test_hash):
+                _use_direct_bcrypt = True
+                logger.info("Using direct bcrypt for password hashing")
+                return
+        except Exception as e:
+            logger.warning(f"Direct bcrypt test failed: {e}. Trying passlib.")
+    
+    # Fall back to passlib
+    try:
+        _pwd_context = CryptContext(
+            schemes=["bcrypt"],
+            deprecated="auto",
+            bcrypt__rounds=12,
+            bcrypt__ident="2b"
+        )
+        # Test with a short password to trigger initialization
+        _pwd_context.hash("test")
+        _use_direct_bcrypt = False
+        logger.info("Using passlib bcrypt for password hashing")
+    except Exception as e:
+        # If passlib bcrypt fails, use pbkdf2_sha256
+        logger.warning(f"Bcrypt initialization failed: {e}. Using pbkdf2_sha256 fallback.")
+        _pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+        _use_direct_bcrypt = False
+
+# For backwards compatibility, create a wrapper
+class _PwdContextWrapper:
+    """Wrapper that uses direct bcrypt when available, otherwise passlib."""
+    def hash(self, password: str) -> str:
+        _initialize_password_context()
+        if _use_direct_bcrypt and _bcrypt_available:
+            # Use bcrypt directly
+            password_bytes = password.encode('utf-8')
+            # Handle long passwords by pre-hashing
+            if len(password_bytes) > 72:
+                import hashlib
+                password_bytes = hashlib.sha256(password_bytes).digest()
+            salt = bcrypt.gensalt(rounds=12)
+            hashed = bcrypt.hashpw(password_bytes, salt)
+            # Return in passlib-compatible format ($2b$...)
+            return hashed.decode('utf-8')
+        elif isinstance(_pwd_context, CryptContext):
+            return _pwd_context.hash(password)
+        else:
+            raise RuntimeError("Password hashing not available")
+    
+    def verify(self, password: str, hash: str) -> bool:
+        _initialize_password_context()
+        if _use_direct_bcrypt and _bcrypt_available:
+            # Use bcrypt directly
+            password_bytes = password.encode('utf-8')
+            # Handle long passwords by pre-hashing (match hashing logic)
+            if len(password_bytes) > 72:
+                import hashlib
+                password_bytes = hashlib.sha256(password_bytes).digest()
+            try:
+                return bcrypt.checkpw(password_bytes, hash.encode('utf-8'))
+            except Exception:
+                return False
+        elif isinstance(_pwd_context, CryptContext):
+            return _pwd_context.verify(password, hash)
+        else:
+            return False
+
+pwd_context = _PwdContextWrapper()
 
 # JWT settings
 SECRET_KEY = settings.SECRET_KEY
@@ -469,11 +557,19 @@ class TokenData(BaseModel):
     scopes: List[str] = []
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password."""
+    """Verify password.
+    
+    For long passwords (>72 bytes), we pre-hash with SHA256 before verification
+    to match the hashing strategy in get_password_hash.
+    """
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    """Get password hash."""
+    """Get password hash.
+    
+    Bcrypt has a 72-byte limit. For longer passwords, we pre-hash with SHA256
+    to ensure the input to bcrypt is always <= 64 bytes.
+    """
     return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

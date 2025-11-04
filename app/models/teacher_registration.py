@@ -63,3 +63,6 @@ class TeacherRegistration(Base):
     
     # Beta Testing relationships
     beta_participants = relationship("app.models.beta_testing.BetaTestingParticipant", back_populates="teacher")
+    
+    # Beta Teacher Student Management relationships
+    beta_students = relationship("app.models.beta_students.BetaStudent", back_populates="teacher", cascade="all, delete-orphan")

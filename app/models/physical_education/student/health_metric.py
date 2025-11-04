@@ -30,8 +30,9 @@ class HealthMetric(BaseModelMixin, TimestampMixin):
     recorded_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     notes = Column(String)
 
-    # Relationships will be set up by setup_student_relationships
-    student = relationship('Student', back_populates='student_health_metrics', overlaps="health_metrics,pe_health_metrics")
+    # Relationships will be set up by setup_health_metric_relationships() after model initialization
+    # This avoids circular import issues during SQLAlchemy mapper configuration
+    pass  # Relationship added via setup_health_metric_relationships()
 
 class HealthMetricHistory(BaseModelMixin, TimestampMixin):
     """Model for tracking student health metric history."""

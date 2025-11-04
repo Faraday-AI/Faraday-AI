@@ -19,11 +19,24 @@ import tempfile
 Base = declarative_base()
 
 # Database configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/faraday")
+# DATABASE_URL must be set via environment variable (from run.sh which creates .env file)
+# Do not hardcode - must be provided via environment variables from run.sh
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError(
+        "DATABASE_URL environment variable is required but not set. "
+        "Please ensure run.sh has created the .env file with DATABASE_URL, "
+        "or set DATABASE_URL in docker-compose.yml environment section."
+    )
 
 def get_region_db_url(region: str) -> str:
     """Get database URL for a specific region."""
-    base_url = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@db:5432/faraday")
+    base_url = os.getenv("DATABASE_URL")
+    if not base_url:
+        raise ValueError(
+            "DATABASE_URL environment variable is required but not set. "
+            "Please ensure run.sh has created the .env file with DATABASE_URL."
+        )
     if region and region != "default":
         # Modify the URL to include region-specific database
         if "postgresql://" in base_url:
@@ -258,8 +271,40 @@ async def init_db() -> bool:
         print(f"Error initializing database: {e}")
         return False
 
+# Context-local storage for test sessions (used in test mode)
+# Using contextvars ensures each test context (including async) has its own isolated session
+import contextvars
+_test_session_context: contextvars.ContextVar[Session] = contextvars.ContextVar('test_session', default=None)
+
+def set_test_session(session: Session):
+    """Set the test session for use in test mode (called by test fixtures)."""
+    _test_session_context.set(session)
+
+def clear_test_session():
+    """Clear the test session (called by test fixtures after test)."""
+    # Reset to default None
+    try:
+        _test_session_context.set(None)
+    except Exception:
+        pass
+
 def get_db() -> Generator[Session, None, None]:
-    """Get database session."""
+    """
+    Get database session.
+    
+    In test mode (TEST_MODE=true), uses the test session from fixtures if available.
+    Otherwise, creates a new session from SessionLocal.
+    
+    Uses thread-local storage to ensure each test thread has its own isolated session.
+    """
+    # In test mode, use the test session if it's been set by test fixtures for this context
+    if os.getenv("TEST_MODE") == "true":
+        test_session = _test_session_context.get()
+        if test_session is not None:
+            yield test_session
+            return
+    
+    # Normal operation: create a new session
     db = SessionLocal()
     try:
         yield db

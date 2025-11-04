@@ -1,0 +1,1105 @@
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.10.17, pytest-7.4.3, pluggy-1.6.0 -- /usr/local/bin/python3.10
+cachedir: .pytest_cache
+rootdir: /app
+configfile: pytest.ini
+plugins: Faker-20.1.0, cov-4.1.0, anyio-3.7.1, asyncio-0.21.1, mock-3.10.0
+asyncio: mode=auto
+[1mcollecting ... [0mcollected 1120 items
+
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_assistant_initialization [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_generate_content_success [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_generate_content_failure [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_optimize_content_success [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_recommend_content_success [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_analyze_content_performance_success [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_generate_lesson_plan_success [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_generate_assessment_success [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_analyze_feedback_success [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_support_collaboration_success [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_build_content_generation_prompt [32mPASSED[0m[33m [  0%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_build_optimization_prompt [32mPASSED[0m[33m [  1%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_parse_content_response_success [32mPASSED[0m[33m [  1%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_parse_content_response_failure [32mPASSED[0m[33m [  1%][0m
+tests/test_ai_assistant_system.py::TestEnhancedAssistantService::test_get_ai_response_mock [32mPASSED[0m[33m [  1%][0m
+tests/test_ai_assistant_system.py::TestAIAssistantSchemas::test_content_generation_request_schema [31mFAILED[0m[31m [  1%][0m
+tests/test_ai_assistant_system.py::TestAIAssistantSchemas::test_lesson_plan_request_schema [31mFAILED[0m[31m [  1%][0m
+tests/test_ai_assistant_system.py::TestAIAssistantSchemas::test_assessment_request_schema [31mFAILED[0m[31m [  1%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_assistant_initialization [32mPASSED[0m[31m [  1%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_generate_content_success [32mPASSED[0m[31m [  1%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_generate_content_failure [32mPASSED[0m[31m [  1%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_optimize_content_success [32mPASSED[0m[31m [  1%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_analyze_content_performance_success [32mPASSED[0m[31m [  2%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_generate_lesson_plan_success [32mPASSED[0m[31m [  2%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_analyze_feedback_success [32mPASSED[0m[31m [  2%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_build_content_generation_prompt [32mPASSED[0m[31m [  2%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_build_optimization_prompt [32mPASSED[0m[31m [  2%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_parse_content_response_success [32mPASSED[0m[31m [  2%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_parse_content_response_failure [32mPASSED[0m[31m [  2%][0m
+tests/test_ai_assistant_system_simple.py::TestEnhancedAssistantServiceSimple::test_get_ai_response_mock [32mPASSED[0m[31m [  2%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_track_user_activity [32mPASSED[0m[31m [  2%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_get_user_analytics [32mPASSED[0m[31m [  2%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_analyze_user_behavior [32mPASSED[0m[31m [  2%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_get_performance_metrics [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_get_engagement_metrics [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_generate_predictions [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_generate_recommendations [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_get_user_insights [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_get_user_trends [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_compare_users [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_calculate_engagement_score [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_calculate_session_duration [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_calculate_activity_frequency [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_analyze_feature_usage [32mPASSED[0m[31m [  3%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_analyze_time_patterns [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_calculate_behavior_score [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_calculate_consistency_score [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestUserAnalyticsService::test_assess_churn_risk [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestAIAnalyticsService::test_generate_user_predictions [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestAIAnalyticsService::test_generate_user_recommendations [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestAIAnalyticsService::test_generate_user_insights [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestAIAnalyticsService::test_generate_behavioral_insights [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestAIAnalyticsService::test_generate_comparison_insights [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestAIAnalyticsService::test_analyze_activity_trends [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestAIAnalyticsService::test_calculate_prediction_confidence [32mPASSED[0m[31m [  4%][0m
+tests/test_analytics_phase3.py::TestAIAnalyticsService::test_analyze_user_needs [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_track_user_activity_simple [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_track_user_activity [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_user_analytics [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_analyze_user_behavior [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_user_performance [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_user_engagement [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_generate_predictions [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_user_predictions [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_generate_recommendations [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_user_recommendations [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_user_insights [32mPASSED[0m[31m [  5%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_user_trends [32mPASSED[0m[31m [  6%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_compare_users [32mPASSED[0m[31m [  6%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_analytics_dashboard [32mPASSED[0m[31m [  6%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_analytics_summary [32mPASSED[0m[31m [  6%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_analytics_health [31mFAILED[0m[31m [  6%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_batch_analytics_analysis [32mPASSED[0m[31m [  6%][0m
+tests/test_analytics_phase3.py::TestAnalyticsAPIEndpoints::test_get_realtime_analytics [32mPASSED[0m[31m [  6%][0m
+tests/test_analytics_phase3.py::TestAnalyticsIntegration::test_full_analytics_workflow [32mPASSED[0m[31m [  6%][0m
+tests/test_analytics_phase3.py::TestAnalyticsIntegration::test_analytics_data_consistency [32mPASSED[0m[31m [  6%][0m
+tests/test_analytics_phase3.py::TestAnalyticsIntegration::test_analytics_performance_under_load [32mPASSED[0m[31m [  6%][0m
+tests/test_content_management_system.py::TestContentManagementService::test_get_content_by_id_nonexistent [32mPASSED[0m[31m [  6%][0m
+tests/test_content_management_system.py::TestContentManagementService::test_create_content_success [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentManagementService::test_create_content_already_exists [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentManagementService::test_update_content_success [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentManagementService::test_publish_content_success [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentManagementService::test_duplicate_content_success [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentManagementService::test_search_content [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentManagementService::test_get_content_statistics [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentSchemas::test_content_create_schema [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentSchemas::test_content_update_schema [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentSchemas::test_content_search_schema [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentSchemas::test_content_filter_schema [32mPASSED[0m[31m [  7%][0m
+tests/test_content_management_system.py::TestContentAPIEndpoints::test_get_all_content_endpoint [32mPASSED[0m[31m [  8%][0m
+tests/test_models.py::test_base_model_validation [32mPASSED[0m[31m                  [  8%][0m
+tests/test_models.py::test_progress_tracking [32mPASSED[0m[31m                      [  8%][0m
+tests/test_models.py::test_goal_relationships [32mPASSED[0m[31m                     [  8%][0m
+tests/test_models.py::test_environmental_conditions [32mPASSED[0m[31m               [  8%][0m
+tests/test_models.py::test_injury_prevention [32mPASSED[0m[31m                      [  8%][0m
+tests/test_models.py::test_curriculum [32mPASSED[0m[31m                             [  8%][0m
+tests/test_models.py::test_competition [32mPASSED[0m[31m                            [  8%][0m
+tests/test_models.py::test_model_auditing [32mPASSED[0m[31m                         [  8%][0m
+tests/test_models.py::test_model_metadata [32mPASSED[0m[31m                         [  8%][0m
+tests/test_models.py::test_validation_rules [32mPASSED[0m[31m                       [  8%][0m
+tests/test_models.py::test_relationship_cascades [32mPASSED[0m[31m                  [  9%][0m
+tests/test_models.py::test_model_versioning [32mPASSED[0m[31m                       [  9%][0m
+tests/test_models.py::test_safety_models [32mPASSED[0m[31m                          [  9%][0m
+tests/test_models.py::test_safety_risk_assessment [32mPASSED[0m[31m                 [  9%][0m
+tests/test_models.py::test_safety_alert [32mPASSED[0m[31m                           [  9%][0m
+tests/test_models.py::test_progress_models [32mPASSED[0m[31m                        [  9%][0m
+tests/test_organization_team_analytics_system.py::TestOrganizationManagementService::test_get_organization_by_id_nonexistent [32mPASSED[0m[31m [  9%][0m
+tests/test_organization_team_analytics_system.py::TestOrganizationManagementService::test_create_organization_success [32mPASSED[0m[31m [  9%][0m
+tests/test_organization_team_analytics_system.py::TestOrganizationManagementService::test_create_organization_already_exists [32mPASSED[0m[31m [  9%][0m
+tests/test_organization_team_analytics_system.py::TestOrganizationManagementService::test_create_department_success [32mPASSED[0m[31m [  9%][0m
+tests/test_organization_team_analytics_system.py::TestTeamManagementService::test_get_team_by_id_nonexistent [32mPASSED[0m[31m [  9%][0m
+tests/test_organization_team_analytics_system.py::TestTeamManagementService::test_create_team_success [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestTeamManagementService::test_add_member_to_team_success [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestUserAnalyticsService::test_get_user_activity_metrics [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestUserAnalyticsService::test_get_user_usage_analytics [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestUserAnalyticsService::test_get_user_performance_metrics [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestOrganizationSchemas::test_organization_create_schema [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestOrganizationSchemas::test_organization_update_schema [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestOrganizationSchemas::test_department_create_schema [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestTeamSchemas::test_team_create_schema [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestTeamSchemas::test_team_update_schema [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestTeamSchemas::test_team_member_create_schema [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestUserAnalyticsSchemas::test_user_activity_metrics_schema [32mPASSED[0m[31m [ 10%][0m
+tests/test_organization_team_analytics_system.py::TestUserAnalyticsSchemas::test_user_usage_analytics_schema [32mPASSED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestPhase2RBAC::test_user_profile_permissions [32mPASSED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestPhase2RBAC::test_user_preferences_permissions [32mPASSED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestPhase2RBAC::test_user_privacy_permissions [32mPASSED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestPhase2RBAC::test_role_permission_mapping [32mPASSED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestPhase2RBAC::test_permission_validation_functions [32mPASSED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestPhase2RBAC::test_rbac_endpoints_exist [31mFAILED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestPhase2RBAC::test_user_profile_endpoints_with_rbac [31mFAILED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestPhase2RBAC::test_user_preferences_endpoints_with_rbac [31mFAILED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestRBACServiceIntegration::test_access_control_service_exists [32mPASSED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestRBACServiceIntegration::test_permission_check_functionality [32mPASSED[0m[31m [ 11%][0m
+tests/test_rbac_phase2.py::TestRBACMiddleware::test_require_permission_decorator [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2.py::TestRBACMiddleware::test_require_any_permission_decorator [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2.py::TestRBACSecurity::test_permission_enumeration [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2.py::TestRBACSecurity::test_role_enumeration [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2_simple.py::TestPhase2RBACSimple::test_user_profile_permissions_exist [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2_simple.py::TestPhase2RBACSimple::test_user_preferences_permissions_exist [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2_simple.py::TestPhase2RBACSimple::test_user_privacy_permissions_exist [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2_simple.py::TestPhase2RBACSimple::test_role_permission_mapping [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2_simple.py::TestPhase2RBACSimple::test_permission_validation_functions [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2_simple.py::TestPhase2RBACSimple::test_permission_enumeration [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2_simple.py::TestPhase2RBACSimple::test_role_enumeration [32mPASSED[0m[31m [ 12%][0m
+tests/test_rbac_phase2_simple.py::TestPhase2RBACSimple::test_require_permission_decorator [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestRoleManagementService::test_get_role_by_id_nonexistent [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestRoleManagementService::test_create_role_success [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestRoleManagementService::test_create_role_already_exists [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestRoleManagementService::test_assign_role_to_user_success [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestPermissionManagementService::test_get_permission_by_id_nonexistent [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestPermissionManagementService::test_create_permission_success [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestPermissionManagementService::test_check_user_permission [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestRoleSchemas::test_role_create_schema [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestRoleSchemas::test_role_update_schema [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestRoleSchemas::test_role_assignment_schema [32mPASSED[0m[31m [ 13%][0m
+tests/test_role_permission_system.py::TestPermissionSchemas::test_permission_create_schema [32mPASSED[0m[31m [ 14%][0m
+tests/test_role_permission_system.py::TestPermissionSchemas::test_permission_update_schema [32mPASSED[0m[31m [ 14%][0m
+tests/test_role_permission_system.py::TestPermissionSchemas::test_permission_check_schema [32mPASSED[0m[31m [ 14%][0m
+tests/test_role_permission_system.py::TestRoleHierarchy::test_role_hierarchy_levels [32mPASSED[0m[31m [ 14%][0m
+tests/test_role_permission_system.py::TestRoleHierarchy::test_check_role_permission_hierarchy [32mPASSED[0m[31m [ 14%][0m
+tests/test_role_permission_system.py::TestPermissionValidation::test_invalid_resource_type [32mPASSED[0m[31m [ 14%][0m
+tests/test_role_permission_system.py::TestPermissionValidation::test_invalid_action [32mPASSED[0m[31m [ 14%][0m
+tests/test_user_system.py::TestUserProfileService::test_get_user_profile_nonexistent [32mPASSED[0m[31m [ 14%][0m
+tests/test_user_system.py::TestUserProfileService::test_create_user_profile_success [32mPASSED[0m[31m [ 14%][0m
+tests/test_user_system.py::TestUserProfileService::test_create_user_profile_already_exists [32mPASSED[0m[31m [ 14%][0m
+tests/test_user_system.py::TestUserPreferencesService::test_get_user_preferences_nonexistent [32mPASSED[0m[31m [ 14%][0m
+tests/test_user_system.py::TestUserPreferencesService::test_update_user_preferences_success [32mPASSED[0m[31m [ 15%][0m
+tests/test_user_system.py::TestUserPreferencesService::test_get_theme_settings [32mPASSED[0m[31m [ 15%][0m
+tests/test_user_system.py::TestUserSchemas::test_user_profile_create_schema [32mPASSED[0m[31m [ 15%][0m
+tests/test_user_system.py::TestUserSchemas::test_user_profile_update_schema [32mPASSED[0m[31m [ 15%][0m
+tests/test_user_system.py::TestUserSchemas::test_theme_settings_schema [32mPASSED[0m[31m [ 15%][0m
+tests/test_user_system.py::TestUserSchemas::test_notification_settings_schema [32mPASSED[0m[31m [ 15%][0m
+tests/test_user_system.py::TestUserSchemas::test_accessibility_settings_schema [32mPASSED[0m[31m [ 15%][0m
+tests/test_user_system.py::TestUserProfileServiceMethods::test_upload_profile_picture_validation [32mPASSED[0m[31m [ 15%][0m
+tests/core/test_ai_analytics.py::test_analyze_student_performance [32mPASSED[0m[31m [ 15%][0m
+tests/core/test_ai_analytics.py::test_analyze_behavior_patterns [32mPASSED[0m[31m   [ 15%][0m
+tests/core/test_ai_analytics.py::test_analyze_group_dynamics [32mPASSED[0m[31m      [ 15%][0m
+tests/core/test_ai_analytics.py::test_validate_student_data [32mPASSED[0m[31m       [ 15%][0m
+tests/core/test_ai_analytics.py::test_validate_classroom_data [32mPASSED[0m[31m     [ 16%][0m
+tests/core/test_ai_analytics.py::test_calculate_engagement_score [32mPASSED[0m[31m  [ 16%][0m
+tests/core/test_ai_analytics.py::test_calculate_group_metrics [32mPASSED[0m[31m     [ 16%][0m
+tests/core/test_ai_analytics.py::test_generate_cache_key [32mPASSED[0m[31m          [ 16%][0m
+tests/core/test_ai_analytics.py::test_rate_limiting [32mPASSED[0m[31m               [ 16%][0m
+tests/core/test_ai_analytics.py::test_error_handling [32mPASSED[0m[31m              [ 16%][0m
+tests/core/test_ai_analytics.py::test_caching [32mPASSED[0m[31m                     [ 16%][0m
+tests/core/test_ai_analytics.py::test_model_loading [32mPASSED[0m[31m               [ 16%][0m
+tests/core/test_api.py::test_root <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_api.py [32mPASSED[0m[31m [ 16%][0m
+tests/core/test_api.py::test_health_check <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_api.py [32mPASSED[0m[31m [ 16%][0m
+tests/core/test_api.py::test_generate_document <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_api.py [32mPASSED[0m[31m [ 16%][0m
+tests/core/test_api.py::test_generate_document_invalid_format <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_api.py [32mPASSED[0m[31m [ 17%][0m
+tests/core/test_api.py::test_generate_text <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_api.py [32mPASSED[0m[31m [ 17%][0m
+tests/core/test_artwork_service.py::test_generate_artwork [32mPASSED[0m[31m         [ 17%][0m
+tests/core/test_artwork_service.py::test_edit_artwork [32mPASSED[0m[31m             [ 17%][0m
+tests/core/test_artwork_service.py::test_generate_variations [32mPASSED[0m[31m      [ 17%][0m
+tests/core/test_artwork_service.py::test_generate_artwork_batch [32mPASSED[0m[31m   [ 17%][0m
+tests/core/test_artwork_service.py::test_download_image_error [32mPASSED[0m[31m     [ 17%][0m
+tests/core/test_auth.py::TestPasswordSecurity::test_password_hashing [31mFAILED[0m[31m [ 17%][0m
+tests/core/test_auth.py::TestPasswordSecurity::test_password_verification_success [31mFAILED[0m[31m [ 17%][0m
+tests/core/test_auth.py::TestPasswordSecurity::test_password_verification_failure [31mFAILED[0m[31m [ 17%][0m
+tests/core/test_auth.py::TestPasswordSecurity::test_password_hash_fallback [32mPASSED[0m[31m [ 17%][0m
+tests/core/test_auth.py::TestJWTTokenManagement::test_create_access_token [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestJWTTokenManagement::test_create_access_token_with_expiry [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestJWTTokenManagement::test_token_verification_success [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestJWTTokenManagement::test_token_verification_failure [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestUserAuthentication::test_authenticate_user_success [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestUserAuthentication::test_authenticate_user_invalid_credentials [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestUserAuthentication::test_authenticate_user_wrong_password [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestSessionManagement::test_create_session_success [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestSessionManagement::test_verify_session_success [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestSessionManagement::test_verify_session_invalid_token [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestAccessControl::test_get_current_user_success [32mPASSED[0m[31m [ 18%][0m
+tests/core/test_auth.py::TestAccessControl::test_get_current_active_user_success [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_auth.py::TestAccessControl::test_get_current_active_user_inactive [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_auth.py::TestAuthServiceIntegration::test_chatgpt_login_flow [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_auth.py::TestAuthServiceIntegration::test_logout_success [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_auth.py::TestAuthServiceIntegration::test_logout_database_error [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_auth.py::TestSecurityHeaders::test_security_headers_present [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_auth.py::TestSecurityHeaders::test_cors_headers [32mPASSED[0m[31m   [ 19%][0m
+tests/core/test_auth.py::TestRateLimiting::test_rate_limit_enforcement [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_auth.py::TestRateLimiting::test_rate_limit_bypass_for_authenticated [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_config.py::TestSettings::test_settings_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_config.py::TestSettings::test_settings_caching <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 19%][0m
+tests/core/test_config.py::TestSettings::test_environment_variables <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestSettings::test_validation_rules <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestServiceConfig::test_service_config_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestServiceConfig::test_get_service_config <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestSecurityConfig::test_security_config_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestSecurityConfig::test_get_security_config <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestPerformanceConfig::test_performance_config_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestPerformanceConfig::test_get_performance_config <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestMonitoringConfig::test_monitoring_config_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestMonitoringConfig::test_get_monitoring_config <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestDeploymentConfig::test_deployment_config_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestDeploymentConfig::test_get_deployment_config <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 20%][0m
+tests/core/test_config.py::TestFeatureFlagConfig::test_feature_flag_config_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_config.py::TestFeatureFlagConfig::test_get_feature_flag_config <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_config.py::TestAnalyticsConfig::test_analytics_config_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_config.py::TestAnalyticsConfig::test_get_analytics_config <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_config.py::TestAlertConfig::test_alert_config_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_config.py::TestAlertConfig::test_get_alert_config <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_config.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_database.py::TestDatabaseConnection::test_database_connection_success <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_database.py::TestDatabaseConnection::test_session_factory_creation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_database.py::TestDatabaseConnection::test_get_db_generator <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_database.py::TestDatabaseConnection::test_get_db_session_generator <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_database.py::TestDatabaseInitialization::test_init_db_success <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 21%][0m
+tests/core/test_database.py::TestDatabaseInitialization::test_init_db_failure <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestRegionalDatabase::test_get_region_db_url_default <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestRegionalDatabase::test_get_region_db_url_custom_region <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestRegionalDatabase::test_get_region_db_url_no_env_var <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestModelOperations::test_user_model_creation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestModelOperations::test_user_model_relationships <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestModelOperations::test_model_timestamps <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestRepositoryPattern::test_base_repository_initialization <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestRepositoryPattern::test_repository_get_operation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestRepositoryPattern::test_repository_create_operation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestRepositoryPattern::test_repository_update_operation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 22%][0m
+tests/core/test_database.py::TestRepositoryPattern::test_repository_delete_operation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestDatabaseTransactions::test_transaction_commit_success <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestDatabaseTransactions::test_transaction_rollback_on_error <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestDatabaseConstraints::test_unique_constraint_violation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestDatabaseConstraints::test_foreign_key_constraint_violation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestDatabaseConstraints::test_not_null_constraint_violation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestConnectionPooling::test_connection_pool_configuration <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestConnectionPooling::test_connection_pool_recycling <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestDatabaseMigrations::test_migration_creation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestDatabaseMigrations::test_migration_upgrade <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestDatabaseMigrations::test_migration_downgrade <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 23%][0m
+tests/core/test_database.py::TestDatabasePerformance::test_query_performance <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 24%][0m
+tests/core/test_database.py::TestDatabasePerformance::test_connection_pool_performance <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 24%][0m
+tests/core/test_database.py::TestDatabaseSecurity::test_sql_injection_prevention <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 24%][0m
+tests/core/test_database.py::TestDatabaseSecurity::test_connection_encryption <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_database.py [32mPASSED[0m[31m [ 24%][0m
+tests/core/test_education_service.py::test_create_lesson_plan [32mPASSED[0m[31m     [ 24%][0m
+tests/core/test_education_service.py::test_generate_assessment_questions [32mPASSED[0m[31m [ 24%][0m
+tests/core/test_education_service.py::test_analyze_student_progress [32mPASSED[0m[31m [ 24%][0m
+tests/core/test_education_service.py::test_create_curriculum_outline [32mPASSED[0m[31m [ 24%][0m
+tests/core/test_education_service.py::test_generate_differentiated_instruction [32mPASSED[0m[31m [ 24%][0m
+tests/core/test_education_service.py::test_error_handling [32mPASSED[0m[31m         [ 24%][0m
+tests/core/test_educational_libraries.py::test_numpy <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 24%][0m
+tests/core/test_educational_libraries.py::test_pandas <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_tensorflow <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_pytorch <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_transformers <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_spacy <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_nltk <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_gensim <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_opencv <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_matplotlib <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_seaborn <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_sklearn <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_speech_recognition <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 25%][0m
+tests/core/test_educational_libraries.py::test_gtts <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_beautifulsoup <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_scrapy <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_fastapi <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_uvicorn <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_pytest <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_asyncio <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_pillow <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_plotly <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_xgboost <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_lightgbm <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 26%][0m
+tests/core/test_educational_libraries.py::test_optuna <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_educational_libraries.py [32mPASSED[0m[31m [ 27%][0m
+tests/core/test_error_handling.py::TestStreakSystemErrors::test_invalid_user_id <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_error_handling.py [32mPASSED[0m[31m [ 27%][0m
+tests/core/test_error_handling.py::TestStreakSystemErrors::test_nonexistent_user <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_error_handling.py [32mPASSED[0m[31m [ 27%][0m
+tests/core/test_error_handling.py::TestStreakSystemErrors::test_invalid_streak_data <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_error_handling.py [32mPASSED[0m[31m [ 27%][0m
+tests/core/test_error_handling.py::TestStreakSystemErrors::test_streak_bonus_invalid_inputs <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_error_handling.py [32mPASSED[0m[31m [ 27%][0m
+tests/core/test_error_handling.py::TestStreakSystemErrors::test_tier_bonus_invalid_inputs <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_error_handling.py [32mPASSED[0m[31m [ 27%][0m
+tests/core/test_error_handling.py::TestStreakSystemErrors::test_concurrent_streak_updates <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_error_handling.py [32mPASSED[0m[31m [ 27%][0m
+tests/core/test_error_handling.py::TestStreakSystemErrors::test_rate_limiting <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_error_handling.py [32mPASSED[0m[31m [ 27%][0m
+tests/core/test_grading_service.py::test_grade_submission [32mPASSED[0m[31m         [ 27%][0m
+tests/core/test_grading_service.py::test_grade_code_submission [32mPASSED[0m[31m    [ 27%][0m
+tests/core/test_grading_service.py::test_grade_essay [32mPASSED[0m[31m              [ 27%][0m
+tests/core/test_grading_service.py::test_batch_grade [32mPASSED[0m[31m              [ 28%][0m
+tests/core/test_grading_service.py::test_error_handling [32mPASSED[0m[31m           [ 28%][0m
+tests/core/test_load_balancer.py::test_load_window_initialization [32mPASSED[0m[31m [ 28%][0m
+tests/core/test_load_balancer.py::test_load_window_metrics [32mPASSED[0m[31m        [ 28%][0m
+tests/core/test_load_balancer.py::test_load_window_stats [32mPASSED[0m[31m          [ 28%][0m
+tests/core/test_load_balancer.py::test_resource_monitoring [32mPASSED[0m[31m        [ 28%][0m
+tests/core/test_load_balancer.py::test_latency_weighting [32mPASSED[0m[31m          [ 28%][0m
+tests/core/test_load_balancer.py::test_region_selection [32mPASSED[0m[31m           [ 28%][0m
+tests/core/test_load_balancer.py::test_circuit_breaker [32mPASSED[0m[31m            [ 28%][0m
+tests/core/test_load_balancer.py::test_error_handling [32mPASSED[0m[31m             [ 28%][0m
+tests/core/test_load_balancer.py::test_performance_metrics [32mPASSED[0m[31m        [ 28%][0m
+tests/core/test_load_balancer.py::test_adaptive_load_window [32mPASSED[0m[31m       [ 29%][0m
+tests/core/test_load_balancer.py::test_resource_aware_routing [32mPASSED[0m[31m     [ 29%][0m
+tests/core/test_load_balancer.py::test_latency_based_weighting [32mPASSED[0m[31m    [ 29%][0m
+tests/core/test_load_balancer.py::test_predictive_scoring [32mPASSED[0m[31m         [ 29%][0m
+tests/core/test_load_balancer.py::test_cost_efficiency [32mPASSED[0m[31m            [ 29%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_region_selection_latency [32mPASSED[0m[31m [ 29%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_concurrent_requests [32mPASSED[0m[31m [ 29%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_resource_monitoring_overhead [32mPASSED[0m[31m [ 29%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_load_window_performance [32mPASSED[0m[31m [ 29%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_circuit_breaker_performance [32mPASSED[0m[31m [ 29%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_predictive_scoring_performance [32mPASSED[0m[31m [ 29%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_cost_efficiency_performance [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_adaptive_load_window_scaling [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_resource_aware_routing_performance [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_latency_weighting_performance [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_circuit_breaker_recovery [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_predictive_scoring_accuracy [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_benchmarks.py::TestLoadBalancerPerformance::test_cost_efficiency_accuracy [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_cache.py::TestLoadBalancerCache::test_config_caching [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_cache.py::TestLoadBalancerCache::test_region_caching [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_cache.py::TestLoadBalancerCache::test_metrics_caching [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_cache.py::TestLoadBalancerCache::test_health_caching [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_cache.py::TestLoadBalancerCache::test_cache_invalidation [32mPASSED[0m[31m [ 30%][0m
+tests/core/test_load_balancer_cache.py::TestLoadBalancerCache::test_clear_all [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_empty_region_selection [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_all_regions_unhealthy [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_extreme_resource_usage [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_load_window_boundaries [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_circuit_breaker_extreme_failures [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_predictive_scoring_edge_cases [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_cost_efficiency_edge_cases [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_concurrent_edge_cases [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_resource_monitoring_edge_cases [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_latency_weighting_edge_cases [32mPASSED[0m[31m [ 31%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_request_type_edge_cases [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_edge_cases.py::TestLoadBalancerEdgeCases::test_region_stats_edge_cases [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_jobs.py::TestLoadBalancerJobs::test_start_stop [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_jobs.py::TestLoadBalancerJobs::test_collect_metrics [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_jobs.py::TestLoadBalancerJobs::test_process_alerts [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_jobs.py::TestLoadBalancerJobs::test_monitor_health [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_jobs.py::TestLoadBalancerJobs::test_check_alert_conditions [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_jobs.py::TestLoadBalancerJobs::test_get_current_value [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_jobs.py::TestLoadBalancerJobs::test_send_alert_notifications [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_jobs.py::TestLoadBalancerJobs::test_cleanup_cache [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_performance.py::TestLoadBalancerPerformance::test_routing_latency [32mPASSED[0m[31m [ 32%][0m
+tests/core/test_load_balancer_performance.py::TestLoadBalancerPerformance::test_concurrent_routing [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_load_balancer_performance.py::TestLoadBalancerPerformance::test_adaptive_routing_performance [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_load_balancer_performance.py::TestLoadBalancerPerformance::test_geographic_routing_performance [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_load_balancer_performance.py::TestLoadBalancerPerformance::test_failover_performance [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_load_balancer_performance.py::TestLoadBalancerPerformance::test_resource_monitoring_performance [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_main.py::TestStreakSystem::test_regular_streak_update <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_main.py::TestStreakSystem::test_grace_period <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_main.py::TestStreakSystem::test_recovery_mode <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_main.py::TestStreakSystem::test_streak_bonus_calculation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_main.py::TestLearningPath::test_path_generation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_main.py::TestLearningPath::test_adaptive_difficulty <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 33%][0m
+tests/core/test_main.py::TestLearningPath::test_topic_similarity <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 34%][0m
+tests/core/test_main.py::TestAIRecommendations::test_cold_start_recommendations <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 34%][0m
+tests/core/test_main.py::TestAIRecommendations::test_personalized_recommendations <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 34%][0m
+tests/core/test_main.py::TestLeaderboard::test_leaderboard_sorting <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 34%][0m
+tests/core/test_main.py::TestLeaderboard::test_leaderboard_update <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_main.py [32mPASSED[0m[31m [ 34%][0m
+tests/core/test_notifications.py::test_rate_limiter_direct [32mPASSED[0m[31m        [ 34%][0m
+tests/core/test_notifications.py::test_email_notifier_rate_limiter [32mPASSED[0m[31m [ 34%][0m
+tests/core/test_notifications.py::test_email_notifier_manual_creation [32mPASSED[0m[31m [ 34%][0m
+tests/core/test_notifications.py::test_email_notifier_send_manual [32mPASSED[0m[31m [ 34%][0m
+tests/core/test_notifications.py::test_simple_email_notifier [32mPASSED[0m[31m      [ 34%][0m
+tests/core/test_notifications.py::test_email_notifier_simple_send [32mPASSED[0m[31m [ 34%][0m
+tests/core/test_notifications.py::TestNotificationService::test_send_alert_all_channels [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestNotificationService::test_send_alert_partial_failure [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestNotificationService::test_send_alert_formatting [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestEmailNotifier::test_email_notifier_creation [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestEmailNotifier::test_send_email_success [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestEmailNotifier::test_send_email_failure [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestSlackNotifier::test_send_slack_success [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestSlackNotifier::test_send_slack_failure [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestSlackNotifier::test_send_slack_no_webhook [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestWebhookNotifier::test_send_webhook_success [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestWebhookNotifier::test_send_webhook_failure [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestWebhookNotifier::test_send_webhook_no_url [32mPASSED[0m[31m [ 35%][0m
+tests/core/test_notifications.py::TestRateLimiting::test_email_rate_limiting [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestRateLimiting::test_slack_rate_limiting [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestRateLimiting::test_webhook_rate_limiting [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestRateLimiting::test_rate_limit_reset [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestRateLimiting::test_different_recipients [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestEmailBatching::test_batch_collection [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestEmailBatching::test_immediate_send [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestEmailBatching::test_batch_size_trigger [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestEmailBatching::test_batch_time_trigger [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestEmailBatching::test_batch_error_handling [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestNotificationTemplates::test_email_template [32mPASSED[0m[31m [ 36%][0m
+tests/core/test_notifications.py::TestNotificationTemplates::test_slack_template [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationTemplates::test_template_error_handling [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationPriority::test_email_priority [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationPriority::test_slack_priority [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationPriority::test_retry_behavior [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationPriority::test_priority_rate_limiting [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationHistory::test_add_and_get_recent [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationHistory::test_max_size_limit [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationHistory::test_duplicate_detection [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationHistory::test_digest_generation [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestNotificationHistory::test_clear_old [32mPASSED[0m[31m [ 37%][0m
+tests/core/test_notifications.py::TestDigestNotifications::test_send_digest [32mPASSED[0m[31m [ 38%][0m
+tests/core/test_notifications.py::TestDigestNotifications::test_digest_filtering [32mPASSED[0m[31m [ 38%][0m
+tests/core/test_rate_limiting.py::test_rate_limiting [32mPASSED[0m[31m              [ 38%][0m
+tests/core/test_rate_limiting.py::test_regular_streak_update [32mPASSED[0m[31m      [ 38%][0m
+tests/core/test_rate_limiting.py::test_grace_period [32mPASSED[0m[31m               [ 38%][0m
+tests/core/test_regional_failover.py::test_region_enumeration [32mPASSED[0m[31m     [ 38%][0m
+tests/core/test_regional_failover.py::test_database_url_generation [32mPASSED[0m[31m [ 38%][0m
+tests/core/test_regional_failover.py::test_database_engine_initialization [32mPASSED[0m[31m [ 38%][0m
+tests/core/test_regional_failover.py::test_redis_cluster_initialization [32mPASSED[0m[31m [ 38%][0m
+tests/core/test_regional_failover.py::test_redis_replication [32mPASSED[0m[31m      [ 38%][0m
+tests/core/test_regional_failover.py::test_health_check_single_region [32mPASSED[0m[31m [ 38%][0m
+tests/core/test_regional_failover.py::test_health_check_all_regions [32mPASSED[0m[31m [ 39%][0m
+tests/core/test_regional_failover.py::test_failover_trigger [32mPASSED[0m[31m       [ 39%][0m
+tests/core/test_regional_failover.py::test_failover_recovery [32mPASSED[0m[31m      [ 39%][0m
+tests/core/test_regional_failover.py::test_concurrent_failover [32mPASSED[0m[31m    [ 39%][0m
+tests/core/test_regional_failover.py::test_error_handling [32mPASSED[0m[31m         [ 39%][0m
+tests/core/test_regional_failover.py::test_performance_metrics [32mPASSED[0m[31m    [ 39%][0m
+tests/core/test_regional_failover.py::test_database_connection_pooling [32mPASSED[0m[31m [ 39%][0m
+tests/core/test_regional_failover.py::test_redis_connection_timeout [32mPASSED[0m[31m [ 39%][0m
+tests/core/test_regional_failover.py::test_concurrent_data_access [32mPASSED[0m[31m [ 39%][0m
+tests/core/test_regional_failover.py::test_health_check_thresholds [32mPASSED[0m[31m [ 39%][0m
+tests/core/test_regional_failover.py::test_failover_priority [32mPASSED[0m[31m      [ 39%][0m
+tests/core/test_regional_failover.py::test_data_consistency_after_failover [32mPASSED[0m[31m [ 40%][0m
+tests/core/test_regional_failover.py::test_graceful_degradation [32mPASSED[0m[31m   [ 40%][0m
+tests/core/test_regional_failover.py::test_metrics_accuracy [32mPASSED[0m[31m       [ 40%][0m
+tests/core/test_regional_failover.py::test_resource_cleanup [32mPASSED[0m[31m       [ 40%][0m
+tests/core/test_security.py::test_encrypt_decrypt_north_america <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_security.py [32mPASSED[0m[31m [ 40%][0m
+tests/core/test_security.py::test_encrypt_decrypt_europe <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_security.py [32mPASSED[0m[31m [ 40%][0m
+tests/core/test_security.py::test_audit_log_generation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_security.py [32mPASSED[0m[31m [ 40%][0m
+tests/core/test_security.py::test_parental_consent_validation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_security.py [32mPASSED[0m[31m [ 40%][0m
+tests/core/test_security.py::test_mfa_token_generation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_security.py [32mPASSED[0m[31m [ 40%][0m
+tests/core/test_security.py::test_compliance_report_generation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_security.py [32mPASSED[0m[31m [ 40%][0m
+tests/core/test_security.py::test_invalid_region_handling <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_security.py [32mPASSED[0m[31m [ 40%][0m
+tests/core/test_security.py::test_access_permission_validation <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/core/test_security.py [32mPASSED[0m[31m [ 40%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_get_region_status [31mERROR[0m[31m [ 41%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_get_region_performance [31mERROR[0m[31m [ 41%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_get_region_costs [31mERROR[0m[31m [ 41%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_set_region_weight [31mERROR[0m[31m [ 41%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_get_circuit_state [31mERROR[0m[31m [ 41%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_monitoring_tasks [31mERROR[0m[31m [ 41%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_metrics_collection [31mERROR[0m[31m [ 41%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_error_handling [31mERROR[0m[31m [ 41%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_concurrent_requests [31mERROR[0m[31m [ 41%][0m
+tests/dashboard/test_load_balancer_service.py::TestLoadBalancerDashboardService::test_performance_metrics [31mERROR[0m[31m [ 41%][0m
+tests/integration/test_activity_recommendations.py::test_get_activity_recommendations [31mERROR[0m[31m [ 41%][0m
+tests/integration/test_activity_recommendations.py::test_get_activity_recommendations [31mERROR[0m[31m [ 41%][0m
+tests/integration/test_activity_recommendations.py::test_get_recommendation_history [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_recommendation_history [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_category_recommendations [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_category_recommendations [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_balanced_recommendations [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_balanced_recommendations [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_clear_recommendations [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_clear_recommendations [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_activity_recommendations_invalid_student [31mFAILED[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_category_recommendations_invalid_category [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_category_recommendations_invalid_category [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_balanced_recommendations_invalid_class [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_balanced_recommendations_invalid_class [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_activity_recommendations_with_filters [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_activity_recommendations_with_filters [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_recommendation_history_with_filters [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_recommendation_history_with_filters [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_category_recommendations_with_filters [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_category_recommendations_with_filters [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_balanced_recommendations_with_filters [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_get_balanced_recommendations_with_filters [31mERROR[0m[31m [ 42%][0m
+tests/integration/test_activity_recommendations.py::test_clear_recommendations_with_date_filter [31mERROR[0m[31m [ 43%][0m
+tests/integration/test_activity_recommendations.py::test_clear_recommendations_with_date_filter [31mERROR[0m[31m [ 43%][0m
+tests/integration/test_activity_recommendations.py::test_get_recommendations_for_class [31mERROR[0m[31m [ 43%][0m
+tests/integration/test_activity_recommendations.py::test_get_recommendations_for_class [31mERROR[0m[31m [ 43%][0m
+tests/integration/test_activity_recommendations.py::test_get_recommendations_for_student [31mERROR[0m[31m [ 43%][0m
+tests/integration/test_activity_recommendations.py::test_get_recommendations_for_student [31mERROR[0m[31m [ 43%][0m
+tests/integration/test_activity_recommendations.py::test_update_recommendations [31mERROR[0m[31m [ 43%][0m
+tests/integration/test_activity_recommendations.py::test_update_recommendations [31mERROR[0m[31m [ 43%][0m
+tests/integration/test_analytics_resource_sharing.py::test_get_resource_usage_metrics [31mFAILED[0m[31m [ 43%][0m
+tests/integration/test_analytics_resource_sharing.py::test_get_sharing_patterns [31mFAILED[0m[31m [ 43%][0m
+tests/integration/test_analytics_resource_sharing.py::test_get_efficiency_metrics [31mFAILED[0m[31m [ 43%][0m
+tests/integration/test_analytics_resource_sharing.py::test_get_sharing_trends [31mFAILED[0m[31m [ 43%][0m
+tests/integration/test_analytics_resource_sharing.py::test_empty_data_handling [31mFAILED[0m[31m [ 43%][0m
+tests/integration/test_analytics_resource_sharing.py::test_error_handling [31mFAILED[0m[31m [ 43%][0m
+tests/integration/test_cache_manager.py::test_basic_operations [32mPASSED[0m[31m    [ 43%][0m
+tests/integration/test_cache_manager.py::test_batch_operations [31mFAILED[0m[31m    [ 44%][0m
+tests/integration/test_cache_manager.py::test_cache_warming [32mPASSED[0m[31m       [ 44%][0m
+tests/integration/test_cache_manager.py::test_eviction_strategies [32mPASSED[0m[31m [ 44%][0m
+tests/integration/test_cache_manager.py::test_compression [32mPASSED[0m[31m         [ 44%][0m
+tests/integration/test_cache_manager.py::test_monitoring_metrics [32mPASSED[0m[31m  [ 44%][0m
+tests/integration/test_cache_manager.py::test_concurrent_operations [31mFAILED[0m[31m [ 44%][0m
+tests/integration/test_cache_manager.py::test_error_handling [31mFAILED[0m[31m      [ 44%][0m
+tests/integration/test_cache_manager.py::test_error_handling [31mERROR[0m[31m       [ 44%][0m
+tests/integration/test_cache_manager.py::test_performance_benchmark [31mERROR[0m[31m [ 44%][0m
+tests/integration/test_cache_manager.py::test_cleanup [31mERROR[0m[31m              [ 44%][0m
+tests/integration/test_dashboard_resource_sharing.py::test_create_resource_usage_widget [31mFAILED[0m[31m [ 44%][0m
+tests/integration/test_dashboard_resource_sharing.py::test_get_resource_usage_data [32mPASSED[0m[31m [ 44%][0m
+tests/integration/test_dashboard_resource_sharing.py::test_get_resource_optimization_data [32mPASSED[0m[31m [ 45%][0m
+tests/integration/test_dashboard_resource_sharing.py::test_get_resource_prediction_data [32mPASSED[0m[31m [ 45%][0m
+tests/integration/test_dashboard_resource_sharing.py::test_get_cross_org_patterns_data [32mPASSED[0m[31m [ 45%][0m
+tests/integration/test_dashboard_resource_sharing.py::test_get_security_metrics_data [32mPASSED[0m[31m [ 45%][0m
+tests/integration/test_dashboard_resource_sharing.py::test_missing_organization_id [31mFAILED[0m[31m [ 45%][0m
+tests/integration/test_dashboard_resource_sharing.py::test_invalid_widget_type [31mFAILED[0m[31m [ 45%][0m
+tests/integration/test_optimization_monitoring.py::test_get_optimization_metrics [32mPASSED[0m[31m [ 45%][0m
+tests/integration/test_optimization_monitoring.py::test_get_optimization_insights [31mFAILED[0m[31m [ 45%][0m
+tests/integration/test_optimization_monitoring.py::test_detect_anomalies [32mPASSED[0m[31m [ 45%][0m
+tests/integration/test_optimization_monitoring.py::test_analyze_patterns [31mFAILED[0m[31m [ 45%][0m
+tests/integration/test_optimization_monitoring.py::test_analyze_trends [31mFAILED[0m[31m [ 45%][0m
+tests/integration/test_optimization_monitoring.py::test_empty_data_handling [31mFAILED[0m[31m [ 45%][0m
+tests/integration/test_optimization_monitoring.py::test_error_handling [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring.py::test_time_range_handling [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring.py::test_recommendation_generation [32mPASSED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_metrics [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_insights [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_metrics_invalid_time_range [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_metrics_unauthorized [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_metrics_error [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_insights_invalid_time_range [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_insights_unauthorized [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_insights_error [31mFAILED[0m[31m [ 46%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_metrics_filter_options [31mFAILED[0m[31m [ 47%][0m
+tests/integration/test_optimization_monitoring_api.py::test_get_optimization_insights_filter_options [31mFAILED[0m[31m [ 47%][0m
+tests/integration/physical_education/test_movement_activity_integration.py::test_activity_movement_integration [31mERROR[0m[31m [ 47%][0m
+tests/integration/physical_education/test_movement_activity_integration.py::test_error_handling_integration [31mERROR[0m[31m [ 47%][0m
+tests/integration/physical_education/test_movement_activity_integration.py::test_caching_integration [31mERROR[0m[31m [ 47%][0m
+tests/integration/physical_education/test_student_activity_integration.py::TestStudentActivityIntegration::test_activity_participation_flow [32mPASSED[0m[31m [ 47%][0m
+tests/integration/physical_education/test_student_activity_integration.py::TestStudentActivityIntegration::test_safety_monitoring_integration [31mERROR[0m[31m [ 47%][0m
+tests/integration/physical_education/test_student_activity_integration.py::TestStudentActivityIntegration::test_health_monitoring_integration [31mERROR[0m[31m [ 47%][0m
+tests/integration/physical_education/test_student_activity_integration.py::TestStudentActivityIntegration::test_progress_tracking_integration [31mERROR[0m[31m [ 47%][0m
+tests/integration/physical_education/test_student_activity_integration.py::TestStudentActivityIntegration::test_student_progress_integration [32mPASSED[0m[31m [ 47%][0m
+tests/models/test_physical_education_models.py::TestBaseModels::test_base_model_validation [31mFAILED[0m[31m [ 47%][0m
+tests/models/test_physical_education_models.py::TestBaseModels::test_model_auditing [32mPASSED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestBaseModels::test_model_metadata [32mPASSED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestBaseModels::test_model_versioning [31mFAILED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestBaseModels::test_validation_error_handling [31mFAILED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestBaseModels::test_audit_trail_history [32mPASSED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestProgress::test_progress_creation [31mFAILED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestProgress::test_progress_goal_creation [31mFAILED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestProgress::test_progress_note_creation [31mFAILED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestActivityRelationships::test_activity_environmental_relationships [32mPASSED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestActivityRelationships::test_activity_safety_relationships [32mPASSED[0m[31m [ 48%][0m
+tests/models/test_physical_education_models.py::TestActivityRelationships::test_activity_injury_prevention_relationships [32mPASSED[0m[31m [ 48%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_foreign_key_constraints [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_foreign_key_constraints [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_cascade_delete [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_cascade_delete [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_relationship_properties [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_relationship_properties [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_many_to_many_operations [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_many_to_many_operations [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_enrollment_constraints [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_enrollment_constraints [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_grade_level_validation [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::TestStudentClassRelationship::test_class_student_grade_level_validation [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::test_create_class_student_relationship [31mFAILED[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::test_create_class_student_relationship [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::test_class_student_cascade_delete [31mFAILED[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::test_class_student_cascade_delete [31mERROR[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::test_student_class_relationship [31mFAILED[0m[31m [ 49%][0m
+tests/models/test_student_class_relationship.py::test_student_class_relationship [31mERROR[0m[31m [ 49%][0m
+tests/physical_education/test_activity_adaptation_manager.py::test_analyze_adaptation_needs [32mPASSED[0m[31m [ 49%][0m
+tests/physical_education/test_activity_adaptation_manager.py::test_generate_adaptation_plan [32mPASSED[0m[31m [ 49%][0m
+tests/physical_education/test_activity_adaptation_manager.py::test_apply_adaptations [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_adaptation_manager.py::test_evaluate_adaptation_effectiveness [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_adaptation_manager.py::test_get_adaptation_history [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_adaptation_manager.py::test_optimize_adaptations [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_initialization [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_performance [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_patterns [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_student_progress [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_effectiveness [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_safety [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_engagement [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_goals [32mPASSED[0m[31m [ 50%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_skills [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_health [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_teamwork [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_adaptability [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_creativity [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_resilience [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_leadership [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analyze_activity_sportsmanship [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_error_handling [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analysis_configuration [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analysis_export [32mPASSED[0m[31m [ 51%][0m
+tests/physical_education/test_activity_analysis_manager.py::test_analysis_visualization [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_analyze_activity_performance [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_generate_performance_report [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_identify_performance_patterns [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_predict_future_performance [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_get_analytics_history [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_export_analytics_data [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_track_activity_metrics [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_get_activity_insights [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_analyze_trends [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_get_engagement_metrics [32mPASSED[0m[31m [ 52%][0m
+tests/physical_education/test_activity_analytics_manager.py::test_predict_activity_outcomes [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_assess_activity [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_get_assessment_criteria [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_record_assessment_result [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_get_assessment_history [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_analyze_assessment_trends [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_generate_assessment_report [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_calculate_criteria_scores [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_generate_assessment_feedback [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_track_assessment_progress [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_assessment_manager.py::test_export_assessment_report [32mPASSED[0m[31m [ 53%][0m
+tests/physical_education/test_activity_cache_manager.py::test_get_cached_activity_found [31mFAILED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_cache_manager.py::test_get_cached_activity_not_found [32mPASSED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_cache_manager.py::test_cache_activity_success [31mFAILED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_cache_manager.py::test_invalidate_activity_cache_success [31mFAILED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_cache_manager.py::test_get_cached_student_activities_found [31mFAILED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_cache_manager.py::test_get_cached_student_activities_not_found [32mPASSED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_cache_manager.py::test_cache_student_activities_success [31mFAILED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_cache_manager.py::test_cleanup_cache_success [31mFAILED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_cache_manager.py::test_get_cache_stats_success [31mFAILED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_check_circuit_closed [32mPASSED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_check_circuit_open_timeout_not_passed [32mPASSED[0m[31m [ 54%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_check_circuit_open_timeout_passed [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_record_failure_below_threshold [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_record_failure_above_threshold [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_record_success_half_open_below_threshold [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_record_success_half_open_above_threshold [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_reset_circuit [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_get_circuit_stats [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_circuit_breaker_manager.py::test_get_circuit_stats_error [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_initialization [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_create_team [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_update_team [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_delete_team [32mPASSED[0m[31m [ 55%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_get_team [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_list_teams [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_create_collaboration [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_update_collaboration [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_delete_collaboration [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_get_collaboration [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_list_collaborations [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_analyze_team_performance [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_analyze_team_dynamics [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_generate_team_report [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_schedule_team_activity [32mPASSED[0m[31m [ 56%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_send_team_notification [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_error_handling [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_collaboration_manager.py::test_data_validation [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_engagement_manager.py::test_measure_engagement [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_engagement_manager.py::test_analyze_engagement_patterns [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_engagement_manager.py::test_generate_engagement_report [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_engagement_manager.py::test_suggest_engagement_improvements [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_engagement_manager.py::test_get_engagement_history [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_engagement_manager.py::test_predict_engagement_trends [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_export_manager.py::test_initialization [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_activity_data_csv [32mPASSED[0m[31m [ 57%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_activity_data_excel [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_activity_data_json [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_analysis_report_pdf [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_analysis_report_html [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_analysis_report_docx [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_visualization_png [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_visualization_svg [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_progress_report [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_achievement_certificate [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_health_report [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_compression [32mPASSED[0m[31m [ 58%][0m
+tests/physical_education/test_activity_export_manager.py::test_batch_export [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_export_manager.py::test_error_handling [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_configuration [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_validation [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_path_handling [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_export_manager.py::test_export_performance [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_manager.py::test_connect_websocket [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_manager.py::test_disconnect_websocket [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_manager.py::test_broadcast_update [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_manager.py::test_create_activity_success [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_manager.py::test_create_activity_invalid_difficulty [32mPASSED[0m[31m [ 59%][0m
+tests/physical_education/test_activity_manager.py::test_create_activity_invalid_equipment [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::test_create_activity_invalid_category [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::test_get_activity_found [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::test_get_activity_not_found [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::test_update_activity_success [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::test_update_activity_not_found [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::test_delete_activity_success [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::test_delete_activity_not_found [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_activity_plan_edge_cases [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_analyze_student_performance [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_backup_and_recovery [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_broadcast_update [32mPASSED[0m[31m [ 60%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_cleanup_procedures [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_collaborative_features [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_collaborative_session_error_handling [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_concurrent_operations [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_create_activity [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_create_exercise [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_create_routine [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_data_persistence [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_data_validation [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_export_visualizations [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_export_visualizations_edge_cases [32mPASSED[0m[31m [ 61%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_generate_activity_plan [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_get_activities_filtering [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_get_activity [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_get_recommended_activities [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_integration_with_other_components [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_invalid_activity_creation [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_invalid_exercise_creation [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_invalid_routine_creation [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_performance_analysis_edge_cases [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_performance_monitoring [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_performance_tracking_edge_cases [32mPASSED[0m[31m [ 62%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_resource_limits [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_security_measures [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_system_monitoring [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_system_recovery [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_track_activity_performance [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_websocket_connection [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_manager.py::TestActivityManager::test_websocket_error_handling [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_notification_manager.py::test_send_activity_reminder [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_notification_manager.py::test_send_progress_update [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_notification_manager.py::test_send_safety_alert [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_notification_manager.py::test_send_achievement_notification [32mPASSED[0m[31m [ 63%][0m
+tests/physical_education/test_activity_notification_manager.py::test_get_notification_history [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_notification_manager.py::test_update_notification_preferences [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_progress_manager.py::test_track_activity_progress [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_progress_manager.py::test_calculate_improvement_metrics [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_progress_manager.py::test_generate_progress_report [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_progress_manager.py::test_set_progress_goals [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_progress_manager.py::test_get_progress_history [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_progress_manager.py::test_predict_future_progress [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_rate_limit_manager.py::test_check_rate_limit_first_request [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_rate_limit_manager.py::test_check_rate_limit_within_window [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_rate_limit_manager.py::test_check_rate_limit_exceeded [32mPASSED[0m[31m [ 64%][0m
+tests/physical_education/test_activity_rate_limit_manager.py::test_check_rate_limit_window_expired [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_rate_limit_manager.py::test_block_user [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_rate_limit_manager.py::test_is_user_blocked_true [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_rate_limit_manager.py::test_is_user_blocked_false [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_rate_limit_manager.py::test_unblock_user [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_rate_limit_manager.py::test_get_rate_limit_stats [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_safety_manager.py::test_assess_safety_risks <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_safety_manager.py [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_safety_manager.py::test_monitor_environmental_conditions <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_safety_manager.py [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_safety_manager.py::test_check_equipment_safety <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_safety_manager.py [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_safety_manager.py::test_generate_safety_report <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_safety_manager.py [31mFAILED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_safety_manager.py::test_handle_safety_incident <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_safety_manager.py [31mFAILED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_safety_manager.py::test_get_safety_history <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_safety_manager.py [32mPASSED[0m[31m [ 65%][0m
+tests/physical_education/test_activity_scheduling.py::test_create_activity_plan_success <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_scheduling.py [31mFAILED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling.py::test_create_activity_plan_invalid_duration <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_scheduling.py [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling.py::test_track_plan_progress_success <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_scheduling.py [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling.py::test_track_plan_progress_not_found <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_scheduling.py [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling.py::test_get_student_progress_report <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_scheduling.py [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling.py::test_generate_activity_plan_with_focus_areas <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_scheduling.py [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling.py::test_generate_activity_plan_without_focus_areas <- ../Users/joemartucci/Projects/New Faraday Cursor/Faraday-AI/tests/physical_education/test_activity_scheduling.py [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling_manager.py::test_schedule_activity [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling_manager.py::test_check_schedule_availability [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling_manager.py::test_update_schedule [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling_manager.py::test_cancel_schedule [32mPASSED[0m[31m [ 66%][0m
+tests/physical_education/test_activity_scheduling_manager.py::test_get_schedule_history [32mPASSED[0m[31m [ 67%][0m
+tests/physical_education/test_activity_scheduling_manager.py::test_handle_schedule_conflict [32mPASSED[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_creation_success [31mERROR[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_creation_exceeds_student_limit [31mERROR[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_creation_exceeds_duration [31mERROR[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_creation_invalid_file_type [31mERROR[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_update_success [31mERROR[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_update_not_found [31mERROR[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_update_completion_success [31mERROR[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_update_completion_missing_fields [31mERROR[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_update_completion_low_score [31mERROR[0m[31m [ 67%][0m
+tests/physical_education/test_activity_security_manager.py::test_check_concurrent_activities_within_limit [31mERROR[0m[31m [ 68%][0m
+tests/physical_education/test_activity_security_manager.py::test_check_concurrent_activities_exceeds_limit [31mERROR[0m[31m [ 68%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_access_authorized [31mERROR[0m[31m [ 68%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_access_unauthorized [31mERROR[0m[31m [ 68%][0m
+tests/physical_education/test_activity_security_manager.py::test_validate_activity_access_not_found [31mERROR[0m[31m [ 68%][0m
+tests/physical_education/test_activity_service.py::test_create_activity [32mPASSED[0m[31m [ 68%][0m
+tests/physical_education/test_activity_service.py::test_get_activity [32mPASSED[0m[31m [ 68%][0m
+tests/physical_education/test_activity_service.py::test_update_activity [32mPASSED[0m[31m [ 68%][0m
+tests/physical_education/test_activity_service.py::test_delete_activity [32mPASSED[0m[31m [ 68%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_schedule [32mPASSED[0m[31m [ 68%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_participants [32mPASSED[0m[31m [ 68%][0m
+tests/physical_education/test_activity_service.py::test_add_activity_participant [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_remove_activity_participant [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_equipment [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_update_activity_equipment [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_instructor [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_update_activity_instructor [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_location [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_update_activity_location [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_attendance [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_record_activity_attendance [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_metrics [32mPASSED[0m[31m [ 69%][0m
+tests/physical_education/test_activity_service.py::test_update_activity_metrics [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_feedback [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_service.py::test_add_activity_feedback [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_safety_incidents [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_service.py::test_record_activity_safety_incident [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_service.py::test_get_activity_risk_assessment [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_service.py::test_update_activity_risk_assessment [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_validation_manager.py::test_validate_activity_creation [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_validation_manager.py::test_validate_activity_creation_duplicate_name [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_validation_manager.py::test_validate_activity_update [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_validation_manager.py::test_validate_activity_update_nonexistent [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_validation_manager.py::test_validate_activity_schedule [32mPASSED[0m[31m [ 70%][0m
+tests/physical_education/test_activity_validation_manager.py::test_validate_activity_schedule_invalid_times [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_validation_manager.py::test_validate_activity_participants [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_validation_manager.py::test_validate_activity_participants_exceed_limit [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_visualizations [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_performance_trend_plot [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_category_heatmap [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_activity_distribution_plot [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_improvement_trends_plot [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_skill_analysis_plot [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_sankey_diagram [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_treemap [32mPASSED[0m[31m [ 71%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_sunburst_chart [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_generate_violin_plot [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_save_visualization [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_theme_application [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_accessibility_features [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_error_handling [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_set_theme [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_set_accessibility [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_add_accessibility_features [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_save_visualization_error_cases [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_save_visualization_path_handling [32mPASSED[0m[31m [ 72%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_theme_validation [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_accessibility_options_validation [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_data_validation [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_singleton_pattern [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_cleanup [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_large_dataset_performance [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_memory_usage [31mFAILED[0m[31m [ 73%][0m
+tests/physical_education/test_activity_visualization_manager.py::test_file_system_operations [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_achievement_unlocking [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_assessment_comparison [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_assessment_configuration [32mPASSED[0m[31m [ 73%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_assessment_export [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_assessment_operations [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_assessment_performance [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_assessment_report_generation [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_assessment_trend_analysis [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_assessment_validation [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_concurrent_assessments [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_data_persistence [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_elementary_assessment [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_feedback_quality [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_invalid_age_group [32mPASSED[0m[31m [ 74%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_invalid_skill [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_invalid_video_data [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_maximum_scores [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_middle_school_assessment [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_milestone_achievement [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_minimum_scores [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_optional_video_fields [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_peer_comparison [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_score_calculation [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_assessment_system.py::TestAssessmentSystem::test_test_data_validity [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_equipment_manager.py::test_equipment_manager_initialization [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_equipment_manager.py::test_create_equipment_check_success [32mPASSED[0m[31m [ 75%][0m
+tests/physical_education/test_equipment_manager.py::test_create_equipment_check_invalid_status [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_get_equipment_check_success [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_get_equipment_check_not_found [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_get_equipment_checks_with_filters [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_update_equipment_check_success [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_update_equipment_check_not_found [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_delete_equipment_check_success [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_delete_equipment_check_not_found [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_get_equipment_statistics [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_bulk_update_equipment_checks [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_bulk_delete_equipment_checks [32mPASSED[0m[31m [ 76%][0m
+tests/physical_education/test_equipment_manager.py::test_error_handling_database_error [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_equipment_manager.py::test_error_handling_validation_error [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_initialization [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_initialize_success [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_create_lesson_plan_success [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_create_lesson_plan_invalid_parameters [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_select_template_success [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_select_template_invalid_focus [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_generate_activities_success [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_select_activity_success [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_check_equipment_requirements_success [32mPASSED[0m[31m [ 77%][0m
+tests/physical_education/test_lesson_planner.py::test_check_equipment_requirements_failure [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_choose_activity [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_generate_activity_modifications_success [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_calculate_group_size [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_generate_equipment_modifications [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_determine_equipment_needs [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_generate_objectives [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_generate_assessment_criteria [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_generate_safety_considerations [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_save_lesson_templates [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_load_lesson_templates_success [32mPASSED[0m[31m [ 78%][0m
+tests/physical_education/test_lesson_planner.py::test_load_lesson_templates_file_not_found [32mPASSED[0m[31m [ 79%][0m
+tests/physical_education/test_lesson_planner.py::test_error_handling_general [32mPASSED[0m[31m [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_initialization [32mPASSED[0m[31m [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_cleanup [32mPASSED[0m[31m  [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze [32mPASSED[0m[31m  [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_extract_movement_patterns [32mPASSED[0m[31m [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze_movement_patterns [32mPASSED[0m[31m [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze_patterns_batch [32mPASSED[0m[31m [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze_single_pattern [32mPASSED[0m[31m [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_manage_analysis_cache [32mPASSED[0m[31m [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_manage_batch_cache [32mPASSED[0m[31m [ 79%][0m
+tests/physical_education/test_movement_analyzer.py::test_get_cache_stats [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_optimize_memory_usage [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_get_performance_report [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_clear_caches [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_initialize_adaptive_learning [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_initialize_real_time_monitoring [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze_movement_patterns_ml [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_generate_realtime_feedback [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_predict_injury_risk_ml [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze_biomechanics [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze_energy_efficiency [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze_symmetry [32mPASSED[0m[31m [ 80%][0m
+tests/physical_education/test_movement_analyzer.py::test_assess_skill_level [32mPASSED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze_recovery [32mPASSED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_analyzer.py::test_analyze_adaptation [32mPASSED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_analyzer.py::test_predict_performance [32mPASSED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_analyzer.py::test_environmental_analysis [32mPASSED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_analyzer.py::test_equipment_analysis [32mPASSED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_analyzer.py::test_comprehensive_feedback [32mPASSED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_analyzer.py::test_error_handling [32mPASSED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_analyzer.py::test_performance_tracking [32mPASSED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_analyze_movement_sequence [31mFAILED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_classify_movement [31mFAILED[0m[31m [ 81%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_create_movement_classifier [31mFAILED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_error_handling [31mFAILED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_error_handling_performance [32mPASSED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_get_input_size [31mFAILED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_init_loads_config [32mPASSED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_load_movement_classifier [32mPASSED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_movement_classes_property [32mPASSED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_movement_score_calculation [31mFAILED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_performance_summary [31mFAILED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_performance_tracking [32mPASSED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_process_frame [31mFAILED[0m[31m [ 82%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_save_movement_classifier [31mFAILED[0m[31m [ 83%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_sequence_buffer_management [31mFAILED[0m[31m [ 83%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_sequence_metrics_calculation [31mFAILED[0m[31m [ 83%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_session_management [31mFAILED[0m[31m [ 83%][0m
+tests/physical_education/test_movement_models.py::TestMovementModels::test_session_metrics [31mFAILED[0m[31m [ 83%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_activity_recommendations_success [31mFAILED[0m[31m [ 83%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_activity_recommendations_error [32mPASSED[0m[31m [ 83%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_recommendation_history_success [31mFAILED[0m[31m [ 83%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_clear_recommendations_success [31mFAILED[0m[31m [ 83%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_clear_recommendations_error [32mPASSED[0m[31m [ 83%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_category_recommendations_success [31mFAILED[0m[31m [ 83%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_balanced_recommendations_success [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_category_recommendations_invalid_category [32mPASSED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_balanced_recommendations_no_data [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_activity_recommendations_empty_preferences [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_activity_recommendations_invalid_preferences [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_recommendation_history_pagination [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_recommendation_history_date_filter [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_category_recommendations_multiple_activity_types [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_balanced_recommendations_single_category [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_get_balanced_recommendations_high_limit [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_activity_recommendations.py::test_clear_recommendations_with_class_filter [31mFAILED[0m[31m [ 84%][0m
+tests/physical_education/test_pe_service.py::test_initialization [31mFAILED[0m[31m  [ 85%][0m
+tests/physical_education/test_pe_service.py::test_cleanup [31mFAILED[0m[31m         [ 85%][0m
+tests/physical_education/test_pe_service.py::test_process_request [31mFAILED[0m[31m [ 85%][0m
+tests/physical_education/test_pe_service.py::test_analyze_movement [31mFAILED[0m[31m [ 85%][0m
+tests/physical_education/test_pe_service.py::test_generate_lesson_plan [31mFAILED[0m[31m [ 85%][0m
+tests/physical_education/test_pe_service.py::test_assess_skill [32mPASSED[0m[31m    [ 85%][0m
+tests/physical_education/test_pe_service.py::test_track_progress [32mPASSED[0m[31m  [ 85%][0m
+tests/physical_education/test_pe_service.py::test_get_service_metrics [31mFAILED[0m[31m [ 85%][0m
+tests/physical_education/test_pe_service.py::test_get_lesson_plans_count [32mPASSED[0m[31m [ 85%][0m
+tests/physical_education/test_pe_service.py::test_get_active_students_count [32mPASSED[0m[31m [ 85%][0m
+tests/physical_education/test_physical_education_ai.py::test_generate_lesson_plan [31mFAILED[0m[31m [ 85%][0m
+tests/physical_education/test_physical_education_ai.py::test_create_movement_instruction [31mFAILED[0m[31m [ 85%][0m
+tests/physical_education/test_physical_education_ai.py::test_design_activity [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_create_fitness_assessment [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_optimize_classroom [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_assess_skills [32mPASSED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_integrate_curriculum [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_safety [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_error_handling [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_rate_limiting [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_create_personalized_workout [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_generate_progress_report [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_create_adaptive_lesson [31mFAILED[0m[31m [ 86%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_patterns [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_create_injury_prevention_plan [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_generate_skill_progression [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_create_competition_preparation [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_team_dynamics [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_create_cross_curricular_activity [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_generate_professional_development [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_create_emergency_response_plan [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_equipment_needs [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_create_seasonal_plan [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_technique [31mFAILED[0m[31m [ 87%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_biomechanics [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_efficiency [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_injury_risk [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_performance_metrics [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_adaptation [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_learning [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_fatigue [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_symmetry [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_consistency [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_environment [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_physical_education_ai.py::test_analyze_movement_equipment [31mFAILED[0m[31m [ 88%][0m
+tests/physical_education/test_real_time_assessment.py::TestRealTimeAssessment::test_analytics_update [32mPASSED[0m[31m [ 89%][0m
+tests/physical_education/test_real_time_assessment.py::TestRealTimeAssessment::test_confidence_calculation [32mPASSED[0m[31m [ 89%][0m
+tests/physical_education/test_real_time_assessment.py::TestRealTimeAssessment::test_error_handling [32mPASSED[0m[31m [ 89%][0m
+tests/physical_education/test_real_time_assessment.py::TestRealTimeAssessment::test_performance_prediction [32mPASSED[0m[31m [ 89%][0m
+tests/physical_education/test_real_time_assessment.py::TestRealTimeAssessment::test_real_time_assessment_flow [32mPASSED[0m[31m [ 89%][0m
+tests/physical_education/test_real_time_assessment.py::TestRealTimeAssessment::test_real_time_metrics_calculation [32mPASSED[0m[31m [ 89%][0m
+tests/physical_education/test_real_time_assessment.py::TestRealTimeAssessment::test_recommendations_generation [32mPASSED[0m[31m [ 89%][0m
+tests/physical_education/test_real_time_assessment.py::TestRealTimeAssessment::test_skill_correlation [32mPASSED[0m[31m [ 89%][0m
+tests/physical_education/test_real_time_assessment.py::TestRealTimeAssessment::test_trend_calculation [32mPASSED[0m[31m [ 89%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_assess_activity_risk [31mFAILED[0m[31m [ 89%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_assess_student_risk [31mFAILED[0m[31m [ 89%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_assess_environmental_risk [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_assess_equipment_risk [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_assess_group_risk [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_generate_risk_report [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_update_risk_assessment [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_error_handling [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_risk_calculation [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_risk_thresholds [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_risk_mitigation [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_risk_monitoring [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_risk_documentation [31mFAILED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_risk_assessment_manager_db_initialization [32mPASSED[0m[31m [ 90%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_create_assessment_success [31mFAILED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_create_assessment_invalid_activity_type [32mPASSED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_get_assessment_success [32mPASSED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_get_assessment_not_found [32mPASSED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_get_assessments_with_filters [31mFAILED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_update_assessment_success [32mPASSED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_delete_assessment_success [32mPASSED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_get_assessment_statistics [31mFAILED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_bulk_update_assessments [31mFAILED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_bulk_delete_assessments [31mFAILED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_error_handling_database_error [31mFAILED[0m[31m [ 91%][0m
+tests/physical_education/test_risk_assessment_manager.py::test_error_handling_validation_error [32mPASSED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_safety_incident_manager_initialization [32mPASSED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_create_incident_success [31mFAILED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_create_incident_invalid_type [32mPASSED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_get_incident_success [32mPASSED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_get_incident_not_found [32mPASSED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_get_incidents_with_filters [31mFAILED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_update_incident_success [32mPASSED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_update_incident_not_found [32mPASSED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_delete_incident_success [32mPASSED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_get_incident_statistics [31mFAILED[0m[31m [ 92%][0m
+tests/physical_education/test_safety_incident_manager.py::test_bulk_update_incidents [31mFAILED[0m[31m [ 93%][0m
+tests/physical_education/test_safety_incident_manager.py::test_bulk_delete_incidents [31mFAILED[0m[31m [ 93%][0m
+tests/physical_education/test_safety_incident_manager.py::test_error_handling_database_error [32mPASSED[0m[31m [ 93%][0m
+tests/physical_education/test_safety_incident_manager.py::test_error_handling_validation_error [32mPASSED[0m[31m [ 93%][0m
+tests/physical_education/test_safety_manager.py::test_create_risk_assessment [31mFAILED[0m[31m [ 93%][0m
+tests/physical_education/test_safety_manager.py::test_get_risk_assessment [31mFAILED[0m[31m [ 93%][0m
+tests/physical_education/test_safety_manager.py::test_report_incident [31mFAILED[0m[31m [ 93%][0m
+tests/physical_education/test_safety_manager.py::test_get_incident [31mFAILED[0m[31m [ 93%][0m
+tests/physical_education/test_safety_manager.py::test_get_activity_incidents [32mPASSED[0m[31m [ 93%][0m
+tests/physical_education/test_safety_manager.py::test_create_alert [31mERROR[0m[31m [ 93%][0m
+tests/physical_education/test_safety_manager.py::test_resolve_alert [31mERROR[0m[31m [ 93%][0m
+tests/physical_education/test_safety_manager.py::test_get_active_alerts [32mPASSED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_manager.py::test_create_safety_protocol [31mFAILED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_manager.py::test_get_protocol [31mFAILED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_manager.py::test_get_activity_protocols [32mPASSED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_manager.py::test_update_protocol_review [31mFAILED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_manager.py::test_error_handling [32mPASSED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_manager.py::test_database_interaction [31mFAILED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_report_generator.py::test_generate_safety_report [31mFAILED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_report_generator.py::test_generate_incident_report [31mFAILED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_report_generator.py::test_generate_equipment_safety_report [31mFAILED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_report_generator.py::test_generate_environmental_safety_report [31mFAILED[0m[31m [ 94%][0m
+tests/physical_education/test_safety_report_generator.py::test_generate_student_safety_report [31mFAILED[0m[31m [ 95%][0m
+tests/physical_education/test_safety_report_generator.py::test_generate_comprehensive_safety_report [31mFAILED[0m[31m [ 95%][0m
+tests/physical_education/test_safety_report_generator.py::test_export_safety_report [31mFAILED[0m[31m [ 95%][0m
+tests/physical_education/test_safety_report_generator.py::test_error_handling [31mFAILED[0m[31m [ 95%][0m
+tests/physical_education/test_safety_report_generator.py::test_report_customization [31mFAILED[0m[31m [ 95%][0m
+tests/physical_education/test_safety_report_generator.py::test_report_validation [31mFAILED[0m[31m [ 95%][0m
+tests/physical_education/test_safety_report_generator.py::test_report_performance [31mFAILED[0m[31m [ 95%][0m
+tests/physical_education/test_student_manager.py::test_initialization [32mPASSED[0m[31m [ 95%][0m

@@ -34,10 +34,11 @@ def seed_phase5_analytics_ai(session: Session, user_ids: List[int] = None, organ
     if not organization_ids:
         organization_ids = get_table_ids(session, "organizations")
     
-    # Get project IDs dynamically (these are auto-generated in previous phases)
+    # Get project IDs dynamically from database (fresh query, tables may be recreated)
     project_ids = get_table_ids(session, "dashboard_projects")
     if not project_ids:
-        project_ids = [1, 2, 3]  # Fallback if no projects exist
+        project_ids = []  # No fallback - let functions handle empty case gracefully
+        print("  ⚠️ No dashboard_projects found - some tables may skip project_id references")
     
     print(f"  📊 Found {len(user_ids)} users, {len(organization_ids)} organizations, {len(project_ids)} projects")
     
@@ -163,98 +164,130 @@ def seed_gpt_ai_integration(session: Session, user_ids: List[int], organization_
     """Seed GPT & AI Integration tables"""
     results = {}
     
+    # Get fresh project IDs from database (in case table was recreated)
+    try:
+        project_result = session.execute(text("SELECT id FROM dashboard_projects ORDER BY id"))
+        fresh_project_ids = [row[0] for row in project_result.fetchall()]
+        if fresh_project_ids:
+            project_ids = fresh_project_ids
+            print(f"  📋 Found {len(project_ids)} dashboard_projects in database")
+        elif project_ids:
+            print(f"  ⚠️ No dashboard_projects found, using provided project_ids: {len(project_ids)}")
+        else:
+            print("  ⚠️ No dashboard_projects found and no fallback, will skip project_id references")
+            project_ids = []
+    except Exception as e:
+        print(f"  ⚠️ Error querying dashboard_projects: {e}, using provided project_ids")
+        project_ids = project_ids if project_ids else []
+    
     # First, create base GPT definitions and subscriptions
     print("  🔧 Creating base GPT definitions...")
-    gpt_definitions_data = []
-    for i in range(25):
-        gpt_definitions_data.append({
-            'name': f'GPT Model {i+1}',
-            'model_type': random.choice(['gpt-4', 'gpt-3.5-turbo', 'claude-3', 'gemini-pro']),
-            'version': f'v{random.randint(1, 3)}.{random.randint(0, 9)}.{random.randint(0, 9)}',
-            'description': f'Advanced AI model for educational applications {i+1}',
-            'category': random.choice(['STUDENT', 'TEACHER', 'ADMIN', 'PARENT', 'ADDITIONAL']),
-            'type': random.choice(['MATH_TUTOR', 'LANGUAGE_ARTS_TEACHER', 'SCIENCE_TEACHER', 'PHYSICAL_ED_TEACHER', 'ASSESSMENT_GRADING']),
-            'max_tokens': random.randint(1000, 4000),
-            'temperature': round(random.uniform(0.1, 1.0), 2),
-            'top_p': round(random.uniform(0.1, 1.0), 2),
-            'frequency_penalty': round(random.uniform(0.0, 1.0), 2),
-            'presence_penalty': round(random.uniform(0.0, 1.0), 2),
-            'capabilities': json.dumps(['text_generation', 'question_answering', 'code_assistance']),
-            'limitations': json.dumps(['context_length', 'real_time_data']),
-            'context_window': random.randint(2000, 8000),
-            'total_requests': random.randint(0, 1000),
-            'total_tokens': random.randint(0, 100000),
-            'last_used': datetime.now() - timedelta(days=random.randint(1, 30)),
-            'is_active': random.choice([True, False]),
-            'is_public': random.choice([True, False]),
-            'user_id': random.choice(user_ids),
-            'project_id': 1,  # Use valid project ID 1
-            'organization_id': random.choice(organization_ids),
-            'meta_data': json.dumps({'created_by': 'system', 'tags': ['education', 'ai']}),
-            'created_at': datetime.now() - timedelta(days=random.randint(1, 90)),
-            'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO gpt_definitions (name, model_type, version, description, category, type,
-                                       max_tokens, temperature, top_p, frequency_penalty, presence_penalty,
-                                       capabilities, limitations, context_window, total_requests, total_tokens,
-                                       last_used, is_active, is_public, user_id, project_id, organization_id,
-                                       meta_data, created_at, updated_at)
-            VALUES (:name, :model_type, :version, :description, :category, :type,
-                    :max_tokens, :temperature, :top_p, :frequency_penalty, :presence_penalty,
-                    :capabilities, :limitations, :context_window, :total_requests, :total_tokens,
-                    :last_used, :is_active, :is_public, :user_id, :project_id, :organization_id,
-                    :meta_data, :created_at, :updated_at)
-        """), gpt_definitions_data)
-        results['gpt_definitions'] = len(gpt_definitions_data)
-        print(f"  ✅ gpt_definitions: {len(gpt_definitions_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping gpt_definitions (requires project_id)")
+            savepoint.rollback()
+            results['gpt_definitions'] = 0
+        else:
+            gpt_definitions_data = []
+            for i in range(25):
+                gpt_definitions_data.append({
+                    'name': f'GPT Model {i+1}',
+                    'model_type': random.choice(['gpt-4', 'gpt-3.5-turbo', 'claude-3', 'gemini-pro']),
+                    'version': f'v{random.randint(1, 3)}.{random.randint(0, 9)}.{random.randint(0, 9)}',
+                    'description': f'Advanced AI model for educational applications {i+1}',
+                    'category': random.choice(['STUDENT', 'TEACHER', 'ADMIN', 'PARENT', 'ADDITIONAL']),
+                    'type': random.choice(['MATH_TUTOR', 'LANGUAGE_ARTS_TEACHER', 'SCIENCE_TEACHER', 'PHYSICAL_ED_TEACHER', 'ASSESSMENT_GRADING']),
+                    'max_tokens': random.randint(1000, 4000),
+                    'temperature': round(random.uniform(0.1, 1.0), 2),
+                    'top_p': round(random.uniform(0.1, 1.0), 2),
+                    'frequency_penalty': round(random.uniform(0.0, 1.0), 2),
+                    'presence_penalty': round(random.uniform(0.0, 1.0), 2),
+                    'capabilities': json.dumps(['text_generation', 'question_answering', 'code_assistance']),
+                    'limitations': json.dumps(['context_length', 'real_time_data']),
+                    'context_window': random.randint(2000, 8000),
+                    'total_requests': random.randint(0, 1000),
+                    'total_tokens': random.randint(0, 100000),
+                    'last_used': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'is_active': random.choice([True, False]),
+                    'is_public': random.choice([True, False]),
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids),
+                    'meta_data': json.dumps({'created_by': 'system', 'tags': ['education', 'ai']}),
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 90)),
+                    'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                })
+            
+            session.execute(text("""
+                INSERT INTO gpt_definitions (name, model_type, version, description, category, type,
+                                           max_tokens, temperature, top_p, frequency_penalty, presence_penalty,
+                                           capabilities, limitations, context_window, total_requests, total_tokens,
+                                           last_used, is_active, is_public, user_id, project_id, organization_id,
+                                           meta_data, created_at, updated_at)
+                VALUES (:name, :model_type, :version, :description, :category, :type,
+                        :max_tokens, :temperature, :top_p, :frequency_penalty, :presence_penalty,
+                        :capabilities, :limitations, :context_window, :total_requests, :total_tokens,
+                        :last_used, :is_active, :is_public, :user_id, :project_id, :organization_id,
+                        :meta_data, :created_at, :updated_at)
+            """), gpt_definitions_data)
+            savepoint.commit()
+            session.commit()
+            results['gpt_definitions'] = len(gpt_definitions_data)
+            print(f"  ✅ gpt_definitions: {len(gpt_definitions_data)} records")
     except Exception as e:
         print(f"  ⚠️ gpt_definitions: {e}")
+        savepoint.rollback()
         results['gpt_definitions'] = 0
     
     # Core GPT Definitions (must be seeded before getting IDs for foreign keys)
     print("  🔧 Creating core GPT definitions...")
-    core_gpt_definitions_data = []
-    for i in range(30):
-        core_gpt_definitions_data.append({
-            'name': f'Core GPT Model {i+1}',
-            'model_type': random.choice(['gpt-4', 'gpt-3.5-turbo', 'claude-3', 'gemini-pro']),
-            'version': f'v{random.randint(1, 5)}.{random.randint(0, 9)}.{random.randint(0, 9)}',
-            'description': f'Core AI model for educational applications {i+1}',
-            'max_tokens': random.randint(1000, 4000),
-            'temperature': round(random.uniform(0.1, 1.0), 2),
-            'top_p': round(random.uniform(0.1, 1.0), 2),
-            'frequency_penalty': round(random.uniform(0.0, 1.0), 2),
-            'presence_penalty': round(random.uniform(0.0, 1.0), 2),
-            'capabilities': json.dumps(['text_generation', 'question_answering', 'code_assistance']),
-            'limitations': json.dumps(['context_length', 'real_time_data']),
-            'context_window': random.randint(1000, 4000),
-            'total_requests': random.randint(0, 10000),
-            'total_tokens': random.randint(0, 1000000),
-            'last_used': datetime.now() - timedelta(days=random.randint(1, 60)),
-            'is_active': random.choice([True, False]),
-            'is_public': random.choice([True, False]),
-            'user_id': random.choice(user_ids),
-            'project_id': 1,  # Use valid project ID 1
-            'organization_id': random.choice(organization_ids),
-            'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING']),
-            'metadata': json.dumps({'source': 'core_system'})
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO core_gpt_definitions (name, model_type, version, description, max_tokens, temperature, top_p, frequency_penalty, presence_penalty, capabilities, limitations, context_window, total_requests, total_tokens, last_used, is_active, is_public, user_id, project_id, organization_id, status, metadata)
-            VALUES (:name, :model_type, :version, :description, :max_tokens, :temperature, :top_p, :frequency_penalty, :presence_penalty, :capabilities, :limitations, :context_window, :total_requests, :total_tokens, :last_used, :is_active, :is_public, :user_id, :project_id, :organization_id, :status, :metadata)
-        """), core_gpt_definitions_data)
-        results['core_gpt_definitions'] = len(core_gpt_definitions_data)
-        print(f"  ✅ core_gpt_definitions: {len(core_gpt_definitions_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping core_gpt_definitions (requires project_id)")
+            savepoint.rollback()
+            results['core_gpt_definitions'] = 0
+        else:
+            core_gpt_definitions_data = []
+            for i in range(30):
+                core_gpt_definitions_data.append({
+                    'name': f'Core GPT Model {i+1}',
+                    'model_type': random.choice(['gpt-4', 'gpt-3.5-turbo', 'claude-3', 'gemini-pro']),
+                    'version': f'v{random.randint(1, 5)}.{random.randint(0, 9)}.{random.randint(0, 9)}',
+                    'description': f'Core AI model for educational applications {i+1}',
+                    'max_tokens': random.randint(1000, 4000),
+                    'temperature': round(random.uniform(0.1, 1.0), 2),
+                    'top_p': round(random.uniform(0.1, 1.0), 2),
+                    'frequency_penalty': round(random.uniform(0.0, 1.0), 2),
+                    'presence_penalty': round(random.uniform(0.0, 1.0), 2),
+                    'capabilities': json.dumps(['text_generation', 'question_answering', 'code_assistance']),
+                    'limitations': json.dumps(['context_length', 'real_time_data']),
+                    'context_window': random.randint(1000, 4000),
+                    'total_requests': random.randint(0, 10000),
+                    'total_tokens': random.randint(0, 1000000),
+                    'last_used': datetime.now() - timedelta(days=random.randint(1, 60)),
+                    'is_active': random.choice([True, False]),
+                    'is_public': random.choice([True, False]),
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids),
+                    'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING']),
+                    'metadata': json.dumps({'source': 'core_system'})
+                })
+            
+            session.execute(text("""
+                INSERT INTO core_gpt_definitions (name, model_type, version, description, max_tokens, temperature, top_p, frequency_penalty, presence_penalty, capabilities, limitations, context_window, total_requests, total_tokens, last_used, is_active, is_public, user_id, project_id, organization_id, status, metadata)
+                VALUES (:name, :model_type, :version, :description, :max_tokens, :temperature, :top_p, :frequency_penalty, :presence_penalty, :capabilities, :limitations, :context_window, :total_requests, :total_tokens, :last_used, :is_active, :is_public, :user_id, :project_id, :organization_id, :status, :metadata)
+            """), core_gpt_definitions_data)
+            savepoint.commit()
+            session.commit()
+            results['core_gpt_definitions'] = len(core_gpt_definitions_data)
+            print(f"  ✅ core_gpt_definitions: {len(core_gpt_definitions_data)} records")
     except Exception as e:
         print(f"  ⚠️ core_gpt_definitions: {e}")
+        savepoint.rollback()
         results['core_gpt_definitions'] = 0
-        session.rollback()
-    session.commit()
     
     # Get GPT definition IDs for foreign keys - use gpt_definitions for dashboard_gpt_subscriptions
     gpt_definition_ids = get_table_ids(session, "gpt_definitions")
@@ -534,75 +567,92 @@ def seed_gpt_ai_integration(session: Session, user_ids: List[int], organization_
     
     # GPT Context Interactions
     print("  🔧 Creating GPT context interactions...")
-    gpt_context_interactions_data = []
-    for i in range(400):
-        gpt_context_interactions_data.append({
-            'context_id': random.choice(context_ids),
-            'gpt_id': random.choice(gpt_definition_ids),
-            'interaction_type': random.choice(['MESSAGE', 'QUERY', 'RESPONSE', 'ACTION', 'COMMAND']),
-            'content': json.dumps({'message': f'Interaction {i+1}', 'type': 'text'}),
-            'role': random.choice(['user', 'assistant', 'system']),
-            'token_count': random.randint(10, 500),
-            'processing_time': round(random.uniform(0.1, 5.0), 2),
-            'processed_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-            'user_id': random.choice(user_ids),
-            'project_id': 1,  # Use valid project ID 1
-            'organization_id': random.choice(organization_ids),
-            'metadata': json.dumps({'session_id': f'session_{i+1}'})
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO gpt_context_interactions (context_id, gpt_id, interaction_type, content, role,
-                                                token_count, processing_time, processed_at, user_id,
-                                                project_id, organization_id, metadata)
-            VALUES (:context_id, :gpt_id, :interaction_type, :content, :role,
-                    :token_count, :processing_time, :processed_at, :user_id,
-                    :project_id, :organization_id, :metadata)
-        """), gpt_context_interactions_data)
-        results['gpt_context_interactions'] = len(gpt_context_interactions_data)
-        print(f"  ✅ gpt_context_interactions: {len(gpt_context_interactions_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping gpt_context_interactions (requires project_id)")
+            savepoint.rollback()
+            results['gpt_context_interactions'] = 0
+        else:
+            gpt_context_interactions_data = []
+            for i in range(400):
+                gpt_context_interactions_data.append({
+                    'context_id': random.choice(context_ids),
+                    'gpt_id': random.choice(gpt_definition_ids),
+                    'interaction_type': random.choice(['MESSAGE', 'QUERY', 'RESPONSE', 'ACTION', 'COMMAND']),
+                    'content': json.dumps({'message': f'Interaction {i+1}', 'type': 'text'}),
+                    'role': random.choice(['user', 'assistant', 'system']),
+                    'token_count': random.randint(10, 500),
+                    'processing_time': round(random.uniform(0.1, 5.0), 2),
+                    'processed_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids),
+                    'metadata': json.dumps({'session_id': f'session_{i+1}'})
+                })
+            
+            session.execute(text("""
+                INSERT INTO gpt_context_interactions (context_id, gpt_id, interaction_type, content, role,
+                                                    token_count, processing_time, processed_at, user_id,
+                                                    project_id, organization_id, metadata)
+                VALUES (:context_id, :gpt_id, :interaction_type, :content, :role,
+                        :token_count, :processing_time, :processed_at, :user_id,
+                        :project_id, :organization_id, :metadata)
+            """), gpt_context_interactions_data)
+            savepoint.commit()
+            session.commit()
+            results['gpt_context_interactions'] = len(gpt_context_interactions_data)
+            print(f"  ✅ gpt_context_interactions: {len(gpt_context_interactions_data)} records")
     except Exception as e:
         print(f"  ⚠️ gpt_context_interactions: {e}")
+        savepoint.rollback()
         results['gpt_context_interactions'] = 0
     
     # Continue with remaining GPT tables...
     # GPT Context Backups
     print("  🔧 Creating GPT context backups...")
-    gpt_context_backups_data = []
-    for i in range(150):
-        gpt_context_backups_data.append({
-            'context_id': random.choice(context_ids),
-            'backup_content': json.dumps({'context': f'Backup {i+1}', 'data': 'backup_data'}),
-            'backup_type': random.choice(['full', 'incremental', 'differential']),
-            'backup_reason': random.choice(['scheduled', 'manual', 'error_recovery']),
-            'backup_metadata': json.dumps({'size': random.randint(100, 10000)}),
-            'error_message': None,
-            'is_restored': random.choice([True, False]),
-            'restored_at': datetime.now() - timedelta(days=random.randint(1, 30)) if random.choice([True, False]) else None,
-            'user_id': random.choice(user_ids),
-            'project_id': 1,  # Use valid project ID 1
-            'organization_id': random.choice(organization_ids),
-            'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'ON_HOLD']),
-            'is_active': random.choice([True, False]),
-            'metadata': json.dumps({'backup_version': f'v{i+1}'})
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO gpt_context_backups (context_id, backup_content, backup_type, backup_reason,
-                                           backup_metadata, error_message, is_restored, restored_at,
-                                           user_id, project_id, organization_id, status, is_active, metadata)
-            VALUES (:context_id, :backup_content, :backup_type, :backup_reason,
-                    :backup_metadata, :error_message, :is_restored, :restored_at,
-                    :user_id, :project_id, :organization_id, :status, :is_active, :metadata)
-        """), gpt_context_backups_data)
-        results['gpt_context_backups'] = len(gpt_context_backups_data)
-        print(f"  ✅ gpt_context_backups: {len(gpt_context_backups_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping gpt_context_backups (requires project_id)")
+            savepoint.rollback()
+            results['gpt_context_backups'] = 0
+        else:
+            gpt_context_backups_data = []
+            for i in range(150):
+                gpt_context_backups_data.append({
+                    'context_id': random.choice(context_ids),
+                    'backup_content': json.dumps({'context': f'Backup {i+1}', 'data': 'backup_data'}),
+                    'backup_type': random.choice(['full', 'incremental', 'differential']),
+                    'backup_reason': random.choice(['scheduled', 'manual', 'error_recovery']),
+                    'backup_metadata': json.dumps({'size': random.randint(100, 10000)}),
+                    'error_message': None,
+                    'is_restored': random.choice([True, False]),
+                    'restored_at': datetime.now() - timedelta(days=random.randint(1, 30)) if random.choice([True, False]) else None,
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids),
+                    'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING', 'SCHEDULED', 'COMPLETED', 'CANCELLED', 'ON_HOLD']),
+                    'is_active': random.choice([True, False]),
+                    'metadata': json.dumps({'backup_version': f'v{i+1}'})
+                })
+            
+            session.execute(text("""
+                INSERT INTO gpt_context_backups (context_id, backup_content, backup_type, backup_reason,
+                                               backup_metadata, error_message, is_restored, restored_at,
+                                               user_id, project_id, organization_id, status, is_active, metadata)
+                VALUES (:context_id, :backup_content, :backup_type, :backup_reason,
+                        :backup_metadata, :error_message, :is_restored, :restored_at,
+                        :user_id, :project_id, :organization_id, :status, :is_active, :metadata)
+            """), gpt_context_backups_data)
+            savepoint.commit()
+            session.commit()
+            results['gpt_context_backups'] = len(gpt_context_backups_data)
+            print(f"  ✅ gpt_context_backups: {len(gpt_context_backups_data)} records")
     except Exception as e:
         print(f"  ⚠️ gpt_context_backups: {e}")
+        savepoint.rollback()
         results['gpt_context_backups'] = 0
-    session.commit()
     
     # GPT Context GPTs
     print("  🔧 Creating GPT context GPTs...")
@@ -683,38 +733,45 @@ def seed_gpt_ai_integration(session: Session, user_ids: List[int], organization_
     
     # GPT Context Summaries
     print("  🔧 Creating GPT context summaries...")
-    gpt_context_summaries_data = []
-    for i in range(60):
-        gpt_context_summaries_data.append({
-            'context_id': random.choice(context_ids),
-            'summary': f'Summary of context {i+1} interactions and key points',
-            'key_points': json.dumps(['point1', 'point2', 'point3']),
-            'sentiment': random.choice(['positive', 'negative', 'neutral']),
-            'topics': json.dumps(['topic1', 'topic2']),
-            'token_count': random.randint(100, 1000),
-            'summary_type': random.choice(['AUTOMATIC', 'MANUAL', 'AI_GENERATED']),
-            'confidence_score': round(random.uniform(0.1, 1.0), 2),
-            'user_id': random.choice(user_ids),
-            'project_id': 1,  # Use valid project ID 1
-            'organization_id': random.choice(organization_ids),
-            'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-            'updated_at': datetime.now() - timedelta(days=random.randint(1, 15)),
-            'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING']),
-            'is_active': random.choice([True, False])
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO gpt_context_summaries (context_id, summary, key_points, sentiment, topics, token_count, summary_type, confidence_score, user_id, project_id, organization_id, created_at, updated_at, status, is_active)
-            VALUES (:context_id, :summary, :key_points, :sentiment, :topics, :token_count, :summary_type, :confidence_score, :user_id, :project_id, :organization_id, :created_at, :updated_at, :status, :is_active)
-        """), gpt_context_summaries_data)
-        results['gpt_context_summaries'] = len(gpt_context_summaries_data)
-        print(f"  ✅ gpt_context_summaries: {len(gpt_context_summaries_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping gpt_context_summaries (requires project_id)")
+            savepoint.rollback()
+            results['gpt_context_summaries'] = 0
+        else:
+            gpt_context_summaries_data = []
+            for i in range(60):
+                gpt_context_summaries_data.append({
+                    'context_id': random.choice(context_ids),
+                    'summary': f'Summary of context {i+1} interactions and key points',
+                    'key_points': json.dumps(['point1', 'point2', 'point3']),
+                    'sentiment': random.choice(['positive', 'negative', 'neutral']),
+                    'topics': json.dumps(['topic1', 'topic2']),
+                    'token_count': random.randint(100, 1000),
+                    'summary_type': random.choice(['AUTOMATIC', 'MANUAL', 'AI_GENERATED']),
+                    'confidence_score': round(random.uniform(0.1, 1.0), 2),
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids),
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'updated_at': datetime.now() - timedelta(days=random.randint(1, 15)),
+                    'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING']),
+                    'is_active': random.choice([True, False])
+                })
+            
+            session.execute(text("""
+                INSERT INTO gpt_context_summaries (context_id, summary, key_points, sentiment, topics, token_count, summary_type, confidence_score, user_id, project_id, organization_id, created_at, updated_at, status, is_active)
+                VALUES (:context_id, :summary, :key_points, :sentiment, :topics, :token_count, :summary_type, :confidence_score, :user_id, :project_id, :organization_id, :created_at, :updated_at, :status, :is_active)
+            """), gpt_context_summaries_data)
+            savepoint.commit()
+            session.commit()
+            results['gpt_context_summaries'] = len(gpt_context_summaries_data)
+            print(f"  ✅ gpt_context_summaries: {len(gpt_context_summaries_data)} records")
     except Exception as e:
         print(f"  ⚠️ gpt_context_summaries: {e}")
+        savepoint.rollback()
         results['gpt_context_summaries'] = 0
-        session.rollback()
-    session.commit()
     
     # GPT Feedback
     print("  🔧 Creating GPT feedback...")
@@ -745,39 +802,47 @@ def seed_gpt_ai_integration(session: Session, user_ids: List[int], organization_
     
     # GPT Integrations
     print("  🔧 Creating GPT integrations...")
-    # Get gpt_definitions IDs
-    core_gpt_definition_ids = get_table_ids(session, "gpt_definitions")
-    if not core_gpt_definition_ids:
-        print("  ⚠️ No core GPT definition IDs found, creating fallback")
-        core_gpt_definition_ids = [1]
-    
-    gpt_integrations_data = []
-    for i in range(50):
-        gpt_integrations_data.append({
-            'gpt_id': random.choice(core_gpt_definition_ids),
-            'integration_type': random.choice(['API', 'WEBHOOK', 'PLUGIN', 'EXTENSION']),
-            'name': f'Integration {i+1}',
-            'description': f'Integration description {i+1}',
-            'configuration': json.dumps({'endpoint': f'https://api.example.com/integration_{i+1}', 'auth_type': 'bearer'}),
-            'user_id': random.choice(user_ids),
-            'project_id': 1,  # Use valid project ID 1
-            'organization_id': random.choice(organization_ids),
-            'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING']),
-            'is_active': random.choice([True, False])
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO gpt_integrations (gpt_id, integration_type, name, description, configuration, user_id, project_id, organization_id, status, is_active)
-            VALUES (:gpt_id, :integration_type, :name, :description, :configuration, :user_id, :project_id, :organization_id, :status, :is_active)
-        """), gpt_integrations_data)
-        results['gpt_integrations'] = len(gpt_integrations_data)
-        print(f"  ✅ gpt_integrations: {len(gpt_integrations_data)} records")
+        # Get core_gpt_definitions IDs (NOT gpt_definitions - foreign key references core_gpt_definitions)
+        core_gpt_definition_ids = get_table_ids(session, "core_gpt_definitions")
+        if not core_gpt_definition_ids:
+            print("  ⚠️ No core_gpt_definitions found, skipping gpt_integrations (requires gpt_id)")
+            savepoint.rollback()
+            results['gpt_integrations'] = 0
+        elif not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping gpt_integrations (requires project_id)")
+            savepoint.rollback()
+            results['gpt_integrations'] = 0
+        else:
+            print(f"  📋 Found {len(core_gpt_definition_ids)} core_gpt_definitions for foreign key references")
+            gpt_integrations_data = []
+            for i in range(50):
+                gpt_integrations_data.append({
+                    'gpt_id': random.choice(core_gpt_definition_ids),  # Use core_gpt_definitions IDs
+                    'integration_type': random.choice(['API', 'WEBHOOK', 'PLUGIN', 'EXTENSION']),
+                    'name': f'Integration {i+1}',
+                    'description': f'Integration description {i+1}',
+                    'configuration': json.dumps({'endpoint': f'https://api.example.com/integration_{i+1}', 'auth_type': 'bearer'}),
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids),
+                    'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING']),
+                    'is_active': random.choice([True, False])
+                })
+            
+            session.execute(text("""
+                INSERT INTO gpt_integrations (gpt_id, integration_type, name, description, configuration, user_id, project_id, organization_id, status, is_active)
+                VALUES (:gpt_id, :integration_type, :name, :description, :configuration, :user_id, :project_id, :organization_id, :status, :is_active)
+            """), gpt_integrations_data)
+            savepoint.commit()
+            session.commit()
+            results['gpt_integrations'] = len(gpt_integrations_data)
+            print(f"  ✅ gpt_integrations: {len(gpt_integrations_data)} records")
     except Exception as e:
         print(f"  ⚠️ gpt_integrations: {e}")
+        savepoint.rollback()
         results['gpt_integrations'] = 0
-        session.rollback()
-    session.commit()
     
     # GPT Performance
     print("  🔧 Creating GPT performance...")
@@ -1004,7 +1069,7 @@ def seed_gpt_ai_integration(session: Session, user_ids: List[int], organization_
             'is_active': random.choice([True, False]),
             'is_public': random.choice([True, False]),
             'user_id': random.choice(user_ids),
-            'project_id': 1,  # Use valid project ID 1
+            'project_id': random.choice(project_ids) if project_ids else None,  # Use actual project IDs
             'organization_id': random.choice(organization_ids),
             'status': random.choice(['ACTIVE', 'INACTIVE', 'PENDING']),
             'metadata': json.dumps({'source': 'core_system_backup'})
@@ -1068,6 +1133,22 @@ def seed_gpt_ai_integration(session: Session, user_ids: List[int], organization_
 def seed_dashboard_analytics(session: Session, user_ids: List[int], organization_ids: List[int], project_ids: List[int], context_ids: List[int] = None) -> Dict[str, int]:
     """Seed Dashboard Analytics tables"""
     results = {}
+    
+    # Get fresh project IDs from database (in case table was recreated)
+    try:
+        project_result = session.execute(text("SELECT id FROM dashboard_projects ORDER BY id"))
+        fresh_project_ids = [row[0] for row in project_result.fetchall()]
+        if fresh_project_ids:
+            project_ids = fresh_project_ids
+            print(f"  📋 Found {len(project_ids)} dashboard_projects in database")
+        elif project_ids:
+            print(f"  ⚠️ No dashboard_projects found, using provided project_ids: {len(project_ids)}")
+        else:
+            print("  ⚠️ No dashboard_projects found and no fallback")
+            project_ids = []
+    except Exception as e:
+        print(f"  ⚠️ Error querying dashboard_projects: {e}, using provided project_ids")
+        project_ids = project_ids if project_ids else []
     
     # Use provided context_ids or get them from the database
     if not context_ids:
@@ -1241,33 +1322,40 @@ def seed_dashboard_analytics(session: Session, user_ids: List[int], organization
     
     # Dashboard Resource Usage
     print("  🔧 Creating dashboard resource usage...")
-    dashboard_resource_usage_data = []
-    for i in range(100):
-        dashboard_resource_usage_data.append({
-            'resource_id': f'resource_{i+1}',
-            'resource_type': random.choice(['API', 'CACHE', 'CPU', 'DATABASE', 'GPU', 'MEMORY', 'NETWORK', 'STORAGE']),
-            'metric_type': random.choice(['COST', 'EFFICIENCY', 'ERROR_RATE', 'LATENCY', 'THROUGHPUT', 'USAGE']),
-            'value': round(random.uniform(0.1, 100.0), 2),
-            'unit': random.choice(['MB', 'GB', 'ms', 'req/s', '%']),
-            'timestamp': datetime.now() - timedelta(days=random.randint(1, 30)),
-            'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'}),
-            'user_id': random.choice(user_ids),
-            'project_id': 1,  # Use valid project ID 1
-            'organization_id': random.choice(organization_ids)
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO dashboard_resource_usage (resource_id, resource_type, metric_type, value, unit, timestamp, meta_data, user_id, project_id, organization_id)
-            VALUES (:resource_id, :resource_type, :metric_type, :value, :unit, :timestamp, :meta_data, :user_id, :project_id, :organization_id)
-        """), dashboard_resource_usage_data)
-        results['dashboard_resource_usage'] = len(dashboard_resource_usage_data)
-        print(f"  ✅ dashboard_resource_usage: {len(dashboard_resource_usage_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping dashboard_resource_usage (requires project_id)")
+            savepoint.rollback()
+            results['dashboard_resource_usage'] = 0
+        else:
+            dashboard_resource_usage_data = []
+            for i in range(100):
+                dashboard_resource_usage_data.append({
+                    'resource_id': f'resource_{i+1}',
+                    'resource_type': random.choice(['API', 'CACHE', 'CPU', 'DATABASE', 'GPU', 'MEMORY', 'NETWORK', 'STORAGE']),
+                    'metric_type': random.choice(['COST', 'EFFICIENCY', 'ERROR_RATE', 'LATENCY', 'THROUGHPUT', 'USAGE']),
+                    'value': round(random.uniform(0.1, 100.0), 2),
+                    'unit': random.choice(['MB', 'GB', 'ms', 'req/s', '%']),
+                    'timestamp': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'}),
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids)
+                })
+            
+            session.execute(text("""
+                INSERT INTO dashboard_resource_usage (resource_id, resource_type, metric_type, value, unit, timestamp, meta_data, user_id, project_id, organization_id)
+                VALUES (:resource_id, :resource_type, :metric_type, :value, :unit, :timestamp, :meta_data, :user_id, :project_id, :organization_id)
+            """), dashboard_resource_usage_data)
+            savepoint.commit()
+            session.commit()
+            results['dashboard_resource_usage'] = len(dashboard_resource_usage_data)
+            print(f"  ✅ dashboard_resource_usage: {len(dashboard_resource_usage_data)} records")
     except Exception as e:
         print(f"  ⚠️ dashboard_resource_usage: {e}")
+        savepoint.rollback()
         results['dashboard_resource_usage'] = 0
-        session.rollback()
-    session.commit()
     
     # Dashboard Context Backups
     print("  🔧 Creating dashboard context backups...")
@@ -1502,133 +1590,161 @@ def seed_dashboard_analytics(session: Session, user_ids: List[int], organization
     
     # Dashboard Optimization Events
     print("  🔧 Creating dashboard optimization events...")
-    dashboard_optimization_events_data = []
-    for i in range(100):
-        dashboard_optimization_events_data.append({
-            'event_type': random.choice(['PERFORMANCE_OPTIMIZATION', 'MEMORY_OPTIMIZATION', 'SPEED_OPTIMIZATION']),
-            'status': random.choice(['DETECTED', 'IN_PROGRESS', 'RESOLVED', 'FAILED']),
-            'severity': random.choice(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-            'resource_id': f'resource_{i+1}',
-            'resource_type': random.choice(['CPU', 'MEMORY', 'STORAGE', 'NETWORK', 'GPU', 'API', 'DATABASE', 'CACHE']),
-            'metric_type': random.choice(['USAGE', 'THROUGHPUT', 'EFFICIENCY']),
-            'description': f'Optimization event {i+1}',
-            'action_taken': f'Action {i+1}',
-            'action_result': random.choice(['SUCCESS', 'FAILED', 'PARTIAL']),
-            'detected_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-            'resolved_at': datetime.now() - timedelta(days=random.randint(1, 15)) if random.choice([True, False]) else None,
-            'user_id': random.choice(user_ids),
-            'project_id': 1,
-            'organization_id': random.choice(organization_ids),
-            'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'})
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO dashboard_optimization_events (event_type, status, severity, resource_id, resource_type, metric_type, description, action_taken, action_result, detected_at, resolved_at, user_id, project_id, organization_id, meta_data)
-            VALUES (:event_type, :status, :severity, :resource_id, :resource_type, :metric_type, :description, :action_taken, :action_result, :detected_at, :resolved_at, :user_id, :project_id, :organization_id, :meta_data)
-        """), dashboard_optimization_events_data)
-        results['dashboard_optimization_events'] = len(dashboard_optimization_events_data)
-        print(f"  ✅ dashboard_optimization_events: {len(dashboard_optimization_events_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping dashboard_optimization_events (requires project_id)")
+            savepoint.rollback()
+            results['dashboard_optimization_events'] = 0
+        else:
+            dashboard_optimization_events_data = []
+            for i in range(100):
+                dashboard_optimization_events_data.append({
+                    'event_type': random.choice(['PERFORMANCE_OPTIMIZATION', 'MEMORY_OPTIMIZATION', 'SPEED_OPTIMIZATION']),
+                    'status': random.choice(['DETECTED', 'IN_PROGRESS', 'RESOLVED', 'FAILED']),
+                    'severity': random.choice(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+                    'resource_id': f'resource_{i+1}',
+                    'resource_type': random.choice(['CPU', 'MEMORY', 'STORAGE', 'NETWORK', 'GPU', 'API', 'DATABASE', 'CACHE']),
+                    'metric_type': random.choice(['USAGE', 'THROUGHPUT', 'EFFICIENCY']),
+                    'description': f'Optimization event {i+1}',
+                    'action_taken': f'Action {i+1}',
+                    'action_result': random.choice(['SUCCESS', 'FAILED', 'PARTIAL']),
+                    'detected_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'resolved_at': datetime.now() - timedelta(days=random.randint(1, 15)) if random.choice([True, False]) else None,
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids),
+                    'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'})
+                })
+            
+            session.execute(text("""
+                INSERT INTO dashboard_optimization_events (event_type, status, severity, resource_id, resource_type, metric_type, description, action_taken, action_result, detected_at, resolved_at, user_id, project_id, organization_id, meta_data)
+                VALUES (:event_type, :status, :severity, :resource_id, :resource_type, :metric_type, :description, :action_taken, :action_result, :detected_at, :resolved_at, :user_id, :project_id, :organization_id, :meta_data)
+            """), dashboard_optimization_events_data)
+            savepoint.commit()
+            session.commit()
+            results['dashboard_optimization_events'] = len(dashboard_optimization_events_data)
+            print(f"  ✅ dashboard_optimization_events: {len(dashboard_optimization_events_data)} records")
     except Exception as e:
         print(f"  ⚠️ dashboard_optimization_events: {e}")
+        savepoint.rollback()
         results['dashboard_optimization_events'] = 0
-        session.rollback()
-    session.commit()
     
     # Dashboard Resource Optimizations
     print("  🔧 Creating dashboard resource optimizations...")
-    dashboard_resource_optimizations_data = []
-    for i in range(60):
-        dashboard_resource_optimizations_data.append({
-            'resource_type': random.choice(['CPU', 'MEMORY', 'STORAGE', 'NETWORK', 'GPU', 'API', 'DATABASE', 'CACHE']),
-            'metric_type': random.choice(['USAGE', 'THROUGHPUT', 'EFFICIENCY']),
-            'current_value': round(random.uniform(50, 90), 2),
-            'recommended_value': round(random.uniform(60, 95), 2),
-            'potential_savings': round(random.uniform(5, 25), 2),
-            'confidence_score': round(random.uniform(0.7, 0.95), 2),
-            'recommendation': f'Optimization recommendation {i+1}',
-            'status': random.choice(['PENDING', 'APPLIED', 'REJECTED']),
-            'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-            'applied_at': datetime.now() - timedelta(days=random.randint(1, 15)) if random.choice([True, False]) else None,
-            'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'}),
-            'user_id': random.choice(user_ids),
-            'project_id': 1,
-            'organization_id': random.choice(organization_ids)
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO dashboard_resource_optimizations (resource_type, metric_type, current_value, recommended_value, potential_savings, confidence_score, recommendation, status, created_at, applied_at, meta_data, user_id, project_id, organization_id)
-            VALUES (:resource_type, :metric_type, :current_value, :recommended_value, :potential_savings, :confidence_score, :recommendation, :status, :created_at, :applied_at, :meta_data, :user_id, :project_id, :organization_id)
-        """), dashboard_resource_optimizations_data)
-        results['dashboard_resource_optimizations'] = len(dashboard_resource_optimizations_data)
-        print(f"  ✅ dashboard_resource_optimizations: {len(dashboard_resource_optimizations_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping dashboard_resource_optimizations (requires project_id)")
+            savepoint.rollback()
+            results['dashboard_resource_optimizations'] = 0
+        else:
+            dashboard_resource_optimizations_data = []
+            for i in range(60):
+                dashboard_resource_optimizations_data.append({
+                    'resource_type': random.choice(['CPU', 'MEMORY', 'STORAGE', 'NETWORK', 'GPU', 'API', 'DATABASE', 'CACHE']),
+                    'metric_type': random.choice(['USAGE', 'THROUGHPUT', 'EFFICIENCY']),
+                    'current_value': round(random.uniform(50, 90), 2),
+                    'recommended_value': round(random.uniform(60, 95), 2),
+                    'potential_savings': round(random.uniform(5, 25), 2),
+                    'confidence_score': round(random.uniform(0.7, 0.95), 2),
+                    'recommendation': f'Optimization recommendation {i+1}',
+                    'status': random.choice(['PENDING', 'APPLIED', 'REJECTED']),
+                    'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'applied_at': datetime.now() - timedelta(days=random.randint(1, 15)) if random.choice([True, False]) else None,
+                    'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'}),
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids)
+                })
+            
+            session.execute(text("""
+                INSERT INTO dashboard_resource_optimizations (resource_type, metric_type, current_value, recommended_value, potential_savings, confidence_score, recommendation, status, created_at, applied_at, meta_data, user_id, project_id, organization_id)
+                VALUES (:resource_type, :metric_type, :current_value, :recommended_value, :potential_savings, :confidence_score, :recommendation, :status, :created_at, :applied_at, :meta_data, :user_id, :project_id, :organization_id)
+            """), dashboard_resource_optimizations_data)
+            savepoint.commit()
+            session.commit()
+            results['dashboard_resource_optimizations'] = len(dashboard_resource_optimizations_data)
+            print(f"  ✅ dashboard_resource_optimizations: {len(dashboard_resource_optimizations_data)} records")
     except Exception as e:
         print(f"  ⚠️ dashboard_resource_optimizations: {e}")
+        savepoint.rollback()
         results['dashboard_resource_optimizations'] = 0
-        session.rollback()
-    session.commit()
     
     # Dashboard Resource Sharing
     print("  🔧 Creating dashboard resource sharing...")
-    dashboard_resource_sharing_data = []
-    for i in range(40):
-        dashboard_resource_sharing_data.append({
-            'resource_id': f'resource_{random.randint(1, 100)}',
-            'resource_type': random.choice(['CPU', 'MEMORY', 'STORAGE', 'NETWORK', 'GPU', 'API', 'DATABASE', 'CACHE']),
-            'is_shared': random.choice([True, False]),
-            'sharing_type': random.choice(['USER', 'PROJECT', 'ORGANIZATION']),
-            'sharing_permissions': json.dumps({'level': random.choice(['READ', 'WRITE', 'ADMIN'])}),
-            'sharing_scope': random.choice(['PRIVATE', 'PUBLIC', 'RESTRICTED']),
-            'shared_at': datetime.now() - timedelta(days=random.randint(1, 30)),
-            'expires_at': datetime.now() + timedelta(days=random.randint(1, 90)) if random.choice([True, False]) else None,
-            'owner_id': random.choice(user_ids),
-            'shared_with_user_id': random.choice(user_ids),
-            'shared_with_project_id': 1,
-            'shared_with_organization_id': random.choice(organization_ids),
-            'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'})
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO dashboard_resource_sharing (resource_id, resource_type, is_shared, sharing_type, sharing_permissions, sharing_scope, shared_at, expires_at, owner_id, shared_with_user_id, shared_with_project_id, shared_with_organization_id, meta_data)
-            VALUES (:resource_id, :resource_type, :is_shared, :sharing_type, :sharing_permissions, :sharing_scope, :shared_at, :expires_at, :owner_id, :shared_with_user_id, :shared_with_project_id, :shared_with_organization_id, :meta_data)
-        """), dashboard_resource_sharing_data)
-        results['dashboard_resource_sharing'] = len(dashboard_resource_sharing_data)
-        print(f"  ✅ dashboard_resource_sharing: {len(dashboard_resource_sharing_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping dashboard_resource_sharing (requires shared_with_project_id)")
+            savepoint.rollback()
+            results['dashboard_resource_sharing'] = 0
+        else:
+            dashboard_resource_sharing_data = []
+            for i in range(40):
+                dashboard_resource_sharing_data.append({
+                    'resource_id': f'resource_{random.randint(1, 100)}',
+                    'resource_type': random.choice(['CPU', 'MEMORY', 'STORAGE', 'NETWORK', 'GPU', 'API', 'DATABASE', 'CACHE']),
+                    'is_shared': random.choice([True, False]),
+                    'sharing_type': random.choice(['USER', 'PROJECT', 'ORGANIZATION']),
+                    'sharing_permissions': json.dumps({'level': random.choice(['READ', 'WRITE', 'ADMIN'])}),
+                    'sharing_scope': random.choice(['PRIVATE', 'PUBLIC', 'RESTRICTED']),
+                    'shared_at': datetime.now() - timedelta(days=random.randint(1, 30)),
+                    'expires_at': datetime.now() + timedelta(days=random.randint(1, 90)) if random.choice([True, False]) else None,
+                    'owner_id': random.choice(user_ids),
+                    'shared_with_user_id': random.choice(user_ids),
+                    'shared_with_project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'shared_with_organization_id': random.choice(organization_ids),
+                    'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'})
+                })
+            
+            session.execute(text("""
+                INSERT INTO dashboard_resource_sharing (resource_id, resource_type, is_shared, sharing_type, sharing_permissions, sharing_scope, shared_at, expires_at, owner_id, shared_with_user_id, shared_with_project_id, shared_with_organization_id, meta_data)
+                VALUES (:resource_id, :resource_type, :is_shared, :sharing_type, :sharing_permissions, :sharing_scope, :shared_at, :expires_at, :owner_id, :shared_with_user_id, :shared_with_project_id, :shared_with_organization_id, :meta_data)
+            """), dashboard_resource_sharing_data)
+            savepoint.commit()
+            session.commit()
+            results['dashboard_resource_sharing'] = len(dashboard_resource_sharing_data)
+            print(f"  ✅ dashboard_resource_sharing: {len(dashboard_resource_sharing_data)} records")
     except Exception as e:
         print(f"  ⚠️ dashboard_resource_sharing: {e}")
+        savepoint.rollback()
         results['dashboard_resource_sharing'] = 0
-        session.rollback()
-    session.commit()
     
     # Dashboard Resource Thresholds
     print("  🔧 Creating dashboard resource thresholds...")
-    dashboard_resource_thresholds_data = []
-    for i in range(20):
-        dashboard_resource_thresholds_data.append({
-            'resource_type': random.choice(['CPU', 'MEMORY', 'STORAGE', 'NETWORK', 'GPU', 'API', 'DATABASE', 'CACHE']),
-            'metric_type': random.choice(['USAGE', 'THROUGHPUT', 'EFFICIENCY']),
-            'threshold_value': round(random.uniform(0.1, 100.0), 2),
-            'threshold_type': random.choice(['WARNING', 'CRITICAL', 'INFO']),
-            'action': random.choice(['ALERT', 'AUTO_SCALE', 'NOTIFY', 'SHUTDOWN']),
-            'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'}),
-            'user_id': random.choice(user_ids),
-            'project_id': 1,
-            'organization_id': random.choice(organization_ids)
-        })
-    
+    savepoint = session.begin_nested()
     try:
-        session.execute(text("""
-            INSERT INTO dashboard_resource_thresholds (resource_type, metric_type, threshold_value, threshold_type, action, meta_data, user_id, project_id, organization_id)
-            VALUES (:resource_type, :metric_type, :threshold_value, :threshold_type, :action, :meta_data, :user_id, :project_id, :organization_id)
-        """), dashboard_resource_thresholds_data)
-        results['dashboard_resource_thresholds'] = len(dashboard_resource_thresholds_data)
-        print(f"  ✅ dashboard_resource_thresholds: {len(dashboard_resource_thresholds_data)} records")
+        if not project_ids:
+            print("  ⚠️ No dashboard_projects found, skipping dashboard_resource_thresholds (requires project_id)")
+            savepoint.rollback()
+            results['dashboard_resource_thresholds'] = 0
+        else:
+            dashboard_resource_thresholds_data = []
+            for i in range(20):
+                dashboard_resource_thresholds_data.append({
+                    'resource_type': random.choice(['CPU', 'MEMORY', 'STORAGE', 'NETWORK', 'GPU', 'API', 'DATABASE', 'CACHE']),
+                    'metric_type': random.choice(['USAGE', 'THROUGHPUT', 'EFFICIENCY']),
+                    'threshold_value': round(random.uniform(0.1, 100.0), 2),
+                    'threshold_type': random.choice(['WARNING', 'CRITICAL', 'INFO']),
+                    'action': random.choice(['ALERT', 'AUTO_SCALE', 'NOTIFY', 'SHUTDOWN']),
+                    'meta_data': json.dumps({'source': 'dashboard', 'version': '1.0'}),
+                    'user_id': random.choice(user_ids),
+                    'project_id': random.choice(project_ids),  # Safe to use since we checked project_ids is not empty
+                    'organization_id': random.choice(organization_ids)
+                })
+            
+            session.execute(text("""
+                INSERT INTO dashboard_resource_thresholds (resource_type, metric_type, threshold_value, threshold_type, action, meta_data, user_id, project_id, organization_id)
+                VALUES (:resource_type, :metric_type, :threshold_value, :threshold_type, :action, :meta_data, :user_id, :project_id, :organization_id)
+            """), dashboard_resource_thresholds_data)
+            savepoint.commit()
+            session.commit()
+            results['dashboard_resource_thresholds'] = len(dashboard_resource_thresholds_data)
+            print(f"  ✅ dashboard_resource_thresholds: {len(dashboard_resource_thresholds_data)} records")
     except Exception as e:
         print(f"  ⚠️ dashboard_resource_thresholds: {e}")
+        savepoint.rollback()
         results['dashboard_resource_thresholds'] = 0
-        session.rollback()
-    session.commit()
     
     return results

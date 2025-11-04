@@ -354,3 +354,29 @@ class AIAssistantBulkDeleteResponse(BaseModel):
     deleted_count: int
     failed_count: int
     errors: List[AIAssistantError]
+
+
+# ==================== CONTENT GENERATION SCHEMAS ====================
+
+class ContentGenerationRequest(BaseModel):
+    """Content Generation Request Schema"""
+    content_type: str = Field(..., description="Type of content to generate (e.g., 'lesson', 'assessment')")
+    subject: str = Field(..., description="Subject for the content")
+    grade_level: str = Field(..., description="Grade level for the content")
+    requirements: Dict[str, Any] = Field(default_factory=dict, description="Additional requirements for content generation")
+
+
+class LessonPlanRequest(BaseModel):
+    """Lesson Plan Generation Request Schema"""
+    subject: str = Field(..., description="Subject for the lesson plan")
+    grade_level: str = Field(..., description="Grade level for the lesson plan")
+    duration: str = Field(..., description="Duration of the lesson (e.g., '60 minutes')")
+    objectives: List[str] = Field(..., description="Learning objectives for the lesson")
+
+
+class AssessmentRequest(BaseModel):
+    """Assessment Generation Request Schema"""
+    content_id: int = Field(..., description="ID of the content to create assessment for")
+    assessment_type: str = Field(..., description="Type of assessment (e.g., 'quiz', 'test', 'exam')")
+    difficulty: str = Field(..., description="Difficulty level (e.g., 'easy', 'medium', 'hard')")
+    num_questions: int = Field(..., ge=1, description="Number of questions in the assessment")

@@ -2,6 +2,8 @@
 Database session management.
 """
 
+import os
+import threading
 from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
@@ -30,9 +32,29 @@ SessionLocal = sessionmaker(
     expire_on_commit=False
 )
 
+# Context-local storage for test sessions (used in test mode)
+# Import from app.core.database to use the SAME context variable instance
+# This ensures both get_db() functions (from core.database and db.session) use the same test session
+from app.core.database import _test_session_context
+
+def set_test_session(session: Session):
+    """Set the test session for use in test mode (called by test fixtures)."""
+    # Use the same context variable as app.core.database
+    _test_session_context.set(session)
+
+def clear_test_session():
+    """Clear the test session (called by test fixtures after test)."""
+    # Use the same context variable as app.core.database
+    _test_session_context.set(None)
+
 def get_db() -> Generator[Session, None, None]:
     """
     Get a database session.
+    
+    In test mode (TEST_MODE=true), uses the test session from fixtures if available.
+    Otherwise, creates a new session from SessionLocal.
+    
+    Uses thread-local storage to ensure each test thread has its own isolated session.
     
     Yields:
         Session: SQLAlchemy database session
@@ -46,6 +68,14 @@ def get_db() -> Generator[Session, None, None]:
         >>> finally:
         >>>     db.close()
     """
+    # In test mode, use the test session if it's been set by test fixtures for this context
+    if os.getenv("TEST_MODE") == "true":
+        test_session = _test_session_context.get()
+        if test_session is not None:
+            yield test_session
+            return
+    
+    # Normal operation: create a new session
     db = SessionLocal()
     try:
         yield db

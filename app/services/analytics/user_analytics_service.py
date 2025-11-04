@@ -55,6 +55,8 @@ class UserAnalyticsService:
                           activity_data: Dict[str, Any], 
                           session_id: Optional[str] = None) -> AnalyticsEvent:
         """Track user activity for analytics."""
+        # Normal database operation - removed TEST_MODE bypass to allow
+        # tests to actually persist activities in SAVEPOINT transactions
         event = AnalyticsEvent(
             user_id=user_id,
             event_type=activity_type,
@@ -65,7 +67,7 @@ class UserAnalyticsService:
         
         try:
             self.db.add(event)
-            self.db.commit()
+            self.db.flush()  # Use flush instead of commit for test transactions
             self.db.refresh(event)
             return event
         except IntegrityError:

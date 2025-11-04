@@ -78,37 +78,43 @@ RESPONSE_TIME_P95 = Summary('ai_analytics_response_time_p95', '95th percentile o
 RESPONSE_TIME_P99 = Summary('ai_analytics_response_time_p99', '99th percentile of response time', ['endpoint'])
 THROUGHPUT = Gauge('ai_analytics_throughput', 'Requests per second', ['endpoint'])
 
+def _create_wrapper(func, endpoint: str = None):
+    """Helper function to create wrapper for track_metrics decorator."""
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        start_time = time.time()
+        try:
+            result = await func(*args, **kwargs)
+            endpoint_name = endpoint or func.__name__
+            duration = time.time() - start_time
+            
+            # Update metrics
+            REQUEST_COUNT.labels(endpoint=endpoint_name, status='success').inc()
+            REQUEST_LATENCY.labels(endpoint=endpoint_name).observe(duration)
+            RESPONSE_TIME_P95.labels(endpoint=endpoint_name).observe(duration)
+            RESPONSE_TIME_P99.labels(endpoint=endpoint_name).observe(duration)
+            THROUGHPUT.labels(endpoint=endpoint_name).inc()
+            
+            return result
+        except Exception as e:
+            endpoint_name = endpoint or func.__name__
+            REQUEST_COUNT.labels(endpoint=endpoint_name, status='error').inc()
+            ERROR_COUNT.labels(endpoint=endpoint_name, error_type=type(e).__name__).inc()
+            EXCEPTION_COUNT.labels(type=type(e).__name__).inc()
+            raise e
+    return wrapper
+
 def track_metrics(endpoint: str = None):
     """Decorator to track request metrics."""
+    # Support both @track_metrics and @track_metrics() usage
+    if callable(endpoint):
+        # Called without parentheses: @track_metrics
+        func = endpoint
+        endpoint = None
+        return _create_wrapper(func, endpoint)
+    
     def decorator(func):
-        sig = inspect.signature(func)
-        
-        @wraps(func)
-        async def wrapper(*args, **kwargs):
-            start_time = time.time()
-            try:
-                # Simply call the function with the provided arguments
-                result = await func(*args, **kwargs)
-                
-                # Use function name as endpoint if none provided
-                endpoint_name = endpoint or func.__name__
-                duration = time.time() - start_time
-                
-                # Update metrics
-                REQUEST_COUNT.labels(endpoint=endpoint_name, status='success').inc()
-                REQUEST_LATENCY.labels(endpoint=endpoint_name).observe(duration)
-                RESPONSE_TIME_P95.labels(endpoint=endpoint_name).observe(duration)
-                RESPONSE_TIME_P99.labels(endpoint=endpoint_name).observe(duration)
-                THROUGHPUT.labels(endpoint=endpoint_name).inc()
-                
-                return result
-            except Exception as e:
-                endpoint_name = endpoint or func.__name__
-                REQUEST_COUNT.labels(endpoint=endpoint_name, status='error').inc()
-                ERROR_COUNT.labels(endpoint=endpoint_name, error_type=type(e).__name__).inc()
-                EXCEPTION_COUNT.labels(type=type(e).__name__).inc()
-                raise e
-        return wrapper
+        return _create_wrapper(func, endpoint)
     return decorator
 
 def track_model_performance(model_name: str):

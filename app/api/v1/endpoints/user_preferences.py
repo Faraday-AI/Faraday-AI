@@ -43,7 +43,39 @@ async def get_user_preferences(
     if not preferences:
         raise HTTPException(status_code=404, detail="Preferences not found")
     
-    return UserPreferencesResponse(user_id=current_user.id, **preferences)
+    # Convert raw values to proper schema objects
+    # Handle theme - might be a string or dict
+    theme_data = preferences.get("theme")
+    if isinstance(theme_data, str):
+        # If it's a string like "dark", convert to ThemeSettings object
+        theme_obj = ThemeSettings(theme=theme_data)
+    elif isinstance(theme_data, dict):
+        theme_obj = ThemeSettings(**theme_data) if theme_data else None
+    else:
+        theme_obj = None
+    
+    # Handle accessibility - might be a boolean or dict
+    accessibility_data = preferences.get("accessibility")
+    if isinstance(accessibility_data, bool):
+        # If it's a boolean, create a minimal AccessibilitySettings
+        accessibility_obj = AccessibilitySettings(high_contrast=accessibility_data)
+    elif isinstance(accessibility_data, dict):
+        accessibility_obj = AccessibilitySettings(**accessibility_data) if accessibility_data else None
+    else:
+        accessibility_obj = None
+    
+    # Handle notifications - should be a dict
+    notifications_data = preferences.get("notifications", {})
+    notifications_obj = NotificationSettings(**notifications_data) if notifications_data else None
+    
+    return UserPreferencesResponse(
+        user_id=current_user.id,
+        theme=theme_obj,
+        notifications=notifications_obj,
+        accessibility=accessibility_obj,
+        language=preferences.get("language", "en"),
+        timezone=preferences.get("timezone", "UTC")
+    )
 
 
 @router.put("/preferences", response_model=UserPreferencesResponse)
@@ -54,7 +86,35 @@ async def update_user_preferences(
 ):
     """Update user preferences."""
     preferences = await preferences_service.update_user_preferences(current_user.id, preferences_data)
-    return UserPreferencesResponse(user_id=current_user.id, **preferences)
+    
+    # Convert raw values to proper schema objects (same logic as get_user_preferences)
+    theme_data = preferences.get("theme")
+    if isinstance(theme_data, str):
+        theme_obj = ThemeSettings(theme=theme_data)
+    elif isinstance(theme_data, dict):
+        theme_obj = ThemeSettings(**theme_data) if theme_data else None
+    else:
+        theme_obj = None
+    
+    accessibility_data = preferences.get("accessibility")
+    if isinstance(accessibility_data, bool):
+        accessibility_obj = AccessibilitySettings(high_contrast=accessibility_data)
+    elif isinstance(accessibility_data, dict):
+        accessibility_obj = AccessibilitySettings(**accessibility_data) if accessibility_data else None
+    else:
+        accessibility_obj = None
+    
+    notifications_data = preferences.get("notifications", {})
+    notifications_obj = NotificationSettings(**notifications_data) if notifications_data else None
+    
+    return UserPreferencesResponse(
+        user_id=current_user.id,
+        theme=theme_obj,
+        notifications=notifications_obj,
+        accessibility=accessibility_obj,
+        language=preferences.get("language", "en"),
+        timezone=preferences.get("timezone", "UTC")
+    )
 
 
 @router.get("/preferences/complete", response_model=UserPreferencesComplete)
@@ -210,7 +270,35 @@ async def reset_preferences_to_default(
 ):
     """Reset user preferences to default values."""
     preferences = await preferences_service.reset_preferences_to_default(current_user.id)
-    return UserPreferencesResponse(user_id=current_user.id, **preferences)
+    
+    # Convert raw values to proper schema objects
+    theme_data = preferences.get("theme")
+    if isinstance(theme_data, str):
+        theme_obj = ThemeSettings(theme=theme_data)
+    elif isinstance(theme_data, dict):
+        theme_obj = ThemeSettings(**theme_data) if theme_data else None
+    else:
+        theme_obj = None
+    
+    accessibility_data = preferences.get("accessibility")
+    if isinstance(accessibility_data, bool):
+        accessibility_obj = AccessibilitySettings(high_contrast=accessibility_data)
+    elif isinstance(accessibility_data, dict):
+        accessibility_obj = AccessibilitySettings(**accessibility_data) if accessibility_data else None
+    else:
+        accessibility_obj = None
+    
+    notifications_data = preferences.get("notifications", {})
+    notifications_obj = NotificationSettings(**notifications_data) if notifications_data else None
+    
+    return UserPreferencesResponse(
+        user_id=current_user.id,
+        theme=theme_obj,
+        notifications=notifications_obj,
+        accessibility=accessibility_obj,
+        language=preferences.get("language", "en"),
+        timezone=preferences.get("timezone", "UTC")
+    )
 
 
 @router.get("/preferences/export", response_model=Dict[str, Any])
@@ -230,7 +318,35 @@ async def import_preferences(
 ):
     """Import user preferences from backup."""
     preferences = await preferences_service.import_preferences(current_user.id, preferences_data)
-    return UserPreferencesResponse(user_id=current_user.id, **preferences)
+    
+    # Convert raw values to proper schema objects
+    theme_data = preferences.get("theme")
+    if isinstance(theme_data, str):
+        theme_obj = ThemeSettings(theme=theme_data)
+    elif isinstance(theme_data, dict):
+        theme_obj = ThemeSettings(**theme_data) if theme_data else None
+    else:
+        theme_obj = None
+    
+    accessibility_data = preferences.get("accessibility")
+    if isinstance(accessibility_data, bool):
+        accessibility_obj = AccessibilitySettings(high_contrast=accessibility_data)
+    elif isinstance(accessibility_data, dict):
+        accessibility_obj = AccessibilitySettings(**accessibility_data) if accessibility_data else None
+    else:
+        accessibility_obj = None
+    
+    notifications_data = preferences.get("notifications", {})
+    notifications_obj = NotificationSettings(**notifications_data) if notifications_data else None
+    
+    return UserPreferencesResponse(
+        user_id=current_user.id,
+        theme=theme_obj,
+        notifications=notifications_obj,
+        accessibility=accessibility_obj,
+        language=preferences.get("language", "en"),
+        timezone=preferences.get("timezone", "UTC")
+    )
 
 
 @router.get("/preferences/summary", response_model=UserPreferencesSummary)

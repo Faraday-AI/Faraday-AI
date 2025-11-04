@@ -157,15 +157,26 @@ async def get_activity_recommendations(
     Returns:
         List of ActivityRecommendationResponse objects sorted by recommendation score
     """
-    service = ActivityRecommendationService(db)
-    return await service.get_recommendations(
-        request.student_id,
-        request.class_id,
-        request.preferences,
-        min_score=min_score,
-        max_duration=max_duration,
-        exclude_recent=exclude_recent
-    )
+    try:
+        service = ActivityRecommendationService(db)
+        return await service.get_recommendations(
+            request,  # Pass the full request object
+            min_score=min_score,
+            max_duration=max_duration,
+            exclude_recent=exclude_recent
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while getting recommendations: {str(e)}"
+        )
 
 @router.get(
     "/recommendations/history/{student_id}",

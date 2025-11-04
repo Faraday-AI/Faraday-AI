@@ -407,36 +407,21 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
         session.rollback()
         results['exercise_routines'] = 0
 
-    # 10. exercise_sets (migrate from sets)
+    # 10. exercise_sets (check if already populated, then back-populate from workout_exercises)
     try:
-        exercise_sets = []
-        for i in range(1500):  # 1500 exercise sets for district scale
-            workout_exercise_id = random.randint(1, 100)  # Reference workout_exercises
-            exercise_sets.append({
-                'workout_exercise_id': workout_exercise_id,
-                'set_number': random.randint(1, 10),
-                'reps_completed': random.randint(1, 20),
-                'weight_used': round(random.uniform(0, 100), 1),
-                'duration_seconds': random.randint(30, 300),
-                'distance_meters': round(random.uniform(0, 1000), 1),
-                'rest_time_seconds': random.randint(30, 180),
-                'notes': f'Set notes {i+1}',
-                'performance_rating': random.randint(1, 5),
-                'additional_data': json.dumps({'is_completed': random.choice([True, False])}),
-                'created_at': datetime.now() - timedelta(days=random.randint(1, 365))
-            })
+        # Check existing count
+        existing_count = session.execute(text('SELECT COUNT(*) FROM exercise_sets')).scalar()
         
-        columns = list(exercise_sets[0].keys())
-        placeholders = ', '.join([f':{col}' for col in columns])
-        query = f"INSERT INTO exercise_sets ({', '.join(columns)}) VALUES ({placeholders})"
+        if existing_count > 0:
+            print(f"  📊 exercise_sets already has {existing_count} records (from Phase 7)")
         
-        session.execute(text(query), exercise_sets)
-        session.commit()
-        results['exercise_sets'] = len(exercise_sets)
-        print(f"  ✅ exercise_sets: +{len(exercise_sets)} records")
+        # Get workout_exercises IDs (will be populated later in this phase)
+        # We'll back-populate exercise_sets after workout_exercises is seeded
+        # For now, just note that we'll handle this after workout_exercises
+        results['exercise_sets'] = existing_count
+        print(f"  ⏳ exercise_sets: {existing_count} records (will back-populate after workout_exercises seeding)")
     except Exception as e:
-        print(f"  ❌ exercise_sets: {e}")
-        session.rollback()
+        print(f"  ❌ exercise_sets check failed: {e}")
         results['exercise_sets'] = 0
 
     # 11. exercise_techniques (migrate from techniques)
@@ -556,6 +541,50 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
         session.commit()
         results['workout_exercises'] = len(workout_exercises)
         print(f"  ✅ workout_exercises: +{len(workout_exercises)} records")
+        
+        # Now back-populate exercise_sets using the newly created workout_exercises IDs
+        print("  🔄 Back-populating exercise_sets from workout_exercises...")
+        try:
+            # Get the newly created workout_exercises IDs
+            workout_exercise_ids_result = session.execute(text('SELECT id FROM workout_exercises ORDER BY id DESC LIMIT 2000'))
+            workout_exercise_ids = [row[0] for row in workout_exercise_ids_result.fetchall()]
+            
+            if workout_exercise_ids:
+                additional_exercise_sets = []
+                for i in range(1500):  # Create 1500 additional exercise sets
+                    workout_exercise_id = random.choice(workout_exercise_ids)
+                    additional_exercise_sets.append({
+                        'workout_exercise_id': workout_exercise_id,
+                        'set_number': random.randint(1, 10),
+                        'reps_completed': random.randint(1, 20),
+                        'weight_used': round(random.uniform(0, 100), 1),
+                        'duration_seconds': random.randint(30, 300),
+                        'distance_meters': round(random.uniform(0, 1000), 1),
+                        'rest_time_seconds': random.randint(30, 180),
+                        'notes': f'Set notes {i+1}',
+                        'performance_rating': random.randint(1, 5),
+                        'additional_data': json.dumps({'is_completed': random.choice([True, False])}),
+                        'created_at': datetime.now() - timedelta(days=random.randint(1, 365))
+                    })
+                
+                columns = list(additional_exercise_sets[0].keys())
+                placeholders = ', '.join([f':{col}' for col in columns])
+                query = f"INSERT INTO exercise_sets ({', '.join(columns)}) VALUES ({placeholders})"
+                
+                session.execute(text(query), additional_exercise_sets)
+                session.commit()
+                
+                # Update the exercise_sets count in results
+                new_count = session.execute(text('SELECT COUNT(*) FROM exercise_sets')).scalar()
+                results['exercise_sets'] = new_count
+                print(f"  ✅ exercise_sets: Back-populated +{len(additional_exercise_sets)} records (total: {new_count})")
+            else:
+                print(f"  ⚠️ exercise_sets: No workout_exercises IDs found for back-population")
+        except Exception as backfill_error:
+            print(f"  ⚠️ exercise_sets back-population: {backfill_error}")
+            # Don't fail the whole phase if back-population fails
+            pass
+            
     except Exception as e:
         print(f"  ❌ workout_exercises: {e}")
         session.rollback()
@@ -594,34 +623,50 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
         results['workout_performances'] = 0
 
     # 16. workout_plan_workouts (migrate from plan_workouts)
+    savepoint = session.begin_nested()
     try:
-        workout_plan_workouts = []
-        for i in range(1000):  # 1000 plan workout assignments for district scale
-            plan_id = random.randint(1, 100)  # Reference workout_plans
-            workout_id = random.choice(ids['workout_ids']) if ids['workout_ids'] else random.randint(1, 40)
-            workout_plan_workouts.append({
-                'plan_id': plan_id,
-                'workout_id': workout_id,
-                'day_of_week': random.choice(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']),
-                'order': random.randint(1, 10),
-                'notes': f'Plan workout notes {i+1}',
-                'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
-                'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
-            })
-        
-        columns = list(workout_plan_workouts[0].keys())
-        # Quote the 'order' column since it's a reserved keyword
-        quoted_columns = [f'"{col}"' if col == 'order' else col for col in columns]
-        placeholders = ', '.join([f':{col}' for col in columns])
-        query = f"INSERT INTO workout_plan_workouts ({', '.join(quoted_columns)}) VALUES ({placeholders})"
-        
-        session.execute(text(query), workout_plan_workouts)
-        session.commit()
-        results['workout_plan_workouts'] = len(workout_plan_workouts)
-        print(f"  ✅ workout_plan_workouts: +{len(workout_plan_workouts)} records")
+        # Get fresh workout plan IDs from database (recreated on each run)
+        try:
+            workout_plan_result = session.execute(text("SELECT id FROM workout_plans ORDER BY id"))
+            workout_plan_ids = [row[0] for row in workout_plan_result.fetchall()]
+            if not workout_plan_ids:
+                print("  ⚠️ No workout plans found, skipping workout_plan_workouts")
+                savepoint.rollback()
+                results['workout_plan_workouts'] = 0
+            else:
+                print(f"  📋 Found {len(workout_plan_ids)} workout_plans in database")
+                workout_plan_workouts = []
+                for i in range(1000):  # 1000 plan workout assignments for district scale
+                    plan_id = random.choice(workout_plan_ids)  # Use actual workout plan IDs
+                    workout_id = random.choice(ids['workout_ids']) if ids['workout_ids'] else random.randint(1, 40)
+                    workout_plan_workouts.append({
+                        'plan_id': plan_id,
+                        'workout_id': workout_id,
+                        'day_of_week': random.choice(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']),
+                        'order': random.randint(1, 10),
+                        'notes': f'Plan workout notes {i+1}',
+                        'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+                        'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                    })
+                
+                columns = list(workout_plan_workouts[0].keys())
+                # Quote the 'order' column since it's a reserved keyword
+                quoted_columns = [f'"{col}"' if col == 'order' else col for col in columns]
+                placeholders = ', '.join([f':{col}' for col in columns])
+                query = f"INSERT INTO workout_plan_workouts ({', '.join(quoted_columns)}) VALUES ({placeholders})"
+                
+                session.execute(text(query), workout_plan_workouts)
+                savepoint.commit()
+                session.commit()
+                results['workout_plan_workouts'] = len(workout_plan_workouts)
+                print(f"  ✅ workout_plan_workouts: +{len(workout_plan_workouts)} records")
+        except Exception as e:
+            print(f"  ⚠️ Error querying workout_plans: {e}, skipping workout_plan_workouts")
+            savepoint.rollback()
+            results['workout_plan_workouts'] = 0
     except Exception as e:
         print(f"  ❌ workout_plan_workouts: {e}")
-        session.rollback()
+        savepoint.rollback()
         results['workout_plan_workouts'] = 0
 
     # 17. workout_sessions (migrate from sessions)
@@ -696,6 +741,7 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
     print("-" * 70)
     
     # 19. general_health_metrics (migrate from current metrics) - MOVED FIRST
+    savepoint = session.begin_nested()
     try:
         general_health_metrics = []
         for i in range(1000):  # 1000 current health metrics
@@ -710,16 +756,52 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
                 'created_at': datetime.now() - timedelta(days=random.randint(1, 365))
             })
         
+        # Insert in smaller batches to avoid connection timeouts
+        batch_size = 100
         columns = list(general_health_metrics[0].keys())
         placeholders = ', '.join([f':{col}' for col in columns])
         query = f"INSERT INTO general_health_metrics ({', '.join(columns)}) VALUES ({placeholders})"
         
-        session.execute(text(query), general_health_metrics)
+        inserted_count = 0
+        total_batches = (len(general_health_metrics) + batch_size - 1) // batch_size
+        
+        for batch_num in range(total_batches):
+            start_idx = batch_num * batch_size
+            batch = general_health_metrics[start_idx:start_idx + batch_size]
+            
+            try:
+                # Use a nested savepoint for each batch
+                batch_savepoint = session.begin_nested()
+                session.execute(text(query), batch)
+                batch_savepoint.commit()
+                session.flush()  # Flush each batch to avoid large transaction
+                inserted_count += len(batch)
+                
+                # Progress indicator every 10 batches
+                if (batch_num + 1) % 10 == 0:
+                    print(f"  ⏳ Inserted {inserted_count}/{len(general_health_metrics)} records...")
+                    
+            except Exception as batch_error:
+                # If one batch fails, rollback that batch and continue with next
+                try:
+                    batch_savepoint.rollback()
+                except:
+                    pass
+                print(f"  ⚠️  Batch {batch_num + 1}/{total_batches} failed: {batch_error}")
+                # Continue with next batch
+                continue
+        
+        # Commit the outer savepoint
+        savepoint.commit()
         session.commit()
-        results['general_health_metrics'] = len(general_health_metrics)
-        print(f"  ✅ general_health_metrics: +{len(general_health_metrics)} records")
+        results['general_health_metrics'] = inserted_count
+        print(f"  ✅ general_health_metrics: +{inserted_count} records (inserted in {total_batches} batches)")
     except Exception as e:
         print(f"  ❌ general_health_metrics: {e}")
+        try:
+            savepoint.rollback()
+        except:
+            pass
         session.rollback()
         results['general_health_metrics'] = 0
 
@@ -763,11 +845,31 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
         results['general_health_metric_history'] = 0
 
     # 21. general_skill_progress (create skill progress data)
+    savepoint = session.begin_nested()
     try:
         print("  📊 Creating general skill progress data...")
+        # Get fresh general_assessments IDs from database (recreated on each run) - fetch ALL IDs, not just LIMIT 100
+        try:
+            assessment_result = session.execute(text("SELECT id FROM general_assessments ORDER BY id"))
+            assessment_ids = [row[0] for row in assessment_result.fetchall()]
+            if not assessment_ids:
+                print("  ⚠️ No general_assessments found, using None for last_assessment_id")
+                assessment_ids = [None]
+            else:
+                print(f"  📋 Found {len(assessment_ids)} general_assessments in database")
+        except Exception as e:
+            print(f"  ⚠️ Error querying general_assessments: {e}, using None for last_assessment_id")
+            assessment_ids = [None]
+        
         general_skill_progress = []
         for i in range(2000):  # 2000 skill progress records for district scale
             student_id = random.choice(ids['student_ids'])
+            # Only use assessment_id if we have valid assessments (not None)
+            if assessment_ids and assessment_ids[0] is not None:
+                last_assessment_id = random.choice(assessment_ids)
+            else:
+                last_assessment_id = None
+            
             general_skill_progress.append({
                 'student_id': student_id,
                 'skill_name': random.choice(['running', 'swimming', 'cycling', 'strength_training', 'flexibility', 'basketball', 'soccer', 'tennis']),
@@ -780,7 +882,7 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
                 'risk_level': random.choice(['LOW', 'MEDIUM', 'HIGH']),
                 'progress_percentage': round(random.uniform(0, 100), 1),
                 'assessment_count': random.randint(1, 20),
-                'last_assessment_id': random.randint(1, 100),
+                'last_assessment_id': last_assessment_id,
                 'last_assessment_date': datetime.now() - timedelta(days=random.randint(1, 90)),
                 'next_assessment_date': datetime.now() + timedelta(days=random.randint(1, 30)),
                 'meta_data': json.dumps({'notes': f'Skill progress notes {i+1}', 'goals': f'Improve {random.choice(["endurance", "strength", "flexibility", "coordination"])}'}),
@@ -793,12 +895,13 @@ def seed_phase9_health_fitness(session: Session) -> Dict[str, int]:
         query = f"INSERT INTO general_skill_progress ({', '.join(columns)}) VALUES ({placeholders})"
         
         session.execute(text(query), general_skill_progress)
+        savepoint.commit()
         session.commit()
         results['general_skill_progress'] = len(general_skill_progress)
         print(f"  ✅ general_skill_progress: +{len(general_skill_progress)} records")
     except Exception as e:
         print(f"  ❌ general_skill_progress: {e}")
-        session.rollback()
+        savepoint.rollback()
         results['general_skill_progress'] = 0
 
     # 22. goal_activities (migrate from goals + activities)

@@ -1,0 +1,58 @@
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"MINIO_SECRET_KEY\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"MINIO_ACCESS_KEY\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"MINIO_ACCESS_KEY\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"MINIO_SECRET_KEY\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"DATABASE_URL\" variable is not set. Defaulting to a blank string."
+time="2025-10-31T07:13:19-04:00" level=warning msg="The \"DATABASE_URL\" variable is not set. Defaulting to a blank string."
+============================= test session starts ==============================
+platform linux -- Python 3.10.17, pytest-7.4.3, pluggy-1.6.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /app
+configfile: pytest.ini
+plugins: Faker-20.1.0, order-1.2.0, cov-4.1.0, anyio-3.7.1, asyncio-0.21.1, mock-3.10.0
+asyncio: mode=auto
+collecting ... 2025-10-31 11:13:25,858 - activity_rate_limit_manager - INFO - Rate limit components initialized successfully
+2025-10-31 11:13:26,143 - app.core.cache - INFO - Redis client initialized for region north_america
+2025-10-31 11:13:26,144 - app.core.cache - INFO - Redis client initialized for region south_america
+2025-10-31 11:13:26,145 - app.core.cache - INFO - Redis client initialized for region europe
+2025-10-31 11:13:26,146 - app.core.cache - INFO - Redis client initialized for region asia
+2025-10-31 11:13:26,146 - app.core.cache - INFO - Redis client initialized for region africa
+2025-10-31 11:13:26,147 - app.core.cache - INFO - Redis client initialized for region australia
+2025-10-31 11:13:26,148 - app.core.cache - INFO - Redis client initialized for region oceania
+2025-10-31 11:13:26,148 - app.core.cache - INFO - Redis client initialized for region middle_east
+2025-10-31 11:13:26,149 - app.core.cache - INFO - Redis client initialized for region global
+2025-10-31 11:13:28,154 - app.main - INFO - Base directory: /app
+2025-10-31 11:13:28,154 - app.main - INFO - Checking deployment static directory at /app/static
+2025-10-31 11:13:28,154 - app.main - INFO - Using deployment static directory at /app/static
+2025-10-31 11:13:28,155 - app.main - INFO - Static directory contents: ['favicon.ico', 'index.html', '.DS_Store', 'css', 'images', 'auth-form.html', 'js', 'icons', 'robots.txt', 'services']
+collected 16 items
+
+tests/integration/test_activity_recommendations.py::test_get_activity_recommendations 2025-10-31 11:13:28,326 - conftest - INFO - Tests using DATABASE_URL: postgresql://faraday_admin:CodaMoeLuna31@faraday-a...
+ERROR
+
+==================================== ERRORS ====================================
+_____________ ERROR at setup of test_get_activity_recommendations ______________
+tests/integration/test_activity_recommendations.py:52: in test_class
+    class_type=ClassType.PHYSICAL_EDUCATION,  # Use enum value
+        ClassType  = <enum 'ClassType'>
+        GradeLevel = <enum 'GradeLevel'>
+        datetime   = <class 'datetime.datetime'>
+        db_session = <sqlalchemy.orm.session.Session object at 0xffff07ca8b50>
+        timedelta  = <class 'datetime.timedelta'>
+/usr/local/lib/python3.10/enum.py:437: in __getattr__
+    raise AttributeError(name) from None
+E   AttributeError: PHYSICAL_EDUCATION
+        cls        = <enum 'ClassType'>
+        name       = 'PHYSICAL_EDUCATION'
+------------------------------ Captured log setup ------------------------------
+INFO     conftest:conftest.py:58 Tests using DATABASE_URL: postgresql://faraday_admin:CodaMoeLuna31@faraday-a...
+=========================== short test summary info ============================
+ERROR tests/integration/test_activity_recommendations.py::test_get_activity_recommendations
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+======================== 406 warnings, 1 error in 5.03s ========================

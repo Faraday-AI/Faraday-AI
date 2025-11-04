@@ -13,10 +13,25 @@ settings = get_settings()
 failover_manager = RegionalFailoverManager()
 
 # Prometheus metrics
-cache_hits = Counter('cache_hits_total', 'Number of cache hits')
-cache_misses = Counter('cache_misses_total', 'Number of cache misses')
-cache_operation_duration = Histogram('cache_operation_duration_seconds', 'Time spent in cache operations')
-replication_latency = Histogram('cache_replication_latency_seconds', 'Time spent in cache replication')
+try:
+    cache_hits = Counter('cache_hits_total', 'Number of cache hits')
+    cache_misses = Counter('cache_misses_total', 'Number of cache misses')
+    cache_operation_duration = Histogram('cache_operation_duration_seconds', 'Time spent in cache operations')
+    replication_latency = Histogram('cache_replication_latency_seconds', 'Time spent in cache replication')
+except ValueError:
+    # Metrics already registered, import them from registry
+    from prometheus_client import REGISTRY
+    # Get existing metrics from registry
+    for collector in list(REGISTRY._collector_to_names.keys()):
+        if hasattr(collector, '_name'):
+            if collector._name == 'cache_hits_total':
+                cache_hits = collector
+            elif collector._name == 'cache_misses_total':
+                cache_misses = collector
+            elif collector._name == 'cache_operation_duration_seconds':
+                cache_operation_duration = collector
+            elif collector._name == 'cache_replication_latency_seconds':
+                replication_latency = collector
 
 logger = logging.getLogger(__name__)
 

@@ -19,7 +19,9 @@ def migrate_teachers_to_dashboard_users(session=None):
         conn = session.connection()
     else:
         # Connect to database directly
-        DATABASE_URL = 'postgresql://faraday_admin:CodaMoeLuna31@faraday-ai-db.postgres.database.azure.com:5432/postgres?sslmode=require'
+        DATABASE_URL = os.getenv('DATABASE_URL')
+        if not DATABASE_URL:
+            raise RuntimeError('DATABASE_URL must be set in the environment')
         engine = create_engine(DATABASE_URL)
         conn = engine.connect()
     

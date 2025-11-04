@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 import random
 import json
+import uuid
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -62,6 +63,7 @@ def seed_dashboard_system(session: Session) -> None:
     ]
     
     for cat_data in categories:
+        savepoint = session.begin_nested()
         try:
             # Check if category exists
             existing = session.execute(
@@ -81,8 +83,11 @@ def seed_dashboard_system(session: Session) -> None:
                         "created_at": datetime.utcnow()
                     }
                 )
+                savepoint.commit()
+                session.commit()
         except Exception as e:
             print(f"Warning: Could not seed dashboard category {cat_data['name']}: {e}")
+            savepoint.rollback()
     
     # Seed dashboard themes
     themes = [
@@ -166,6 +171,7 @@ def seed_dashboard_system(session: Session) -> None:
     ]
     
     for widget_data in widgets:
+        savepoint = session.begin_nested()
         try:
             # Get category ID
             cat_result = session.execute(
@@ -182,25 +188,60 @@ def seed_dashboard_system(session: Session) -> None:
                 ).first()
                 
                 if not existing:
+                    # Check if id column requires a value by checking schema
+                    schema_result = session.execute(
+                        text("""
+                            SELECT column_name, data_type, column_default, is_nullable
+                            FROM information_schema.columns
+                            WHERE table_name = 'dashboard_widgets' AND column_name = 'id'
+                        """)
+                    ).first()
+                    
                     # Use the first dashboard ID or default to 1
                     dashboard_id = dashboard_ids[0] if dashboard_ids else 1
-                    session.execute(
-                        text("""
-                            INSERT INTO dashboard_widgets (name, widget_type, configuration, dashboard_id, layout_position, size, created_at)
-                            VALUES (:name, :widget_type, :configuration, :dashboard_id, :layout_position, :size, :created_at)
-                        """),
-                        {
-                            "name": widget_data["name"],
-                            "widget_type": "CHART",
-                            "configuration": json.dumps(widget_data["config"]),
-                            "dashboard_id": dashboard_id,
-                            "layout_position": "TOP_LEFT",
-                            "size": json.dumps({"width": 400, "height": 300}),
-                            "created_at": datetime.utcnow()
-                        }
-                    )
+                    
+                    # Build INSERT statement - check if id needs to be provided
+                    if schema_result and schema_result[2] is None and schema_result[3] == 'NO':
+                        # id is NOT NULL with no default - we need to provide it
+                        widget_id = str(uuid.uuid4())
+                        session.execute(
+                            text("""
+                                INSERT INTO dashboard_widgets (id, name, widget_type, configuration, dashboard_id, layout_position, size, created_at)
+                                VALUES (:id, :name, :widget_type, :configuration, :dashboard_id, :layout_position, :size, :created_at)
+                            """),
+                            {
+                                "id": widget_id,
+                                "name": widget_data["name"],
+                                "widget_type": "CHART",
+                                "configuration": json.dumps(widget_data["config"]),
+                                "dashboard_id": dashboard_id,
+                                "layout_position": "TOP_LEFT",
+                                "size": json.dumps({"width": 400, "height": 300}),
+                                "created_at": datetime.utcnow()
+                            }
+                        )
+                    else:
+                        # id has default or is nullable - let database handle it
+                        session.execute(
+                            text("""
+                                INSERT INTO dashboard_widgets (name, widget_type, configuration, dashboard_id, layout_position, size, created_at)
+                                VALUES (:name, :widget_type, :configuration, :dashboard_id, :layout_position, :size, :created_at)
+                            """),
+                            {
+                                "name": widget_data["name"],
+                                "widget_type": "CHART",
+                                "configuration": json.dumps(widget_data["config"]),
+                                "dashboard_id": dashboard_id,
+                                "layout_position": "TOP_LEFT",
+                                "size": json.dumps({"width": 400, "height": 300}),
+                                "created_at": datetime.utcnow()
+                            }
+                        )
+                    savepoint.commit()
+                    session.commit()
         except Exception as e:
             print(f"Warning: Could not seed dashboard widget {widget_data['name']}: {e}")
+            savepoint.rollback()
     
     # Seed dashboard tools - check schema first
     try:
@@ -446,6 +487,7 @@ def seed_dashboard_system(session: Session) -> None:
     ]
     
     for analytics in analytics_data:
+        savepoint = session.begin_nested()
         try:
             session.execute(
                 text("""
@@ -462,7 +504,10 @@ def seed_dashboard_system(session: Session) -> None:
                     "error_logs": json.dumps(analytics["error_logs"])
                 }
             )
+            savepoint.commit()
+            session.commit()
         except Exception as e:
             print(f"Warning: Could not seed dashboard analytics: {e}")
+            savepoint.rollback()
     
     print("Dashboard system seeded successfully!") 

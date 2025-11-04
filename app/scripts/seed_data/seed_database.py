@@ -64,11 +64,19 @@ from app.models.resource_management import (
 )
 
 # Import new beta teacher system models
+from app.models.beta_students import BetaStudent  # Import BetaStudent before TeacherRegistration to resolve relationships
 from app.models.teacher_registration import TeacherRegistration
 from app.models.beta_testing import (
     BetaTestingParticipant, BetaTestingProgram, BetaTestingFeedback,
     BetaTestingSurvey, BetaTestingSurveyResponse, BetaTestingUsageAnalytics,
     BetaTestingFeatureFlag, BetaTestingNotification, BetaTestingReport
+)
+# Import Beta Teacher Dashboard models to ensure tables are created
+from app.models.beta_teacher_dashboard import (
+    TeacherDashboardLayout, DashboardWidgetInstance, TeacherActivityLog,
+    TeacherNotification, TeacherAchievement, TeacherAchievementProgress,
+    TeacherQuickAction, BetaTeacherPreference, TeacherStatistics,
+    TeacherGoal, TeacherLearningPath, LearningPathStep
 )
 from app.models.lesson_plan_builder import (
     LessonPlanTemplate, LessonPlanActivity, AILessonSuggestion,
@@ -335,12 +343,16 @@ def seed_database():
                         'gpt_usage_history', 'gpt_subscription_usage', 'gpt_subscription_billing', 'gpt_subscription_payments', 'gpt_subscription_invoices', 'gpt_subscription_refunds',
                         # Beta Teacher System Core Tables (only tables with dependencies)
                         'teacher_registrations', 'lesson_plan_templates', 'lesson_plan_categories', 'assessment_templates', 'assessment_categories', 'resource_categories', 'educational_resources', 'ai_assistant_configs', 'ai_assistant_templates', 'beta_testing_programs', 'beta_avatars', 'beta_widgets',
+                        # Beta Teacher Dashboard Core Tables (standalone and parent tables)
+                        'teacher_achievements', 'teacher_achievement_progress', 'teacher_dashboard_layouts', 'teacher_learning_paths', 'teacher_goals', 'teacher_statistics', 'teacher_activity_logs', 'teacher_notifications', 'teacher_quick_actions', 'beta_teacher_preferences',
                         # Directly dependent tables (must be created with core tables)
                         'beta_lesson_plan_activities', 'lesson_plan_sharing', 'lesson_plan_usage', 'template_category_associations',
                         'assessment_criteria', 'assessment_questions', 'assessment_rubrics', 'assessment_standards', 'assessment_checklists', 'assessment_template_sharing', 'assessment_template_usage', 'assessment_template_category_associations',
                         'resource_category_associations', 'resource_sharing', 'resource_usage', 'resource_collections', 'collection_resource_associations', 'collection_sharing', 'resource_reviews', 'resource_favorites', 'resource_downloads',
                         'ai_assistant_conversations', 'ai_assistant_messages', 'ai_assistant_usage', 'ai_assistant_feedback', 'ai_assistant_analytics',
                         'beta_testing_participants', 'beta_testing_feedback', 'beta_testing_surveys', 'beta_testing_reports', 'beta_testing_usage_analytics',
+                        # Beta Students (depends on teacher_registrations)
+                        'beta_students',
                         # Phase 11 Resource Management Tables
                         'resource_management_usage', 'resource_thresholds', 'resource_optimizations', 'resource_management_sharing', 'optimization_events'
                     ]
@@ -2261,6 +2273,23 @@ def seed_database():
                 
         finally:
             session.close()
+            
+        # Optional: Seed test student data for testing (only if flag is set)
+        if env_true('SEED_TEST_STUDENT_DATA'):
+            print("\n" + "=" * 60)
+            print("📚 TEST STUDENT DATA SEEDING")
+            print("=" * 60)
+            session = SessionLocal()
+            try:
+                from app.scripts.seed_data.seed_test_student_data import seed_test_student_data
+                seed_test_student_data(session, for_tests=True)
+                session.commit()
+                print("✅ Test student data seeding completed!")
+            except Exception as e:
+                print(f"⚠️  Test student data seeding failed (non-critical): {e}")
+                session.rollback()
+            finally:
+                session.close()
             
     except Exception as e:
         print(f"❌ FAIL-FAST ERROR: Critical failure in seed_database: {str(e)}")

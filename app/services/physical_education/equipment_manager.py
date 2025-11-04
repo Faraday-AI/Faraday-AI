@@ -1,4 +1,4 @@
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Union
 from datetime import datetime, timedelta
 import logging
 from sqlalchemy.orm import Session
@@ -132,34 +132,6 @@ class EquipmentManager:
                 "message": f"Error recording equipment check: {str(e)}"
             }
 
-    async def get_equipment_checks(
-        self,
-        class_id: Optional[str] = None,
-        equipment_id: Optional[str] = None,
-        maintenance_status: Optional[bool] = None,
-        damage_status: Optional[bool] = None
-    ) -> List[Dict[str, Any]]:
-        """Get equipment checks with optional filters."""
-        try:
-            # Mock response for now
-            return [
-                {
-                    "check_id": "EC-001",
-                    "class_id": class_id or "PE-2024-001",
-                    "equipment_id": equipment_id or "EQ-001",
-                    "maintenance_status": maintenance_status if maintenance_status is not None else True,
-                    "damage_status": damage_status if damage_status is not None else False,
-                    "age_status": True,
-                    "last_maintenance": datetime.utcnow() - timedelta(days=30),
-                    "purchase_date": datetime.utcnow() - timedelta(days=365),
-                    "max_age_years": 5.0,
-                    "created_at": datetime.utcnow()
-                }
-            ]
-        except Exception as e:
-            self.logger.error(f"Error getting equipment checks: {str(e)}")
-            return []
-
     async def record_bulk_equipment_checks(
         self,
         checks: List[Dict[str, Any]]
@@ -209,7 +181,7 @@ class EquipmentManager:
 
     async def create_equipment_check(
         self,
-        class_id: str,
+        class_id: Union[str, int],
         equipment_id: str,
         maintenance_status: str,
         damage_status: str,
@@ -234,13 +206,27 @@ class EquipmentManager:
             if age_status not in self.age_statuses:
                 raise ValueError(f"Invalid age status. Must be one of: {self.age_statuses}")
             
+            # Convert string status values to booleans for database model
+            # maintenance_status: True = good/maintained, False = needs attention
+            maintenance_bool = maintenance_status in ["good"]
+            # damage_status: True = damaged, False = no damage  
+            damage_bool = damage_status not in ["none"]
+            # age_status: True = acceptable age, False = needs replacement
+            age_bool = age_status in ["new", "good", "fair"]
+            
+            # Convert class_id from string to int if it's a string that represents an ID
+            # If it's already an int, use it as is
+            class_id_int = int(class_id) if isinstance(class_id, str) and class_id.isdigit() else class_id
+            if not isinstance(class_id_int, int):
+                raise ValueError(f"class_id must be an integer, got: {class_id}")
+            
             check = EquipmentCheck(
-                class_id=class_id,
+                class_id=class_id_int,
                 equipment_id=equipment_id,
                 check_date=datetime.utcnow(),
-                maintenance_status=maintenance_status,
-                damage_status=damage_status,
-                age_status=age_status,
+                maintenance_status=maintenance_bool,
+                damage_status=damage_bool,
+                age_status=age_bool,
                 last_maintenance=last_maintenance,
                 purchase_date=purchase_date,
                 max_age_years=max_age_years,
@@ -248,7 +234,7 @@ class EquipmentManager:
             )
             
             db.add(check)
-            db.commit()
+            db.flush()  # Use flush for SAVEPOINT transactions in tests
             db.refresh(check)
             
             return {
@@ -268,7 +254,7 @@ class EquipmentManager:
 
     async def get_equipment_check(
         self,
-        check_id: str,
+        check_id: Union[str, int],
         db: Session = Depends(get_db)
     ) -> Optional[EquipmentCheck]:
         """Retrieve a specific equipment check by ID."""
@@ -316,7 +302,7 @@ class EquipmentManager:
 
     async def update_equipment_check(
         self,
-        check_id: str,
+        check_id: Union[str, int],
         update_data: Dict[str, Any],
         db: Session = Depends(get_db)
     ) -> Dict[str, Any]:
@@ -332,15 +318,27 @@ class EquipmentManager:
             # Validate and update fields
             for key, value in update_data.items():
                 if hasattr(check, key):
-                    if key == "maintenance_status" and value not in self.maintenance_statuses:
-                        raise ValueError(f"Invalid maintenance status: {value}")
-                    if key == "damage_status" and value not in self.damage_statuses:
-                        raise ValueError(f"Invalid damage status: {value}")
-                    if key == "age_status" and value not in self.age_statuses:
-                        raise ValueError(f"Invalid age status: {value}")
+                    if key == "maintenance_status":
+                        if isinstance(value, str) and value not in self.maintenance_statuses:
+                            raise ValueError(f"Invalid maintenance status: {value}")
+                        # Convert string to boolean if needed
+                        if isinstance(value, str):
+                            value = value in ["good"]
+                    elif key == "damage_status":
+                        if isinstance(value, str) and value not in self.damage_statuses:
+                            raise ValueError(f"Invalid damage status: {value}")
+                        # Convert string to boolean if needed
+                        if isinstance(value, str):
+                            value = value not in ["none"]
+                    elif key == "age_status":
+                        if isinstance(value, str) and value not in self.age_statuses:
+                            raise ValueError(f"Invalid age status: {value}")
+                        # Convert string to boolean if needed
+                        if isinstance(value, str):
+                            value = value in ["new", "good", "fair"]
                     setattr(check, key, value)
             
-            db.commit()
+            db.flush()  # Use flush for SAVEPOINT transactions in tests
             db.refresh(check)
             
             return {
@@ -359,12 +357,14 @@ class EquipmentManager:
 
     async def delete_equipment_check(
         self,
-        check_id: str,
+        check_id: Union[str, int],
         db: Session = Depends(get_db)
     ) -> Dict[str, Any]:
         """Delete an equipment check."""
         try:
-            check = db.query(EquipmentCheck).filter(EquipmentCheck.id == check_id).first()
+            # Convert check_id to int if it's a string digit
+            check_id_int = int(check_id) if isinstance(check_id, str) and check_id.isdigit() else check_id
+            check = db.query(EquipmentCheck).filter(EquipmentCheck.id == check_id_int).first()
             if not check:
                 return {
                     "success": False,

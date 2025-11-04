@@ -16,12 +16,14 @@ def seed_ai_assistant_templates(session=None):
     
     if session:
         # Use the provided session
-        conn = session.connection()
+        execute_func = session.execute
         use_session = True
     else:
         # Create our own connection
+        from sqlalchemy import create_engine
         engine = create_engine(DATABASE_URL)
         conn = engine.connect()
+        execute_func = conn.execute
         use_session = False
     
     try:
@@ -49,7 +51,7 @@ def seed_ai_assistant_templates(session=None):
         ]
         
         for template in templates:
-            conn.execute(text("""
+            execute_func(text("""
                 INSERT INTO ai_assistant_templates (
                     id, template_name, template_description, template_type, 
                     template_content, template_variables, is_system_template, is_active, usage_count
@@ -70,8 +72,8 @@ def seed_ai_assistant_templates(session=None):
             })
         
         if use_session:
-            # Session will be committed by the caller
-            pass
+            # Session will be committed by the caller - just flush here
+            session.flush()
         else:
             conn.commit()
         print(f"   ✅ Seeded {len(templates)} AI assistant templates")

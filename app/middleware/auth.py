@@ -18,18 +18,34 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.url.path in ["/health", "/docs", "/openapi.json"]:
             return await call_next(request)
 
-        # Skip auth in test mode
-        if os.getenv("TEST_MODE") == "true" or os.getenv("TESTING") == "true":
-            # Create a mock user for testing
-            request.state.user = {
-                "user_id": 1,
-                "email": "test@example.com",
-                "is_active": True
-            }
+        # Skip middleware for dashboard routes - they handle their own auth via dependencies
+        # This allows endpoint-level dependencies (OAuth2PasswordBearer) to handle auth properly
+        if "/api/v1/optimization-monitoring" in request.url.path or \
+           "/api/v1/dashboard" in request.url.path or \
+           "/api/v1/access-control" in request.url.path:
+            # Let endpoint dependencies handle auth for dashboard routes
             return await call_next(request)
 
-        # Get the authorization header
+        # For other routes: handle auth in middleware
+        # In test mode: only bypass if Authorization header exists
+        test_mode = os.getenv("TEST_MODE") == "true" or os.getenv("TESTING") == "true"
         auth_header = request.headers.get("Authorization")
+        
+        if test_mode:
+            if auth_header and auth_header.startswith("Bearer "):
+                # Authorized request in test mode - create mock user
+                request.state.user = {
+                    "user_id": 1,
+                    "email": "test@example.com",
+                    "is_active": True
+                }
+                return await call_next(request)
+            # No Authorization header in test mode - let endpoint dependencies handle auth (for 401 tests)
+            # Don't bypass auth in test mode if no header (allows unauthorized tests to work)
+            # Continue to normal auth flow below which will raise 401
+        
+        # For non-test mode OR test mode without auth header
+        # Get the authorization header
         if not auth_header:
             raise HTTPException(
                 status_code=401,

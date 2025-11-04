@@ -105,9 +105,9 @@ class ProgressGoalBase(BaseModelMixin, TimestampMixin):
     goal_notes = Column(Text)
     type = Column(String(50))  # Polymorphic discriminator
     
-    # Progress relationships temporarily disabled to fix seeding issues
-    # student = relationship("Student", back_populates="progress_goals")
-    # activity = relationship("Activity", back_populates="progress_goals")
+    # Relationships will be set up by setup_progress_student_relationships() after model initialization
+    # This avoids circular import issues during SQLAlchemy mapper configuration
+    pass  # Relationships added via setup_progress_student_relationships()
     
     __mapper_args__ = {
         'polymorphic_identity': 'progress_goal_base',
@@ -187,9 +187,9 @@ class Progress(Base, TimestampMixin):
     progress_notes = Column(Text)
     progress_metadata = Column(JSON)
     
-    # Progress relationships temporarily disabled to fix seeding issues
-    # student = relationship("Student", back_populates="progress")
-    # activity = relationship("Activity")
+    # Relationships will be set up by setup_progress_student_relationships() after model initialization
+    # This avoids circular import issues during SQLAlchemy mapper configuration
+    pass  # Relationships added via setup_progress_student_relationships()
     metrics = relationship("ProgressMetric", back_populates="progress")
 
     def __repr__(self):

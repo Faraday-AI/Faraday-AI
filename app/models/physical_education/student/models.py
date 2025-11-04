@@ -108,6 +108,8 @@ class Student(SharedBase):
     student_medical_conditions = relationship("app.models.physical_education.student.health.MedicalCondition", back_populates="student")
     emergency_contacts = relationship("app.models.physical_education.student.health.EmergencyContact", back_populates="student")
     student_health_metrics = relationship("app.models.physical_education.student.health.HealthMetric", back_populates="student", overlaps="health_metrics,pe_health_metrics")
+    # Additional relationship for HealthMetric from health_metric.py (table: student_health_metrics)
+    # This relationship will be set up by setup_student_relationships() after model initialization
     
     # Goal-related relationships
     goals = relationship("app.models.health_fitness.goals.goal_setting.Goal", back_populates="student")
@@ -284,4 +286,8 @@ class StudentAttendanceResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 # Initialize relationships
-setup_student_relationships(Student) 
+setup_student_relationships(Student)
+
+# Note: health_metric relationships will be set up by setup_health_metric_relationships()
+# which is called from setup_all_physical_education_relationships() after all models are loaded
+# This avoids SQLAlchemy resolution issues during mapper configuration 

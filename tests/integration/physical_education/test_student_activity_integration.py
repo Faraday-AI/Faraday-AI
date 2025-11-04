@@ -5,6 +5,7 @@ health monitoring, and safety systems.
 """
 
 import pytest
+import uuid
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from app.models import (
@@ -37,24 +38,27 @@ class TestStudentActivityIntegration:
 
     @pytest.fixture
     def student_with_activity(self, db_session, managers):
-        """Create student with activity and health data."""
-        # Create student
+        """Create student with activity and health data - don't hardcode IDs to avoid conflicts."""
+        unique_id = str(uuid.uuid4())[:8]
+        # Create student with unique email
         student = Student(
             first_name="John",
             last_name="Doe",
-            email="john.doe@example.com",
+            email=f"john.doe.{unique_id}@example.com",  # Unique email
             date_of_birth=datetime(2010, 1, 1),
             grade_level="6th"
         )
         db_session.add(student)
+        db_session.flush()  # Use flush for SAVEPOINT transactions
         
         # Create activity
         activity = Activity(
-            name="Basketball Practice",
+            name=f"Basketball Practice {unique_id}",
             type="team_sports",
             duration=60
         )
         db_session.add(activity)
+        db_session.flush()  # Use flush for SAVEPOINT transactions
         
         # Create health metrics
         health_metric = HealthMetric(
@@ -73,10 +77,9 @@ class TestStudentActivityIntegration:
             assessed_by=1  # Default user ID for testing
         )
         db_session.add(risk)
+        db_session.flush()  # Use flush for SAVEPOINT transactions
         
-        db_session.commit()
-        
-        # Create environmental condition after commit so activity.id is available
+        # Create environmental condition - activity.id is available after flush
         condition = EnvironmentalCondition(
             activity_id=activity.id,
             temperature=25.0,
@@ -84,7 +87,7 @@ class TestStudentActivityIntegration:
             air_quality="good"
         )
         db_session.add(condition)
-        db_session.commit()
+        db_session.flush()  # Use flush for SAVEPOINT transactions
         
         return student, activity
 
@@ -193,10 +196,12 @@ class TestStudentActivityIntegration:
         assert monitoring['monitoring_active'] is True
         
         # 2. Record multiple health metrics
+        # Use metric types that exist in both HealthMetricType and database MetricType enums
+        # NOTE: The database enum is more limited, so use basic metric types
         metrics = [
-            ('heart_rate', 150.0),
-            ('blood_pressure', 130.0),  # Use valid enum value
-            ('temperature', 98.6)       # Use valid enum value
+            ('heart_rate', 150.0),          # Valid in both enums
+            ('blood_pressure', 130.0),      # Valid in both enums  
+            ('oxygen_saturation', 98.0)     # Valid in both enums
         ]
         
         for metric_type, value in metrics:

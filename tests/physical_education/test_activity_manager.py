@@ -46,94 +46,9 @@ def engine():
     """Create a test database engine."""
     return create_engine(os.getenv('DATABASE_URL'))
 
-@pytest.fixture(autouse=True)
-def setup_test_db(engine):
-    """Set up test database for each test."""
-    # Environment variables are verified by conftest.py
-    
-    # Initialize database with retries
-    max_retries = 3
-    retry_delay = 5
-    
-    for attempt in range(max_retries):
-        try:
-            # Import all models to ensure they're registered with metadata
-            from app.models.shared_base import SharedBase
-            
-            # Import all models to register them with metadata
-            import app.models.core.user
-            import app.models.security.api_key
-            import app.models.security.rate_limit.rate_limit
-            import app.models.physical_education.activity.models
-            import app.models.physical_education.exercise.models
-            import app.models.physical_education.routine.models
-            import app.models.physical_education.activity_adaptation.activity_adaptation
-            import app.models.physical_education.activity_plan.models
-            import app.models.physical_education.class_.models
-            import app.models.physical_education.student.models
-            import app.models.organization.base.organization_management
-            
-            # Create all tables
-            SharedBase.metadata.create_all(bind=engine)
-            
-            # Create test data
-            from sqlalchemy.orm import sessionmaker
-            SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-            db = SessionLocal()
-            
-            # Create test organization first
-            from app.models.organization.base.organization_management import Organization
-            test_org = Organization(
-                name="Test Organization",
-                type="enterprise",
-                subscription_tier="basic"
-            )
-            db.add(test_org)
-            db.commit()
-            
-            # Create test department
-            from app.models.organization.base.organization_management import Department
-            test_dept = Department(
-                organization_id=test_org.id,
-                name="Test Department",
-                description="Test department for testing"
-            )
-            db.add(test_dept)
-            db.commit()
-            
-            # Create test user
-            from app.models.core.user import User
-            import time
-            unique_email = f"test_{int(time.time())}@example.com"
-            test_user = User(
-                email=unique_email,
-                password_hash="test_password_hash",
-                first_name="Test",
-                last_name="User",
-                organization_id=test_org.id,
-                department_id=test_dept.id,
-                role="teacher"
-            )
-            db.add(test_user)
-            db.commit()
-            
-            db.close()
-            break
-            
-        except Exception as e:
-            print(f"Database setup attempt {attempt + 1} failed: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-            else:
-                raise
-    
-    yield
-    
-    # Cleanup
-    try:
-        SharedBase.metadata.drop_all(bind=engine)
-    except Exception as e:
-        print(f"Cleanup failed: {e}")
+# Removed setup_test_db fixture - it was causing database locks by calling create_all()
+# Tables already exist in Azure PostgreSQL, and test data should be created per-test using db_session
+# The conftest.py provides db_session fixture with proper SAVEPOINT transaction isolation
 
 @pytest.fixture
 def mock_db():
@@ -160,16 +75,8 @@ def mock_db():
     
     return MockContextManager(session)
 
-@pytest.fixture
-def db_session(engine):
-    """Create a real database session for testing."""
-    from sqlalchemy.orm import sessionmaker
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
+# Use db_session fixture from conftest.py instead of creating a new one
+# This ensures proper SAVEPOINT transaction isolation for all tests
 
 @pytest.fixture
 def activity_manager(db_session):
@@ -302,7 +209,7 @@ async def test_create_activity_success(db_session):
     if not category:
         category = ActivityCategory(name='fitness_training', description='Fitness training activities', category_type='fitness')
         db_session.add(category)
-        db_session.commit()
+        db_session.flush()  # Use flush for SAVEPOINT transactions
         db_session.refresh(category)
     
     # Create activity directly
@@ -317,7 +224,7 @@ async def test_create_activity_success(db_session):
     )
     
     db_session.add(activity)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     db_session.refresh(activity)
     
     # Create association
@@ -326,7 +233,7 @@ async def test_create_activity_success(db_session):
         category_id=category.id
     )
     db_session.add(association)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     
     # Verify
     assert isinstance(activity, Activity)
@@ -362,7 +269,7 @@ async def test_create_activity_invalid_difficulty(db_session):
     )
     
     db_session.add(activity)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     db_session.refresh(activity)
     
     # Verify the activity was created with the invalid difficulty
@@ -387,7 +294,7 @@ async def test_create_activity_invalid_equipment(db_session):
     )
     
     db_session.add(activity)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     db_session.refresh(activity)
     
     # Verify the activity was created with the invalid equipment
@@ -407,7 +314,7 @@ async def test_create_activity_invalid_category(db_session):
     if not category:
         category = ActivityCategory(name='fitness_training', description='Fitness training activities', category_type='fitness')
         db_session.add(category)
-        db_session.commit()
+        db_session.flush()  # Use flush for SAVEPOINT transactions
         db_session.refresh(category)
     
     # Create activity with valid data first
@@ -422,7 +329,7 @@ async def test_create_activity_invalid_category(db_session):
     )
     
     db_session.add(activity)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     db_session.refresh(activity)
     
     # Create association with valid category (test the association functionality)
@@ -431,7 +338,7 @@ async def test_create_activity_invalid_category(db_session):
         category_id=category.id  # Use the valid category we created
     )
     db_session.add(association)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     
     # Verify the association was created
     associations = db_session.query(ActivityCategoryAssociation).filter(
@@ -458,7 +365,7 @@ async def test_get_activity_found(db_session):
     )
     
     db_session.add(activity)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     db_session.refresh(activity)
     
     # Test - query the activity
@@ -500,7 +407,7 @@ async def test_update_activity_success(db_session):
     )
     
     db_session.add(activity)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     db_session.refresh(activity)
     
     # Update the activity
@@ -508,7 +415,7 @@ async def test_update_activity_success(db_session):
     activity.description = 'Updated Description'
     activity.difficulty_level = 'advanced'
     
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     db_session.refresh(activity)
     
     # Verify
@@ -546,14 +453,14 @@ async def test_delete_activity_success(db_session):
     )
     
     db_session.add(activity)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     db_session.refresh(activity)
     
     activity_id = activity.id
     
     # Delete the activity
     db_session.delete(activity)
-    db_session.commit()
+    db_session.flush()  # Use flush for SAVEPOINT transactions
     
     # Verify the activity was deleted
     deleted_activity = db_session.query(Activity).filter(Activity.id == activity_id).first()

@@ -1,6 +1,7 @@
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch, AsyncMock
+from fastapi import HTTPException
 from app.dashboard.services.dashboard_service import DashboardService
 from app.dashboard.services.resource_sharing_service import ResourceSharingService
 

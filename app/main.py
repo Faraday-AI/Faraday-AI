@@ -35,6 +35,7 @@ from app.api.v1.endpoints.management.ai_analysis import router as ai_analysis_ro
 from app.api.v1.endpoints.management.activity_management import router as activity_management
 from app.api.v1.endpoints.physical_education import pe_router
 from app.api.v1.endpoints.physical_education.health_fitness import router as health_fitness_router
+from app.api.v1.endpoints.physical_education.activity_recommendations import router as activity_recommendations_router
 from app.core.database import initialize_engines, get_db, engine, init_db
 from app.core.enums import Region
 from app.api.auth import router as auth_router
@@ -412,7 +413,11 @@ app.include_router(notifications.router, prefix="/api/v1/notifications", tags=["
 app.include_router(educational.router, prefix="/api/v1/educational", tags=["educational"])
 app.include_router(pe_router, prefix="/api/v1/phys-ed", tags=["physical-education"])
 app.include_router(health_fitness_router, prefix="/api/v1/physical-education", tags=["physical-education"])
+app.include_router(activity_recommendations_router, prefix="/api/v1/physical-education", tags=["physical-education"])
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+# Beta Teacher System endpoints
+from app.api.v1.endpoints.beta_students import router as beta_students_router
+app.include_router(beta_students_router, prefix="/api/v1", tags=["beta"])
 app.include_router(rbac_management_router, prefix="/api/v1/rbac-management", tags=["rbac-management"])
 app.include_router(rbac_management_router, prefix="/api/v1/rbac-management", tags=["rbac-management"])
 
@@ -523,6 +528,14 @@ async def startup_event():
         # Initialize load balancer service
         db_session = next(get_db())
         resource_service = get_resource_sharing_service(db_session)
+        
+        # Start background tasks for resource sharing service (monitoring, cleanup)
+        try:
+            await resource_service.start_background_tasks()
+            logger.info("Resource sharing service background tasks started")
+        except Exception as e:
+            logger.warning(f"Could not start resource sharing background tasks: {e}")
+        
         load_balancer_service = LoadBalancerService(
             load_balancer=load_balancer,
             monitoring_service=monitoring_service,
@@ -568,6 +581,15 @@ async def shutdown_event():
         await get_realtime_collaboration_service().cleanup()
         await get_file_processing_service().cleanup()
         await get_ai_analytics_service().cleanup()
+        
+        # Shutdown resource sharing service background tasks
+        try:
+            db_session = next(get_db())
+            resource_service = get_resource_sharing_service(db_session)
+            await resource_service.shutdown()
+            logger.info("Resource sharing service background tasks stopped")
+        except Exception as e:
+            logger.warning(f"Error shutting down resource sharing service: {e}")
         
         logging.info("Application shutdown completed successfully")
     except Exception as e:

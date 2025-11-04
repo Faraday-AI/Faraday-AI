@@ -15,8 +15,10 @@ from sqlalchemy.orm import sessionmaker
 # Initialize Faker for realistic data
 fake = Faker()
 
-# Database connection details
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://faraday_admin:CodaMoeLuna31@faraday-ai-db.postgres.database.azure.com:5432/postgres?sslmode=require")
+# Database connection details (must be provided via environment)
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL must be set in the environment")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

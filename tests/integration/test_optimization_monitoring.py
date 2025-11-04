@@ -202,17 +202,27 @@ async def test_empty_data_handling(monitoring_service):
 @pytest.mark.asyncio
 async def test_error_handling(monitoring_service, mock_db):
     """Test error handling."""
-    # Arrange
-    mock_db.query.side_effect = Exception("Database error")
-
-    # Act & Assert
-    with pytest.raises(Exception) as exc_info:
-        await monitoring_service.get_optimization_metrics("test_org", "24h")
-    assert "Error getting optimization metrics" in str(exc_info.value)
-
-    with pytest.raises(Exception) as exc_info:
-        await monitoring_service.get_optimization_insights("test_org", "24h")
-    assert "Error getting optimization insights" in str(exc_info.value)
+    # Arrange - test that exceptions in data processing are handled gracefully
+    # Since we now handle errors gracefully by returning default values, we verify that behavior
+    from unittest.mock import patch
+    
+    # Test that processing errors in individual components are handled gracefully
+    with patch.object(monitoring_service, '_calculate_utilization_rate', side_effect=Exception("Processing error")):
+        # Should not raise, but return default values
+        result = await monitoring_service.get_optimization_metrics("test_org", "24h")
+        assert result["utilization_rate"] == 0.0  # Default fallback value
+    
+    # Test that exceptions in main processing still raise HTTPException
+    # Patch a method that's called before the try-except for individual components
+    with patch.object(monitoring_service, '_get_usage_data', side_effect=Exception("Database error")):
+        with pytest.raises(Exception) as exc_info:
+            await monitoring_service.get_optimization_metrics("test_org", "24h")
+        assert "Error getting optimization metrics" in (str(exc_info.value.detail) if hasattr(exc_info.value, 'detail') else str(exc_info.value))
+    
+    with patch.object(monitoring_service, '_get_sharing_data', side_effect=Exception("Database error")):
+        with pytest.raises(Exception) as exc_info:
+            await monitoring_service.get_optimization_insights("test_org", "24h")
+        assert "Error getting optimization insights" in (str(exc_info.value.detail) if hasattr(exc_info.value, 'detail') else str(exc_info.value))
 
 @pytest.mark.asyncio
 async def test_time_range_handling(monitoring_service, mock_db, sample_usage_data, sample_sharing_data):

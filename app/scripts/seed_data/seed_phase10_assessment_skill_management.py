@@ -144,6 +144,18 @@ def recover_transaction(session):
         print(f"  ❌ Failed to rollback transaction: {e}")
         return False
 
+def safe_execute_with_savepoint(session, operation_name, operation_func):
+    """Execute an operation in a savepoint so failures don't abort the entire transaction"""
+    savepoint = session.begin_nested()
+    try:
+        result = operation_func()
+        savepoint.commit()
+        return result
+    except Exception as e:
+        savepoint.rollback()
+        print(f"  ⚠️ {operation_name}: {e}")
+        return None
+
 def seed_phase10_assessment_skill_management(session):
     """
     Seed Phase 10: Assessment & Skill Management System
@@ -185,10 +197,13 @@ def seed_phase10_assessment_skill_management(session):
         
         # skill_assessment_assessment_metrics
         print("  Seeding skill_assessment_assessment_metrics...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_assessment_metrics"))
             if result.scalar() > 0:
                 print("  ✅ skill_assessment_assessment_metrics already has data")
+                savepoint.commit()
+                successful_tables += 1
             else:
                 metrics_data = []
                 for i in range(100):
@@ -199,7 +214,7 @@ def seed_phase10_assessment_skill_management(session):
                     improvement_rate = random.uniform(0.5, 3.0)
                     
                     metrics_data.append({
-                        'assessment_id': random.choice(assessment_ids),
+                        'assessment_id': random.choice(assessment_ids) if assessment_ids else None,
                         'student_id': random.choice(student_ids),
                         'activity_id': random.choice(activity_ids),
                         'recent_average': recent_avg,
@@ -229,17 +244,23 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), metric)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(metrics_data)} skill assessment metrics")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_assessment_metrics: {e}")
+            savepoint.rollback()
         
         # skill_assessment_assessments
         print("  Seeding skill_assessment_assessments...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_assessments"))
             if result.scalar() > 0:
                 print("  ✅ skill_assessment_assessments already has data")
+                savepoint.commit()
+                successful_tables += 1
             else:
                 assessments_data = []
                 skill_types = ['MOTOR_SKILLS', 'COGNITIVE_SKILLS', 'SOCIAL_SKILLS', 'PHYSICAL_SKILLS', 'ACADEMIC_SKILLS']
@@ -288,14 +309,17 @@ def seed_phase10_assessment_skill_management(session):
                     
                     print(f"    📊 Processed {min(i+batch_size, len(assessments_data))}/{len(assessments_data)} skill assessments...")
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(assessments_data)} skill assessments")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_assessments: {e}")
-            recover_transaction(session)
+            savepoint.rollback()
         
         # skill_assessment_risk_assessments
         print("  Seeding skill_assessment_risk_assessments...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_risk_assessments"))
             if result.scalar() > 0:
@@ -359,18 +383,23 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), risk)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(risk_data)} risk assessments")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_risk_assessments: {e}")
-            recover_transaction(session)
+            savepoint.rollback()
         
         # skill_assessment_safety_alerts
         print("  Seeding skill_assessment_safety_alerts...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_safety_alerts"))
             if result.scalar() > 0:
                 print("  ✅ skill_assessment_safety_alerts already has data")
+                savepoint.commit()
+                successful_tables += 1
             else:
                 alerts_data = []
                 alert_types = ['EQUIPMENT_SAFETY', 'ENVIRONMENT_SAFETY', 'BEHAVIOR_SAFETY', 'MEDICAL_SAFETY', 'EMERGENCY_SAFETY']
@@ -416,10 +445,13 @@ def seed_phase10_assessment_skill_management(session):
         
         # skill_assessment_safety_incidents
         print("  Seeding skill_assessment_safety_incidents...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_safety_incidents"))
             if result.scalar() > 0:
                 print("  ✅ skill_assessment_safety_incidents already has data")
+                savepoint.commit()
+                successful_tables += 1
             else:
                 incidents_data = []
                 incident_types = ['MINOR_INJURY', 'EQUIPMENT_FAILURE', 'BEHAVIORAL_INCIDENT', 'MEDICAL_EMERGENCY', 'ENVIRONMENTAL_HAZARD']
@@ -466,10 +498,13 @@ def seed_phase10_assessment_skill_management(session):
         
         # skill_assessment_safety_protocols
         print("  Seeding skill_assessment_safety_protocols...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_safety_protocols"))
             if result.scalar() > 0:
                 print("  ✅ skill_assessment_safety_protocols already has data")
+                savepoint.commit()
+                successful_tables += 1
             else:
                 protocols_data = []
                 protocol_types = ['EQUIPMENT_SAFETY', 'ENVIRONMENT_SAFETY', 'BEHAVIOR_SAFETY', 'MEDICAL_SAFETY', 'EMERGENCY_RESPONSE']
@@ -507,10 +542,13 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), protocol)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(protocols_data)} safety protocols")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_safety_protocols: {e}")
+            savepoint.rollback()
         
         # 10.2 GENERAL ASSESSMENT SYSTEM (4 tables)
         print("\n📊 10.2 GENERAL ASSESSMENT SYSTEM")
@@ -518,50 +556,89 @@ def seed_phase10_assessment_skill_management(session):
         
         # general_assessment_criteria
         print("  Seeding general_assessment_criteria...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM general_assessment_criteria"))
             if result.scalar() > 0:
                 print("  ✅ general_assessment_criteria already has data")
+                savepoint.commit()
+                successful_tables += 1
             else:
-                criteria_data = []
-                criteria_types = ['PERFORMANCE', 'KNOWLEDGE', 'SKILL', 'BEHAVIOR', 'ATTITUDE', 'PROGRESS']
-                criteria_levels = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']
-                
-                for i in range(200):
-                    criteria_data.append({
-                        'assessment_id': random.choice(assessment_ids) if assessment_ids else None,
-                        'type': random.choice(['TECHNICAL', 'PERFORMANCE', 'PROGRESS', 'SAFETY']),
-                        'score': random.uniform(0, 100),
-                        'feedback': f'Assessment feedback for criteria {i+1}: {random.choice(["Excellent progress", "Needs improvement", "On track", "Requires attention"])}',
-                        'meta_data': json.dumps({
-                            'level': random.choice(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']),
-                            'weight': random.uniform(0.1, 1.0),
-                            'max_score': random.randint(10, 100),
-                            'evaluation_notes': f'Evaluation notes for criteria {i+1}'
-                        }),
-                        'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
-                        'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
-                    })
-                
-                for criteria in criteria_data:
-                    session.execute(text("""
-                        INSERT INTO general_assessment_criteria (
-                            assessment_id, type, score, feedback, meta_data, created_at, updated_at
-                        ) VALUES (
-                            :assessment_id, :type, :score, :feedback, :meta_data, :created_at, :updated_at
-                        )
-                    """), criteria)
-                
-                print(f"  ✅ Created {len(criteria_data)} assessment criteria")
+                # Ensure we see latest committed data
+                session.flush()
+                # Get fresh general_assessments IDs from database (recreated on each run)
+                try:
+                    general_assessment_result = session.execute(text("SELECT id FROM general_assessments ORDER BY id"))
+                    general_assessment_ids = [row[0] for row in general_assessment_result.fetchall()]
+                    if not general_assessment_ids:
+                        print("  ⚠️ No general_assessments found, skipping general_assessment_criteria")
+                        savepoint.rollback()
+                    else:
+                        # Validate IDs actually exist by checking the first ID
+                        if len(general_assessment_ids) > 0:
+                            validation_result = session.execute(
+                                text("SELECT COUNT(*) FROM general_assessments WHERE id = :id"),
+                                {"id": general_assessment_ids[0]}
+                            )
+                            validation_count = validation_result.scalar() or 0
+                            if validation_count == 0:
+                                print(f"  ⚠️ Found {len(general_assessment_ids)} IDs but first ID {general_assessment_ids[0]} doesn't exist, skipping general_assessment_criteria")
+                                savepoint.rollback()
+                            else:
+                                print(f"  📋 Found {len(general_assessment_ids)} general_assessments in database (validated first ID: {general_assessment_ids[0]})")
+                                criteria_data = []
+                                criteria_types = ['PERFORMANCE', 'KNOWLEDGE', 'SKILL', 'BEHAVIOR', 'ATTITUDE', 'PROGRESS']
+                                criteria_levels = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']
+                                
+                                # Limit to available assessments to avoid foreign key violations
+                                for i in range(min(200, len(general_assessment_ids) * 5)):
+                                    criteria_data.append({
+                                        'assessment_id': random.choice(general_assessment_ids),  # Use only IDs that exist
+                                        'type': random.choice(['TECHNICAL', 'PERFORMANCE', 'PROGRESS', 'SAFETY']),
+                                        'score': random.uniform(0, 100),
+                                        'feedback': f'Assessment feedback for criteria {i+1}: {random.choice(["Excellent progress", "Needs improvement", "On track", "Requires attention"])}',
+                                        'meta_data': json.dumps({
+                                            'level': random.choice(['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'EXPERT']),
+                                            'weight': random.uniform(0.1, 1.0),
+                                            'max_score': random.randint(10, 100),
+                                            'evaluation_notes': f'Evaluation notes for criteria {i+1}'
+                                        }),
+                                        'created_at': datetime.now() - timedelta(days=random.randint(1, 365)),
+                                        'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                                    })
+                                
+                                for criteria in criteria_data:
+                                    session.execute(text("""
+                                        INSERT INTO general_assessment_criteria (
+                                            assessment_id, type, score, feedback, meta_data, created_at, updated_at
+                                        ) VALUES (
+                                            :assessment_id, :type, :score, :feedback, :meta_data, :created_at, :updated_at
+                                        )
+                                    """), criteria)
+                                
+                                savepoint.commit()
+                                session.commit()
+                                print(f"  ✅ Created {len(criteria_data)} assessment criteria")
+                                successful_tables += 1
+                except Exception as e:
+                    print(f"  ⚠️ Error querying/seeding general_assessment_criteria: {e}")
+                    savepoint.rollback()
         except Exception as e:
             print(f"  ⚠️ general_assessment_criteria: {e}")
+            try:
+                savepoint.rollback()
+            except:
+                pass
         
         # general_assessment_history
         print("  Seeding general_assessment_history...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM general_assessment_history"))
             if result.scalar() > 0:
                 print("  ✅ general_assessment_history already has data")
+                savepoint.commit()
+                successful_tables += 1
             else:
                 history_data = []
                 assessment_types = ['FORMATIVE', 'SUMMATIVE', 'DIAGNOSTIC', 'PLACEMENT', 'PROGRESS']
@@ -610,17 +687,23 @@ def seed_phase10_assessment_skill_management(session):
                     
                     print(f"    📊 Processed {min(i+batch_size, len(history_data))}/{len(history_data)} assessment history records...")
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(history_data)} assessment history records")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ general_assessment_history: {e}")
+            savepoint.rollback()
         
         # assessment_changes
         print("  Seeding assessment_changes...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM assessment_changes"))
             if result.scalar() > 0:
                 print("  ✅ assessment_changes already has data")
+                savepoint.commit()
+                successful_tables += 1
             else:
                 # Use flexible schema detection for assessment_changes
                 table_name = "assessment_changes"
@@ -665,17 +748,23 @@ def seed_phase10_assessment_skill_management(session):
                     # Use flexible insert
                     inserted = insert_data_flexible(session, table_name, changes_data, schema, batch_size=50)
                     if inserted > 0:
+                        savepoint.commit()
+                        session.commit()
                         print(f"  ✅ Created {inserted} assessment changes")
                         successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ assessment_changes: {e}")
+            savepoint.rollback()
         
         # analysis_movement_feedback
         print("  Seeding analysis_movement_feedback...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM analysis_movement_feedback"))
             if result.scalar() > 0:
                 print("  ✅ analysis_movement_feedback already has data")
+                savepoint.commit()
+                successful_tables += 1
             else:
                 # Use flexible schema detection for analysis_movement_feedback
                 table_name = "analysis_movement_feedback"
@@ -730,10 +819,13 @@ def seed_phase10_assessment_skill_management(session):
                     # Use flexible insert
                     inserted = insert_data_flexible(session, table_name, feedback_data, schema, batch_size=100)
                     if inserted > 0:
+                        savepoint.commit()
+                        session.commit()
                         print(f"  ✅ Created {inserted} movement feedback records")
                         successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ analysis_movement_feedback: {e}")
+            savepoint.rollback()
         
         # 10.3 ADDITIONAL SKILL ASSESSMENT TABLES (4 tables)
         print("\n📊 10.3 ADDITIONAL SKILL ASSESSMENT TABLES")
@@ -741,10 +833,12 @@ def seed_phase10_assessment_skill_management(session):
         
         # skill_assessment_assessment_criteria
         print("  Seeding skill_assessment_assessment_criteria...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_assessment_criteria"))
             if result.scalar() > 0:
                 print("  ✅ skill_assessment_assessment_criteria already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 criteria_data = []
@@ -770,17 +864,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), criteria)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(criteria_data)} assessment criteria")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_assessment_criteria: {e}")
+            savepoint.rollback()
         
         # skill_assessment_assessment_history
         print("  Seeding skill_assessment_assessment_history...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_assessment_history"))
             if result.scalar() > 0:
                 print("  ✅ skill_assessment_assessment_history already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 history_data = []
@@ -807,17 +906,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), history)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(history_data)} assessment history records")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_assessment_history: {e}")
+            savepoint.rollback()
         
         # skill_assessment_assessment_results
         print("  Seeding skill_assessment_assessment_results...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_assessment_results"))
             if result.scalar() > 0:
                 print("  ✅ skill_assessment_assessment_results already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 results_data = []
@@ -843,17 +947,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), result)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(results_data)} assessment results")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_assessment_results: {e}")
+            savepoint.rollback()
         
         # skill_assessment_skill_assessments
         print("  Seeding skill_assessment_skill_assessments...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM skill_assessment_skill_assessments"))
             if result.scalar() > 0:
                 print("  ✅ skill_assessment_skill_assessments already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 skill_assessments_data = []
@@ -879,10 +988,13 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), skill_assessment)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(skill_assessments_data)} skill assessments")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ skill_assessment_skill_assessments: {e}")
+            savepoint.rollback()
 
         # 10.4 ADDITIONAL GENERAL ASSESSMENT TABLES (2 tables)
         print("\n📊 10.4 ADDITIONAL GENERAL ASSESSMENT TABLES")
@@ -890,10 +1002,12 @@ def seed_phase10_assessment_skill_management(session):
         
         # general_skill_assessments
         print("  Seeding general_skill_assessments...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM general_skill_assessments"))
             if result.scalar() > 0:
                 print("  ✅ general_skill_assessments already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 general_skill_data = []
@@ -918,17 +1032,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), skill)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(general_skill_data)} general skill assessments")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ general_skill_assessments: {e}")
+            savepoint.rollback()
         
         # student_health_skill_assessments
         print("  Seeding student_health_skill_assessments...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM student_health_skill_assessments"))
             if result.scalar() > 0:
                 print("  ✅ student_health_skill_assessments already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 health_skill_data = []
@@ -952,10 +1071,13 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), health_skill)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(health_skill_data)} student health skill assessments")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ student_health_skill_assessments: {e}")
+            savepoint.rollback()
 
         # 10.5 MOVEMENT ANALYSIS SYSTEM (4 tables)
         print("\n📊 10.5 MOVEMENT ANALYSIS SYSTEM")
@@ -963,10 +1085,12 @@ def seed_phase10_assessment_skill_management(session):
         
         # movement_analysis_metrics
         print("  Seeding movement_analysis_metrics...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM movement_analysis_metrics"))
             if result.scalar() > 0:
                 print("  ✅ movement_analysis_metrics already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 metrics_data = []
@@ -989,17 +1113,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), metric)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(metrics_data)} movement analysis metrics")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ movement_analysis_metrics: {e}")
+            savepoint.rollback()
         
         # movement_analysis_patterns
         print("  Seeding movement_analysis_patterns...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM movement_analysis_patterns"))
             if result.scalar() > 0:
                 print("  ✅ movement_analysis_patterns already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 patterns_data = []
@@ -1022,17 +1151,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), pattern)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(patterns_data)} movement analysis patterns")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ movement_analysis_patterns: {e}")
+            savepoint.rollback()
         
         # physical_education_movement_analysis
         print("  Seeding physical_education_movement_analysis...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM physical_education_movement_analysis"))
             if result.scalar() > 0:
                 print("  ✅ physical_education_movement_analysis already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 pe_analysis_data = []
@@ -1056,10 +1190,13 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), analysis)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(pe_analysis_data)} physical education movement analyses")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ physical_education_movement_analysis: {e}")
+            savepoint.rollback()
 
         # 10.6 ADDITIONAL SAFETY & RISK MANAGEMENT (5 tables)
         print("\n📊 10.6 ADDITIONAL SAFETY & RISK MANAGEMENT")
@@ -1067,10 +1204,12 @@ def seed_phase10_assessment_skill_management(session):
         
         # safety_incidents
         print("  Seeding safety_incidents...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM safety_incidents"))
             if result.scalar() > 0:
                 print("  ✅ safety_incidents already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 incidents_data = []
@@ -1096,17 +1235,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), incident)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(incidents_data)} safety incidents")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ safety_incidents: {e}")
+            savepoint.rollback()
         
         # safety_guidelines
         print("  Seeding safety_guidelines...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM safety_guidelines"))
             if result.scalar() > 0:
                 print("  ✅ safety_guidelines already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 guidelines_data = []
@@ -1129,17 +1273,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), guideline)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(guidelines_data)} safety guidelines")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ safety_guidelines: {e}")
+            savepoint.rollback()
         
         # safety_protocols
         print("  Seeding safety_protocols...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM safety_protocols"))
             if result.scalar() > 0:
                 print("  ✅ safety_protocols already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 protocols_data = []
@@ -1162,17 +1311,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), protocol)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(protocols_data)} safety protocols")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ safety_protocols: {e}")
+            savepoint.rollback()
         
         # safety_reports
         print("  Seeding safety_reports...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM safety_reports"))
             if result.scalar() > 0:
                 print("  ✅ safety_reports already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 reports_data = []
@@ -1197,17 +1351,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), report)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(reports_data)} safety reports")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ safety_reports: {e}")
+            savepoint.rollback()
         
         # safety_measures
         print("  Seeding safety_measures...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM safety_measures"))
             if result.scalar() > 0:
                 print("  ✅ safety_measures already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 measures_data = []
@@ -1230,17 +1389,22 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), measure)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(measures_data)} safety measures")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ safety_measures: {e}")
+            savepoint.rollback()
         
         # safety_checklists
         print("  Seeding safety_checklists...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM safety_checklists"))
             if result.scalar() > 0:
                 print("  ✅ safety_checklists already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 checklists_data = []
@@ -1263,10 +1427,13 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), checklist)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(checklists_data)} safety checklists")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ safety_checklists: {e}")
+            savepoint.rollback()
 
         # 10.7 ADDITIONAL INJURY PREVENTION (1 table)
         print("\n📊 10.7 ADDITIONAL INJURY PREVENTION")
@@ -1274,10 +1441,12 @@ def seed_phase10_assessment_skill_management(session):
         
         # injury_preventions
         print("  Seeding injury_preventions...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM injury_preventions"))
             if result.scalar() > 0:
                 print("  ✅ injury_preventions already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 injury_prevention_data = []
@@ -1300,10 +1469,13 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), prevention)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(injury_prevention_data)} injury preventions")
                 successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ injury_preventions: {e}")
+            savepoint.rollback()
 
         # 10.8 SAFETY & RISK MANAGEMENT (4 tables)
         print("\n📊 10.8 SAFETY & RISK MANAGEMENT")
@@ -1311,10 +1483,12 @@ def seed_phase10_assessment_skill_management(session):
         
         # safety
         print("  Seeding safety...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM safety"))
             if result.scalar() > 0:
                 print("  ✅ safety already has data")
+                savepoint.commit()
             else:
                 safety_data = []
                 safety_types = ['INCIDENT', 'NEAR_MISS', 'HAZARD', 'INSPECTION', 'TRAINING']
@@ -1365,18 +1539,23 @@ def seed_phase10_assessment_skill_management(session):
                     safety_data.append(safety_item)
                 
                 # Use flexible insert
-                insert_data_flexible(session, 'safety', safety_data, schema)
-                
-                print(f"  ✅ Created {len(safety_data)} safety records")
+                inserted = insert_data_flexible(session, 'safety', safety_data, schema)
+                if inserted > 0:
+                    savepoint.commit()
+                    session.commit()
+                    print(f"  ✅ Created {inserted} safety records")
         except Exception as e:
             print(f"  ⚠️ safety: {e}")
+            savepoint.rollback()
         
         # safety_incident_base
         print("  Seeding safety_incident_base...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM safety_incident_base"))
             if result.scalar() > 0:
                 print("  ✅ safety_incident_base already has data")
+                savepoint.commit()
             else:
                 # Get schema for safety_incident_base table
                 schema_result = session.execute(text("""
@@ -1419,17 +1598,23 @@ def seed_phase10_assessment_skill_management(session):
                     base_data.append(base_item)
                 
                 # Use flexible insert
-                insert_data_flexible(session, 'safety_incident_base', base_data, schema)
-                print(f"  ✅ Created {len(base_data)} safety incident base records")
+                inserted = insert_data_flexible(session, 'safety_incident_base', base_data, schema)
+                if inserted > 0:
+                    savepoint.commit()
+                    session.commit()
+                    print(f"  ✅ Created {inserted} safety incident base records")
         except Exception as e:
             print(f"  ⚠️ safety_incident_base: {e}")
+            savepoint.rollback()
         
         # activity_injury_preventions
         print("  Seeding activity_injury_preventions...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM activity_injury_preventions"))
             if result.scalar() > 0:
                 print("  ✅ activity_injury_preventions already has data")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 prevention_data = []
@@ -1469,22 +1654,30 @@ def seed_phase10_assessment_skill_management(session):
                         )
                     """), prevention)
                 
+                savepoint.commit()
+                session.commit()
                 print(f"  ✅ Created {len(prevention_data)} activity injury prevention records")
+                successful_tables += 1
         except Exception as e:
             print(f"  ⚠️ activity_injury_preventions: {e}")
+            savepoint.rollback()
         
         # activity_logs (already seeded in main script, but ensure it's working)
         print("  Seeding activity_logs...")
+        savepoint = session.begin_nested()
         try:
             result = session.execute(text("SELECT COUNT(*) FROM activity_logs"))
             count = result.scalar()
             if count > 0:
                 print(f"  ✅ activity_logs already has {count} records")
+                savepoint.commit()
                 successful_tables += 1
             else:
                 print("  ⚠️ activity_logs is empty - this should have been seeded in main script")
+                savepoint.rollback()
         except Exception as e:
             print(f"  ⚠️ activity_logs: {e}")
+            savepoint.rollback()
         
         # Count actually populated tables - All 30 Phase 10 tables
         phase10_tables = [

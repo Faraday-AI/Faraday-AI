@@ -104,15 +104,30 @@ def seed_beta_teacher_system(session: Session) -> None:
             print("\n📊 PHASE 1.9: TEACHER DASHBOARD SYSTEM")
             print("-" * 50)
             
-            # Note: Tables already exist (created by SQLAlchemy models)
-            print("🔄 Tables already exist (created by SQLAlchemy models)")
-            
-            # Seed dashboard layouts and widgets
-            print("🔄 Seeding dashboard layouts and widgets...")
-            seed_teacher_dashboard_data(session)
-            
-            session.commit()
-            print("✅ Phase 1.9: Teacher Dashboard completed successfully!")
+            # Wrap Phase 1.9 in a savepoint for isolation
+            phase19_savepoint = session.begin_nested()
+            try:
+                # Note: Tables already exist (created by SQLAlchemy models)
+                print("🔄 Tables already exist (created by SQLAlchemy models)")
+                
+                # Seed dashboard layouts and widgets
+                print("🔄 Seeding dashboard layouts and widgets...")
+                seed_teacher_dashboard_data(session)
+                
+                # Commit the savepoint and session
+                phase19_savepoint.commit()
+                session.commit()
+                print("✅ Phase 1.9: Teacher Dashboard completed successfully!")
+            except Exception as phase19_error:
+                print(f"❌ Error in Phase 1.9: {phase19_error}")
+                try:
+                    phase19_savepoint.rollback()
+                    # Try to recover session for Phase 1.10
+                    session.rollback()
+                    session.flush()
+                    print("⚠️  Phase 1.9 failed but continuing with Phase 1.10...")
+                except:
+                    pass
         else:
             print("⏭️  SKIP_PHASE_1_9 enabled: skipping Teacher Dashboard")
         
@@ -121,63 +136,172 @@ def seed_beta_teacher_system(session: Session) -> None:
             print("\n🤖 PHASE 1.10: AI ASSISTANT INTEGRATION")
             print("-" * 50)
             
-            # Note: Tables already exist (created by SQLAlchemy models)
-            print("🔄 Tables already exist (created by SQLAlchemy models)")
+            # Ensure session is in good state after Phase 1.9 (in case it failed)
+            session_healthy = False
+            try:
+                # Test session state
+                session.execute(text("SELECT 1")).scalar()
+                session_healthy = True
+            except Exception as session_error:
+                print(f"⚠️  Session in failed state, attempting recovery...")
+                try:
+                    session.rollback()
+                    session.flush()
+                    # Test again after recovery
+                    session.execute(text("SELECT 1")).scalar()
+                    session_healthy = True
+                    print("✅ Session recovered")
+                except Exception as recovery_error:
+                    print(f"⚠️  Could not recover session: {recovery_error}")
+                    print("⚠️  Phase 1.10 may fail - parent transaction is in failed state")
             
-            # Seed AI assistant configurations
-            print("🔄 Seeding AI assistant configurations...")
-            seed_ai_assistant_data(session)
+            # Wrap Phase 1.10 in a savepoint for isolation (only if session is healthy)
+            if not session_healthy:
+                print("⚠️  Skipping Phase 1.10 savepoint creation due to failed session state")
+                raise Exception("Cannot create savepoint - parent transaction is in failed state")
             
-            # Seed beta testing data
-            print("🔄 Seeding beta testing data...")
-            seed_beta_testing_data(session)
-            
-            # Seed lesson plan sharing data
-            print("🔄 Seeding lesson plan sharing data...")
-            seed_lesson_plan_sharing_data(session)
-            
-            # Seed assessment template data
-            print("🔄 Seeding assessment template data...")
-            seed_assessment_template_data(session)
-            
-            # Seed curriculum and lesson data
-            print("🔄 Seeding curriculum and lesson data...")
-            seed_curriculum_and_lesson_data(session)
-            
-            # Create comprehensive educational resources
-            print("🔄 Creating comprehensive educational resources...")
-            create_comprehensive_educational_resources(session)
-            
-            # Create additional beta teachers for realistic testing
-            print("🔄 Creating additional beta teachers...")
-            create_additional_beta_teachers(session)
-            
-            # Migrate content from main system to beta
-            print("🔄 Migrating content from main system to beta...")
-            migrate_main_system_content_to_beta(session)
-            
-            # Distribute content evenly among all teachers
-            print("🔄 Distributing content evenly among teachers...")
-            distribute_content_evenly(session)
-            
-            # Now seed resource management data with all teachers and resources
-            print("🔄 Seeding resource management data with all teachers...")
-            seed_resource_management_data(session)
-            
-            # Create lesson plan activities
-            print("🔄 Creating lesson plan activities...")
-            create_lesson_plan_activities(session)
-            
-            # Enhance avatar and widget configurations
-            print("🔄 Enhancing avatar and widget configurations...")
-            enhance_avatar_widget_configurations(session)
-            
-            # Seed remaining empty tables
-            print("🔄 Seeding remaining empty tables...")
-            seed_remaining_empty_tables(session)
-            
-            session.commit()
-            print("✅ Phase 1.10: AI Assistant Integration completed successfully!")
+            phase10_savepoint = session.begin_nested()
+            try:
+                # Note: Tables already exist (created by SQLAlchemy models)
+                print("🔄 Tables already exist (created by SQLAlchemy models)")
+                
+                # Seed AI assistant templates first (base templates for all teachers)
+                print("🔄 Seeding AI assistant templates...")
+                from app.scripts.seed_data.seed_ai_assistant_templates import seed_ai_assistant_templates
+                seed_ai_assistant_templates(session)
+                session.flush()  # Use flush() not commit() when called from within savepoint
+                
+                # Seed AI assistant configurations
+                print("🔄 Seeding AI assistant configurations...")
+                seed_ai_assistant_data(session)
+                
+                # Seed beta testing data
+                print("🔄 Seeding beta testing data...")
+                seed_beta_testing_data(session)
+                
+                # Create additional beta teachers FIRST for realistic testing and sharing
+                # This ensures we have sufficient teachers (>2) before creating sharing data
+                print("🔄 Creating additional beta teachers...")
+                create_additional_beta_teachers(session)
+                
+                # Seed lesson plan sharing data (now with multiple teachers available)
+                print("🔄 Seeding lesson plan sharing data...")
+                seed_lesson_plan_sharing_data(session)
+                
+                # Seed assessment template data
+                print("🔄 Seeding assessment template data...")
+                seed_assessment_template_data(session)
+                
+                # Seed curriculum and lesson data
+                print("🔄 Seeding curriculum and lesson data...")
+                seed_curriculum_and_lesson_data(session)
+                
+                # Create comprehensive educational resources
+                print("🔄 Creating comprehensive educational resources...")
+                create_comprehensive_educational_resources(session)
+                
+                # Migrate content from main system to beta
+                print("🔄 Migrating content from main system to beta...")
+                migrate_main_system_content_to_beta(session)
+                
+                # Distribute content evenly among all teachers
+                print("🔄 Distributing content evenly among teachers...")
+                distribute_content_evenly(session)
+                
+                # Now seed resource management data with all teachers and resources
+                print("🔄 Seeding resource management data with all teachers...")
+                seed_resource_management_data(session)
+                
+                # Create lesson plan activities
+                print("🔄 Creating lesson plan activities...")
+                create_lesson_plan_activities(session)
+                
+                # Enhance avatar and widget configurations
+                print("🔄 Enhancing avatar and widget configurations...")
+                enhance_avatar_widget_configurations(session)
+                
+                # Seed remaining empty tables
+                print("🔄 Seeding remaining empty tables...")
+                seed_remaining_empty_tables(session)
+                
+                # Flush all changes to the savepoint before committing
+                session.flush()
+                
+                # Check session state before committing
+                session_healthy = True
+                try:
+                    # Test if parent session is healthy
+                    session.execute(text("SELECT 1")).scalar()
+                except Exception as session_test_error:
+                    # Parent session is in failed state - can't commit savepoint
+                    session_healthy = False
+                    print(f"  ⚠️  Parent session is in failed state: {session_test_error}")
+                    print("  ⚠️  Cannot commit savepoint - data may be lost")
+                
+                # Commit the savepoint and session (only if parent session is healthy)
+                if not session_healthy:
+                    print("⚠️  Cannot commit Phase 1.10 - parent transaction is in failed state")
+                    print("⚠️  Data was seeded but may not be persisted")
+                    # Try to recover for next phase
+                    try:
+                        phase10_savepoint.rollback()
+                        session.rollback()
+                        session.flush()
+                    except:
+                        pass
+                else:
+                    try:
+                        phase10_savepoint.commit()
+                        # Only commit the parent session after savepoint succeeds
+                        session.commit()
+                        print("✅ Phase 1.10: AI Assistant Integration completed successfully!")
+                    except Exception as commit_error:
+                        # If commit fails, rollback the savepoint
+                        print(f"⚠️  Commit error in Phase 1.10: {commit_error}")
+                        # Check if error is due to closed transaction
+                        if "closed" in str(commit_error).lower() or "aborted" in str(commit_error).lower():
+                            print("  ℹ️  Transaction is closed/aborted - data was seeded but commit failed")
+                            print("  ℹ️  Attempting to recover session for next phase...")
+                            try:
+                                # Try to rollback savepoint (may fail if already closed)
+                                try:
+                                    phase10_savepoint.rollback()
+                                except:
+                                    pass
+                                # Rollback parent session to clear failed state
+                                session.rollback()
+                                session.flush()
+                                print("  ✅ Parent session rolled back and recovered")
+                            except Exception as recovery_err:
+                                print(f"  ⚠️  Could not recover parent session: {recovery_err}")
+                        else:
+                            # For other errors, try normal rollback
+                            try:
+                                # Rollback the savepoint first
+                                phase10_savepoint.rollback()
+                                # Then rollback the parent session
+                                session.rollback()
+                                session.flush()
+                                print("⚠️  Phase 1.10 rolled back due to commit error")
+                            except Exception as rollback_err:
+                                print(f"⚠️  Could not rollback Phase 1.10 savepoint: {rollback_err}")
+                                # If savepoint rollback fails, try to rollback parent session
+                                try:
+                                    session.rollback()
+                                    session.flush()
+                                except:
+                                    pass
+            except Exception as phase10_error:
+                print(f"❌ Error in Phase 1.10: {phase10_error}")
+                try:
+                    phase10_savepoint.rollback()
+                    # Try to recover session for remaining phases
+                    session.rollback()
+                    session.flush()
+                except Exception as rollback_error:
+                    # If rollback also fails, session might be closed
+                    print(f"⚠️  Could not rollback Phase 1.10: {rollback_error}")
+                print("⚠️  Phase 1.10 failed but continuing with remaining phases")
         else:
             print("⏭️  SKIP_PHASE_1_10 enabled: skipping AI Assistant Integration")
         
@@ -936,6 +1060,15 @@ def seed_teacher_dashboard_data(session: Session) -> None:
         else:
             dashboard_id = dashboard_result[0]
         
+        # Check if id column requires a value by checking schema
+        schema_result = session.execute(
+            text("""
+                SELECT column_name, data_type, column_default, is_nullable
+                FROM information_schema.columns
+                WHERE table_name = 'dashboard_widgets' AND column_name = 'id'
+            """)
+        ).first()
+        
         widget_data = [
             {
                 "name": "Lesson Plan Overview",
@@ -963,27 +1096,53 @@ def seed_teacher_dashboard_data(session: Session) -> None:
             }
         ]
         
-        for widget in widget_data:
-            session.execute(text("""
-                INSERT INTO dashboard_widgets (
-                    name, description, widget_type, layout_position, size, configuration,
-                    is_active, is_visible, dashboard_id, created_at
-                ) VALUES (
-                    :name, :description, :widget_type, :layout_position, :size, :configuration,
-                    :is_active, :is_visible, :dashboard_id, :created_at
-                )
-            """), {
-                "name": widget["name"],
-                "description": widget["description"],
-                "widget_type": widget["widget_type"],
-                "layout_position": "TOP_LEFT",
-                "size": json.dumps({"width": 4, "height": 3}),
-                "configuration": json.dumps({"refresh_interval": 300}),
-                "is_active": widget["is_active"],
-                "is_visible": True,
-                "dashboard_id": dashboard_id,
-                "created_at": datetime.utcnow()
-            })
+        # Add savepoint isolation for dashboard widgets
+        savepoint = session.begin_nested()
+        try:
+            for widget in widget_data:
+                widget_values = {
+                    "name": widget["name"],
+                    "description": widget["description"],
+                    "widget_type": widget["widget_type"],
+                    "layout_position": "TOP_LEFT",
+                    "size": json.dumps({"width": 4, "height": 3}),
+                    "configuration": json.dumps({"refresh_interval": 300}),
+                    "is_active": widget["is_active"],
+                    "is_visible": True,
+                    "dashboard_id": dashboard_id,
+                    "created_at": datetime.utcnow()
+                }
+                
+                # Add id if required (NOT NULL with no default)
+                if schema_result and schema_result[2] is None and schema_result[3] == 'NO':
+                    widget_values["id"] = str(uuid.uuid4())
+                    session.execute(text("""
+                        INSERT INTO dashboard_widgets (
+                            id, name, description, widget_type, layout_position, size, configuration,
+                            is_active, is_visible, dashboard_id, created_at
+                        ) VALUES (
+                            :id, :name, :description, :widget_type, :layout_position, :size, :configuration,
+                            :is_active, :is_visible, :dashboard_id, :created_at
+                        )
+                    """), widget_values)
+                else:
+                    # id has default or is nullable - let database handle it
+                    session.execute(text("""
+                        INSERT INTO dashboard_widgets (
+                            name, description, widget_type, layout_position, size, configuration,
+                            is_active, is_visible, dashboard_id, created_at
+                        ) VALUES (
+                            :name, :description, :widget_type, :layout_position, :size, :configuration,
+                            :is_active, :is_visible, :dashboard_id, :created_at
+                        )
+                    """), widget_values)
+            
+            savepoint.commit()
+            session.flush()  # Use flush() not commit() when called from within savepoint
+        except Exception as e:
+            print(f"❌ Error seeding dashboard widgets: {e}")
+            savepoint.rollback()
+            raise
         
         # Seed dashboard analytics
         print("🔄 Seeding dashboard analytics...")
@@ -1071,9 +1230,1247 @@ def seed_teacher_dashboard_data(session: Session) -> None:
         
         print("✅ Seeded teacher dashboard data with widgets, analytics, and feedback")
         
+        # Seed the 12 Beta Teacher Dashboard tables
+        print("\n🔄 Seeding Beta Teacher Dashboard tables...")
+        try:
+            seed_beta_teacher_dashboard_tables(session)
+        except Exception as beta_dashboard_error:
+            print(f"⚠️  Error seeding beta teacher dashboard tables: {beta_dashboard_error}")
+            # Don't raise - allow Phase 1.9 to complete with what it has
+            # The beta dashboard tables seeding has its own savepoint, so it won't affect other data
+        
     except Exception as e:
         print(f"❌ Error seeding teacher dashboard data: {e}")
-        raise
+        # Don't raise - allow Phase 1.9's savepoint to handle recovery
+        # This allows Phase 1.10 to still run even if Phase 1.9 partially fails
+
+def migrate_existing_teacher_data_to_beta(session: Session) -> None:
+    """Migrate existing teacher-related data from main system to beta dashboard tables
+    
+    IMPORTANT: Beta system REUSES main system teacher functions that are NOT tied to district/student data.
+    - Main system = Has district-level AND teacher-only features
+    - Beta system = Uses ONLY teacher-only features (lesson plans, assessments, resources, AI assistant)
+    - Teacher-only features: Lesson Plan Builder, Assessment Tools, Resource Management, AI Assistant
+    
+    This migration migrates teacher personal data (not district data):
+    1. Lesson plans they created (lesson_plan_templates)
+    2. Assessment templates they created (assessment_templates)
+    3. Resources they uploaded/shared (educational_resources)
+    4. Their personal activity/statistics (teacher-level only)
+    5. Their personal goals/achievements (not district goals)
+    
+    NOTE: Beta teachers use the SAME main system tables for teacher-only features.
+    Migration only populates beta dashboard tables (analytics, achievements, notifications) from main system teacher data.
+    """
+    savepoint = session.begin_nested()
+    try:
+        print("\n📦 Migrating teacher personal data to Beta Teacher Dashboard...")
+        print("   ℹ️  Beta teachers use main system teacher functions (lesson plans, assessments, resources)")
+        print("   ℹ️  Only migrating personal analytics/achievements to beta dashboard tables")
+        
+        # Get beta teacher IDs (from teacher_registrations - same table used by both systems)
+        teacher_results = session.execute(text("SELECT id FROM teacher_registrations LIMIT 10")).fetchall()
+        if not teacher_results:
+            print("⚠️  No beta teachers found, skipping migration")
+            savepoint.commit()
+            return
+        
+        teacher_ids = [row[0] for row in teacher_results]
+        
+        # Check if educational_resources table exists and has created_by column
+        has_educational_resources_created_by = False
+        try:
+            result = session.execute(text("""
+                SELECT column_name FROM information_schema.columns
+                WHERE table_name = 'educational_resources' AND column_name = 'created_by'
+            """)).fetchone()
+            has_educational_resources_created_by = result is not None
+        except Exception:
+            pass
+        
+        # Beta teachers use main system teacher functions, so they may have data in main system tables
+        # Check which teachers have created lesson plans, assessments, or resources in main system
+        teachers_with_main_data = []
+        for teacher_id in teacher_ids:
+            teacher_email_result = session.execute(text("""
+                SELECT email FROM teacher_registrations WHERE id = :teacher_id
+            """), {"teacher_id": teacher_id}).fetchone()
+            
+            if teacher_email_result:
+                email = teacher_email_result[0]
+                # Check if teacher has created any personal content (lesson plans, assessments, resources)
+                # Only check educational_resources if the created_by column exists
+                if has_educational_resources_created_by:
+                    has_content = session.execute(text("""
+                        SELECT COUNT(*) FROM (
+                            SELECT 1 FROM lesson_plan_templates WHERE teacher_id = :teacher_id
+                            UNION ALL
+                            SELECT 1 FROM assessment_templates WHERE teacher_id = :teacher_id
+                            UNION ALL
+                            SELECT 1 FROM educational_resources WHERE created_by = :teacher_id
+                        ) content
+                    """), {"teacher_id": teacher_id}).scalar()
+                else:
+                    # Skip educational_resources check if column doesn't exist
+                    has_content = session.execute(text("""
+                        SELECT COUNT(*) FROM (
+                            SELECT 1 FROM lesson_plan_templates WHERE teacher_id = :teacher_id
+                            UNION ALL
+                            SELECT 1 FROM assessment_templates WHERE teacher_id = :teacher_id
+                        ) content
+                    """), {"teacher_id": teacher_id}).scalar()
+                
+                if has_content:
+                    teachers_with_main_data.append(teacher_id)
+        
+        if not teachers_with_main_data:
+            print("   ℹ️  No teachers with existing content - will seed fresh data")
+            print("   ✅ Beta teachers will use main system functions going forward")
+            savepoint.commit()
+            return
+        
+        print(f"   🔍 Found {len(teachers_with_main_data)} teachers with existing personal content")
+        print("   📋 Migrating teacher personal data to beta dashboard (analytics, achievements, etc.)")
+        
+        # Initialize all migration counters to avoid reference errors
+        migrated_count = 0
+        migrated_stats = 0
+        migrated_notifs = 0
+        migrated_goals = 0
+        
+        # 1. Migrate activity_logs → teacher_activity_logs (teacher personal activities only)
+        # These are activities from using main system teacher functions (lesson plans, assessments, resources)
+        try:
+            print("  🔄 Migrating teacher activity logs (from main system teacher functions)...")
+            
+            # Check if activity_logs table exists and has the action column (correct column name)
+            activity_logs_available = False
+            try:
+                result = session.execute(text("""
+                    SELECT column_name FROM information_schema.columns
+                    WHERE table_name = 'activity_logs' AND column_name = 'action'
+                """)).fetchone()
+                activity_logs_available = result is not None
+            except Exception:
+                pass
+            
+            # Migrate activities related to teacher-only features (lesson plans, assessments, resources, AI)
+            # activity_logs table has: id, action, resource_type, resource_id, details (JSON), user_id, org_id, timestamp, created_at
+            # We map: action -> activity_type, details -> activity_metadata, action -> activity_description
+            if not teachers_with_main_data:
+                print("    ℹ️  No teachers with existing content, skipping activity log migration")
+                migrated_count = 0
+            elif not activity_logs_available:
+                print("    ⚠️  Activity logs migration skipped: activity_logs table not available")
+                print("    ℹ️  This is OK - beta system will seed fresh activity logs")
+                migrated_count = 0
+            else:
+                # Query activity_logs using correct column names: action (not activity_type), details (not metadata)
+                activity_logs_result = session.execute(text("""
+                    SELECT DISTINCT ON (al.id) 
+                        al.id, al.user_id, al.action, al.action as description,
+                        al.resource_type, al.resource_id, al.details, 
+                        NULL as ip_address, NULL as user_agent, NULL as session_id, al.created_at
+                    FROM activity_logs al
+                    INNER JOIN users u ON al.user_id = u.id
+                    INNER JOIN teacher_registrations tr ON u.email = tr.email
+                    WHERE al.created_at >= NOW() - INTERVAL '90 days'
+                        AND al.action IN (
+                            'lesson_created', 'lesson_plan_created', 'assessment_created', 
+                            'assessment_template_created', 'resource_downloaded', 'resource_uploaded',
+                            'resource_shared', 'ai_used', 'ai_assistant_used', 'login', 'dashboard_viewed',
+                            'create_lesson', 'create_assessment', 'download_resource', 'upload_resource'
+                        )
+                        AND tr.id = ANY(:teacher_ids)
+                    ORDER BY al.id, al.created_at DESC
+                    LIMIT 1000
+                """), {"teacher_ids": teachers_with_main_data}).fetchall()
+                
+                migrated_count = 0
+                for log in activity_logs_result:
+                    # Get teacher_id from teacher_registrations
+                    teacher_result = session.execute(text("""
+                        SELECT tr.id FROM teacher_registrations tr
+                        INNER JOIN users u ON tr.email = u.email
+                        WHERE u.id = :user_id
+                        LIMIT 1
+                    """), {"user_id": log[1]}).fetchone()
+                    
+                    if teacher_result:
+                        teacher_id = teacher_result[0]
+                        # Check if already migrated
+                        # log structure: [id, user_id, action, description (same as action), resource_type, resource_id, details (JSON), ip_address (NULL), user_agent (NULL), session_id (NULL), created_at]
+                        activity_type = log[2] or "unknown"  # action from activity_logs
+                        activity_description = log[3] or activity_type  # description (same as action)
+                        resource_type = log[4]
+                        resource_id = str(log[5]) if log[5] else None
+                        activity_metadata = json.dumps(log[6]) if log[6] else None  # details JSON from activity_logs
+                        created_at = log[10]  # created_at from activity_logs
+                        
+                        exists = session.execute(text("""
+                            SELECT COUNT(*) FROM teacher_activity_logs 
+                            WHERE id = :id OR (teacher_id = CAST(:teacher_id AS VARCHAR) AND activity_type = :activity_type AND created_at = :created_at)
+                        """), {
+                            "id": str(log[0]),
+                            "teacher_id": str(teacher_id),
+                            "activity_type": activity_type,
+                            "created_at": created_at
+                        }).scalar()
+                        
+                        if not exists:
+                            session.execute(text("""
+                                INSERT INTO teacher_activity_logs (
+                                    id, teacher_id, activity_type, activity_description, resource_type,
+                                    resource_id, resource_title, activity_metadata, ip_address, user_agent,
+                                    session_id, created_at
+                                ) VALUES (
+                                    :id, :teacher_id, :activity_type, :description, :resource_type,
+                                    :resource_id, NULL, :metadata, NULL, NULL, NULL, :created_at
+                                )
+                                ON CONFLICT (id) DO NOTHING
+                            """), {
+                                "id": str(log[0]),
+                                "teacher_id": str(teacher_id),
+                                "activity_type": activity_type,
+                                "description": activity_description,
+                                "resource_type": resource_type,
+                                "resource_id": resource_id,
+                                "metadata": activity_metadata,
+                                "created_at": created_at
+                            })
+                            migrated_count += 1
+                
+                if migrated_count > 0:
+                    print(f"    ✅ Migrated {migrated_count} activity logs")
+                else:
+                    print(f"    ℹ️  No activity logs to migrate (or already migrated)")
+        except Exception as e:
+            print(f"    ⚠️  Activity logs migration skipped: {e}")
+            # Recover session if transaction was aborted
+            try:
+                session.rollback()
+                session.flush()
+            except:
+                pass
+        
+        # 2. Migrate analytics_events → teacher_statistics (from teacher-only feature usage)
+        # Aggregate stats from teacher using main system functions (lesson plans, assessments, resources)
+        try:
+            print("  🔄 Migrating teacher statistics (from main system teacher function usage)...")
+            
+            # Ensure session is in good state before proceeding
+            try:
+                session.execute(text("SELECT 1")).scalar()
+            except Exception:
+                # Session is in failed state, recover it
+                try:
+                    session.rollback()
+                    session.flush()
+                except:
+                    pass
+            
+            for teacher_id in teachers_with_main_data:
+                # Get teacher email to match analytics events
+                teacher_email_result = session.execute(text("""
+                    SELECT email FROM teacher_registrations WHERE id = :teacher_id
+                """), {"teacher_id": teacher_id}).fetchone()
+                
+                if not teacher_email_result:
+                    continue
+                
+                teacher_email = teacher_email_result[0]
+                
+                # Aggregate analytics from teacher using main system teacher functions
+                # Count activities from lesson plans, assessments, resources, AI assistant
+                # analytics_events table has: id, user_id, event_type, event_data, session_id, timestamp (not created_at), source, version, event_metadata
+                stats_result = session.execute(text("""
+                    SELECT 
+                        DATE(ae.timestamp) as stat_date,
+                        COUNT(*) FILTER (WHERE ae.event_type IN ('lesson_created', 'lesson_plan_created', 'lesson_plan_template_created')) as lessons,
+                        COUNT(*) FILTER (WHERE ae.event_type IN ('assessment_created', 'assessment_template_created')) as assessments,
+                        COUNT(*) FILTER (WHERE ae.event_type IN ('resource_downloaded', 'resource_accessed')) as downloads,
+                        COUNT(*) FILTER (WHERE ae.event_type IN ('resource_shared', 'resource_shared_with_teacher')) as shares,
+                        COUNT(*) FILTER (WHERE ae.event_type = 'login') as logins
+                    FROM analytics_events ae
+                    INNER JOIN users u ON ae.user_id = u.id
+                    WHERE u.email = :email
+                        AND ae.timestamp >= NOW() - INTERVAL '30 days'
+                        AND ae.event_type IN (
+                            'lesson_created', 'lesson_plan_created', 'lesson_plan_template_created',
+                            'assessment_created', 'assessment_template_created',
+                            'resource_downloaded', 'resource_uploaded', 'resource_shared', 'resource_accessed',
+                            'ai_used', 'ai_assistant_used',
+                            'login', 'dashboard_viewed'
+                        )
+                    GROUP BY DATE(ae.timestamp)
+                    ORDER BY stat_date DESC
+                """), {"email": teacher_email}).fetchall()
+                
+                migrated_stats = 0
+                for stat in stats_result:
+                    # Check if already migrated
+                    exists = session.execute(text("""
+                        SELECT COUNT(*) FROM teacher_statistics 
+                        WHERE teacher_id = CAST(:teacher_id AS VARCHAR) AND stat_date = :stat_date
+                    """), {
+                        "teacher_id": str(teacher_id),
+                        "stat_date": stat[0]
+                    }).scalar()
+                    
+                    if not exists and (stat[1] or stat[2] or stat[3] or stat[4] or stat[5]):
+                        session.execute(text("""
+                            INSERT INTO teacher_statistics (
+                                id, teacher_id, stat_date, stat_type,
+                                lessons_created, assessments_created, resources_downloaded,
+                                resources_shared, login_count, created_at
+                            ) VALUES (
+                                :id, :teacher_id, :stat_date, 'daily',
+                                :lessons, :assessments, :downloads,
+                                :shares, :logins, :created_at
+                            )
+                            ON CONFLICT DO NOTHING
+                        """), {
+                            "id": str(uuid.uuid4()),
+                            "teacher_id": teacher_id,
+                            "stat_date": stat[0],
+                            "lessons": stat[1] or 0,
+                            "assessments": stat[2] or 0,
+                            "downloads": stat[3] or 0,
+                            "shares": stat[4] or 0,
+                            "logins": stat[5] or 0,
+                            "created_at": datetime.utcnow()
+                        })
+                        migrated_stats += 1
+                
+                if migrated_stats > 0:
+                    print(f"    ✅ Migrated {migrated_stats} statistics records for teacher {teacher_id[:8]}")
+            
+            print(f"    ✅ Teacher statistics migration completed")
+        except Exception as e:
+            print(f"    ⚠️  Analytics events migration skipped: {e}")
+            # Recover session if transaction was aborted
+            try:
+                session.rollback()
+                session.flush()
+            except:
+                pass
+        
+        # 3. Migrate dashboard_notification_models → teacher_notifications (ONLY if teacher-specific)
+        # NOTE: Most dashboard_notification_models are district-level, not teacher-level
+        try:
+            print("  🔄 Checking for teacher-specific notifications...")
+            
+            # Only migrate if notifications are clearly teacher-level (not district announcements)
+            # dashboard_notification_models table has: id, user_id, type (not notification_type), title, message, data, priority, status, created_at, read_at, expires_at
+            # Note: Enum values must match NotificationType enum: SYSTEM, ALERT, UPDATE, REMINDER, ACHIEVEMENT
+            notifications_result = session.execute(text("""
+                SELECT id, title, message, NULL as action_url, created_at, expires_at
+                FROM dashboard_notification_models
+                WHERE created_at >= NOW() - INTERVAL '30 days'
+                    AND (type::text IN ('achievement', 'reminder', 'ACHIEVEMENT', 'REMINDER')
+                         OR title ILIKE '%teacher%' OR title ILIKE '%your%')
+                    -- Exclude district-level announcements
+                    AND title NOT ILIKE '%district%'
+                    AND title NOT ILIKE '%school%'
+                LIMIT 25
+            """)).fetchall()
+            
+            migrated_notifs = 0
+            for notif in notifications_result:
+                # Distribute to teachers (each notification goes to a random teacher)
+                teacher_id = random.choice(teacher_ids)
+                
+                # Check if already migrated
+                exists = session.execute(text("""
+                    SELECT COUNT(*) FROM teacher_notifications 
+                    WHERE teacher_id = CAST(:teacher_id AS VARCHAR) AND title = :title AND created_at = :created_at
+                """), {
+                    "teacher_id": str(teacher_id),
+                    "title": notif[1],
+                    "created_at": notif[4]
+                }).scalar()
+                
+                if not exists:
+                    session.execute(text("""
+                        INSERT INTO teacher_notifications (
+                            id, teacher_id, notification_type, title, message, action_url,
+                            action_label, is_read, is_important, expires_at, created_at, read_at
+                        ) VALUES (
+                            :id, :teacher_id, 'system_update', :title, :message, :action_url,
+                            'View Details', false, false, :expires_at, :created_at, NULL
+                        )
+                        ON CONFLICT (id) DO NOTHING
+                    """), {
+                        "id": str(notif[0]),
+                        "teacher_id": teacher_id,
+                        "title": notif[1] or "System Notification",
+                        "message": notif[2] or "You have a new notification",
+                        "action_url": notif[3],
+                        "expires_at": notif[5],
+                        "created_at": notif[4]
+                    })
+                    migrated_notifs += 1
+            
+            if migrated_notifs > 0:
+                print(f"    ✅ Migrated {migrated_notifs} notifications")
+            else:
+                print(f"    ℹ️  No notifications to migrate (or already migrated)")
+        except Exception as e:
+            print(f"    ⚠️  Notifications migration skipped: {e}")
+            # Recover session if transaction was aborted
+            try:
+                session.rollback()
+                session.flush()
+            except:
+                pass
+        
+        # 4. Migrate goals → teacher_goals (SKIPPED)
+        # NOTE: The 'goals' table is for STUDENTS only (has student_id, not user_id)
+        # There is no main system goals table for teachers, so we skip this migration
+        # Teachers will create goals fresh in the beta system
+        print("  🔄 Checking for teacher personal goals to migrate...")
+        print("    ℹ️  Main system 'goals' table is student-only (no teacher goals to migrate)")
+        print("    ℹ️  Teachers will create goals fresh in the beta system")
+        migrated_goals = 0
+        
+        if any([migrated_count > 0, migrated_stats > 0, migrated_notifs > 0, migrated_goals > 0]):
+            print("✅ Teacher data migration completed (only for teachers with main system overlap)")
+        else:
+            print("✅ No migration needed - beta teachers are independent (as designed)")
+        
+        try:
+            savepoint.commit()
+            session.flush()  # Use flush() not commit() when called from within savepoint
+        except Exception as commit_error:
+            # If savepoint commit fails (e.g., parent transaction closed), 
+            # rollback parent session first, then try to rollback savepoint
+            print(f"⚠️  Migration savepoint commit failed: {commit_error}")
+            try:
+                # Rollback parent session to clear failed state
+                session.rollback()
+                session.flush()
+            except:
+                pass
+            try:
+                # Try to rollback savepoint (may fail if transaction already closed)
+                savepoint.rollback()
+            except:
+                pass  # Savepoint may already be rolled back
+        
+    except Exception as e:
+        print(f"⚠️  Migration check skipped: {e}")
+        print("   ℹ️  This is OK - beta system is independent and will seed fresh data")
+        try:
+            # Try to rollback savepoint first (if still valid)
+            try:
+                savepoint.rollback()
+            except:
+                pass  # Savepoint may already be rolled back or transaction closed
+            # Recover session state after migration failure
+            session.rollback()
+            session.flush()
+        except Exception as recovery_error:
+            # If rollback fails, try to flush to reset state
+            try:
+                session.flush()
+            except:
+                pass
+        # Don't raise - allow seeding to continue with new data
+
+def seed_beta_teacher_dashboard_tables(session: Session) -> None:
+    """Seed all 12 Beta Teacher Dashboard tables with sample data
+    
+    Enhanced with:
+    - Links to real resources/lessons/assessments
+    - Realistic data relationships
+    - Batch inserts for performance
+    - Data validation
+    - Migration from existing tables (runs first)
+    """
+    # Wrap entire seeding operation in savepoint for isolation
+    savepoint = session.begin_nested()
+    try:
+        # First, migrate existing data from main system tables (non-blocking)
+        try:
+            migrate_existing_teacher_data_to_beta(session)
+        except Exception as migration_error:
+            print(f"⚠️  Migration failed (non-critical): {migration_error}")
+            print("   ℹ️  Continuing with fresh data seeding...")
+            # Migration savepoint may have failed, recover parent session
+            try:
+                session.rollback()
+                session.flush()
+            except:
+                pass
+        
+        # Ensure session is in good state before proceeding
+        # Test with a simple query - if parent transaction is failed, we need to recover
+        try:
+            test_result = session.execute(text("SELECT 1")).scalar()
+        except Exception as test_error:
+            print(f"⚠️  Session state check failed: {test_error}")
+            print("   ℹ️  Attempting session recovery...")
+            try:
+                # Rollback current savepoint (seeding hasn't started yet)
+                savepoint.rollback()
+            except:
+                pass
+            try:
+                # Rollback parent transaction to clear failed state
+                session.rollback()
+                session.flush()
+                # Re-create savepoint for seeding
+                savepoint = session.begin_nested()
+                print("   ✅ Session recovered, creating new savepoint for seeding")
+            except Exception as recovery_error:
+                print(f"   ❌ Could not recover session: {recovery_error}")
+                print("   ❌ Skipping beta teacher dashboard seeding")
+                return
+        
+        # Get teacher IDs from teacher_registrations
+        teacher_results = session.execute(text("SELECT id FROM teacher_registrations LIMIT 10")).fetchall()
+        if not teacher_results:
+            print("⚠️  No teachers found, skipping beta teacher dashboard tables")
+            return
+        
+        teacher_ids = [row[0] for row in teacher_results]
+        
+        # Get real resource IDs for linking activities
+        lesson_plan_ids = []
+        assessment_template_ids = []
+        resource_ids = []
+        
+        try:
+            lesson_result = session.execute(text("SELECT id FROM lesson_plan_templates LIMIT 100")).fetchall()
+            lesson_plan_ids = [row[0] for row in lesson_result]
+        except:
+            pass
+        
+        try:
+            assessment_result = session.execute(text("SELECT id FROM assessment_templates LIMIT 100")).fetchall()
+            assessment_template_ids = [row[0] for row in assessment_result]
+        except:
+            pass
+        
+        try:
+            resource_result = session.execute(text("SELECT id FROM educational_resources LIMIT 100")).fetchall()
+            resource_ids = [row[0] for row in resource_result]
+        except:
+            pass
+        
+        print(f"  📊 Found {len(lesson_plan_ids)} lesson plans, {len(assessment_template_ids)} assessments, {len(resource_ids)} resources for linking")
+        
+        # 1. Seed teacher_achievements (achievement definitions)
+        print("  🔄 Seeding teacher achievements...")
+        achievements = [
+            {"code": "FIRST_LESSON", "name": "First Lesson Plan", "description": "Created your first lesson plan", "category": "lesson_planning", "icon": "star", "color": "#FFD700", "points": 10},
+            {"code": "LESSON_MASTER", "name": "Lesson Master", "description": "Created 10 lesson plans", "category": "lesson_planning", "icon": "trophy", "color": "#C0C0C0", "points": 50},
+            {"code": "ASSESSMENT_PRO", "name": "Assessment Pro", "description": "Created 5 assessments", "category": "assessments", "icon": "clipboard", "color": "#FF6347", "points": 30},
+            {"code": "RESOURCE_COLLECTOR", "name": "Resource Collector", "description": "Downloaded 20 resources", "category": "resources", "icon": "folder", "color": "#4169E1", "points": 25},
+            {"code": "SHARING_MASTER", "name": "Sharing Master", "description": "Shared 10 resources", "category": "resources", "icon": "share", "color": "#32CD32", "points": 40},
+            {"code": "AI_EXPLORER", "name": "AI Explorer", "description": "Used AI assistant 50 times", "category": "ai", "icon": "robot", "color": "#9370DB", "points": 60},
+            {"code": "ACTIVE_TEACHER", "name": "Active Teacher", "description": "Logged in 30 days in a row", "category": "engagement", "icon": "fire", "color": "#FF4500", "points": 75},
+            {"code": "COMPLETE_PATH", "name": "Path Completer", "description": "Completed a learning path", "category": "learning", "icon": "graduation", "color": "#00CED1", "points": 100},
+        ]
+        
+        achievement_ids = {}
+        for ach in achievements:
+            # Check if achievement already exists
+            existing = session.execute(text("""
+                SELECT id FROM teacher_achievements WHERE achievement_code = :code
+            """), {"code": ach["code"]}).first()
+            
+            if existing:
+                achievement_ids[ach["code"]] = existing[0]
+                continue
+            
+            try:
+                ach_id = str(uuid.uuid4())
+                session.execute(text("""
+                    INSERT INTO teacher_achievements (
+                        id, achievement_code, achievement_name, achievement_description,
+                        achievement_category, icon_name, color_code, points, is_active, created_at
+                    ) VALUES (
+                        :id, :code, :name, :description, :category, :icon, :color, :points, true, :created_at
+                    )
+                """), {
+                    "id": ach_id,
+                    "code": ach["code"],
+                    "name": ach["name"],
+                    "description": ach["description"],
+                    "category": ach["category"],
+                    "icon": ach["icon"],
+                    "color": ach["color"],
+                    "points": ach["points"],
+                    "created_at": datetime.utcnow()
+                })
+                achievement_ids[ach["code"]] = ach_id
+            except Exception as e:
+                # If insert fails (e.g., unique constraint), try to get existing ID
+                if 'unique' in str(e).lower():
+                    existing = session.execute(text("""
+                        SELECT id FROM teacher_achievements WHERE achievement_code = :code
+                    """), {"code": ach["code"]}).first()
+                    if existing:
+                        achievement_ids[ach["code"]] = existing[0]
+                        continue
+                raise
+        
+        print(f"    ✅ Created {len(achievements)} achievement definitions")
+        
+        # 2. Seed teacher_dashboard_layouts
+        print("  🔄 Seeding teacher dashboard layouts...")
+        layout_ids = {}
+        for teacher_id in teacher_ids[:5]:  # Create layouts for first 5 teachers
+            layout_id = str(uuid.uuid4())
+            session.execute(text("""
+                INSERT INTO teacher_dashboard_layouts (
+                    id, teacher_id, layout_name, layout_description, is_default, is_active, created_at, updated_at
+                ) VALUES (
+                    :id, :teacher_id, :name, :description, :is_default, true, :created_at, :updated_at
+                )
+            """), {
+                "id": layout_id,
+                "teacher_id": teacher_id,
+                "name": "Default Layout",
+                "description": "Default dashboard layout",
+                "is_default": True,
+                "created_at": datetime.utcnow(),
+                "updated_at": datetime.utcnow()
+            })
+            layout_ids[teacher_id] = layout_id
+        
+        print(f"    ✅ Created {len(layout_ids)} dashboard layouts")
+        
+        # 3. Seed dashboard_widget_instances (requires layouts and widgets)
+        print("  🔄 Seeding dashboard widget instances...")
+        widget_results = session.execute(text("SELECT id FROM dashboard_widgets LIMIT 10")).fetchall()
+        widget_ids_list = [row[0] for row in widget_results] if widget_results else []
+        
+        widget_instance_count = 0
+        for teacher_id, layout_id in layout_ids.items():
+            for i, widget_id in enumerate(widget_ids_list[:5]):  # Add up to 5 widgets per layout
+                instance_id = str(uuid.uuid4())
+                session.execute(text("""
+                    INSERT INTO dashboard_widget_instances (
+                        id, layout_id, widget_id, position_x, position_y, width, height,
+                        widget_config, is_visible, created_at, updated_at
+                    ) VALUES (
+                        :id, :layout_id, :widget_id, :x, :y, :width, :height,
+                        :config, true, :created_at, :updated_at
+                    )
+                """), {
+                    "id": instance_id,
+                    "layout_id": layout_id,
+                    "widget_id": widget_id,
+                    "x": (i % 3) * 4,
+                    "y": (i // 3) * 3,
+                    "width": 4,
+                    "height": 3,
+                    "config": json.dumps({"refresh_interval": 300}),
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                })
+                widget_instance_count += 1
+        
+        print(f"    ✅ Created {widget_instance_count} widget instances")
+        
+        # 4. Seed teacher_learning_paths
+        print("  🔄 Seeding teacher learning paths...")
+        learning_path_ids = {}
+        learning_paths = [
+            {"name": "Introduction to Lesson Planning", "description": "Learn the basics of creating effective lesson plans", "category": "lesson_planning", "difficulty": "beginner", "hours": 2.0},
+            {"name": "Advanced Assessment Strategies", "description": "Master advanced assessment techniques", "category": "assessments", "difficulty": "intermediate", "hours": 4.0},
+            {"name": "Resource Management Mastery", "description": "Become an expert in organizing and sharing resources", "category": "resources", "difficulty": "advanced", "hours": 3.0},
+            {"name": "AI Assistant Power User", "description": "Unlock the full potential of AI assistant features", "category": "ai", "difficulty": "intermediate", "hours": 2.5},
+        ]
+        
+        for teacher_id in teacher_ids[:8]:
+            for path_data in learning_paths[:random.randint(1, 3)]:  # Each teacher gets 1-3 paths
+                path_id = str(uuid.uuid4())
+                is_completed = random.random() < 0.3  # 30% chance of completion
+                completion_pct = 100.0 if is_completed else random.randint(0, 90)
+                
+                session.execute(text("""
+                    INSERT INTO teacher_learning_paths (
+                        id, teacher_id, path_name, path_description, path_category,
+                        difficulty_level, estimated_hours, is_completed, completion_percentage,
+                        started_at, completed_at, is_active, created_at, updated_at
+                    ) VALUES (
+                        :id, :teacher_id, :name, :description, :category, :difficulty, :hours,
+                        :is_completed, :completion_pct, :started_at, :completed_at, true, :created_at, :updated_at
+                    )
+                """), {
+                    "id": path_id,
+                    "teacher_id": teacher_id,
+                    "name": path_data["name"],
+                    "description": path_data["description"],
+                    "category": path_data["category"],
+                    "difficulty": path_data["difficulty"],
+                    "hours": path_data["hours"],
+                    "is_completed": is_completed,
+                    "completion_pct": completion_pct,
+                    "started_at": datetime.utcnow() - timedelta(days=random.randint(1, 30)),
+                    "completed_at": datetime.utcnow() - timedelta(days=random.randint(0, 5)) if is_completed else None,
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                })
+                
+                if path_id not in learning_path_ids:
+                    learning_path_ids[path_id] = {
+                        "teacher_id": teacher_id,
+                        "name": path_data["name"]
+                    }
+        
+        print(f"    ✅ Created {len(learning_path_ids)} learning paths")
+        
+        # 5. Seed learning_path_steps (requires learning paths)
+        print("  🔄 Seeding learning path steps...")
+        step_count = 0
+        for path_id in learning_path_ids.keys():
+            num_steps = random.randint(3, 8)
+            for step_num in range(num_steps):
+                step_id = str(uuid.uuid4())
+                is_completed = random.random() < 0.4
+                session.execute(text("""
+                    INSERT INTO learning_path_steps (
+                        id, learning_path_id, step_title, step_description, step_type,
+                        step_url, step_content, estimated_minutes, is_completed,
+                        completed_at, step_order, created_at
+                    ) VALUES (
+                        :id, :path_id, :title, :description, :type, :url, :content,
+                        :minutes, :is_completed, :completed_at, :order, :created_at
+                    )
+                """), {
+                    "id": step_id,
+                    "path_id": path_id,
+                    "title": f"Step {step_num + 1}: {learning_path_ids[path_id]['name']}",
+                    "description": f"Complete this step to progress in {learning_path_ids[path_id]['name']}",
+                    "type": random.choice(["video", "reading", "exercise", "quiz"]),
+                    "url": f"/learning/path/{path_id}/step/{step_num + 1}",
+                    "content": f"Content for step {step_num + 1}",
+                    "minutes": random.randint(5, 30),
+                    "is_completed": is_completed,
+                    "completed_at": datetime.utcnow() - timedelta(days=random.randint(0, 10)) if is_completed else None,
+                    "order": step_num,
+                    "created_at": datetime.utcnow()
+                })
+                step_count += 1
+        
+        print(f"    ✅ Created {step_count} learning path steps")
+        
+        # 6. Seed teacher_goals (moved before achievement progress so goals can be used in notifications)
+        print("  🔄 Seeding teacher goals...")
+        goal_types = ["lesson_plans", "assessments", "resources", "engagement", "professional_development"]
+        goal_count = 0
+        for teacher_id in teacher_ids:
+            num_goals = random.randint(2, 5)
+            for i in range(num_goals):
+                goal_type = random.choice(goal_types)
+                is_completed = random.random() < 0.25  # 25% completed
+                target_val = random.randint(10, 100)
+                
+                session.execute(text("""
+                    INSERT INTO teacher_goals (
+                        id, teacher_id, goal_title, goal_description, goal_type, goal_category,
+                        target_value, current_value, target_date, is_completed, completed_at,
+                        priority_level, is_active, created_at, updated_at
+                    ) VALUES (
+                        :id, :teacher_id, :title, :description, :type, :category,
+                        :target, :current, :target_date, :is_completed, :completed_at,
+                        :priority, true, :created_at, :updated_at
+                    )
+                """), {
+                    "id": str(uuid.uuid4()),
+                    "teacher_id": teacher_id,
+                    "title": f"Goal: {goal_type.replace('_', ' ').title()}",
+                    "description": f"Work towards improving {goal_type}",
+                    "type": goal_type,
+                    "category": random.choice(["professional", "engagement", "quality"]),
+                    "target": target_val,
+                    "current": target_val if is_completed else random.randint(0, int(target_val * 0.9)),
+                    "target_date": datetime.utcnow().date() + timedelta(days=random.randint(30, 90)),
+                    "is_completed": is_completed,
+                    "completed_at": datetime.utcnow() - timedelta(days=random.randint(0, 20)) if is_completed else None,
+                    "priority": random.choice(["low", "medium", "high"]),
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                })
+                goal_count += 1
+        
+        print(f"    ✅ Created {goal_count} teacher goals")
+        
+        # 7. Seed teacher_statistics (ENHANCED: more realistic patterns) - Must be before achievement progress
+        print("  🔄 Seeding teacher statistics...")
+        stat_count = 0
+        
+        # Track statistics per teacher for more realistic patterns
+        teacher_stats_totals = {}
+        
+        for teacher_id in teacher_ids:
+            # Calculate realistic totals based on available resources
+            lessons_total = min(len(lesson_plan_ids), random.randint(5, 30))
+            assessments_total = min(len(assessment_template_ids), random.randint(3, 15))
+            resources_downloaded_total = min(len(resource_ids), random.randint(10, 50))
+            
+            teacher_stats_totals[teacher_id] = {
+                "lessons": lessons_total,
+                "assessments": assessments_total,
+                "resources_downloaded": resources_downloaded_total
+            }
+            
+            # Distribute statistics across 30 days with realistic patterns
+            # More activity on weekdays, less on weekends
+            remaining_lessons = lessons_total
+            remaining_assessments = assessments_total
+            remaining_downloads = resources_downloaded_total
+            
+            for day_offset in range(30):
+                stat_date = (datetime.utcnow() - timedelta(days=day_offset)).date()
+                is_weekend = stat_date.weekday() >= 5  # Saturday = 5, Sunday = 6
+                stat_type = "weekly" if day_offset % 7 == 0 else "daily"
+                
+                # Less activity on weekends
+                activity_multiplier = 0.3 if is_weekend else 1.0
+                
+                lessons_today = min(remaining_lessons, random.randint(0, int(2 * activity_multiplier)))
+                assessments_today = min(remaining_assessments, random.randint(0, int(1 * activity_multiplier)))
+                downloads_today = min(remaining_downloads, random.randint(0, int(5 * activity_multiplier)))
+                
+                remaining_lessons -= lessons_today
+                remaining_assessments -= assessments_today
+                remaining_downloads -= downloads_today
+                
+                session.execute(text("""
+                    INSERT INTO teacher_statistics (
+                        id, teacher_id, stat_date, stat_type,
+                        lessons_created, assessments_created, resources_uploaded, resources_downloaded,
+                        resources_shared, resources_received, collections_created, reviews_written,
+                        time_spent_minutes, login_count, created_at
+                    ) VALUES (
+                        :id, :teacher_id, :stat_date, :stat_type,
+                        :lessons, :assessments, :uploaded, :downloaded,
+                        :shared, :received, :collections, :reviews,
+                        :time_minutes, :logins, :created_at
+                    )
+                """), {
+                    "id": str(uuid.uuid4()),
+                    "teacher_id": teacher_id,
+                    "stat_date": stat_date,
+                    "stat_type": stat_type,
+                    "lessons": lessons_today,
+                    "assessments": assessments_today,
+                    "uploaded": random.randint(0, int(2 * activity_multiplier)),
+                    "downloaded": downloads_today,
+                    "shared": random.randint(0, int(3 * activity_multiplier)),
+                    "received": random.randint(0, int(4 * activity_multiplier)),
+                    "collections": random.randint(0, int(1 * activity_multiplier)),
+                    "reviews": random.randint(0, int(2 * activity_multiplier)),
+                    "time_minutes": random.randint(int(15 * activity_multiplier), int(120 * activity_multiplier)),
+                    "logins": random.randint(1, 3) if not is_weekend else random.randint(0, 1),
+                    "created_at": datetime.utcnow()
+                })
+                stat_count += 1
+        
+        print(f"    ✅ Created {stat_count} teacher statistics records (realistic weekday/weekend patterns)")
+        
+        # 8. Seed teacher_achievement_progress (ENHANCED: correlates with actual statistics)
+        # NOTE: Must run AFTER statistics are created
+        print("  🔄 Seeding teacher achievement progress...")
+        progress_count = 0
+        
+        # Get statistics to correlate achievements with actual activity
+        stats_by_teacher = {}
+        for teacher_id in teacher_ids:
+            # Cast teacher_id to VARCHAR to match teacher_statistics.teacher_id type
+            stats_result = session.execute(text("""
+                SELECT 
+                    SUM(lessons_created) as lessons,
+                    SUM(assessments_created) as assessments,
+                    SUM(resources_downloaded) as downloads,
+                    SUM(resources_shared) as shares,
+                    SUM(login_count) as logins
+                FROM teacher_statistics
+                WHERE teacher_id = CAST(:teacher_id AS VARCHAR)
+            """), {"teacher_id": str(teacher_id)}).fetchone()
+            
+            if stats_result:
+                stats_by_teacher[teacher_id] = {
+                    "lessons": stats_result[0] or 0,
+                    "assessments": stats_result[1] or 0,
+                    "downloads": stats_result[2] or 0,
+                    "shares": stats_result[3] or 0,
+                    "logins": stats_result[4] or 0
+                }
+        
+        for teacher_id in teacher_ids:
+            teacher_stats = stats_by_teacher.get(teacher_id, {})
+            
+            for ach_code, ach_id in achievement_ids.items():
+                # Calculate progress based on actual teacher activity
+                progress_val = 0.0
+                is_completed = False
+                
+                if ach_code == "FIRST_LESSON":
+                    progress_val = 100.0 if teacher_stats.get("lessons", 0) >= 1 else 0.0
+                    is_completed = teacher_stats.get("lessons", 0) >= 1
+                elif ach_code == "LESSON_MASTER":
+                    progress_val = min(100.0, (teacher_stats.get("lessons", 0) / 10.0) * 100.0)
+                    is_completed = teacher_stats.get("lessons", 0) >= 10
+                elif ach_code == "ASSESSMENT_PRO":
+                    progress_val = min(100.0, (teacher_stats.get("assessments", 0) / 5.0) * 100.0)
+                    is_completed = teacher_stats.get("assessments", 0) >= 5
+                elif ach_code == "RESOURCE_COLLECTOR":
+                    progress_val = min(100.0, (teacher_stats.get("downloads", 0) / 20.0) * 100.0)
+                    is_completed = teacher_stats.get("downloads", 0) >= 20
+                elif ach_code == "SHARING_MASTER":
+                    progress_val = min(100.0, (teacher_stats.get("shares", 0) / 10.0) * 100.0)
+                    is_completed = teacher_stats.get("shares", 0) >= 10
+                elif ach_code == "ACTIVE_TEACHER":
+                    progress_val = min(100.0, (teacher_stats.get("logins", 0) / 30.0) * 100.0)
+                    is_completed = teacher_stats.get("logins", 0) >= 30
+                else:
+                    # Default: random progress for other achievements
+                    if random.random() < 0.6:  # 60% of teachers have progress
+                        is_completed = random.random() < 0.3
+                        progress_val = 100.0 if is_completed else random.uniform(0, 90)
+                
+                # Only create progress record if there's actual progress
+                if progress_val > 0 or random.random() < 0.4:  # 40% chance even with 0 progress for variety
+                    session.execute(text("""
+                        INSERT INTO teacher_achievement_progress (
+                            id, teacher_id, achievement_id, progress_value, target_value,
+                            is_completed, completed_at, created_at, updated_at
+                        ) VALUES (
+                            :id, :teacher_id, :achievement_id, :progress, 100.0,
+                            :is_completed, :completed_at, :created_at, :updated_at
+                        )
+                    """), {
+                        "id": str(uuid.uuid4()),
+                        "teacher_id": teacher_id,
+                        "achievement_id": ach_id,
+                        "progress": progress_val,
+                        "is_completed": is_completed,
+                        "completed_at": datetime.utcnow() - timedelta(days=random.randint(0, 15)) if is_completed else None,
+                        "created_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow()
+                    })
+                    progress_count += 1
+        
+        print(f"    ✅ Created {progress_count} achievement progress records (correlated with actual activity)")
+        
+        # 9. Seed teacher_activity_logs (ENHANCED: links to real resources)
+        print("  🔄 Seeding teacher activity logs...")
+        activity_types = ["lesson_created", "assessment_created", "resource_downloaded", "resource_shared", "ai_used", "login", "dashboard_viewed"]
+        log_count = 0
+        
+        # Use batch inserts for better performance
+        batch_size = 50
+        logs_batch = []
+        
+        for teacher_id in teacher_ids:
+            num_activities = random.randint(20, 50)
+            for i in range(num_activities):
+                activity_type = random.choice(activity_types)
+                created_at = datetime.utcnow() - timedelta(days=random.randint(0, 30), hours=random.randint(0, 23))
+                
+                # Link to real resources when possible
+                resource_type = None
+                resource_id = None
+                resource_title = None
+                
+                if activity_type == "lesson_created" and lesson_plan_ids:
+                    resource_type = "lesson_plan"
+                    resource_id = str(random.choice(lesson_plan_ids))
+                    resource_title = f"Lesson Plan {resource_id[:8]}"
+                elif activity_type == "assessment_created" and assessment_template_ids:
+                    resource_type = "assessment"
+                    resource_id = str(random.choice(assessment_template_ids))
+                    resource_title = f"Assessment {resource_id[:8]}"
+                elif activity_type in ["resource_downloaded", "resource_shared"] and resource_ids:
+                    resource_type = "resource"
+                    resource_id = str(random.choice(resource_ids))
+                    resource_title = f"Resource {resource_id[:8]}"
+                elif activity_type in ["login", "dashboard_viewed"]:
+                    resource_type = None
+                    resource_id = None
+                    resource_title = None
+                
+                logs_batch.append({
+                    "id": str(uuid.uuid4()),
+                    "teacher_id": teacher_id,
+                    "type": activity_type,
+                    "description": f"Teacher {activity_type.replace('_', ' ')}",
+                    "resource_type": resource_type,
+                    "resource_id": resource_id,
+                    "title": resource_title,
+                    "metadata": json.dumps({"source": "web", "device": random.choice(["desktop", "tablet", "mobile"])}),
+                    "ip": f"192.168.1.{random.randint(1, 255)}",
+                    "user_agent": random.choice(["Chrome/120.0", "Firefox/121.0", "Safari/17.0", "Edge/120.0"]),
+                    "session_id": str(uuid.uuid4()),
+                    "created_at": created_at
+                })
+                
+                # Insert in batches
+                if len(logs_batch) >= batch_size:
+                    for log_data in logs_batch:
+                        session.execute(text("""
+                            INSERT INTO teacher_activity_logs (
+                                id, teacher_id, activity_type, activity_description, resource_type,
+                                resource_id, resource_title, activity_metadata, ip_address, user_agent,
+                                session_id, created_at
+                            ) VALUES (
+                                :id, :teacher_id, :type, :description, :resource_type,
+                                :resource_id, :title, :metadata, :ip, :user_agent, :session_id, :created_at
+                            )
+                        """), log_data)
+                    log_count += len(logs_batch)
+                    logs_batch = []
+        
+        # Insert remaining batch
+        if logs_batch:
+            for log_data in logs_batch:
+                session.execute(text("""
+                    INSERT INTO teacher_activity_logs (
+                        id, teacher_id, activity_type, activity_description, resource_type,
+                        resource_id, resource_title, activity_metadata, ip_address, user_agent,
+                        session_id, created_at
+                    ) VALUES (
+                        :id, :teacher_id, :type, :description, :resource_type,
+                        :resource_id, :title, :metadata, :ip, :user_agent, :session_id, :created_at
+                    )
+                """), log_data)
+            log_count += len(logs_batch)
+        
+        print(f"    ✅ Created {log_count} activity logs (linked to real resources)")
+        
+        # 10. Seed teacher_notifications (ENHANCED: links to achievements/goals)
+        print("  🔄 Seeding teacher notifications...")
+        notification_types = ["achievement", "goal_reminder", "system_update", "resource_shared", "new_feature"]
+        notification_count = 0
+        
+        # Get teacher goals for linking reminders
+        teacher_goal_ids = {}
+        for teacher_id in teacher_ids:
+            # Cast teacher_id to VARCHAR to match teacher_goals.teacher_id type
+            goal_result = session.execute(text("""
+                SELECT id FROM teacher_goals 
+                WHERE teacher_id = CAST(:teacher_id AS VARCHAR) AND is_completed = false 
+                LIMIT 5
+            """), {"teacher_id": str(teacher_id)}).fetchall()
+            teacher_goal_ids[teacher_id] = [row[0] for row in goal_result]
+        
+        for teacher_id in teacher_ids:
+            num_notifications = random.randint(5, 15)
+            for _ in range(num_notifications):
+                notif_type = random.choice(notification_types)
+                is_read = random.random() < 0.6  # 60% read
+                
+                # Create realistic notification content based on type
+                title = ""
+                message = ""
+                action_url = None
+                action_label = None
+                
+                if notif_type == "achievement" and achievement_ids:
+                    ach_code = random.choice(list(achievement_ids.keys()))
+                    ach_id = achievement_ids[ach_code]
+                    title = f"🎉 Achievement Unlocked: {ach_code.replace('_', ' ').title()}"
+                    message = f"Congratulations! You've unlocked the {ach_code.replace('_', ' ')} achievement."
+                    action_url = f"/achievements/{ach_id}"
+                    action_label = "View Achievement"
+                elif notif_type == "goal_reminder" and teacher_id in teacher_goal_ids and teacher_goal_ids[teacher_id]:
+                    goal_id = random.choice(teacher_goal_ids[teacher_id])
+                    title = "📅 Goal Reminder"
+                    message = "Don't forget to work on your active goals this week!"
+                    action_url = f"/goals/{goal_id}"
+                    action_label = "View Goal"
+                elif notif_type == "resource_shared" and resource_ids:
+                    resource_id = random.choice(resource_ids)
+                    title = "📁 Resource Shared With You"
+                    message = "A colleague has shared a new educational resource with you."
+                    action_url = f"/resources/{resource_id}"
+                    action_label = "View Resource"
+                else:
+                    title = f"{notif_type.replace('_', ' ').title()} Notification"
+                    message = f"You have a new {notif_type.replace('_', ' ')} update"
+                    if random.random() < 0.5:
+                        action_url = f"/notifications/{notif_type}"
+                        action_label = "View Details"
+                
+                session.execute(text("""
+                    INSERT INTO teacher_notifications (
+                        id, teacher_id, notification_type, title, message, action_url,
+                        action_label, is_read, is_important, expires_at, created_at, read_at
+                    ) VALUES (
+                        :id, :teacher_id, :type, :title, :message, :action_url,
+                        :action_label, :is_read, :is_important, :expires_at, :created_at, :read_at
+                    )
+                """), {
+                    "id": str(uuid.uuid4()),
+                    "teacher_id": teacher_id,
+                    "type": notif_type,
+                    "title": title,
+                    "message": message,
+                    "action_url": action_url,
+                    "action_label": action_label,
+                    "is_read": is_read,
+                    "is_important": random.random() < 0.2,  # 20% important
+                    "expires_at": datetime.utcnow() + timedelta(days=random.randint(1, 30)) if random.random() < 0.3 else None,
+                    "created_at": datetime.utcnow() - timedelta(days=random.randint(0, 14)),
+                    "read_at": datetime.utcnow() - timedelta(days=random.randint(0, 7)) if is_read else None
+                })
+                notification_count += 1
+        
+        print(f"    ✅ Created {notification_count} notifications (linked to achievements/goals/resources)")
+        
+        # 11. Seed teacher_quick_actions
+        print("  🔄 Seeding teacher quick actions...")
+        quick_actions = [
+            {"name": "Create Lesson Plan", "type": "lesson_plan", "url": "/lessons/create", "icon": "plus", "color": "#4CAF50"},
+            {"name": "New Assessment", "type": "assessment", "url": "/assessments/create", "icon": "clipboard", "color": "#2196F3"},
+            {"name": "Browse Resources", "type": "resource", "url": "/resources", "icon": "folder", "color": "#FF9800"},
+            {"name": "AI Assistant", "type": "ai", "url": "/ai/assistant", "icon": "robot", "color": "#9C27B0"},
+            {"name": "View Dashboard", "type": "dashboard", "url": "/dashboard", "icon": "chart", "color": "#607D8B"},
+        ]
+        
+        action_count = 0
+        for teacher_id in teacher_ids:
+            for order, action in enumerate(quick_actions):
+                session.execute(text("""
+                    INSERT INTO teacher_quick_actions (
+                        id, teacher_id, action_name, action_description, action_type,
+                        action_url, icon_name, color_code, display_order, is_active, created_at, updated_at
+                    ) VALUES (
+                        :id, :teacher_id, :name, :description, :type,
+                        :url, :icon, :color, :order, true, :created_at, :updated_at
+                    )
+                """), {
+                    "id": str(uuid.uuid4()),
+                    "teacher_id": teacher_id,
+                    "name": action["name"],
+                    "description": f"Quick action: {action['name']}",
+                    "type": action["type"],
+                    "url": action["url"],
+                    "icon": action["icon"],
+                    "color": action["color"],
+                    "order": order,
+                    "created_at": datetime.utcnow(),
+                    "updated_at": datetime.utcnow()
+                })
+                action_count += 1
+        
+        print(f"    ✅ Created {action_count} quick actions")
+        
+        # 12. Seed beta_teacher_preferences
+        print("  🔄 Seeding beta teacher preferences...")
+        preferences = [
+            {"key": "theme", "value": "light", "type": "ui"},
+            {"key": "notifications_enabled", "value": "true", "type": "notification"},
+            {"key": "email_digest", "value": "weekly", "type": "email"},
+            {"key": "default_dashboard_view", "value": "grid", "type": "ui"},
+            {"key": "auto_save", "value": "true", "type": "behavior"},
+        ]
+        
+        pref_count = 0
+        for teacher_id in teacher_ids:
+            for pref in preferences:
+                if random.random() < 0.8:  # 80% of teachers have each preference set
+                    session.execute(text("""
+                        INSERT INTO beta_teacher_preferences (
+                            id, teacher_id, preference_key, preference_value, preference_type,
+                            created_at, updated_at
+                        ) VALUES (
+                            :id, :teacher_id, :key, :value, :type, :created_at, :updated_at
+                        )
+                    """), {
+                        "id": str(uuid.uuid4()),
+                        "teacher_id": teacher_id,
+                        "key": pref["key"],
+                        "value": pref["value"],
+                        "type": pref["type"],
+                        "created_at": datetime.utcnow(),
+                        "updated_at": datetime.utcnow()
+                    })
+                    pref_count += 1
+        
+        print(f"    ✅ Created {pref_count} teacher preferences")
+        
+        # Data validation and summary
+        print("\n📊 Validating seeded data...")
+        validation_queries = {
+            "teacher_achievements": "SELECT COUNT(*) FROM teacher_achievements",
+            "teacher_dashboard_layouts": "SELECT COUNT(*) FROM teacher_dashboard_layouts",
+            "dashboard_widget_instances": "SELECT COUNT(*) FROM dashboard_widget_instances",
+            "teacher_learning_paths": "SELECT COUNT(*) FROM teacher_learning_paths",
+            "learning_path_steps": "SELECT COUNT(*) FROM learning_path_steps",
+            "teacher_achievement_progress": "SELECT COUNT(*) FROM teacher_achievement_progress",
+            "teacher_goals": "SELECT COUNT(*) FROM teacher_goals",
+            "teacher_statistics": "SELECT COUNT(*) FROM teacher_statistics",
+            "teacher_activity_logs": "SELECT COUNT(*) FROM teacher_activity_logs",
+            "teacher_notifications": "SELECT COUNT(*) FROM teacher_notifications",
+            "teacher_quick_actions": "SELECT COUNT(*) FROM teacher_quick_actions",
+            "beta_teacher_preferences": "SELECT COUNT(*) FROM beta_teacher_preferences",
+        }
+        
+        validation_results = {}
+        for table_name, query in validation_queries.items():
+            try:
+                result = session.execute(text(query))
+                count = result.scalar() or 0
+                validation_results[table_name] = count
+                status = "✅" if count > 0 else "⚠️"
+                print(f"  {status} {table_name}: {count:,} records")
+            except Exception as e:
+                print(f"  ❌ {table_name}: Error - {e}")
+                validation_results[table_name] = 0
+        
+        total_records = sum(validation_results.values())
+        print(f"\n✅ All 12 Beta Teacher Dashboard tables seeded successfully!")
+        print(f"📊 Total records created: {total_records:,}")
+        
+        # Check session state before committing
+        try:
+            # Test if session is healthy
+            session.execute(text("SELECT 1")).scalar()
+        except Exception:
+            # Session is in failed state, rollback and recover
+            print("  ⚠️  Session was in failed state, recovering...")
+            try:
+                savepoint.rollback()
+            except:
+                pass
+            try:
+                session.rollback()
+                session.flush()
+            except:
+                pass
+            # Re-create savepoint for seeding operations
+            savepoint = session.begin_nested()
+            print("  ✅ Session recovered, data was preserved")
+        
+        # Commit the savepoint and flush (don't commit parent when in savepoint)
+        try:
+            savepoint.commit()
+            session.flush()  # Use flush() not commit() when called from within savepoint
+        except Exception as commit_err:
+            print(f"  ⚠️  Savepoint commit failed (data may already be committed): {commit_err}")
+            # Try to recover session
+            try:
+                session.rollback()
+                session.flush()
+            except:
+                pass
+        
+    except Exception as e:
+        print(f"❌ Error seeding beta teacher dashboard tables: {e}")
+        import traceback
+        traceback.print_exc()
+        try:
+            savepoint.rollback()
+        except:
+            pass
+        # Don't raise - allow other seeding to continue
 
 def seed_ai_lesson_suggestions(session: Session) -> None:
     """Seed AI lesson suggestions using the existing table schema"""
@@ -1343,9 +2740,18 @@ def seed_ai_assistant_data(session: Session) -> None:
             })
         
         print("✅ Seeded AI assistant integration data")
+        # Flush changes to savepoint (don't commit/rollback - let parent savepoint handle it)
+        session.flush()
         
     except Exception as e:
         print(f"❌ Error seeding AI assistant data: {e}")
+        # Don't rollback here - let the parent savepoint handle rollback
+        # Just flush any partial changes to ensure clean state
+        try:
+            session.flush()
+        except:
+            pass
+        # Re-raise to let parent savepoint handle it
         raise
 
 def seed_beta_testing_data(session: Session) -> None:
@@ -1399,7 +2805,7 @@ def seed_beta_testing_data(session: Session) -> None:
                 "email": f"teacher{i+1}@example.com",
                 "first_name": f"Teacher{i+1}",
                 "last_name": "Beta",
-                "organization": "Test School District",
+                "organization": None,  # BETA SYSTEM: No district affiliation
                 "role": "PE Teacher",
                 "experience_level": "intermediate" if i % 2 == 0 else "advanced",
                 "interests": ["lesson_planning", "assessment_tools"],
@@ -1573,9 +2979,18 @@ def seed_beta_testing_data(session: Session) -> None:
             })
         
         print("✅ Seeded beta testing system data")
+        # Flush changes to savepoint (don't commit/rollback - let parent savepoint handle it)
+        session.flush()
         
     except Exception as e:
         print(f"❌ Error seeding beta testing data: {e}")
+        # Don't rollback here - let the parent savepoint handle rollback
+        # Just flush any partial changes to ensure clean state
+        try:
+            session.flush()
+        except:
+            pass
+        # Re-raise to let parent savepoint handle it
         raise
 
 def seed_lesson_plan_sharing_data(session: Session) -> None:
@@ -1584,6 +2999,14 @@ def seed_lesson_plan_sharing_data(session: Session) -> None:
         # Get template and teacher IDs - use ALL available data for realistic testing
         template_result = session.execute(text("SELECT id FROM lesson_plan_templates LIMIT 10")).fetchall()
         teacher_result = session.execute(text("SELECT id FROM teacher_registrations")).fetchall()
+        
+        # Check if we have sufficient teachers (>2) for realistic sharing
+        teacher_count = len(teacher_result)
+        if teacher_count < 3:
+            print(f"⚠️  Only {teacher_count} teachers found - need at least 3 for realistic sharing")
+            print("⚠️  Sharing data will be created but may be limited")
+        elif teacher_count >= 5:
+            print(f"✅ Found {teacher_count} teachers - sufficient for realistic sharing data")
         
         if not template_result or len(teacher_result) < 2:
             print("⚠️  Insufficient data for lesson plan sharing, creating minimal data...")
@@ -1786,9 +3209,17 @@ def seed_lesson_plan_sharing_data(session: Session) -> None:
             })
         
         print("✅ Seeded lesson plan sharing data")
+        # Flush changes to savepoint (don't commit - let parent savepoint handle it)
+        session.flush()
         
     except Exception as e:
         print(f"❌ Error seeding lesson plan sharing data: {e}")
+        # Don't rollback here - let parent savepoint handle rollback
+        try:
+            session.flush()
+        except:
+            pass
+        # Re-raise to let parent savepoint handle it
         raise
 
 def seed_assessment_template_data(session: Session) -> None:
@@ -2184,11 +3615,18 @@ def seed_curriculum_and_lesson_data(session: Session) -> None:
         raise
 
 def seed_remaining_empty_tables(session: Session) -> None:
-    """Seed all remaining empty tables with dynamic data"""
+    """Seed all remaining empty tables with dynamic data
+    
+    NOTE: Beta system does NOT pre-seed student data.
+    - Teachers can create their own students via the /api/v1/beta/students endpoint
+    - Student features are available but optional for beta teachers
+    - This ensures beta system remains teacher-only with optional student management
+    """
     try:
         # Get existing IDs for foreign key references
         teacher_result = session.execute(text("SELECT id FROM teacher_registrations LIMIT 5")).fetchall()
-        student_result = session.execute(text("SELECT id FROM students LIMIT 10")).fetchall()
+        # BETA SYSTEM: No student data - teachers only
+        # student_result = session.execute(text("SELECT id FROM students LIMIT 10")).fetchall()
         collection_result = session.execute(text("SELECT id FROM resource_collections LIMIT 3")).fetchall()
         lesson_plan_result = session.execute(text("SELECT id FROM lesson_plans LIMIT 5")).fetchall()
         drivers_ed_lesson_plan_result = session.execute(text("SELECT id FROM drivers_ed_lesson_plans LIMIT 5")).fetchall()
@@ -2199,7 +3637,9 @@ def seed_remaining_empty_tables(session: Session) -> None:
         user_result = session.execute(text("SELECT id FROM users LIMIT 5")).fetchall()
         
         teacher_ids = [row[0] for row in teacher_result] if teacher_result else []
-        student_ids = [row[0] for row in student_result] if student_result else []
+        # BETA SYSTEM: No student data - teachers only
+        # student_ids = [row[0] for row in student_result] if student_result else []
+        student_ids = []  # Beta system is teacher-only, no students
         collection_ids = [row[0] for row in collection_result] if collection_result else []
         lesson_plan_ids = [row[0] for row in lesson_plan_result] if lesson_plan_result else []
         drivers_ed_lesson_plan_ids = [row[0] for row in drivers_ed_lesson_plan_result] if drivers_ed_lesson_plan_result else []
@@ -2234,23 +3674,25 @@ def seed_remaining_empty_tables(session: Session) -> None:
             })
             teacher_ids = [teacher_id]
         
-        if not student_ids:
-            student_id = str(uuid.uuid4())
-            session.execute(text("""
-                INSERT INTO students (
-                    id, first_name, last_name, date_of_birth, grade_level, created_at
-                ) VALUES (
-                    :id, :first_name, :last_name, :date_of_birth, :grade_level, :created_at
-                )
-            """), {
-                "id": student_id,
-                "first_name": "Default",
-                "last_name": "Student",
-                "date_of_birth": datetime.utcnow().date(),
-                "grade_level": "Elementary",
-                "created_at": datetime.utcnow()
-            })
-            student_ids = [student_id]
+        # BETA SYSTEM: No student data - teachers only
+        # if not student_ids:
+        #     student_id = str(uuid.uuid4())
+        #     session.execute(text("""
+        #         INSERT INTO students (
+        #             id, first_name, last_name, date_of_birth, grade_level, created_at
+        #         ) VALUES (
+        #             :id, :first_name, :last_name, :date_of_birth, :grade_level, :created_at
+        #         )
+        #     """), {
+        #         "id": student_id,
+        #         "first_name": "Default",
+        #         "last_name": "Student",
+        #         "date_of_birth": datetime.utcnow().date(),
+        #         "grade_level": "Elementary",
+        #         "created_at": datetime.utcnow()
+        #     })
+        #     student_ids = [student_id]
+        # Beta system does not create students - teacher-only system
         
         if not collection_ids:
             collection_id = str(uuid.uuid4())
@@ -2486,28 +3928,9 @@ def seed_remaining_empty_tables(session: Session) -> None:
                 "updated_at": datetime.utcnow()
             })
             
-            # Student progress
-            session.execute(text("""
-                INSERT INTO drivers_ed_student_progress (
-                    id, student_id, lesson_plan_id, curriculum_unit_id, completion_status,
-                    completion_date, score, max_score, instructor_notes, created_at, updated_at
-                ) VALUES (
-                    :id, :student_id, :lesson_plan_id, :curriculum_unit_id, :completion_status,
-                    :completion_date, :score, :max_score, :instructor_notes, :created_at, :updated_at
-                )
-            """), {
-                "id": str(uuid.uuid4()),
-                "student_id": i + 1,
-                "lesson_plan_id": drivers_ed_lesson_plan_ids[i % len(drivers_ed_lesson_plan_ids)] if drivers_ed_lesson_plan_ids else str(uuid.uuid4()),
-                "curriculum_unit_id": drivers_ed_curriculum_unit_ids[i % len(drivers_ed_curriculum_unit_ids)] if drivers_ed_curriculum_unit_ids else str(uuid.uuid4()),
-                "completion_status": "completed" if i % 2 == 0 else "in_progress",
-                "completion_date": datetime.utcnow() if i % 2 == 0 else None,
-                "score": 85.0 + (i * 2.5),
-                "max_score": 100.0,
-                "instructor_notes": f"Student progress notes {i+1}",
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            })
+            # BETA SYSTEM: Skip student progress - teacher-only system
+            # Student progress seeding removed - beta system is teacher-only
+            pass
         
         # Seed health education tables
         print("🔄 Seeding health education data...")
@@ -2591,28 +4014,9 @@ def seed_remaining_empty_tables(session: Session) -> None:
                 "created_at": datetime.utcnow()
             })
             
-            # Student progress
-            session.execute(text("""
-                INSERT INTO health_student_progress (
-                    id, student_id, lesson_plan_id, curriculum_unit_id, completion_status,
-                    completion_date, score, max_score, instructor_notes, created_at, updated_at
-                ) VALUES (
-                    :id, :student_id, :lesson_plan_id, :curriculum_unit_id, :completion_status,
-                    :completion_date, :score, :max_score, :instructor_notes, :created_at, :updated_at
-                )
-            """), {
-                "id": str(uuid.uuid4()),
-                "student_id": str(uuid.uuid4()),
-                "lesson_plan_id": health_lesson_plan_ids[i % len(health_lesson_plan_ids)] if health_lesson_plan_ids else str(uuid.uuid4()),
-                "curriculum_unit_id": health_curriculum_unit_ids[i % len(health_curriculum_unit_ids)] if health_curriculum_unit_ids else str(uuid.uuid4()),
-                "completion_status": "completed" if i % 2 == 0 else "in_progress",
-                "completion_date": datetime.utcnow() if i % 2 == 0 else None,
-                "score": 88.0 + (i * 1.5),
-                "max_score": 100.0,
-                "instructor_notes": f"Health progress notes {i+1}",
-                "created_at": datetime.utcnow(),
-                "updated_at": datetime.utcnow()
-            })
+            # BETA SYSTEM: Skip student progress - teacher-only system
+            # Student progress seeding removed - beta system is teacher-only
+            pass
         
         print("✅ Seeded all remaining empty tables")
         
@@ -2630,70 +4034,70 @@ def migrate_main_system_content_to_beta(session: Session) -> None:
             migrate_lesson_plans_to_beta(session)
         except Exception as e:
             print(f"⚠️  Lesson plans migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         # 2. Migrate Avatars
         try:
             migrate_avatars_to_beta(session)
         except Exception as e:
             print(f"⚠️  Avatars migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         # 3. Migrate Widgets
         try:
             migrate_widgets_to_beta(session)
         except Exception as e:
             print(f"⚠️  Widgets migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         # 4. Migrate PE Content
         try:
             migrate_pe_content_to_beta(session)
         except Exception as e:
             print(f"⚠️  PE content migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         # 5. Migrate Driver's Ed Content
         try:
             migrate_drivers_ed_content_to_beta(session)
         except Exception as e:
             print(f"⚠️  Driver's Ed migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         # 6. Migrate Health Content
         try:
             migrate_health_content_to_beta(session)
         except Exception as e:
             print(f"⚠️  Health migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         # 7. Migrate Assessments
         try:
             migrate_assessments_to_beta(session)
         except Exception as e:
             print(f"⚠️  Assessments migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         # 8. Migrate Resources
         try:
             migrate_resources_to_beta(session)
         except Exception as e:
             print(f"⚠️  Resources migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         # 9. Migrate Curriculum Lessons
         try:
             migrate_curriculum_lessons_to_beta(session)
         except Exception as e:
             print(f"⚠️  Curriculum lessons migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         # 10. Migrate General Lessons
         try:
             migrate_general_lessons_to_beta(session)
         except Exception as e:
             print(f"⚠️  General lessons migration skipped: {e}")
-            session.rollback()
+            session.flush()  # Use flush() not rollback() when called from within savepoint
         
         print("✅ Main system content migration completed successfully!")
         
@@ -2839,8 +4243,8 @@ def migrate_avatars_to_beta(session: Session) -> None:
         # Note: beta_avatars table is now managed by SQLAlchemy models
         # and will be created by the database migration system
         
-        # Start fresh transaction to avoid failed transaction errors
-        session.rollback()
+        # Don't rollback parent transaction when in savepoint - removed
+        # session.rollback()  # REMOVED: Can't rollback parent transaction when in savepoint
         
         # Check if avatars table exists in main system
         try:
@@ -2895,7 +4299,7 @@ def migrate_avatars_to_beta(session: Session) -> None:
                     continue
 
             print(f"✅ Migrated {migrated_count} avatars to beta")
-            session.commit()
+            session.flush()  # Use flush() not commit() when called from within savepoint
 
         except Exception as e:
             print(f"⚠️  Avatars table not found or error: {e}")
@@ -2912,11 +4316,8 @@ def migrate_widgets_to_beta(session: Session) -> None:
         # Note: beta_widgets table is now managed by SQLAlchemy models
         # and will be created by the database migration system
         
-        # Start fresh transaction to avoid failed transaction errors
-        try:
-            session.rollback()
-        except:
-            pass
+        # Don't rollback parent transaction when in savepoint - removed
+        # session.rollback()  # REMOVED: Can't rollback parent transaction when in savepoint
         
         # Check if widgets table exists in main system
         try:
@@ -3006,7 +4407,7 @@ def migrate_widgets_to_beta(session: Session) -> None:
                 print(f"Creating {additional_needed} additional widgets for comprehensive beta testing...")
                 create_comprehensive_widgets(session, count=additional_needed)
             
-            session.commit()
+            session.flush()  # Use flush() not commit() when called from within savepoint
             
         except Exception as e:
             print(f"⚠️  Widgets table not found or error: {e}")
@@ -3018,8 +4419,8 @@ def migrate_widgets_to_beta(session: Session) -> None:
 def migrate_pe_content_to_beta(session: Session) -> None:
     """Migrate PE content from main system to beta"""
     try:
-        # Start fresh transaction
-        session.rollback()
+        # Don't rollback parent transaction when in savepoint - removed
+        # session.rollback()  # REMOVED: Can't rollback parent transaction when in savepoint
         
         # Check if already migrated
         already_migrated = session.execute(text("""
@@ -3129,8 +4530,8 @@ def migrate_pe_content_to_beta(session: Session) -> None:
                             continue
                     
                     print(f"✅ Migrated {migrated_count} PE lesson plans to beta")
-                    # Commit the migrated data
-                    session.commit()
+                    # Flush the migrated data (use flush() not commit() when called from within savepoint)
+                    session.flush()
             
         except Exception as e:
             print(f"⚠️  PE lesson plans table not found or error: {e}")
@@ -3225,8 +4626,8 @@ def migrate_drivers_ed_content_to_beta(session: Session) -> None:
                             continue
                     
                     print(f"✅ Migrated {migrated_count} Driver's Ed lesson plans to beta")
-                    # Commit the migrated data
-                    session.commit()
+                    # Flush the migrated data (use flush() not commit() when called from within savepoint)
+                    session.flush()
             
         except Exception as e:
             print(f"⚠️  Driver's Ed lesson plans table not found or error: {e}")
@@ -3321,8 +4722,8 @@ def migrate_health_content_to_beta(session: Session) -> None:
                             continue
                     
                     print(f"✅ Migrated {migrated_count} Health lesson plans to beta")
-                    # Commit the migrated data
-                    session.commit()
+                    # Flush the migrated data (use flush() not commit() when called from within savepoint)
+                    session.flush()
             
         except Exception as e:
             print(f"⚠️  Health lesson plans table not found or error: {e}")
@@ -3360,7 +4761,8 @@ def migrate_resources_to_beta(session: Session) -> None:
         
     except Exception as e:
         print(f"❌ Error migrating resources: {e}")
-        session.rollback()
+        # Don't rollback parent transaction when in savepoint - let savepoint handle it
+        # session.rollback()  # REMOVED
         raise
 
 def seed_resource_categories(session: Session) -> None:
@@ -3398,7 +4800,7 @@ def seed_resource_categories(session: Session) -> None:
             })
         
         print(f"    ✅ Seeded {len(categories)} resource categories")
-        session.commit()
+        session.flush()  # Use flush() not commit() when called from within savepoint
     except Exception as e:
         print(f"    ⚠️  Error seeding resource categories: {e}")
         session.rollback()
@@ -3521,34 +4923,69 @@ def seed_resource_management_data(session: Session) -> None:
         
         # Seed resource favorites - ALL teachers favorite some resources
         print(f"🔄 Seeding resource favorites for {len(teacher_ids)} teachers...")
+        favorites_inserted = 0
         for i in range(min(len(teacher_ids) * 2, 40)):  # Cap at 40 for performance
             resource_id = resource_ids[i % len(resource_ids)]
             teacher_id = teacher_ids[i % len(teacher_ids)]
             
-            session.execute(text("""
-                INSERT INTO resource_favorites (
-                    id, resource_id, teacher_id, created_at
-                ) VALUES (
-                    :id, :resource_id, :teacher_id, :created_at
-                )
+            # Check if this favorite already exists (unique constraint on resource_id, teacher_id)
+            existing = session.execute(text("""
+                SELECT id FROM resource_favorites 
+                WHERE resource_id = :resource_id AND teacher_id = :teacher_id
             """), {
-                "id": str(uuid.uuid4()),
                 "resource_id": resource_id,
-                "teacher_id": teacher_id,
-                "created_at": datetime.utcnow() - timedelta(days=random.randint(0, 30))
-            })
+                "teacher_id": teacher_id
+            }).first()
+            
+            if existing:
+                continue  # Skip if already exists
+            
+            try:
+                session.execute(text("""
+                    INSERT INTO resource_favorites (
+                        id, resource_id, teacher_id, created_at
+                    ) VALUES (
+                        :id, :resource_id, :teacher_id, :created_at
+                    )
+                """), {
+                    "id": str(uuid.uuid4()),
+                    "resource_id": resource_id,
+                    "teacher_id": teacher_id,
+                    "created_at": datetime.utcnow() - timedelta(days=random.randint(0, 30))
+                })
+                favorites_inserted += 1
+            except Exception as e:
+                # Ignore unique violations if check missed it
+                if 'unique' not in str(e).lower():
+                    raise
+        
+        print(f"  ✅ Inserted {favorites_inserted} resource favorites (skipped duplicates)")
         
         # Seed resource reviews - ALL teachers review some resources
         print(f"🔄 Seeding resource reviews for {len(teacher_ids)} teachers...")
+        reviews_inserted = 0
         for i in range(min(len(teacher_ids) * 2, 30)):  # Cap at 30 for performance
             resource_id = resource_ids[i % len(resource_ids)]
             teacher_id = teacher_ids[i % len(teacher_ids)]
             
-            session.execute(text("""
-                INSERT INTO resource_reviews (
-                    id, resource_id, teacher_id, rating, review_text, pros, cons, suggestions,
-                    would_recommend, used_in_class, student_feedback, created_at, updated_at
-                ) VALUES (
+            # Check if this review already exists
+            existing = session.execute(text("""
+                SELECT id FROM resource_reviews 
+                WHERE resource_id = :resource_id AND teacher_id = :teacher_id
+            """), {
+                "resource_id": resource_id,
+                "teacher_id": teacher_id
+            }).first()
+            
+            if existing:
+                continue  # Skip if already exists
+            
+            try:
+                session.execute(text("""
+                    INSERT INTO resource_reviews (
+                        id, resource_id, teacher_id, rating, review_text, pros, cons, suggestions,
+                        would_recommend, used_in_class, student_feedback, created_at, updated_at
+                    ) VALUES (
                     :id, :resource_id, :teacher_id, :rating, :review_text, :pros, :cons, :suggestions,
                     :would_recommend, :used_in_class, :student_feedback, :created_at, :updated_at
                 )
@@ -3567,7 +5004,13 @@ def seed_resource_management_data(session: Session) -> None:
                 "created_at": datetime.utcnow() - timedelta(days=random.randint(0, 30)),
                 "updated_at": datetime.utcnow() - timedelta(days=random.randint(0, 15))
             })
+                reviews_inserted += 1
+            except Exception as e:
+                # Ignore unique violations if check missed it
+                if 'unique' not in str(e).lower():
+                    raise
         
+        print(f"  ✅ Inserted {reviews_inserted} resource reviews (skipped duplicates)")
         print("✅ Seeded resource management data")
         
     except Exception as e:
@@ -3649,8 +5092,8 @@ def migrate_curriculum_lessons_to_beta(session: Session) -> None:
                             continue
                     
                     print(f"✅ Migrated {migrated_count} curriculum lessons to beta")
-                    # Commit the migrated data
-                    session.commit()
+                    # Flush the migrated data (use flush() not commit() when called from within savepoint)
+                    session.flush()
             
         except Exception as e:
             print(f"⚠️  Curriculum lessons table not found or error: {e}")
@@ -3735,8 +5178,8 @@ def migrate_general_lessons_to_beta(session: Session) -> None:
                             continue
                     
                     print(f"✅ Migrated {migrated_count} general lessons to beta")
-                    # Commit the migrated data
-                    session.commit()
+                    # Flush the migrated data (use flush() not commit() when called from within savepoint)
+                    session.flush()
             
         except Exception as e:
             print(f"⚠️  General lessons table not found or error: {e}")
@@ -3819,25 +5262,44 @@ def create_additional_beta_teachers(session: Session) -> None:
                 print(f'⚠️  Error creating teacher {email}: {e}')
                 continue
         
-        session.commit()
+        # Flush changes to savepoint (don't commit - let parent savepoint handle it)
+        session.flush()
         
         total_count = session.execute(text('SELECT COUNT(*) FROM teacher_registrations')).fetchone()[0]
         
         print(f'✅ Created {created_count} new beta teachers')
         print(f'✅ Total beta teachers: {total_count}')
         
+        # Ensure we have at least 5 teachers for realistic sharing
+        if total_count < 3:
+            print(f'⚠️  Only {total_count} teachers available - sharing may be limited')
+        elif total_count < 5:
+            print(f'⚠️  {total_count} teachers available - sharing will work but more teachers recommended')
+        else:
+            print(f'✅ Sufficient teachers ({total_count}) for realistic sharing data')
+        
     except Exception as e:
         print(f'❌ Error creating beta teachers: {e}')
-        session.rollback()
+        # Don't rollback here - let parent savepoint handle it
+        # Just flush any partial changes
+        try:
+            session.flush()
+        except:
+            pass
+        # Re-raise to let parent savepoint handle it
         raise
 
 def distribute_content_evenly(session: Session) -> None:
-    """Distribute content evenly among all beta teachers"""
+    """Distribute content evenly among all beta teachers
+    
+    NOTE: This function is called from within a savepoint (Phase 1.10).
+    Use session.flush() instead of session.commit() to avoid closing the parent transaction.
+    """
     try:
         print("🔄 Distributing content evenly among teachers...")
         
-        # Start a new transaction to avoid failed transaction errors
-        session.rollback()
+        # Don't rollback if we're in a savepoint - just flush
+        # session.rollback()  # REMOVED: Can't rollback parent transaction when in savepoint
         
         # Get all beta teachers
         teachers = session.execute(text('SELECT id FROM teacher_registrations ORDER BY id')).fetchall()
@@ -3849,70 +5311,175 @@ def distribute_content_evenly(session: Session) -> None:
         print(f'Found {len(teachers)} beta teachers')
         
         # Redistribute lesson plans evenly
-        lesson_plans = session.execute(text('SELECT id FROM lesson_plan_templates ORDER BY RANDOM()')).fetchall()
+        # ORDER BY id to ensure consistent lock ordering and prevent deadlocks
+        lesson_plans = session.execute(text('SELECT id FROM lesson_plan_templates ORDER BY id')).fetchall()
         
         redistributed_lessons = 0
+        batch_size = 100  # Commit in batches to avoid long-running transactions
+        
         for i, lesson_plan in enumerate(lesson_plans):
             teacher_id = teachers[i % len(teachers)][0]  # Distribute evenly
             
-            session.execute(text('''
-                UPDATE lesson_plan_templates 
-                SET teacher_id = :teacher_id,
-                    updated_at = :updated_at
-                WHERE id = :id
-            '''), {
-                'id': lesson_plan[0],
-                'teacher_id': teacher_id,
-                'updated_at': datetime.utcnow()
-            })
-            
-            redistributed_lessons += 1
-            
-            # Progress indicator
-            if (i + 1) % 500 == 0:
-                print(f'  Distributing lessons... {i + 1}/{len(lesson_plans)}')
+            try:
+                session.execute(text('''
+                    UPDATE lesson_plan_templates 
+                    SET teacher_id = :teacher_id,
+                        updated_at = :updated_at
+                    WHERE id = :id
+                '''), {
+                    'id': lesson_plan[0],
+                    'teacher_id': teacher_id,
+                    'updated_at': datetime.utcnow()
+                })
+                
+                redistributed_lessons += 1
+                
+                # Flush in batches to reduce lock time and prevent deadlocks
+                # Use flush() not commit() since we're in a savepoint
+                if (i + 1) % batch_size == 0:
+                    session.flush()
+                    # Progress indicator
+                    if (i + 1) % 500 == 0:
+                        print(f'  Distributing lessons... {i + 1}/{len(lesson_plans)}')
+                        
+            except Exception as e:
+                # If deadlock occurs, flush and retry this batch
+                # Can't rollback parent transaction when in savepoint - use flush()
+                if 'deadlock' in str(e).lower():
+                    session.flush()  # Flush any pending changes
+                    # Retry this update once
+                    try:
+                        session.execute(text('''
+                            UPDATE lesson_plan_templates 
+                            SET teacher_id = :teacher_id,
+                                updated_at = :updated_at
+                            WHERE id = :id
+                        '''), {
+                            'id': lesson_plan[0],
+                            'teacher_id': teacher_id,
+                            'updated_at': datetime.utcnow()
+                        })
+                        redistributed_lessons += 1
+                        if (i + 1) % batch_size == 0:
+                            session.flush()
+                    except:
+                        # Skip if retry also fails
+                        session.flush()  # Flush any pending changes
+                        continue
+                else:
+                    raise
+        
+        # Final flush for remaining updates
+        if redistributed_lessons > 0:
+            session.flush()
         
         # Redistribute assessments evenly
-        assessments = session.execute(text('SELECT id FROM assessment_templates ORDER BY RANDOM()')).fetchall()
+        # ORDER BY id to ensure consistent lock ordering and prevent deadlocks
+        assessments = session.execute(text('SELECT id FROM assessment_templates ORDER BY id')).fetchall()
         
         redistributed_assessments = 0
         for i, assessment in enumerate(assessments):
             teacher_id = teachers[i % len(teachers)][0]
             
-            session.execute(text('''
-                UPDATE assessment_templates 
-                SET teacher_id = :teacher_id,
-                    updated_at = :updated_at
-                WHERE id = :id
-            '''), {
-                'id': assessment[0],
-                'teacher_id': teacher_id,
-                'updated_at': datetime.utcnow()
-            })
-            
-            redistributed_assessments += 1
+            try:
+                session.execute(text('''
+                    UPDATE assessment_templates 
+                    SET teacher_id = :teacher_id,
+                        updated_at = :updated_at
+                    WHERE id = :id
+                '''), {
+                    'id': assessment[0],
+                    'teacher_id': teacher_id,
+                    'updated_at': datetime.utcnow()
+                })
+                
+                redistributed_assessments += 1
+                
+                # Flush in batches (use flush() not commit() since we're in a savepoint)
+                if (i + 1) % batch_size == 0:
+                    session.flush()
+                    
+            except Exception as e:
+                # If deadlock occurs, flush and retry
+                if 'deadlock' in str(e).lower():
+                    session.flush()  # Flush any pending changes
+                    try:
+                        session.execute(text('''
+                            UPDATE assessment_templates 
+                            SET teacher_id = :teacher_id,
+                                updated_at = :updated_at
+                            WHERE id = :id
+                        '''), {
+                            'id': assessment[0],
+                            'teacher_id': teacher_id,
+                            'updated_at': datetime.utcnow()
+                        })
+                        redistributed_assessments += 1
+                        if (i + 1) % batch_size == 0:
+                            session.flush()
+                    except:
+                        session.flush()  # Flush any pending changes
+                        continue
+                else:
+                    raise
+        
+        # Final flush for assessments
+        if redistributed_assessments > 0:
+            session.flush()
         
         # Redistribute AI conversations evenly
-        conversations = session.execute(text('SELECT id FROM ai_assistant_conversations ORDER BY RANDOM()')).fetchall()
+        # ORDER BY id to ensure consistent lock ordering and prevent deadlocks
+        conversations = session.execute(text('SELECT id FROM ai_assistant_conversations ORDER BY id')).fetchall()
         
         redistributed_conversations = 0
         for i, conversation in enumerate(conversations):
             teacher_id = teachers[i % len(teachers)][0]
             
-            session.execute(text('''
-                UPDATE ai_assistant_conversations 
-                SET teacher_id = :teacher_id,
-                    updated_at = :updated_at
-                WHERE id = :id
-            '''), {
-                'id': conversation[0],
-                'teacher_id': teacher_id,
-                'updated_at': datetime.utcnow()
-            })
-            
-            redistributed_conversations += 1
+            try:
+                session.execute(text('''
+                    UPDATE ai_assistant_conversations 
+                    SET teacher_id = :teacher_id,
+                        updated_at = :updated_at
+                    WHERE id = :id
+                '''), {
+                    'id': conversation[0],
+                    'teacher_id': teacher_id,
+                    'updated_at': datetime.utcnow()
+                })
+                
+                redistributed_conversations += 1
+                
+                # Flush in batches (use flush() not commit() since we're in a savepoint)
+                if (i + 1) % batch_size == 0:
+                    session.flush()
+                    
+            except Exception as e:
+                # If deadlock occurs, flush and retry
+                if 'deadlock' in str(e).lower():
+                    session.flush()  # Flush any pending changes
+                    try:
+                        session.execute(text('''
+                            UPDATE ai_assistant_conversations 
+                            SET teacher_id = :teacher_id,
+                                updated_at = :updated_at
+                            WHERE id = :id
+                        '''), {
+                            'id': conversation[0],
+                            'teacher_id': teacher_id,
+                            'updated_at': datetime.utcnow()
+                        })
+                        redistributed_conversations += 1
+                        if (i + 1) % batch_size == 0:
+                            session.flush()
+                    except:
+                        session.flush()  # Flush any pending changes
+                        continue
+                else:
+                    raise
         
-        session.commit()
+        # Final flush for conversations
+        if redistributed_conversations > 0:
+            session.flush()
         
         print(f'✅ Redistributed {redistributed_lessons} lesson plans evenly')
         print(f'✅ Redistributed {redistributed_assessments} assessments evenly')
@@ -3920,7 +5487,8 @@ def distribute_content_evenly(session: Session) -> None:
         
     except Exception as e:
         print(f'❌ Error redistributing content: {e}')
-        session.rollback()
+        # Don't rollback parent transaction when in savepoint - let savepoint handle it
+        # session.rollback()  # REMOVED
         raise
 
 def create_lesson_plan_activities(session: Session) -> None:
@@ -4003,14 +5571,15 @@ def create_lesson_plan_activities(session: Session) -> None:
                     print(f'  ⚠️  Error creating activity for lesson {lesson_id}: {e}')
                     continue
         
-        session.commit()
+        session.flush()  # Use flush() not commit() when called from within savepoint
         
         print(f'✅ Created {created_activities} new activities')
         print(f'   Average {created_activities / len(lessons_without_activities) if lessons_without_activities else 0:.1f} activities per lesson')
         
     except Exception as e:
         print(f'❌ Error creating lesson plan activities: {e}')
-        session.rollback()
+        # Don't rollback parent transaction when in savepoint - let savepoint handle it
+        # session.rollback()  # REMOVED
         raise
 
 def create_comprehensive_widgets(session: Session, count: int = 323) -> None:
@@ -4041,12 +5610,13 @@ def create_comprehensive_widgets(session: Session, count: int = 323) -> None:
             session.add(widget)
             created += 1
         
-        session.commit()
+        session.flush()  # Use flush() not commit() when called from within savepoint
         print(f"✅ Created {created} widgets")
         
     except Exception as e:
         print(f"❌ Error creating widgets: {e}")
-        session.rollback()
+        # Don't rollback parent transaction when in savepoint - let savepoint handle it
+        # session.rollback()  # REMOVED
         raise
 
 def enhance_avatar_widget_configurations(session: Session) -> None:
@@ -4137,13 +5707,14 @@ def enhance_avatar_widget_configurations(session: Session) -> None:
             'updated_at': datetime.utcnow()
         })
         
-        session.commit()
+        session.flush()  # Use flush() not commit() when called from within savepoint
         
         print("✅ Enhanced avatar and widget configurations")
         
     except Exception as e:
         print(f'❌ Error enhancing configurations: {e}')
-        session.rollback()
+        # Don't rollback parent transaction when in savepoint - let savepoint handle it
+        # session.rollback()  # REMOVED
         raise
 
 def create_comprehensive_educational_resources(session: Session) -> None:
@@ -4331,12 +5902,13 @@ def create_comprehensive_educational_resources(session: Session) -> None:
                         "created_at": datetime.utcnow()
                     })
         
-        session.commit()
+        session.flush()  # Use flush() not commit() when called from within savepoint
         print(f"✅ Created {resources_created} educational resources and {collections_created} collections")
         
     except Exception as e:
         print(f"❌ Error creating educational resources: {e}")
-        session.rollback()
+        # Don't rollback parent transaction when in savepoint - let savepoint handle it
+        # session.rollback()  # REMOVED
         raise
 
 if __name__ == "__main__":

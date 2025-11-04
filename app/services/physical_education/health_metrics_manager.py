@@ -325,7 +325,11 @@ class HealthMetricsManager:
         metric_type: HealthMetricType,
         age_group: str
     ) -> Optional[Dict]:
-        """Get thresholds for a specific metric type and age group."""
+        """Get thresholds for a specific metric type and age group.
+        
+        NOTE: The database table uses MetricType enum from health_metrics.py,
+        which may not match HealthMetricType values. Handle gracefully.
+        """
         try:
             # Ensure age_group is a string
             if isinstance(age_group, dict):
@@ -333,10 +337,35 @@ class HealthMetricsManager:
             elif not isinstance(age_group, str):
                 age_group = '11-13'
             
+            # Map HealthMetricType to MetricType for database query
+            # Only query database for metric types that exist in both enums
+            metric_type_mapping = {
+                "heart_rate": "heart_rate",
+                "blood_pressure": "blood_pressure",
+                "temperature": "body_temperature",  # Map temperature to body_temperature
+                "oxygen_saturation": "oxygen_saturation",
+                "respiratory_rate": "respiratory_rate",
+                "weight": "weight",
+                "height": "height",
+                "bmi": "bmi"
+            }
+            
+            db_metric_type = metric_type_mapping.get(metric_type.value)
+            if not db_metric_type:
+                # Metric type not in database enum - use defaults only
+                return self.default_thresholds.get(age_group, {}).get(metric_type)
+            
             # First try to get custom thresholds from database
+            from app.models.health_fitness.metrics.health_metrics import MetricType as DbMetricType
+            try:
+                db_metric_enum = DbMetricType(db_metric_type)
+            except ValueError:
+                # Metric type not in database enum - skip database query
+                return self.default_thresholds.get(age_group, {}).get(metric_type)
+            
             threshold = db.query(GeneralHealthMetricThreshold).filter(
                 and_(
-                    GeneralHealthMetricThreshold.metric_type == metric_type.value,
+                    GeneralHealthMetricThreshold.metric_type == db_metric_enum,
                     GeneralHealthMetricThreshold.age_group == age_group
                 )
             ).first()
@@ -351,8 +380,9 @@ class HealthMetricsManager:
             # Fall back to default thresholds
             return self.default_thresholds.get(age_group, {}).get(metric_type)
         except Exception as e:
-            self.logger.error(f"Error getting thresholds: {str(e)}")
-            return None
+            # Log error but don't fail - return None so metric recording can continue
+            self.logger.warning(f"Could not get thresholds for {metric_type.value}: {str(e)} - using defaults")
+            return self.default_thresholds.get(age_group, {}).get(metric_type)
 
     async def check_student_health_status(self, student_id: int) -> Dict[str, Any]:
         """Check if a student is eligible for physical activities based on health status."""

@@ -90,6 +90,36 @@ from .beta_testing import (
 from .beta_avatars import BetaAvatar
 from .beta_widgets import BetaWidget
 
+# Beta Students
+from .beta_students import BetaStudent
+
+# Beta Teacher Dashboard Models
+from .beta_teacher_dashboard import (
+    BetaDashboardWidget,
+    TeacherDashboardLayout,
+    DashboardWidgetInstance,
+    TeacherActivityLog,
+    TeacherNotification,
+    TeacherAchievement,
+    TeacherAchievementProgress,
+    TeacherQuickAction,
+    BetaTeacherPreference,
+    TeacherStatistics,
+    TeacherGoal,
+    TeacherLearningPath,
+    LearningPathStep
+)
+
+# Cache Models
+from .cache import CachePolicy, CacheEntry, CacheMetrics
+
+# Log Models
+from .performance_log import PerformanceLog
+from .security_log import SecurityLog
+
+# Educational Teacher Model
+from .educational.staff.teacher import Teacher
+
 # Type definitions
 from .core.core_models import (
     MeasurementUnit, MetricType, GoalAdjustment
@@ -240,17 +270,21 @@ class MetadataModel:
         if not hasattr(self, 'version_history'):
             self.version_history = []
         
-        # Store previous version
+        # Store previous version if key already exists
+        old_value = None
         if key in self.metadata:
+            old_value = self.metadata[key]
+            # Only add to history when updating existing key
             self.version_history.append({
                 'version': self.version,
                 'key': key,
-                'old_value': self.metadata[key],
+                'old_value': old_value,
                 'new_value': value,
                 'timestamp': datetime.utcnow().isoformat()
             })
-            self.version += 1
         
+        # Always increment version (for both new and existing keys)
+        self.version += 1
         self.metadata[key] = value
 
 class AuditableModel:
@@ -281,13 +315,21 @@ class ValidatableModel:
                     value = getattr(self, field_name)
                     if not rule['validator'](value):
                         self.validation_errors.append(rule['message'])
+                else:
+                    # Field is required in validation rules but doesn't exist on model
+                    # Try validating with None, which should fail
+                    if not rule['validator'](None):
+                        self.validation_errors.append(rule['message'])
         return len(self.validation_errors) == 0
     
     def validate_not_empty(self, field_name: str, value):
         """Validate that a field is not empty."""
+        if not hasattr(self, 'validation_errors'):
+            self.validation_errors = []
         if not value or (isinstance(value, str) and not value.strip()):
-            self.validation_errors.append(f"{field_name} cannot be empty")
-            return False
+            error_message = f"{field_name} cannot be empty"
+            self.validation_errors.append(error_message)
+            raise ValueError(error_message)
         return True
     
     def common_validation_rules(self):
@@ -925,4 +967,7 @@ __all__ = [
     'BetaTestingParticipant', 'BetaTestingProgram', 'BetaTestingFeedback', 'BetaTestingSurvey', 
     'BetaTestingSurveyResponse', 'BetaTestingUsageAnalytics', 'BetaTestingFeatureFlag', 
     'BetaTestingNotification', 'BetaTestingReport',
+    
+    # Beta Students models
+    'BetaStudent',
 ] 

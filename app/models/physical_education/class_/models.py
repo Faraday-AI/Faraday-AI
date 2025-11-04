@@ -46,7 +46,7 @@ class PhysicalEducationClass(SharedBase):
     
     # Relationships using full module paths to avoid circular imports
     teacher = relationship("app.models.core.user.User", back_populates="physical_education_classes", foreign_keys=[teacher_id], lazy='joined')
-    class_students = relationship("app.models.physical_education.class_.models.ClassStudent", back_populates="class_", lazy='joined', overlaps="classes,students")
+    class_students = relationship("app.models.physical_education.class_.models.ClassStudent", back_populates="class_", lazy='joined', cascade="all, delete-orphan", overlaps="classes,students")
     # Add students relationship for easier access - go through ClassStudent model
     students = relationship("app.models.physical_education.student.models.Student", 
                           secondary="physical_education_class_students",

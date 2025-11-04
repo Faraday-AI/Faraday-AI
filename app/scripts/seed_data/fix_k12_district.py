@@ -20,7 +20,9 @@ def fix_k12_district():
     """Fix record counts for K-12 district"""
     
     # Use the Azure PostgreSQL connection
-    DATABASE_URL = 'postgresql://faraday_admin:CodaMoeLuna31@faraday-ai-db.postgres.database.azure.com:5432/postgres?sslmode=require'
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    if not DATABASE_URL:
+        raise RuntimeError('DATABASE_URL must be set in the environment')
     engine = create_engine(DATABASE_URL)
     Session = sessionmaker(bind=engine)
     session = Session()

@@ -29,6 +29,6 @@ class PhysicalEducationGoal(Base):
     notes = Column(Text)
     goal_metadata = Column(JSON)
     
-    # Relationships - temporarily disabled to fix mapper initialization
-    # student = relationship("Student", back_populates="physical_education_goals")
-    # activity = relationship("Activity", back_populates="physical_education_goals") 
+    # Relationships will be set up by setup_physical_education_goal_relationships() after model initialization
+    # This avoids circular import issues during SQLAlchemy mapper configuration
+    pass  # Relationships can be added via setup function if needed 

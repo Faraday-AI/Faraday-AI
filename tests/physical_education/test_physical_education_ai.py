@@ -119,17 +119,25 @@ def sample_biomechanical_data():
 async def test_generate_lesson_plan(pe_ai):
     """Test lesson plan generation."""
     result = await pe_ai.generate_lesson_plan(
-        topic="Basketball Fundamentals",
+        activity="Basketball Fundamentals",
         grade_level="9th Grade",
         duration="45 minutes"
     )
     
-    assert "lesson_plan" in result
-    assert "timestamp" in result
-    assert "metadata" in result
-    assert result["metadata"]["topic"] == "Basketball Fundamentals"
-    assert result["metadata"]["grade_level"] == "9th Grade"
-    assert result["metadata"]["duration"] == "45 minutes"
+    assert "activity" in result
+    assert "grade_level" in result
+    assert "duration" in result
+    assert result["activity"] == "Basketball Fundamentals"
+    assert result["grade_level"] == "9th Grade"
+    assert result["duration"] == "45 minutes"
+    assert "objectives" in result
+    assert "materials" in result
+    assert "warm_up" in result
+    assert "main_activity" in result
+    assert "cool_down" in result
+    assert "assessment" in result
+    assert "modifications" in result
+    assert "safety_notes" in result
 
 @pytest.mark.asyncio
 async def test_create_movement_instruction(pe_ai):
@@ -283,7 +291,7 @@ async def test_rate_limiting(pe_ai):
     # Test rapid consecutive calls
     for _ in range(5):
         result = await pe_ai.generate_lesson_plan(
-            topic="Basketball Fundamentals",
+            activity="Basketball Fundamentals",
             grade_level="9th Grade",
             duration="45 minutes"
         )
@@ -294,7 +302,7 @@ async def test_rate_limiting(pe_ai):
     await asyncio.sleep(1)
     
     result = await pe_ai.generate_lesson_plan(
-        topic="Basketball Fundamentals",
+        activity="Basketball Fundamentals",
         grade_level="9th Grade",
         duration="45 minutes"
     )

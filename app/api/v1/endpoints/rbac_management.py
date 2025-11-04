@@ -222,7 +222,22 @@ async def list_permissions(
     """List all permissions. Requires user management permission."""
     try:
         service = DashboardAccessControlService(db)
-        return await service.list_permissions()
+        permissions = await service.list_permissions()
+        # Convert model objects to response schema
+        result = []
+        for perm in permissions:
+            result.append(PermissionResponse(
+                id=str(perm.id),
+                name=perm.name or "",
+                description=perm.description,
+                resource_type=perm.resource_type or "",
+                action=perm.action or "",
+                scope=perm.scope,
+                is_active=bool(perm.is_active) if perm.is_active is not None else True,
+                created_at=perm.created_at.isoformat() if perm.created_at else "",
+                updated_at=perm.updated_at.isoformat() if perm.updated_at else ""
+            ))
+        return result
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

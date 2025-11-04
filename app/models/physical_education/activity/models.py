@@ -80,8 +80,9 @@ class Activity(SharedBase):
     assessment_metrics = relationship("app.models.skill_assessment.assessment.assessment.AssessmentMetrics", back_populates="activity")
     movement_analyses = relationship("app.models.movement_analysis.analysis.movement_analysis.MovementAnalysis", back_populates="activity", overlaps="activity,movement_analyses")
     circuit_breakers = relationship("app.models.circuit_breaker.CircuitBreaker", back_populates="activity", overlaps="activity,circuit_breakers")
-    # Progress relationships temporarily disabled to fix seeding issues
-    # progress_goals = relationship("ProgressGoal", back_populates="activity")
+    # Progress relationships will be set up by setup_all_physical_education_relationships() after model initialization
+    # This avoids circular import issues during SQLAlchemy mapper configuration
+    pass  # Relationships added via setup_all_physical_education_relationships()
     
     # Equipment usage relationship using string reference
     equipment_usage = relationship(

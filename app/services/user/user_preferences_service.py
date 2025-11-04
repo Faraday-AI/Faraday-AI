@@ -116,7 +116,14 @@ class UserPreferencesService:
             raise HTTPException(status_code=404, detail="User profile not found")
         
         theme_data = profile.custom_settings.get("theme", {}) if profile.custom_settings else {}
-        return ThemeSettings(**theme_data)
+        
+        # Handle case where theme_data might be a string (e.g., "dark") instead of a dict
+        if isinstance(theme_data, str):
+            return ThemeSettings(theme=theme_data)
+        elif isinstance(theme_data, dict):
+            return ThemeSettings(**theme_data) if theme_data else ThemeSettings()
+        else:
+            return ThemeSettings()
     
     async def update_notification_settings(self, user_id: int, notification_settings: NotificationSettings) -> Dict[str, Any]:
         """Update user notification settings."""
@@ -170,7 +177,14 @@ class UserPreferencesService:
             raise HTTPException(status_code=404, detail="User profile not found")
         
         accessibility_data = profile.custom_settings.get("accessibility", {}) if profile.custom_settings else {}
-        return AccessibilitySettings(**accessibility_data)
+        
+        # Handle case where accessibility_data might be a boolean or string instead of a dict
+        if isinstance(accessibility_data, bool):
+            return AccessibilitySettings(high_contrast=accessibility_data)
+        elif isinstance(accessibility_data, dict):
+            return AccessibilitySettings(**accessibility_data) if accessibility_data else AccessibilitySettings()
+        else:
+            return AccessibilitySettings()
     
     async def update_language_settings(self, user_id: int, language: str, timezone: str) -> Dict[str, str]:
         """Update user language and timezone settings."""

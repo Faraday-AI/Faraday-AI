@@ -4,6 +4,7 @@ Skill Assessment Models
 This module defines skill assessment models for physical education.
 """
 
+import logging
 from datetime import datetime
 from typing import Optional, List
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, Text, JSON, Boolean
@@ -32,10 +33,9 @@ class SkillAssessment(Base):
     criteria_data = Column(JSON, name='criteria')  # Explicitly map to 'criteria' column
     assessment_metadata = Column(JSON, nullable=True)
     
-    # Relationships - use string references to avoid circular imports
-    student = relationship("Student", back_populates="skill_assessments")
-    skill = relationship("Skill", back_populates="assessments")
-    assessment_criteria = relationship("AssessmentCriteria", back_populates="assessment")
+    # Relationships - will be set up by setup_skill_assessment_relationships() after model initialization
+    # This avoids circular import issues during SQLAlchemy mapper configuration
+    pass  # Relationships added via setup_skill_assessment_relationships()
 
 class AssessmentCriteria(BaseModelMixin, TimestampMixin):
     """Model for assessment criteria."""
@@ -49,8 +49,9 @@ class AssessmentCriteria(BaseModelMixin, TimestampMixin):
     notes = Column(Text)
     criteria_metadata = Column(JSONB)  # Renamed from metadata
     
-    # Relationships
-    assessment = relationship("SkillAssessment", back_populates="assessment_criteria")
+    # Relationships - will be set up by setup_skill_assessment_relationships() after model initialization
+    # This avoids circular import issues and ambiguous class name resolution during SQLAlchemy mapper configuration
+    pass  # Relationship added via setup_skill_assessment_relationships()
 
 class Skill(Base):
     """Model for skills."""
@@ -63,10 +64,11 @@ class Skill(Base):
     category = Column(String, nullable=False)
     skill_metadata = Column(JSON, nullable=True)
     
-    # Relationships
-    assessments = relationship("SkillAssessment", back_populates="skill")
+    # Relationships - will be set up by setup_skill_assessment_relationships() after model initialization
+    # This avoids ambiguous class name resolution during SQLAlchemy mapper configuration
     progressions = relationship("SkillProgression", back_populates="skill")
     criteria = relationship("SkillCriteria", back_populates="skill")
+    pass  # assessments relationship added via setup_skill_assessment_relationships()
 
 class SkillProgression(BaseModelMixin, TimestampMixin):
     """Model for skill progressions."""
@@ -110,8 +112,9 @@ class SkillLevel(Base):
     requirements = Column(JSON, nullable=True)
     level_metadata = Column(JSON, nullable=True)
 
-    # Relationships
-    skill = relationship("Skill", back_populates="levels")
+    # Relationships - will be set up by setup_skill_assessment_relationships() after model initialization
+    # This avoids missing back_populates property errors during SQLAlchemy mapper configuration
+    pass  # Relationship added via setup_skill_assessment_relationships()
 
 class SkillModels:
     """Service for managing skill assessment models and operations."""

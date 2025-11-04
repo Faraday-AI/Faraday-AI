@@ -20,6 +20,21 @@ def setup_student_relationships(Student):
     Student.student_fitness_goals = relationship('app.models.health_fitness.goals.fitness_goals.FitnessGoal', back_populates='student', lazy='joined', overlaps='student,fitness_goals')
     Student.goal_recommendations = relationship('app.models.health_fitness.goals.fitness_goals.GoalRecommendation', back_populates='student', lazy='joined', overlaps='student,goal_recommendations')
     Student.fitness_goal_progress = relationship('app.models.health_fitness.goals.fitness_goals.FitnessGoalProgress', back_populates='student', lazy='joined', overlaps='student,fitness_goal_progress')
+    
+    # Add relationship for HealthMetric from health_metric.py (table: student_health_metrics)
+    if not hasattr(Student, 'student_health_metric_records'):
+        # Use simple string reference - the HealthMetric class will be resolved after all models are loaded
+        Student.student_health_metric_records = relationship('app.models.physical_education.student.health_metric.HealthMetric', back_populates='student', lazy='select', overlaps='health_metrics,pe_health_metrics,student_health_metrics')
+
+def setup_health_metric_relationships():
+    """Setup relationships for HealthMetric model from health_metric.py."""
+    from app.models.physical_education.student.health_metric import HealthMetric
+    from app.models.physical_education.student.models import Student
+    
+    if not hasattr(HealthMetric, 'student'):
+        # Use simple string reference "Student" instead of full module path
+        # This allows SQLAlchemy to resolve it after all models are loaded
+        HealthMetric.student = relationship('Student', back_populates='student_health_metric_records', lazy='select', overlaps='health_metrics,pe_health_metrics,student_health_metrics')
 
 def setup_assessment_relationships(Assessment):
     """Setup relationships for the Assessment model."""

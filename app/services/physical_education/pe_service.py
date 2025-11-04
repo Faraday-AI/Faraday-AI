@@ -6,7 +6,9 @@ from app.services.core.base_service import BaseService
 from app.services.physical_education import service_integration
 from app.core.monitoring import track_metrics
 import logging
-import mediapipe as mp
+# PRODUCTION-READY: Lazy import MediaPipe to prevent hangs in test mode
+# MediaPipe import happens at module level, which blocks even before TEST_MODE check
+# import mediapipe as mp  # MOVED TO LAZY IMPORT - see __init__ method
 from app.models.physical_education.activity.models import (
     Activity,
     ActivityType,
@@ -40,22 +42,36 @@ class PEService(BaseService):
         return cls._instance
     
     def __init__(self):
-        if self._model is None:
-            try:
-                self._model = mp.solutions.pose.Pose(
-                    static_image_mode=False,
-                    model_complexity=2,
-                    enable_segmentation=True,
-                    min_detection_confidence=0.5
-                )
-            except (PermissionError, OSError) as e:
-                # Handle permission errors in Docker environment
-                self.logger = logging.getLogger("pe_service")
-                self.logger.warning(f"Could not initialize mediapipe Pose model: {e}. Using mock model.")
-                self._model = MagicMock()  # Use a mock model instead
         super().__init__("physical_education")
         self.logger = logging.getLogger("pe_service")
+        
+        # PRODUCTION-READY: Lazy MediaPipe initialization - check TEST_MODE first
+        # This prevents MediaPipe from blocking during test collection or in test mode
+        import os
+        test_mode = os.getenv("TEST_MODE") == "true"
+        
+        if self._model is None:
+            if test_mode:
+                # In test mode, skip MediaPipe entirely - use mock
+                self.logger.info("TEST_MODE: Using mock MediaPipe Pose model")
+                self._model = MagicMock()
+            else:
+                # Production mode: Lazy import and initialize MediaPipe
+                try:
+                    import mediapipe as mp
+                    self._model = mp.solutions.pose.Pose(
+                        static_image_mode=False,
+                        model_complexity=2,
+                        enable_segmentation=True,
+                        min_detection_confidence=0.5
+                    )
+                    self.logger.info("MediaPipe Pose model initialized successfully")
+                except (PermissionError, OSError, ImportError) as e:
+                    # Handle permission errors in Docker environment or missing MediaPipe
+                    self.logger.warning(f"Could not initialize mediapipe Pose model: {e}. Using mock model.")
+                    self._model = MagicMock()  # Use a mock model instead
         self.db = None
+        self.video_processor = None
         self.movement_analyzer = None
         self.assessment_system = None
         self.lesson_planner = None
@@ -67,6 +83,7 @@ class PEService(BaseService):
         """Initialize the PE service."""
         try:
             self.db = next(get_db())
+            self.video_processor = service_integration.get_service("video_processor")
             self.movement_analyzer = service_integration.get_service("movement_analyzer")
             self.assessment_system = service_integration.get_service("assessment_system")
             self.lesson_planner = service_integration.get_service("lesson_planner")
@@ -83,6 +100,7 @@ class PEService(BaseService):
         """Cleanup the PE service."""
         try:
             self.db = None
+            self.video_processor = None
             self.movement_analyzer = None
             self.assessment_system = None
             self.lesson_planner = None

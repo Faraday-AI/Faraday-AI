@@ -149,6 +149,11 @@ class CacheManager:
         self.security_enabled = security_enabled
         self.rate_limit_enabled = rate_limit_enabled
         self.audit_logging_enabled = audit_logging_enabled
+        
+        # PRODUCTION-READY: Shutdown event for graceful thread termination
+        # Initialize BEFORE threads so they can check it
+        self._shutdown_event = threading.Event()
+        
         self._warmup_queue = queue.Queue()
         self._warmup_thread = threading.Thread(target=self._process_warmup_queue, daemon=True)
         self._warmup_thread.start()
@@ -278,7 +283,7 @@ class CacheManager:
 
     def _check_health(self):
         """Periodically check cache health status."""
-        while True:
+        while not self._shutdown_event.is_set():
             try:
                 # Check Redis health
                 if self._redis_available:
@@ -305,14 +310,19 @@ class CacheManager:
                 for component, status in self._health_status.items():
                     CACHE_HEALTH.labels(component=component).set(status.value)
 
-                time.sleep(60)  # Check every minute
+                # PRODUCTION-READY: Use shutdown_event.wait() so thread can wake up immediately on shutdown
+                # This prevents threads from blocking during test cleanup
+                if self._shutdown_event.wait(timeout=60):  # Check every minute, or wake on shutdown
+                    break  # Shutdown signaled
             except Exception as e:
                 logger.error(f"Health check failed: {e}")
-                time.sleep(300)  # Wait longer on error
+                # Use shutdown_event.wait() so thread can wake up on shutdown
+                if self._shutdown_event.wait(timeout=300):  # Wait longer on error, or wake on shutdown
+                    break  # Shutdown signaled
 
     def _update_predictions(self):
         """Update performance predictions based on access patterns."""
-        while True:
+        while not self._shutdown_event.is_set():
             try:
                 with self._pattern_lock:
                     for key, access_times in self._access_patterns.items():
@@ -337,10 +347,14 @@ class CacheManager:
                                     1 - min(1, std_interval / mean_interval)
                                 )
 
-                time.sleep(300)  # Update every 5 minutes
+                # PRODUCTION-READY: Use shutdown_event.wait() so thread can wake up immediately on shutdown
+                if self._shutdown_event.wait(timeout=300):  # Update every 5 minutes, or wake on shutdown
+                    break  # Shutdown signaled
             except Exception as e:
                 logger.error(f"Prediction update failed: {e}")
-                time.sleep(600)  # Wait longer on error
+                # Use shutdown_event.wait() so thread can wake up on shutdown
+                if self._shutdown_event.wait(timeout=600):  # Wait longer on error, or wake on shutdown
+                    break  # Shutdown signaled
 
     def get(self, key: str, ttl: Optional[int] = None) -> Optional[Any]:
         """Get a value from cache with enhanced security and monitoring."""
@@ -547,6 +561,48 @@ class CacheManager:
         
         with self._lock:
             self._memory_cache.clear()
+    
+    def shutdown(self) -> None:
+        """
+        PRODUCTION-READY: Gracefully shutdown all background threads.
+        
+        This ensures clean test cleanup and prevents threads from interfering
+        with pytest's test execution, which can cause silent exits.
+        """
+        try:
+            # Signal shutdown to all threads
+            self._shutdown_event.set()
+            
+            # Send shutdown signal to queue-based threads
+            try:
+                self._warmup_queue.put(None)  # Shutdown signal for warmup thread
+            except Exception:
+                pass
+            
+            try:
+                self._batch_queue.put(None)  # Shutdown signal for batch thread
+            except Exception:
+                pass
+            
+            # Shutdown thread pool
+            try:
+                self._thread_pool.shutdown(wait=False)  # Don't wait - let daemon threads finish
+            except Exception:
+                pass
+            
+            # Wait briefly for threads to process shutdown signal (max 2 seconds)
+            # Since threads are daemon=True, they'll be killed when process exits anyway
+            # But we want to give them a chance to release locks/resources
+            import time
+            for thread in [self._warmup_thread, self._batch_thread, self._health_check_thread, 
+                          self._prediction_thread, self._monitoring_thread]:
+                if thread.is_alive():
+                    thread.join(timeout=0.5)  # Wait up to 0.5s per thread
+            
+            logger.debug("CacheManager shutdown complete")
+        except Exception as e:
+            logger.warning(f"Error during CacheManager shutdown: {e}")
+            # Continue - daemon threads will be killed by process exit
 
     def get_keys(self, pattern: str = "*") -> List[str]:
         """
@@ -574,7 +630,7 @@ class CacheManager:
 
     def _update_monitoring_metrics(self) -> None:
         """Update Prometheus metrics periodically."""
-        while True:
+        while not self._shutdown_event.is_set():
             try:
                 # Update cache size metrics
                 CACHE_SIZE.labels(type='memory').set(
@@ -597,10 +653,14 @@ class CacheManager:
                     if self._redis_available:
                         CACHE_HIT_RATIO.labels(type='redis').set(hit_ratio)
 
-                time.sleep(60)  # Update every minute
+                # PRODUCTION-READY: Use shutdown_event.wait() so thread can wake up immediately on shutdown
+                if self._shutdown_event.wait(timeout=60):  # Update every minute, or wake on shutdown
+                    break  # Shutdown signaled
             except Exception as e:
                 logger.error(f"Failed to update monitoring metrics: {e}")
-                time.sleep(300)  # Wait longer on error
+                # Use shutdown_event.wait() so thread can wake up on shutdown
+                if self._shutdown_event.wait(timeout=300):  # Wait longer on error, or wake on shutdown
+                    break  # Shutdown signaled
 
     def _process_warmup_queue(self) -> None:
         """Process cache warmup requests in background."""
@@ -684,26 +744,60 @@ class CacheManager:
         if self.warmup_enabled:
             self._warmup_queue.put((key, value, ttl or self.default_ttl, metadata))
 
-    def batch_set(self, items: Dict[str, Any], ttl: Optional[int] = None) -> None:
+    def batch_set(self, items: Dict[str, Any], ttl: Optional[int] = None, sync: bool = False) -> None:
         """
         Queue multiple items for batch setting.
         
         Args:
             items: Dictionary of key-value pairs to cache
             ttl: Optional time-to-live override
+            sync: If True, process items immediately instead of queuing
         """
-        for key, value in items.items():
-            self._batch_queue.put(('set', key, value))
+        if sync:
+            # Process immediately for synchronous behavior
+            operations = [('set', key, value) for key, value in items.items()]
+            self._execute_batch_operations(operations)
+        else:
+            # Queue for async processing
+            for key, value in items.items():
+                self._batch_queue.put(('set', key, value))
 
-    def batch_delete(self, keys: List[str]) -> None:
+    def batch_delete(self, keys: List[str], sync: bool = False) -> None:
         """
         Queue multiple keys for batch deletion.
         
         Args:
             keys: List of keys to delete
+            sync: If True, process items immediately instead of queuing
         """
-        for key in keys:
-            self._batch_queue.put(('delete', key, None))
+        if sync:
+            # Process immediately for synchronous behavior
+            operations = [('delete', key, None) for key in keys]
+            self._execute_batch_operations(operations)
+        else:
+            # Queue for async processing
+            for key in keys:
+                self._batch_queue.put(('delete', key, None))
+    
+    def flush_batch_queue(self) -> None:
+        """
+        Flush all pending batch operations synchronously.
+        Useful for testing or when immediate processing is required.
+        """
+        operations = []
+        while True:
+            try:
+                operation = self._batch_queue.get_nowait()
+                if operation is None:  # Shutdown signal, put it back
+                    self._batch_queue.put(None)
+                    break
+                operations.append(operation)
+                self._batch_queue.task_done()
+            except queue.Empty:
+                break
+        
+        if operations:
+            self._execute_batch_operations(operations)
 
     def get_multi(self, keys: List[str]) -> Dict[str, Any]:
         """

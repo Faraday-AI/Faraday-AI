@@ -11,6 +11,7 @@ import json
 import logging
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
+from fastapi import HTTPException
 
 from .gpt_coordination_service import GPTCoordinationService
 from .recommendation_service import RecommendationService
@@ -408,30 +409,55 @@ class DashboardService:
                 )
 
             # Create widget
+            # Map widget_type string to WidgetType enum
+            from ..models.dashboard_models import WidgetType, WidgetLayout
+            
+            # Convert widget_type string to enum (defaulting to CUSTOM if not found)
+            # Since 'resource_usage' is not in WidgetType enum, always use CUSTOM but preserve original type
+            widget_type_enum = WidgetType.CUSTOM
+            # Store original widget_type in configuration for reference
+            if isinstance(configuration, dict):
+                configuration['original_widget_type'] = widget_type
+            
+            # Set default size if not provided
+            default_size = size if size else {"width": 2, "height": 2}
+            
+            # Create widget - DashboardWidget model doesn't have 'position', uses 'layout_position'
             widget = DashboardWidget(
-                user_id=user_id,
-                widget_type=widget_type,
+                user_id=int(user_id) if isinstance(user_id, str) and user_id.isdigit() else None,
+                widget_type=widget_type_enum,
+                layout_position=WidgetLayout.TOP_LEFT,  # Default layout position
+                size=default_size,
                 name=configuration.get('name', f"{widget_type.replace('_', ' ').title()} Widget"),
                 description=configuration.get('description', ''),
                 configuration=configuration,
-                position=position,
-                size=size
+                dashboard_id=1,  # Default dashboard_id - should be passed as parameter or retrieved
+                organization_id=int(configuration.get('organization_id')) if configuration.get('organization_id') and str(configuration.get('organization_id')).isdigit() else None
             )
+            
+            # If position was provided, store it in configuration instead
+            if position:
+                widget.configuration = {**widget.configuration, 'position': position}
 
             self.db.add(widget)
             self.db.commit()
             self.db.refresh(widget)
 
+            # Return original widget_type from configuration if available, otherwise use enum value
+            returned_type = widget.widget_type.value if hasattr(widget.widget_type, 'value') else str(widget.widget_type)
+            if isinstance(widget.configuration, dict) and 'original_widget_type' in widget.configuration:
+                returned_type = widget.configuration.get('original_widget_type', returned_type)
+            
             return {
-                'id': widget.id,
-                'type': widget.widget_type,
+                'id': str(widget.id) if widget.id else None,
+                'type': returned_type,
                 'name': widget.name,
                 'description': widget.description,
                 'configuration': widget.configuration,
-                'position': widget.position,
+                'position': widget.configuration.get('position') if isinstance(widget.configuration, dict) else None,
                 'size': widget.size,
-                'created_at': widget.created_at.isoformat(),
-                'updated_at': widget.updated_at.isoformat()
+                'created_at': widget.created_at.isoformat() if widget.created_at else datetime.utcnow().isoformat(),
+                'updated_at': widget.updated_at.isoformat() if widget.updated_at else datetime.utcnow().isoformat()
             }
         except HTTPException:
             raise
@@ -3115,6 +3141,8 @@ class DashboardService:
                 'metrics': metrics,
                 'timestamp': datetime.utcnow().isoformat()
             }
+        except HTTPException:
+            raise  # Re-raise HTTPExceptions as-is
         except Exception as e:
             raise HTTPException(
                 status_code=500,

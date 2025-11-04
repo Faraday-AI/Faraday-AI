@@ -5,6 +5,7 @@ This module provides API endpoints for user profile management.
 """
 
 from typing import List, Optional
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
 
@@ -39,7 +40,30 @@ async def get_user_profile(
     profile = await profile_service.get_user_profile(current_user.id)
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
-    return profile
+    
+    # Convert model to response schema with all required fields
+    # Get timestamps from the model (should have them from SharedBase/TimestampedMixin)
+    created_at = getattr(profile, 'created_at', None)
+    updated_at = getattr(profile, 'updated_at', None)
+    
+    # Fallback to current time if timestamps are missing
+    if created_at is None:
+        created_at = datetime.utcnow()
+    if updated_at is None:
+        updated_at = datetime.utcnow()
+    
+    return UserProfileResponse(
+        id=profile.id,
+        user_id=profile.user_id,
+        bio=getattr(profile, 'bio', None),
+        timezone=getattr(profile, 'timezone', 'UTC'),
+        language=getattr(profile, 'language', 'en'),
+        notification_preferences=getattr(profile, 'notification_preferences', None) or {},
+        custom_settings=getattr(profile, 'custom_settings', None) or {},
+        avatar_url=profile.custom_settings.get("avatar_url") if hasattr(profile, 'custom_settings') and profile.custom_settings else None,
+        created_at=created_at,
+        updated_at=updated_at
+    )
 
 
 @router.post("/profile", response_model=UserProfileResponse)

@@ -20,11 +20,24 @@ def mock_safety_model():
 
 @pytest.fixture
 def safety_manager(mock_db, mock_activity_manager, mock_safety_model):
+    """
+    Create SafetyManager with the mock database session.
+    
+    Best practice: Reset singleton instance before creating new manager to ensure clean state.
+    """
+    # Reset singleton instance to ensure clean state between tests
+    original_instance = SafetyManager._instance
+    SafetyManager._instance = None
+    
     # Create SafetyManager with the mock database session
     manager = SafetyManager(db_session=mock_db)
     # Mock the activity_manager attribute since it's not passed to constructor
     manager.activity_manager = mock_activity_manager
-    return manager
+    
+    yield manager
+    
+    # Restore original instance to avoid affecting other tests
+    SafetyManager._instance = original_instance
 
 @pytest.mark.asyncio
 async def test_assess_safety_risks(safety_manager, mock_activity_manager, mock_safety_model):

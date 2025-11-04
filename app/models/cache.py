@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any
 from sqlalchemy import Column, Integer, String, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 
-from app.models.core.base import BaseModel
+from app.models.shared_base import SharedBase as BaseModel
 
 class CacheStatus(str, enum.Enum):
     """Status of cache entries."""

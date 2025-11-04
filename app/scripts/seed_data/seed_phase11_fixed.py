@@ -848,30 +848,60 @@ def seed_dashboard_ui_enhancement(session: Session, deps: Dict[str, List[int]]) 
         results['dashboard_share_exports'] = 0
     
     print("  Seeding dashboard_shared_contexts...")
+    savepoint = session.begin_nested()
     try:
+        # Get fresh IDs from database (recreated on each run)
         # Get actual dashboard_gpt_contexts IDs that exist
-        context_result = session.execute(text("SELECT id FROM dashboard_gpt_contexts ORDER BY id"))
-        context_ids = [row[0] for row in context_result.fetchall()]
+        try:
+            context_result = session.execute(text("SELECT id FROM dashboard_gpt_contexts ORDER BY id"))
+            context_ids = [row[0] for row in context_result.fetchall()]
+        except Exception as e:
+            print(f"    ⚠️  Error querying dashboard_gpt_contexts: {e}")
+            context_ids = []
+        
+        # Get actual gpt_definitions IDs (source_gpt_id and target_gpt_id reference gpt_definitions, not ai_tool_ids)
+        try:
+            gpt_def_result = session.execute(text("SELECT id FROM gpt_definitions ORDER BY id"))
+            gpt_def_ids = [row[0] for row in gpt_def_result.fetchall()]
+            if gpt_def_ids:
+                print(f"    📋 Found {len(gpt_def_ids)} gpt_definitions in database (IDs: {gpt_def_ids[:10]}...)")
+        except Exception as e:
+            print(f"    ⚠️  Error querying gpt_definitions: {e}")
+            gpt_def_ids = []
         
         if not context_ids:
             print("    ⚠️  No dashboard_gpt_contexts found, skipping dashboard_shared_contexts")
+            savepoint.rollback()
+            results['dashboard_shared_contexts'] = 0
+        elif not gpt_def_ids:
+            print("    ⚠️  No gpt_definitions found, skipping dashboard_shared_contexts")
+            savepoint.rollback()
             results['dashboard_shared_contexts'] = 0
         else:
+            print(f"    📋 Found {len(context_ids)} dashboard_gpt_contexts and {len(gpt_def_ids)} gpt_definitions in database")
             dashboard_shared_contexts_data = []
             for i in range(min(25, len(context_ids) * 3)):  # Limit to available contexts
                 dashboard_shared_contexts_data.append({
                     'context_id': random.choice(context_ids),  # Use actual context IDs
-                    'source_gpt_id': random.choice(deps['ai_tool_ids']) if deps['ai_tool_ids'] else None,
-                    'target_gpt_id': random.choice(deps['ai_tool_ids']) if deps['ai_tool_ids'] else None,
+                    'source_gpt_id': random.choice(gpt_def_ids),  # Use actual gpt_definitions IDs
+                    'target_gpt_id': random.choice(gpt_def_ids),  # Use actual gpt_definitions IDs
                     'shared_data': json.dumps({'context_type': 'DASHBOARD', 'permissions': ['read', 'write', 'admin'], 'is_public': random.choice([True, False])}),  # Required NOT NULL field
                     'meta_data': json.dumps({'source': 'context_manager', 'version': '1.0'}),
                     'created_at': datetime.now() - timedelta(days=random.randint(1, 30))
                 })
             
-            results['dashboard_shared_contexts'] = insert_data_flexible(session, 'dashboard_shared_contexts', dashboard_shared_contexts_data)
-            print(f"    ✅ Created {results['dashboard_shared_contexts']} dashboard shared contexts")
+            inserted = insert_data_flexible(session, 'dashboard_shared_contexts', dashboard_shared_contexts_data)
+            if inserted > 0:
+                savepoint.commit()
+                session.commit()
+                results['dashboard_shared_contexts'] = inserted
+                print(f"    ✅ Created {inserted} dashboard shared contexts")
+            else:
+                savepoint.rollback()
+                results['dashboard_shared_contexts'] = 0
     except Exception as e:
         print(f"    ❌ Error seeding dashboard_shared_contexts: {e}")
+        savepoint.rollback()
         results['dashboard_shared_contexts'] = 0
     
     print("  Seeding dashboard_team_members...")
@@ -1849,6 +1879,7 @@ def seed_communication_feedback_system(session: Session, deps: Dict[str, List[in
     results = {}
     
     print("  Seeding comments...")
+    savepoint = session.begin_nested()
     try:
         # Get actual dashboard project IDs (comments references dashboard_projects)
         project_result = session.execute(text("SELECT id FROM dashboard_projects LIMIT 25"))
@@ -1856,6 +1887,7 @@ def seed_communication_feedback_system(session: Session, deps: Dict[str, List[in
         
         if not project_ids:
             print("    ⚠️  No dashboard projects found, skipping comments")
+            savepoint.rollback()
             results['comments'] = 0
         else:
             comments_data = []
@@ -1870,11 +1902,19 @@ def seed_communication_feedback_system(session: Session, deps: Dict[str, List[in
                     'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
                     'updated_at': datetime.now() - timedelta(days=random.randint(1, 7))
                 })
-        
-        results['comments'] = insert_data_flexible(session, 'comments', comments_data)
-        print(f"    ✅ Created {results['comments']} comments")
+            
+            inserted = insert_data_flexible(session, 'comments', comments_data)
+            if inserted > 0:
+                savepoint.commit()
+                session.commit()
+                results['comments'] = inserted
+                print(f"    ✅ Created {inserted} comments")
+            else:
+                savepoint.rollback()
+                results['comments'] = 0
     except Exception as e:
         print(f"    ❌ Error seeding comments: {e}")
+        savepoint.rollback()
         results['comments'] = 0
     
     print("  Seeding messages...")
@@ -2112,30 +2152,53 @@ def seed_core_system_integration(session: Session, deps: Dict[str, List[int]]) -
         results['subject_assistant'] = 0
     
     print("  Seeding context_data...")
+    savepoint = session.begin_nested()
     try:
-        context_data_records = []
-        for i in range(100):
-            data_type = random.choice(['JSON', 'TEXT', 'BINARY', 'STRUCTURED'])
-            content = json.dumps({'text': f'Context content {i+1}', 'type': data_type})
-            
-            context_data_records.append({
-                'context_id': random.randint(1, 1000),  # Required NOT NULL field
-                'gpt_id': random.randint(1, 10),  # Required NOT NULL field
-                'data_type': data_type,  # Required NOT NULL field
-                'content': content,  # Required NOT NULL field
-                'context_type': random.choice(['USER_SESSION', 'ACTIVITY', 'ASSESSMENT', 'FEEDBACK']),
-                'data_key': f'context_key_{i+1}',
-                'data_value': json.dumps({'value': f'context_value_{i+1}', 'metadata': {'source': 'system'}}),
-                'status': random.choice(BASE_STATUS_VALUES),  # Required NOT NULL field
-                'expires_at': datetime.now() + timedelta(hours=random.randint(1, 24)),
-                'created_at': datetime.now() - timedelta(hours=random.randint(1, 24)),
-                'updated_at': datetime.now() - timedelta(hours=random.randint(1, 12))  # Required NOT NULL field
-            })
-        
-        results['context_data'] = insert_data_flexible(session, 'context_data', context_data_records)
-        print(f"    ✅ Created {results['context_data']} context data records")
+        # Get fresh gpt_definitions IDs from database (recreated on each run)
+        try:
+            gpt_def_result = session.execute(text("SELECT id FROM gpt_definitions ORDER BY id"))
+            gpt_ids = [row[0] for row in gpt_def_result.fetchall()]
+            if not gpt_ids:
+                print("    ⚠️  No gpt_definitions found, skipping context_data")
+                savepoint.rollback()
+                results['context_data'] = 0
+            else:
+                print(f"    📋 Found {len(gpt_ids)} gpt_definitions in database (IDs: {gpt_ids[:10]}...)")
+                context_data_records = []
+                for i in range(min(100, len(gpt_ids) * 10)):  # Limit to available GPT definitions
+                    data_type = random.choice(['JSON', 'TEXT', 'BINARY', 'STRUCTURED'])
+                    content = json.dumps({'text': f'Context content {i+1}', 'type': data_type})
+                    
+                    context_data_records.append({
+                        'context_id': random.randint(1, 1000),  # Required NOT NULL field
+                        'gpt_id': random.choice(gpt_ids),  # Use actual gpt_definitions IDs that exist
+                        'data_type': data_type,  # Required NOT NULL field
+                        'content': content,  # Required NOT NULL field
+                        'context_type': random.choice(['USER_SESSION', 'ACTIVITY', 'ASSESSMENT', 'FEEDBACK']),
+                        'data_key': f'context_key_{i+1}',
+                        'data_value': json.dumps({'value': f'context_value_{i+1}', 'metadata': {'source': 'system'}}),
+                        'status': random.choice(BASE_STATUS_VALUES),  # Required NOT NULL field
+                        'expires_at': datetime.now() + timedelta(hours=random.randint(1, 24)),
+                        'created_at': datetime.now() - timedelta(hours=random.randint(1, 24)),
+                        'updated_at': datetime.now() - timedelta(hours=random.randint(1, 12))  # Required NOT NULL field
+                    })
+                
+                inserted = insert_data_flexible(session, 'context_data', context_data_records)
+                if inserted > 0:
+                    savepoint.commit()
+                    session.commit()
+                    results['context_data'] = inserted
+                    print(f"    ✅ Created {inserted} context data records")
+                else:
+                    savepoint.rollback()
+                    results['context_data'] = 0
+        except Exception as e:
+            print(f"    ⚠️  Error querying gpt_definitions for context_data: {e}")
+            savepoint.rollback()
+            results['context_data'] = 0
     except Exception as e:
         print(f"    ❌ Error seeding context_data: {e}")
+        savepoint.rollback()
         results['context_data'] = 0
     
     return results

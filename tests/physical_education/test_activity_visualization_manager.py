@@ -605,7 +605,7 @@ def test_large_dataset_performance(visualization_manager):
     assert len(visualizations) == 1
 
 @pytest.mark.memory
-def test_memory_usage(visualization_manager):
+def test_memory_usage(visualization_manager, sample_performance_data):
     """Test memory usage during visualization generation."""
     process = psutil.Process(os.getpid())
     initial_memory = process.memory_info().rss

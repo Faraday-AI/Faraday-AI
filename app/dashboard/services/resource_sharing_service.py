@@ -637,8 +637,15 @@ class ResourceSharingService:
         
         # Initialize metrics and monitoring
         self._init_metrics()
-        asyncio.create_task(self._monitor_service_health())
-        asyncio.create_task(self._cleanup_resources())
+        
+        # Track background tasks for proper cleanup
+        self._background_tasks = []
+        self._shutdown_event = None  # Will be created when tasks start
+        
+        # Don't start background tasks in __init__ - let them be started lazily
+        # This prevents issues in test environments where event loops are managed differently
+        # Background tasks should be started explicitly via start_background_tasks() or
+        # on first async method call if needed for production use
         
     def _init_metrics(self):
         """Initialize service metrics."""
@@ -650,35 +657,82 @@ class ResourceSharingService:
         DB_POOL_METRICS.labels(metric_type="active_connections").set(0)
         DB_POOL_METRICS.labels(metric_type="available_connections").set(0)
         
+    async def start_background_tasks(self):
+        """Start background monitoring and cleanup tasks."""
+        if self._shutdown_event is None:
+            self._shutdown_event = asyncio.Event()
+        
+        if not self._background_tasks:
+            try:
+                loop = asyncio.get_running_loop()
+                task1 = loop.create_task(self._monitor_service_health())
+                task2 = loop.create_task(self._cleanup_resources())
+                self._background_tasks = [task1, task2]
+            except RuntimeError:
+                # No event loop running - skip background tasks
+                pass
+    
+    async def shutdown(self):
+        """Gracefully shutdown background tasks."""
+        # Signal shutdown
+        if self._shutdown_event:
+            self._shutdown_event.set()
+        
+        # Cancel all background tasks
+        for task in self._background_tasks:
+            if not task.done():
+                task.cancel()
+        
+        # Wait for tasks to finish cancellation
+        if self._background_tasks:
+            await asyncio.gather(*self._background_tasks, return_exceptions=True)
+        
+        self._background_tasks = []
+    
     async def _monitor_service_health(self):
         """Background task to monitor service health."""
-        while True:
-            try:
-                # Update memory usage metrics
-                import psutil
-                process = psutil.Process()
-                MEMORY_USAGE.set(process.memory_info().rss)
+        try:
+            while True:
+                # Check for shutdown signal
+                if self._shutdown_event and self._shutdown_event.is_set():
+                    break
                 
-                # Update DB pool metrics
-                pool_metrics = await self._get_db_pool_metrics()
-                DB_POOL_METRICS.labels(metric_type="active_connections").set(
-                    pool_metrics["active_connections"]
-                )
-                DB_POOL_METRICS.labels(metric_type="available_connections").set(
-                    pool_metrics["available_connections"]
-                )
-                
-                # Adjust rate limits based on system load
-                current_load = SYSTEM_LOAD._value.get()
-                self.rate_limiter.adjust_limits(current_load)
-                
-                await asyncio.sleep(10)  # Check every 10 seconds
-                
-            except Exception as e:
-                ERROR_COUNT.labels(error_type="health_monitor").inc()
-                # Log error but don't crash the monitor
-                print(f"Health monitor error: {str(e)}")
-                await asyncio.sleep(30)  # Back off on error
+                try:
+                    # Update memory usage metrics
+                    import psutil
+                    process = psutil.Process()
+                    MEMORY_USAGE.set(process.memory_info().rss)
+                    
+                    # Update DB pool metrics
+                    pool_metrics = await self._get_db_pool_metrics()
+                    DB_POOL_METRICS.labels(metric_type="active_connections").set(
+                        pool_metrics["active_connections"]
+                    )
+                    DB_POOL_METRICS.labels(metric_type="available_connections").set(
+                        pool_metrics["available_connections"]
+                    )
+                    
+                    # Adjust rate limits based on system load
+                    current_load = SYSTEM_LOAD._value.get()
+                    self.rate_limiter.adjust_limits(current_load)
+                    
+                    # Sleep with cancellation support
+                    try:
+                        await asyncio.sleep(10)  # Check every 10 seconds
+                    except asyncio.CancelledError:
+                        break
+                    
+                except Exception as e:
+                    ERROR_COUNT.labels(error_type="health_monitor").inc()
+                    # Log error but don't crash the monitor
+                    print(f"Health monitor error: {str(e)}")
+                    try:
+                        await asyncio.sleep(30)  # Back off on error
+                    except asyncio.CancelledError:
+                        break
+        except asyncio.CancelledError:
+            # Task was cancelled - this is expected during shutdown
+            pass
                 
     async def _get_db_pool_metrics(self) -> Dict[str, int]:
         """Get database connection pool metrics."""
@@ -720,23 +774,38 @@ class ResourceSharingService:
 
     async def _cleanup_resources(self):
         """Background task for resource cleanup."""
-        while True:
-            try:
-                # Clean up expired resources
-                await self._cleanup_expired_resources()
+        try:
+            while True:
+                # Check for shutdown signal
+                if self._shutdown_event and self._shutdown_event.is_set():
+                    break
                 
-                # Clean up orphaned resources
-                await self._cleanup_orphaned_resources()
-                
-                # Clean up inactive collaborations
-                await self._cleanup_inactive_collaborations()
-                
-                await asyncio.sleep(3600)  # Run every hour
-                
-            except Exception as e:
-                ERROR_COUNT.labels(error_type="cleanup").inc()
-                print(f"Cleanup error: {str(e)}")
-                await asyncio.sleep(3600)  # Retry in an hour
+                try:
+                    # Clean up expired resources
+                    await self._cleanup_expired_resources()
+                    
+                    # Clean up orphaned resources
+                    await self._cleanup_orphaned_resources()
+                    
+                    # Clean up inactive collaborations
+                    await self._cleanup_inactive_collaborations()
+                    
+                    # Sleep with cancellation support
+                    try:
+                        await asyncio.sleep(3600)  # Run every hour
+                    except asyncio.CancelledError:
+                        break
+                    
+                except Exception as e:
+                    ERROR_COUNT.labels(error_type="cleanup").inc()
+                    print(f"Cleanup error: {str(e)}")
+                    try:
+                        await asyncio.sleep(3600)  # Retry in an hour
+                    except asyncio.CancelledError:
+                        break
+        except asyncio.CancelledError:
+            # Task was cancelled - this is expected during shutdown
+            pass
                 
     async def _cleanup_expired_resources(self):
         """Clean up expired shared resources."""

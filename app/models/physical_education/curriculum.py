@@ -77,6 +77,7 @@ class CurriculumLesson(BaseModelMixin, TimestampMixin):
 class CurriculumStandard(BaseModelMixin, TimestampMixin):
     """Model for curriculum standards."""
     __tablename__ = 'curriculum_standards'
+    __table_args__ = {'extend_existing': True}
 
     id = Column(Integer, primary_key=True)
     unit_id = Column(Integer, ForeignKey('physical_education_curriculum_units.id'), nullable=False)
