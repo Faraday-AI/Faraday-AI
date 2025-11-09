@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from .endpoints import activity_router, ai_analysis_router, lesson_plans_router, pe_router, user_profile_router, user_preferences_router, role_management_router, permission_management_router, organization_management_router, team_management_router, user_analytics_router, beta_testing_router
-from .endpoints import resource_management, beta_teacher_dashboard
+from .endpoints import resource_management, beta_teacher_dashboard, beta_safety, beta_assessment, beta_security, beta_resource_management, dashboard_resource_management, dashboard_context_analytics, beta_context_analytics, dashboard_preferences, beta_dashboard_preferences
 from .middleware import auth, rate_limit
 
 # Create main router
@@ -21,6 +21,15 @@ router.include_router(user_analytics_router, prefix="/api/v1/analytics", tags=["
 router.include_router(beta_testing_router, prefix="/api/v1/beta-testing", tags=["beta-testing"])
 router.include_router(resource_management.router, prefix="/api/v1")
 router.include_router(beta_teacher_dashboard.router, prefix="/api/v1")
+router.include_router(beta_safety.router, prefix="/api/v1")
+router.include_router(beta_assessment.router, prefix="/api/v1")
+router.include_router(beta_security.router, prefix="/api/v1")
+router.include_router(beta_resource_management.router, prefix="/api/v1")
+router.include_router(dashboard_resource_management.router, prefix="/api/v1")
+router.include_router(dashboard_context_analytics.router, prefix="/api/v1")
+router.include_router(beta_context_analytics.router, prefix="/api/v1")
+router.include_router(dashboard_preferences.router, prefix="/api/v1")
+router.include_router(beta_dashboard_preferences.router, prefix="/api/v1")
 
 # Export middleware functions for use in main FastAPI app
 authentication_middleware = auth.add_authentication

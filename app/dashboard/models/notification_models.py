@@ -51,7 +51,10 @@ class Notification(BaseModel, StatusMixin, MetadataMixin):
 
     # Relationships
     user = relationship("User", back_populates="dashboard_notifications")
-    channels = relationship("NotificationChannel", back_populates="notification")
+    channels = relationship("DashboardNotificationChannel", back_populates="notification")
+
+# Store enum reference for NotificationPreference before model class overwrites it
+_NotificationChannelEnumForPref = NotificationChannel
 
 class NotificationPreference(BaseModel, StatusMixin, MetadataMixin):
     """Model for storing dashboard notification preferences."""
@@ -59,7 +62,7 @@ class NotificationPreference(BaseModel, StatusMixin, MetadataMixin):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    channel = Column(Enum(NotificationChannel, name='notification_channel_enum'), nullable=False)
+    channel = Column(Enum(_NotificationChannelEnumForPref, name='notification_channel_enum'), nullable=False)
     type = Column(Enum(NotificationType, name='dashboard_notification_type_enum'), nullable=False)
     enabled = Column(Boolean, default=True)
     priority_threshold = Column(Enum(NotificationPriority, name='dashboard_notification_priority_enum'), default=NotificationPriority.LOW)
@@ -72,13 +75,16 @@ class NotificationPreference(BaseModel, StatusMixin, MetadataMixin):
     # Relationships
     user = relationship("User", back_populates="dashboard_notification_preferences")
 
-class NotificationChannel(BaseModel, StatusMixin, MetadataMixin):
+# Store enum reference before model class overwrites it
+_NotificationChannelEnum = NotificationChannel
+
+class DashboardNotificationChannel(BaseModel, StatusMixin, MetadataMixin):
     """Model for storing notification channel configurations."""
     __tablename__ = "dashboard_notification_channels"
 
     id = Column(Integer, primary_key=True, index=True)
     notification_id = Column(Integer, ForeignKey("dashboard_notification_models.id"), nullable=False)
-    channel = Column(Enum(NotificationChannel, name='notification_channel_enum'), nullable=False)
+    channel = Column(Enum(_NotificationChannelEnum, name='notification_channel_enum'), nullable=False)
     status = Column(String, default="pending")
     sent_at = Column(DateTime)
     error = Column(String)

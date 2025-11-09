@@ -185,6 +185,17 @@ from app.models.activity_adaptation.categories.activity_categories import Activi
 # Import assignment models to ensure assignments table is available for grades foreign key
 from app.models.educational.base.assignment import Assignment
 
+# Import communication models to ensure communication tables are available
+from app.models.communication.models import (
+    CommunicationRecord,
+    AssignmentTranslation,
+    SubmissionTranslation,
+    CommunicationType,
+    CommunicationChannel,
+    CommunicationStatus,
+    MessageType
+)
+
 # Import health_fitness models to ensure NutritionPlan is available for Student relationships
 from app.models.health_fitness.nutrition.nutrition import NutritionPlan
 
@@ -229,6 +240,7 @@ from app.scripts.seed_data.seed_routine_performance import seed_routine_performa
 from app.scripts.seed_data.seed_performance_metrics import seed_performance_metrics
 from app.scripts.seed_data.seed_student_activity_data import seed_student_activity_data
 from app.scripts.seed_data.seed_safety_incidents import seed_safety_incidents
+from app.scripts.seed_data.seed_emergency_procedures import seed_emergency_procedures
 from app.scripts.seed_data.seed_safety_checks import seed_safety_checks
 from app.scripts.seed_data.seed_equipment_checks import seed_equipment_checks
 from app.scripts.seed_data.seed_environmental_checks import seed_environmental_checks
@@ -1153,6 +1165,9 @@ def seed_database():
                 seed_safety_incidents(session)
                 session.commit()
                 
+                seed_emergency_procedures(session)
+                session.commit()
+                
                 seed_safety_checks(session)
                 session.commit()
                 
@@ -1964,6 +1979,40 @@ def seed_database():
                 else:
                     print("⏭️  SKIP_PHASE_10 enabled: skipping Phase 10 assessment & skill management")
                 
+                # PHASE 1 & PHASE 2 DATA MIGRATION
+                # Run after Phase 10 completes (or if Phase 10 was skipped) to migrate data from source tables to target tables
+                # This ensures all parent tables (skill_assessment_safety_*, general_*) are seeded first
+                # Note: Migration will gracefully handle cases where source tables are empty
+                print("\n🔄 PHASE 1 & PHASE 2 DATA MIGRATION")
+                print("=" * 60)
+                print("📋 Migrating data from source tables to Phase 1 & Phase 2 target tables")
+                print("   - Phase 1: skill_assessment_safety_* → safety_protocols, safety_incidents, risk_assessments")
+                print("   - Phase 2: general_* → skill_assessment_* tables")
+                print("   ℹ️  Works for both main system and beta system (shared tables)")
+                
+                if not env_true('SKIP_PHASE_1_2_MIGRATION'):
+                    try:
+                        from app.scripts.seed_data.migrate_phase1_phase2_data import migrate_phase1_phase2_data
+                        
+                        migration_results = migrate_phase1_phase2_data(session)
+                        session.commit()
+                        
+                        # Migration output is already printed by migrate_phase1_phase2_data()
+                        # Just confirm completion here
+                        print("\n✅ Phase 1 & Phase 2 data migration completed!")
+                        print(f"   Summary: Phase 1={migration_results['phase1']['protocols']+migration_results['phase1']['incidents']+migration_results['phase1']['risk_assessments']} records, "
+                              f"Phase 2={migration_results['phase2']['assessments']+migration_results['phase2']['results']+migration_results['phase2']['criteria']+migration_results['phase2']['history']+migration_results['phase2']['progress']} records")
+                        
+                    except Exception as e:
+                        print(f"⚠️  Phase 1 & Phase 2 migration failed (non-critical): {e}")
+                        print("   ℹ️  Migration is optional - existing data will continue to work")
+                        session.rollback()
+                        # Don't fail the entire script - migration is optional
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    print("⏭️  SKIP_PHASE_1_2_MIGRATION enabled: skipping Phase 1 & Phase 2 data migration")
+                
                 # Phase 11: Advanced System Features
                 print("\n🚀 PHASE 11: ADVANCED SYSTEM FEATURES")
                 print("-" * 50)
@@ -1998,6 +2047,146 @@ def seed_database():
                         print("🔄 Phase 11 will be skipped, continuing with remaining phases...")
                 else:
                     print("⏭️  SKIP_PHASE_11 enabled: skipping Phase 11 advanced system features")
+                
+                # PHASE 3 DATA MIGRATION
+                if not env_true('SKIP_PHASE_3_MIGRATION'):
+                    print("\n🔄 PHASE 3 DATA MIGRATION")
+                    print("-" * 60)
+                    print("📋 Migrating data from security_logs, security_audits, security_general_audit_logs to security_events")
+                    try:
+                        from app.scripts.seed_data.migrate_phase3_data import migrate_phase3_data
+                        
+                        migration_results = migrate_phase3_data(session)
+                        
+                        # Migration output is already printed by migrate_phase3_data()
+                        
+                        print("\n✅ Phase 3 data migration completed!")
+                        print(f"   Summary: {migration_results['total']} total security events migrated")
+                    except Exception as e:
+                        print(f"⚠️  Phase 3 migration failed (non-critical): {e}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                else:
+                    print("⏭️  SKIP_PHASE_3_MIGRATION enabled: skipping Phase 3 data migration")
+                
+                # PHASE 4 DATA MIGRATION
+                if not env_true('SKIP_PHASE_4_MIGRATION'):
+                    print("\n🔄 PHASE 4 DATA MIGRATION")
+                    print("-" * 60)
+                    print("📋 Migrating data from resource_management_usage, resource_thresholds, resource_optimizations, resource_management_sharing, optimization_events to dashboard_resource_* tables")
+                    try:
+                        from app.scripts.seed_data.migrate_phase4_data import migrate_phase4_data
+                        
+                        migration_results = migrate_phase4_data(session)
+                        
+                        # Migration output is already printed by migrate_phase4_data()
+                        
+                        print("\n✅ Phase 4 data migration completed!")
+                        print(f"   Summary: {migration_results['total']} total resource records migrated")
+                    except Exception as e:
+                        print(f"⚠️  Phase 4 migration failed (non-critical): {e}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                else:
+                    print("⏭️  SKIP_PHASE_4_MIGRATION enabled: skipping Phase 4 data migration")
+                
+                # PHASE 5 DATA MIGRATION
+                if not env_true('SKIP_PHASE_5_MIGRATION'):
+                    print("\n🔄 PHASE 5 DATA MIGRATION")
+                    print("-" * 60)
+                    print("📋 Migrating data from gpt_context_* tables to dashboard_context_* tables")
+                    try:
+                        from app.scripts.seed_data.migrate_phase5_data import migrate_phase5_data
+                        
+                        migration_results = migrate_phase5_data(session)
+                        
+                        # Migration output is already printed by migrate_phase5_data()
+                        
+                        print("\n✅ Phase 5 data migration completed!")
+                        print(f"   Summary: {migration_results['total']} total context records migrated")
+                    except Exception as e:
+                        print(f"⚠️  Phase 5 migration failed (non-critical): {e}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                else:
+                    print("⏭️  SKIP_PHASE_5_MIGRATION enabled: skipping Phase 5 data migration")
+                
+                # PHASE 6 DATA MIGRATION
+                if not env_true('SKIP_PHASE_6_MIGRATION'):
+                    print("\n🔄 PHASE 6 DATA MIGRATION")
+                    print("-" * 60)
+                    print("📋 Migrating data from core_dashboard_widgets, beta_widgets, user_preferences, teacher_preferences to dashboard_* tables")
+                    try:
+                        from app.scripts.seed_data.migrate_phase6_data import migrate_phase6_data
+                        
+                        migration_results = migrate_phase6_data(session)
+                        
+                        # Migration output is already printed by migrate_phase6_data()
+                        
+                        print("\n✅ Phase 6 data migration completed!")
+                        print(f"   Summary: {migration_results['total']} total preference records migrated")
+                    except Exception as e:
+                        print(f"⚠️  Phase 6 migration failed (non-critical): {e}")
+                        import traceback
+                        traceback.print_exc()
+                        session.rollback()
+                else:
+                    print("⏭️  SKIP_PHASE_6_MIGRATION enabled: skipping Phase 6 data migration")
+                
+                # AI WIDGET INTEGRATION SEEDING - Ensures data for both main and beta systems
+                if not env_true('SKIP_AI_WIDGET_INTEGRATION'):
+                    print("\n" + "=" * 60)
+                    print("🤖 AI WIDGET INTEGRATION SEEDING")
+                    print("=" * 60)
+                    print("📊 Seeding data for AI widget features (main & beta systems)")
+                    try:
+                        from app.scripts.seed_data.seed_ai_widget_integration import seed_ai_widget_integration
+                        ai_widget_results = seed_ai_widget_integration(session)
+                        session.commit()
+                        print("✅ AI widget integration seeding completed!")
+                        print(f"   Summary: {sum(ai_widget_results.values())} records verified/created")
+                        
+                        # Backfill student emails for communication tests
+                        from app.scripts.seed_data.backfill_student_emails import backfill_student_emails
+                        email_results = backfill_student_emails(session)
+                        print("✅ Student email backfill completed!")
+                        print(f"   Main students: {email_results['main_students_updated']:,} updated")
+                        print(f"   Beta students: {email_results['beta_students_updated']:,} updated")
+                    except Exception as e:
+                        print(f"⚠️  AI widget integration seeding failed (non-critical): {e}")
+                        session.rollback()
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    print("\n" + "=" * 60)
+                    print("⏭️  SKIPPING AI WIDGET INTEGRATION SEEDING (SKIP_AI_WIDGET_INTEGRATION=true)")
+                    print("=" * 60)
+                
+                # Seed test student data for beta system tables (beta_students, drivers_ed_student_progress, health_student_progress)
+                # This ensures all tables are populated for a complete database (537/539 tables)
+                # Can be skipped by setting SKIP_TEST_STUDENT_DATA=true
+                # NOTE: This must run BEFORE the final summary so counts are included
+                if not env_true('SKIP_TEST_STUDENT_DATA'):
+                    print("\n" + "=" * 60)
+                    print("📚 TEST STUDENT DATA SEEDING")
+                    print("=" * 60)
+                    try:
+                        from app.scripts.seed_data.seed_test_student_data import seed_test_student_data
+                        seed_test_student_data(session, for_tests=True)
+                        session.commit()
+                        print("✅ Test student data seeding completed!")
+                    except Exception as e:
+                        print(f"⚠️  Test student data seeding failed (non-critical): {e}")
+                        session.rollback()
+                        import traceback
+                        traceback.print_exc()
+                else:
+                    print("\n" + "=" * 60)
+                    print("⏭️  SKIPPING TEST STUDENT DATA SEEDING (SKIP_TEST_STUDENT_DATA=true)")
+                    print("=" * 60)
                 
                 # Performance tracking summary
                 print("\n" + "="*50)
@@ -2252,6 +2441,10 @@ def seed_database():
                     print("✅ Phase 10: Assessment & Skill Management (30 tables - 100% complete)")
                 else:
                     print("⚠️ Phase 10: Assessment & Skill Management (7/30 tables - 23% complete)")
+                if not env_true('SKIP_PHASE_1_2_MIGRATION'):
+                    print("✅ Phase 1 & Phase 2: Data Migration (safety & assessment data migrated)")
+                if not env_true('SKIP_PHASE_6_MIGRATION'):
+                    print("✅ Phase 6: Data Migration (dashboard preferences & widgets migrated)")
                 print("✅ Phase 11: Advanced System Features (73 tables - 100% complete)")
                 print(f"✅ {populated_tables}/{len(table_names)} tables populated with data")
                 print("✅ Relationships established")
@@ -2273,23 +2466,6 @@ def seed_database():
                 
         finally:
             session.close()
-            
-        # Optional: Seed test student data for testing (only if flag is set)
-        if env_true('SEED_TEST_STUDENT_DATA'):
-            print("\n" + "=" * 60)
-            print("📚 TEST STUDENT DATA SEEDING")
-            print("=" * 60)
-            session = SessionLocal()
-            try:
-                from app.scripts.seed_data.seed_test_student_data import seed_test_student_data
-                seed_test_student_data(session, for_tests=True)
-                session.commit()
-                print("✅ Test student data seeding completed!")
-            except Exception as e:
-                print(f"⚠️  Test student data seeding failed (non-critical): {e}")
-                session.rollback()
-            finally:
-                session.close()
             
     except Exception as e:
         print(f"❌ FAIL-FAST ERROR: Critical failure in seed_database: {str(e)}")

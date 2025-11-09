@@ -550,9 +550,86 @@ def seed_phase10_assessment_skill_management(session):
             print(f"  ⚠️ skill_assessment_safety_protocols: {e}")
             savepoint.rollback()
         
-        # 10.2 GENERAL ASSESSMENT SYSTEM (4 tables)
+        # 10.2 GENERAL ASSESSMENT SYSTEM (5 tables)
         print("\n📊 10.2 GENERAL ASSESSMENT SYSTEM")
         print("-" * 50)
+        
+        # general_assessments (must be seeded first, as other tables depend on it)
+        print("  Seeding general_assessments...")
+        savepoint = session.begin_nested()
+        try:
+            result = session.execute(text("SELECT COUNT(*) FROM general_assessments"))
+            if result.scalar() > 0:
+                print("  ✅ general_assessments already has data")
+                savepoint.commit()
+                successful_tables += 1
+            else:
+                assessments_data = []
+                # Use actual enum values from database
+                assessment_types = ['SKILL', 'FITNESS', 'BEHAVIOR', 'PROGRESS', 'SAFETY', 'MOVEMENT']
+                assessment_statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']
+                assessment_levels = ['EXCELLENT', 'GOOD', 'AVERAGE', 'NEEDS_IMPROVEMENT', 'POOR']
+                assessment_triggers = ['MANUAL', 'SCHEDULED', 'PERFORMANCE', 'PROGRESS', 'SAFETY', 'ADAPTATION', 'SYSTEM']
+                assessment_results = ['PASS', 'FAIL', 'INCOMPLETE', 'NEEDS_REVIEW', 'EXEMPT', 'PENDING']
+                
+                for i in range(500):  # 500 general assessments for district scale
+                    student_id = random.choice(student_ids)
+                    assessor_id = random.choice(user_ids)
+                    activity_id = random.choice(activity_ids)
+                    assessment_date = datetime.now() - timedelta(days=random.randint(1, 365))
+                    created_at = assessment_date - timedelta(days=random.randint(1, 7))
+                    updated_at = datetime.now() - timedelta(days=random.randint(1, 30))
+                    completed_at = assessment_date if random.choice([True, False]) else None
+                    
+                    assessments_data.append({
+                        'activity_id': activity_id,
+                        'student_id': student_id,
+                        'type': random.choice(assessment_types),
+                        'status': random.choice(assessment_statuses),
+                        'level': random.choice(assessment_levels),
+                        'trigger': random.choice(assessment_triggers),
+                        'result': random.choice(assessment_results) if random.choice([True, False]) else None,
+                        'score': random.uniform(0, 100),
+                        'feedback': f'Assessment feedback for student {student_id}: {random.choice(["Excellent progress", "Needs improvement", "On track", "Requires attention"])}',
+                        'criteria': json.dumps({
+                            'technical': random.uniform(0, 100),
+                            'performance': random.uniform(0, 100),
+                            'safety': random.uniform(0, 100)
+                        }),
+                        'meta_data': json.dumps({
+                            'assessment_version': f'v{random.randint(1, 5)}.{random.randint(0, 9)}',
+                            'duration_minutes': random.randint(15, 120),
+                            'environment': random.choice(['CLASSROOM', 'GYM', 'OUTDOOR', 'LAB'])
+                        }),
+                        'created_at': created_at,
+                        'updated_at': updated_at,
+                        'completed_at': completed_at
+                    })
+                
+                # Insert in batches
+                batch_size = 100
+                for i in range(0, len(assessments_data), batch_size):
+                    batch = assessments_data[i:i+batch_size]
+                    for assessment in batch:
+                        session.execute(text("""
+                            INSERT INTO general_assessments (
+                                activity_id, student_id, type, status, level, trigger, result, score, feedback,
+                                criteria, meta_data, created_at, updated_at, completed_at
+                            ) VALUES (
+                                :activity_id, :student_id, :type, :status, :level, :trigger, :result, :score, :feedback,
+                                :criteria, :meta_data, :created_at, :updated_at, :completed_at
+                            )
+                        """), assessment)
+                    
+                    print(f"    📊 Processed {min(i+batch_size, len(assessments_data))}/{len(assessments_data)} general assessments...")
+                
+                savepoint.commit()
+                session.commit()
+                print(f"  ✅ Created {len(assessments_data)} general assessments")
+                successful_tables += 1
+        except Exception as e:
+            print(f"  ⚠️ general_assessments: {e}")
+            savepoint.rollback()
         
         # general_assessment_criteria
         print("  Seeding general_assessment_criteria...")
@@ -640,57 +717,68 @@ def seed_phase10_assessment_skill_management(session):
                 savepoint.commit()
                 successful_tables += 1
             else:
-                history_data = []
-                assessment_types = ['FORMATIVE', 'SUMMATIVE', 'DIAGNOSTIC', 'PLACEMENT', 'PROGRESS']
-                statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']
-                
-                for i in range(2000):
-                    student_id = random.choice(student_ids)
-                    assessor_id = random.choice(user_ids)
-                    assessment_id = random.choice(assessment_ids) if assessment_ids else None
-                    assessment_date = datetime.now() - timedelta(days=random.randint(1, 365))
-                    
-                    history_data.append({
-                        'assessment_id': assessment_id,
-                        'status': random.choice(statuses),
-                        'score': random.uniform(0, 100),
-                        'feedback': f'Assessment feedback for history record {i+1}: {random.choice(["Excellent work", "Good progress", "Needs improvement", "Outstanding performance", "Requires attention"])}',
-                        'criteria_results': json.dumps({
-                            'criteria_1': random.uniform(0, 100),
-                            'criteria_2': random.uniform(0, 100),
-                            'criteria_3': random.uniform(0, 100),
-                            'overall_score': random.uniform(0, 100)
-                        }),
-                        'meta_data': json.dumps({
-                            'duration_minutes': random.randint(15, 120),
-                            'environment': random.choice(['Classroom', 'Gym', 'Lab', 'Outdoor', 'Online']),
-                            'difficulty_level': random.choice(['Easy', 'Medium', 'Hard', 'Expert']),
-                            'attempts': random.randint(1, 3),
-                            'improvement_areas': [f'Area {j}' for j in range(random.randint(1, 3))]
-                        }),
-                        'created_at': assessment_date,
-                        'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
-                    })
-                
-                # Insert in batches
-                batch_size = 200
-                for i in range(0, len(history_data), batch_size):
-                    batch = history_data[i:i+batch_size]
-                    for history in batch:
-                        session.execute(text("""
-                            INSERT INTO general_assessment_history (
-                                assessment_id, status, score, feedback, criteria_results, meta_data, created_at, updated_at
-                            ) VALUES (
-                                :assessment_id, :status, :score, :feedback, :criteria_results, :meta_data, :created_at, :updated_at
-                            )
-                        """), history)
-                    
-                    print(f"    📊 Processed {min(i+batch_size, len(history_data))}/{len(history_data)} assessment history records...")
-                
-                savepoint.commit()
-                session.commit()
-                print(f"  ✅ Created {len(history_data)} assessment history records")
-                successful_tables += 1
+                # Ensure we see latest committed data
+                session.flush()
+                # Get fresh general_assessments IDs from database (must use general_assessments, not skill_assessment_assessments)
+                try:
+                    general_assessment_result = session.execute(text("SELECT id FROM general_assessments ORDER BY id"))
+                    general_assessment_ids = [row[0] for row in general_assessment_result.fetchall()]
+                    if not general_assessment_ids:
+                        print("  ⚠️ No general_assessments found, skipping general_assessment_history")
+                        savepoint.rollback()
+                    else:
+                        history_data = []
+                        statuses = ['PENDING', 'IN_PROGRESS', 'COMPLETED', 'ARCHIVED']
+                        
+                        # Limit to available assessments to avoid foreign key violations
+                        for i in range(min(2000, len(general_assessment_ids) * 10)):
+                            assessment_id = random.choice(general_assessment_ids)  # Use only IDs that exist
+                            assessment_date = datetime.now() - timedelta(days=random.randint(1, 365))
+                            
+                            history_data.append({
+                                'assessment_id': assessment_id,
+                                'status': random.choice(statuses),
+                                'score': random.uniform(0, 100),
+                                'feedback': f'Assessment feedback for history record {i+1}: {random.choice(["Excellent work", "Good progress", "Needs improvement", "Outstanding performance", "Requires attention"])}',
+                                'criteria_results': json.dumps({
+                                    'criteria_1': random.uniform(0, 100),
+                                    'criteria_2': random.uniform(0, 100),
+                                    'criteria_3': random.uniform(0, 100),
+                                    'overall_score': random.uniform(0, 100)
+                                }),
+                                'meta_data': json.dumps({
+                                    'duration_minutes': random.randint(15, 120),
+                                    'environment': random.choice(['Classroom', 'Gym', 'Lab', 'Outdoor', 'Online']),
+                                    'difficulty_level': random.choice(['Easy', 'Medium', 'Hard', 'Expert']),
+                                    'attempts': random.randint(1, 3),
+                                    'improvement_areas': [f'Area {j}' for j in range(random.randint(1, 3))]
+                                }),
+                                'created_at': assessment_date,
+                                'updated_at': datetime.now() - timedelta(days=random.randint(1, 30))
+                            })
+                        
+                        # Insert in batches
+                        batch_size = 200
+                        for i in range(0, len(history_data), batch_size):
+                            batch = history_data[i:i+batch_size]
+                            for history in batch:
+                                session.execute(text("""
+                                    INSERT INTO general_assessment_history (
+                                        assessment_id, status, score, feedback, criteria_results, meta_data, created_at, updated_at
+                                    ) VALUES (
+                                        :assessment_id, :status, :score, :feedback, :criteria_results, :meta_data, :created_at, :updated_at
+                                    )
+                                """), history)
+                            
+                            print(f"    📊 Processed {min(i+batch_size, len(history_data))}/{len(history_data)} assessment history records...")
+                        
+                        savepoint.commit()
+                        session.commit()
+                        print(f"  ✅ Created {len(history_data)} assessment history records")
+                        successful_tables += 1
+                except Exception as e:
+                    print(f"  ⚠️ Error querying/seeding general_assessment_history: {e}")
+                    savepoint.rollback()
         except Exception as e:
             print(f"  ⚠️ general_assessment_history: {e}")
             savepoint.rollback()

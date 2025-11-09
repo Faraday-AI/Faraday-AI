@@ -361,8 +361,10 @@ class SecurityService:
                 return None
                 
             if isinstance(input_data, str):
-                # Remove any potentially dangerous characters
-                sanitized = re.sub(r'[<>{}[\]\\]', '', input_data)
+                # Remove HTML tags but preserve text content
+                sanitized = re.sub(r'<[^>]+>', '', input_data)
+                # Remove dangerous characters but keep text
+                sanitized = re.sub(r'[{}[\]\\]', '', sanitized)
                 # Trim whitespace
                 sanitized = sanitized.strip()
                 return sanitized

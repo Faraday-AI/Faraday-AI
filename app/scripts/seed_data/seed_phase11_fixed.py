@@ -1902,7 +1902,7 @@ def seed_communication_feedback_system(session: Session, deps: Dict[str, List[in
                     'created_at': datetime.now() - timedelta(days=random.randint(1, 30)),
                     'updated_at': datetime.now() - timedelta(days=random.randint(1, 7))
                 })
-            
+        
             inserted = insert_data_flexible(session, 'comments', comments_data)
             if inserted > 0:
                 savepoint.commit()

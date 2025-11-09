@@ -21,11 +21,11 @@ class EmailMessage(BaseModel):
 class EmailService:
     def __init__(self):
         self.settings = get_settings()
-        self.smtp_server = self.settings.SMTP_SERVER
+        self.smtp_server = self.settings.SMTP_HOST
         self.smtp_port = self.settings.SMTP_PORT
         self.smtp_username = self.settings.SMTP_USERNAME
         self.smtp_password = self.settings.SMTP_PASSWORD
-        self.from_email = self.settings.FROM_EMAIL
+        self.from_email = self.settings.SMTP_FROM_EMAIL
         self.is_initialized = False
 
     def initialize(self) -> None:

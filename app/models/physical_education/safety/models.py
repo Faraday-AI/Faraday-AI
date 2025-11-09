@@ -572,6 +572,29 @@ class SafetyAlertResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class EmergencyProcedure(SharedBase):
+    """Model for emergency procedures."""
+    __tablename__ = "emergency_procedures"
+    __table_args__ = {'extend_existing': True}
+    
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(Text, nullable=False)
+    procedure_type = Column(String(50), nullable=False)  # fire, medical, weather, security, other
+    class_id = Column(Integer, ForeignKey("physical_education_classes.id"), nullable=True)
+    steps = Column(JSON, nullable=False)  # List of step-by-step procedures
+    contact_info = Column(JSON, nullable=True)  # Emergency contact information
+    is_active = Column(Boolean, default=True)
+    last_drill_date = Column(DateTime, nullable=True)
+    next_drill_date = Column(DateTime, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    class_ = relationship("PhysicalEducationClass", back_populates="emergency_procedures")
+    creator = relationship("User", foreign_keys=[created_by])
+
 class EquipmentCheck(SharedBase):
     """Model for equipment checks and inventory tracking."""
     __tablename__ = "equipment_checks"

@@ -62,6 +62,7 @@ class GPTCoordinationService:
             context.active_gpts.append(subscription.gpt_definition)
             
             self.db.add(context)
+            self.db.flush()  # Flush to get ID before commit
             self.db.commit()
             self.db.refresh(context)
             
@@ -666,7 +667,9 @@ class GPTCoordinationService:
             )
             
             self.db.add(template)
+            self.db.flush()  # Flush to get ID before commit
             self.db.commit()
+            self.db.refresh(template)
             
             return {
                 "id": template.id,
@@ -720,7 +723,9 @@ class GPTCoordinationService:
             context.active_gpts.extend(gpts)
             
             self.db.add(context)
+            self.db.flush()  # Flush to get ID before commit
             self.db.commit()
+            self.db.refresh(context)
             
             return {
                 "context_id": context.id,

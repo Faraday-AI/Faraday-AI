@@ -187,6 +187,7 @@ class User(CoreBase, TimestampedMixin, StatusMixin, MetadataMixin):
     dashboard_preferences = relationship("app.dashboard.models.user_preferences.UserPreferences", back_populates="user", lazy="select")
     user_management_preferences = relationship("app.models.user_management.preferences.user_preferences_management.UserPreference", back_populates="user", lazy="select")
     preference_templates = relationship("app.models.user_management.preferences.user_preferences_management.UserPreferenceTemplate", secondary="user_preference_template_assignments", back_populates="users")
+    security_events = relationship("app.models.security.event.security_event.SecurityEvent", back_populates="user", lazy="select")
     dashboard_notifications = relationship("app.dashboard.models.notification_models.Notification", back_populates="user", lazy="select")
     dashboard_notification_preferences = relationship("app.dashboard.models.notification_models.NotificationPreference", back_populates="user", lazy="select")
     dashboard_resource_usage = relationship("app.dashboard.models.resource_models.DashboardResourceUsage", back_populates="user", lazy="select")

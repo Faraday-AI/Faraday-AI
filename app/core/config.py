@@ -143,10 +143,10 @@ class Settings(BaseSettings):
     MODEL_PATH: str = "/app/models"  # Default path for ML models
 
     # Twilio Settings
-    TWILIO_ACCOUNT_SID: str = Field(default="development")
-    TWILIO_AUTH_TOKEN: str = Field(default="development")
-    TWILIO_FROM_NUMBER: str = Field(default="+1234567890")
-    TWILIO_VOICE_URL: str = "http://twimlets.com/message"
+    TWILIO_ACCOUNT_SID: str = os.getenv("TWILIO_ACCOUNT_SID", "development")
+    TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "development")
+    TWILIO_FROM_NUMBER: str = os.getenv("TWILIO_FROM_NUMBER", "+1234567890")
+    TWILIO_VOICE_URL: str = os.getenv("TWILIO_VOICE_URL", "http://twimlets.com/message")
 
     # Google Cloud Settings
     ENABLE_GOOGLE_CLOUD: bool = Field(default=False)  # Disabled by default

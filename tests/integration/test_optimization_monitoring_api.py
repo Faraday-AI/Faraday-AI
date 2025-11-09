@@ -31,11 +31,25 @@ client = get_test_client()
 
 @pytest.fixture
 def mock_db():
+    """Create a properly configured mock database session."""
     db = Mock(spec=Session)
     db.query = Mock()
     db.commit = Mock()
     db.rollback = Mock()
     db.flush = Mock()
+    
+    # Configure query chain to return empty list immediately to prevent hanging
+    # This prevents real database queries from being executed
+    query_mock = Mock()
+    filter_mock = Mock()
+    all_mock = Mock(return_value=[])  # Return empty list immediately
+    
+    query_mock.filter.return_value = filter_mock
+    filter_mock.all.return_value = []
+    query_mock.all.return_value = []
+    
+    db.query.return_value = query_mock
+    
     return db
 
 @pytest.fixture
@@ -75,15 +89,17 @@ def override_dependencies(mock_db, mock_current_user, mock_monitoring_service):
     original_service_class = optimization_monitoring.OptimizationMonitoringService
     
     class MockServiceClass:
+        """Mock service class that immediately returns mocked data without database queries."""
         def __init__(self, db):
+            # Store db reference but don't use it for queries
             self.db = db
-            self.get_optimization_metrics = mock_monitoring_service.get_optimization_metrics
-            self.get_optimization_insights = mock_monitoring_service.get_optimization_insights
         
         async def get_optimization_metrics(self, org_id, time_range):
+            # Directly call the mock without any database operations
             return await mock_monitoring_service.get_optimization_metrics(org_id, time_range)
         
         async def get_optimization_insights(self, org_id, time_range):
+            # Directly call the mock without any database operations
             return await mock_monitoring_service.get_optimization_insights(org_id, time_range)
     
     # Store references to the overrides we set, so we can remove only them later
@@ -103,7 +119,11 @@ def override_dependencies(mock_db, mock_current_user, mock_monitoring_service):
         overrides_to_remove.append(original_get_current_user)
         
         # Temporarily replace the service class
+        # CRITICAL: Replace before any imports or endpoint calls
         optimization_monitoring.OptimizationMonitoringService = MockServiceClass
+        
+        # Ensure the module is reloaded to pick up the change
+        importlib.reload(optimization_monitoring)
         
         yield
     finally:
@@ -113,55 +133,48 @@ def override_dependencies(mock_db, mock_current_user, mock_monitoring_service):
             app.dependency_overrides.pop(override_key, None)
         # Restore service class
         optimization_monitoring.OptimizationMonitoringService = original_service_class
+        # Reload module to ensure clean state for next test
+        importlib.reload(optimization_monitoring)
 
 # Note: Global autouse fixture in conftest.py handles app state cleanup
 # No need for file-specific autouse fixture - it was causing conflicts
 
-def test_get_optimization_metrics(override_dependencies, mock_monitoring_service, mock_current_user):
-    """Test getting optimization metrics endpoint."""
-    # Arrange
-    mock_metrics = {
-        "utilization_rate": 0.75,
-        "sharing_efficiency": 0.85,
-        "optimization_score": 80.0,
-        "anomalies": [
-            {
-                "timestamp": datetime.utcnow().isoformat(),
-                "resource_type": "compute",
-                "usage_amount": 95.0,
-                "severity": "high"
-            }
-        ],
-        "recommendations": [
-            {
-                "type": "utilization",
-                "priority": "high",
-                "message": "Resource utilization is high"
-            }
-        ],
-        "timestamp": datetime.utcnow()
-    }
-    mock_monitoring_service.get_optimization_metrics.return_value = mock_metrics
+def test_get_optimization_metrics(db_session, mock_current_user):
+    """Test getting optimization metrics endpoint with real database (no mocks needed)."""
+    # Override only get_current_user, use real db and service
+    from app.dashboard.dependencies import get_current_user as original_get_current_user
+    from app.main import app
+    
+    def override_get_current_user():
+        return mock_current_user
+    
+    try:
+        app.dependency_overrides[original_get_current_user] = override_get_current_user
+        
+        # Act - use real service with real database
+        # Service will return empty/default values if no data exists (gracefully handled)
+        response = client.get(
+            "/api/v1/optimization-monitoring/metrics/test_org",
+            params={"time_range": "24h"},
+            headers={"Authorization": "Bearer test_token"}
+        )
 
-    # Act
-    response = client.get(
-        "/api/v1/optimization-monitoring/metrics/test_org",
-        params={"time_range": "24h"},
-        headers={"Authorization": "Bearer test_token"}
-    )
-
-    # Assert
-    assert response.status_code == 200
-    data = response.json()
-    assert "utilization_rate" in data
-    assert "sharing_efficiency" in data
-    assert "optimization_score" in data
-    assert "anomalies" in data
-    assert "recommendations" in data
-    assert "timestamp" in data
-    assert 0 <= data["utilization_rate"] <= 1.0
-    assert 0 <= data["sharing_efficiency"] <= 1.0
-    assert 0 <= data["optimization_score"] <= 100
+        # Assert - service handles empty data gracefully, returns default structure
+        assert response.status_code == 200
+        data = response.json()
+        assert "utilization_rate" in data
+        assert "sharing_efficiency" in data
+        assert "optimization_score" in data
+        assert "timestamp" in data
+        # With no data, these should be 0.0 (service returns defaults for empty data)
+        assert 0 <= data["utilization_rate"] <= 1.0
+        assert 0 <= data["sharing_efficiency"] <= 1.0
+        assert 0 <= data["optimization_score"] <= 100
+        # Anomalies and recommendations may be empty arrays if no data
+        assert "anomalies" in data or isinstance(data.get("anomalies"), list)
+        assert "recommendations" in data or isinstance(data.get("recommendations"), list)
+    finally:
+        app.dependency_overrides.pop(original_get_current_user, None)
 
 def test_get_optimization_insights(override_dependencies, mock_monitoring_service, mock_current_user):
     """Test getting optimization insights endpoint."""

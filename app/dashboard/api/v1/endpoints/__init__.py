@@ -6,6 +6,7 @@ api_router = APIRouter()
 
 # Import routers directly from their modules
 from .access_control import router as access_control_router
+from .ai_widgets import router as ai_widgets_router
 from .analytics import router as analytics_router
 from .avatars import router as avatars_router
 from .collaboration import router as collaboration_router
@@ -29,6 +30,7 @@ from .user_preferences import router as user_preferences_router
 
 # Include routers with their prefixes
 api_router.include_router(access_control_router, prefix="/access-control", tags=["access-control"])
+api_router.include_router(ai_widgets_router, prefix="/ai-widgets", tags=["ai-widgets"])
 api_router.include_router(analytics_router, prefix="/analytics", tags=["analytics"])
 api_router.include_router(avatars_router, prefix="/avatars", tags=["avatars"])
 api_router.include_router(collaboration_router, prefix="/collaboration", tags=["collaboration"])

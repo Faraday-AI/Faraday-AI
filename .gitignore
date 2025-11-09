@@ -124,6 +124,8 @@ data/movement_videos_processed/
 /app/models/*.pkl
 /app/models/*.h5
 /app/models/*.onnx
+/app/models/*.keras
+/app/models/*.joblib
 /app/models/checkpoints/
 /app/models/saved_models/
 
@@ -140,6 +142,7 @@ docs/CRITICAL_REFERENCE.md
 docs/DISASTER_RECOVERY_GUIDE.md
 
 # Docker secrets
+docker-compose.yml
 docker-compose.override.yml
 docker-compose.prod.yml
 docker-compose.staging.yml

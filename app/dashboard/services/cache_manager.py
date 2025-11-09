@@ -175,10 +175,14 @@ class CacheManager:
             'memory': CacheHealth.HEALTHY,
             'overall': CacheHealth.HEALTHY
         }
+        # Only start health check thread if monitoring is enabled
+        # This prevents unnecessary Redis pings in test environments
         self._health_check_thread = threading.Thread(target=self._check_health, daemon=True)
-        self._health_check_thread.start()
+        if monitoring_enabled:
+            self._health_check_thread.start()
         self._prediction_thread = threading.Thread(target=self._update_predictions, daemon=True)
-        self._prediction_thread.start()
+        if monitoring_enabled:
+            self._prediction_thread.start()
 
     def _get_cache_key(self, prefix: str, *args) -> str:
         """Generate a cache key from prefix and arguments."""
@@ -285,13 +289,18 @@ class CacheManager:
         """Periodically check cache health status."""
         while not self._shutdown_event.is_set():
             try:
-                # Check Redis health
-                if self._redis_available:
+                # Check Redis health - socket_timeout=5 already handles timeouts
+                if self._redis_available and self._redis_client:
                     try:
+                        # Redis client has socket_timeout=5, which will raise ConnectionError on timeout
                         self._redis_client.ping()
                         self._health_status['redis'] = CacheHealth.HEALTHY
-                    except RedisError:
+                    except (RedisError, ConnectionError, Exception) as e:
+                        # Redis unavailable or slow - mark as critical but don't hang
+                        # socket_timeout ensures this won't block indefinitely
                         self._health_status['redis'] = CacheHealth.CRITICAL
+                        # Don't disable Redis completely - might be temporary issue
+                        logger.debug(f"Redis health check failed: {e}")
 
                 # Check memory cache health
                 memory_usage = sum(entry.size for entry in self._memory_cache.values())
@@ -594,8 +603,15 @@ class CacheManager:
             # Since threads are daemon=True, they'll be killed when process exits anyway
             # But we want to give them a chance to release locks/resources
             import time
-            for thread in [self._warmup_thread, self._batch_thread, self._health_check_thread, 
-                          self._prediction_thread, self._monitoring_thread]:
+            threads_to_join = [self._warmup_thread, self._batch_thread]
+            if self._health_check_thread.is_alive():
+                threads_to_join.append(self._health_check_thread)
+            if self._prediction_thread.is_alive():
+                threads_to_join.append(self._prediction_thread)
+            if self.monitoring_enabled and self._monitoring_thread.is_alive():
+                threads_to_join.append(self._monitoring_thread)
+            
+            for thread in threads_to_join:
                 if thread.is_alive():
                     thread.join(timeout=0.5)  # Wait up to 0.5s per thread
             
@@ -664,17 +680,37 @@ class CacheManager:
 
     def _process_warmup_queue(self) -> None:
         """Process cache warmup requests in background."""
-        while True:
+        while not self._shutdown_event.is_set():
             try:
-                warmup_request = self._warmup_queue.get()
+                # Use timeout to prevent indefinite blocking
+                # This allows the thread to check shutdown_event periodically
+                try:
+                    warmup_request = self._warmup_queue.get(timeout=1.0)
+                except queue.Empty:
+                    # Timeout - check shutdown and continue loop
+                    continue
+                
                 if warmup_request is None:  # Shutdown signal
                     break
                 
+                # Only process if warmup is enabled
+                if not self.warmup_enabled:
+                    self._warmup_queue.task_done()
+                    continue
+                
                 key, value, ttl, metadata = warmup_request
-                self.set(key, value, ttl, metadata)
+                try:
+                    self.set(key, value, ttl, metadata)
+                except Exception as e:
+                    logger.error(f"Failed to set warmup cache entry {key}: {e}")
                 self._warmup_queue.task_done()
             except Exception as e:
                 logger.error(f"Failed to process warmup request: {e}")
+                # Mark task as done even on error to prevent queue blocking
+                try:
+                    self._warmup_queue.task_done()
+                except:
+                    pass
 
     def _process_batch_queue(self) -> None:
         """Process batch operations in background."""

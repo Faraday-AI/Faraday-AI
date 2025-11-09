@@ -31,7 +31,7 @@ def migrate_teachers_full():
 
     print('🚀 FULL TEACHER MIGRATION - CLEAN ARCHITECTURE')
     print('=' * 80)
-    print('⚠️  FALLBACK POINT: Commit 897efa95 (Add SKIP flags phases 4-11, extend validation, add indexes and CI fast-seed)')
+    print('⚠️  FALLBACK POINT: Commit fed409f7 (feat: Complete production-ready test suite with real database integration)')
     print('=' * 80)
 
     try:

@@ -10,6 +10,7 @@ from .organization_management import router as organization_management_router
 from .team_management import router as team_management_router
 from .user_analytics import router as user_analytics_router
 from .beta_testing import router as beta_testing_router
+from . import resource_management, beta_teacher_dashboard, beta_safety, beta_assessment, beta_security, beta_resource_management, dashboard_resource_management, dashboard_context_analytics, beta_context_analytics, dashboard_preferences, beta_dashboard_preferences
 
 __all__ = [
     'activity_router',
@@ -23,5 +24,16 @@ __all__ = [
     'organization_management_router',
     'team_management_router',
     'user_analytics_router',
-    'beta_testing_router'
+    'beta_testing_router',
+    'resource_management',
+    'beta_teacher_dashboard',
+    'beta_safety',
+    'beta_assessment',
+    'beta_security',
+    'beta_resource_management',
+    'dashboard_resource_management',
+    'dashboard_context_analytics',
+    'beta_context_analytics',
+    'dashboard_preferences',
+    'beta_dashboard_preferences'
 ] 

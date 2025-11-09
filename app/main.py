@@ -6,6 +6,7 @@ import logging
 from typing import Optional, Dict, Any, List, Tuple
 import tempfile
 import os
+import json
 from pathlib import Path
 from functools import lru_cache
 from datetime import datetime, timedelta
@@ -69,6 +70,7 @@ from app.dashboard.api.v1.endpoints import (
     optimization_monitoring,
     notifications  # Add new import
 )
+from app.dashboard.api.v1.endpoints import api_router as dashboard_api_router
 from app.dashboard.services.gpt_manager_service import GPTManagerService
 from app.dashboard.api.v1.middleware.rate_limit import setup_rate_limiting
 from app.dashboard.api.v1.middleware.auth import setup_auth_middleware
@@ -397,6 +399,7 @@ app.include_router(ai_analysis_router, prefix="/api")
 app.include_router(debug_router)
 app.include_router(activity_management, prefix="/api/v1/activities", tags=["activities"])
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+app.include_router(dashboard_api_router, prefix="/api/v1/dashboard", tags=["dashboard"])  # Includes ai-widgets and other sub-routers
 app.include_router(api_router)  # Uncommented for development - needed for user profile endpoints
 # Include user analytics router separately to avoid conflicts
 from app.api.v1.endpoints.user_analytics import router as user_analytics_router

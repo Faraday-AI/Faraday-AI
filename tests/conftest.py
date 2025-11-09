@@ -39,6 +39,8 @@ def setup_test_env():
     os.environ["ENVIRONMENT"] = "test"
     os.environ["LOG_LEVEL"] = "DEBUG"
     os.environ["REDIS_URL"] = "redis://redis:6379/0"
+    # Skip migration during save operations - migration tests call it directly
+    os.environ["SKIP_MIGRATION_DURING_SAVE"] = "true"
     
     # Use DATABASE_URL from environment (set by run.sh/docker-compose)
     # Do NOT override it - use the same connection as the running application
@@ -388,6 +390,12 @@ def ensure_global_app_state_clean():
     """
     # Import app here to avoid circular imports
     from app.main import app
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+    
+    # Ensure limiter exists on app.state for tests
+    if not hasattr(app.state, 'limiter'):
+        app.state.limiter = Limiter(key_func=get_remote_address)
     
     # 1. Clear FastAPI dependency overrides
     app.dependency_overrides.clear()
@@ -443,6 +451,13 @@ def ensure_global_app_state_clean():
         ('app.services.physical_education.security_service', 'SecurityService'),
         # Beta Teacher Dashboard
         ('app.services.pe.beta_teacher_dashboard_service', 'BetaTeacherDashboardService'),
+        # Dashboard Services (Phase 4, 5, 6)
+        ('app.dashboard.services.resource_management_service', 'ResourceManagementService'),
+        ('app.services.pe.beta_resource_management_service', 'BetaResourceManagementService'),
+        ('app.dashboard.services.context_analytics_service', 'ContextAnalyticsService'),
+        ('app.services.pe.beta_context_analytics_service', 'BetaContextAnalyticsService'),
+        ('app.dashboard.services.dashboard_preferences_service', 'DashboardPreferencesService'),
+        ('app.services.pe.beta_dashboard_preferences_service', 'BetaDashboardPreferencesService'),
     ]
     
     # Reset all singletons before test
