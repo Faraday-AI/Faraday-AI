@@ -1815,6 +1815,195 @@ core)
  - Performance optimization
  - Injury prevention
 --
+# 🔐 External API Integrations
+
+## Microsoft/Azure AD Authentication ✅ **ENABLED**
+### What It Does:
+- **Enterprise Single Sign-On (SSO)** - Login with Microsoft/Azure AD credentials
+- **Office 365 Integration** - Seamless integration with Office 365 services
+- **Microsoft Teams Integration** - Connect with Microsoft Teams (if configured)
+- **Automatic User Profile Sync** - User profiles automatically synced from Azure AD
+- **Secure Authentication** - Industry-standard OAuth 2.0 authentication flow
+
+### Benefits:
+✅ **Enterprise-grade security** - Use your organization's existing authentication  
+✅ **Single sign-on** - One login for all Microsoft services  
+✅ **Automatic user management** - User profiles synced automatically  
+✅ **Seamless integration** - Works with Office 365 and Microsoft Teams  
+✅ **Reduced password management** - No need for separate passwords
+
+### Configuration:
+- Uses `MSCLIENTID`, `MSCLIENTSECRET`, `MSTENANTID` environment variables
+- Redirect URI configured for OAuth callback
+- Fully integrated with JWT token system
+
+---
+
+## Microsoft Calendar Integration ✅ **ENABLED**
+### What It Does:
+- **Outlook Calendar Sync** - Synchronize with Microsoft Outlook Calendar
+- **Event Creation** - Automatically create calendar events from lesson plans
+- **Class Schedule Sync** - Sync PE class schedules to your calendar
+- **Event Reminders** - Automatic reminders for scheduled activities
+- **Multi-Calendar Support** - Manage multiple calendars
+
+### Example Commands:
+- "Sync my lesson plans to my Outlook calendar"
+- "Create a calendar event for my basketball class next week"
+- "Show me my calendar events for this month"
+- "Sync my class schedule to Microsoft Calendar"
+
+### Benefits:
+✅ **Time management** - All events in one calendar  
+✅ **Automatic sync** - Lesson plans automatically become calendar events  
+✅ **Never miss a class** - Automatic reminders  
+✅ **Professional organization** - Integrated with your existing calendar system
+
+### Configuration:
+- Uses Microsoft credentials (same as Azure AD authentication)
+- Calendar permissions configured in Azure AD app registration
+- Automatic event creation from lesson plans
+
+---
+
+## OpenAI AI Features ✅ **ENABLED**
+### What It Does:
+- **AI Lesson Plan Generation** - Generate comprehensive lesson plans using AI
+- **AI Content Generation** - Create educational content automatically
+- **AI-Powered Grading** - Intelligent grading and feedback
+- **AI Analytics & Insights** - Advanced analytics powered by AI
+- **ChatGPT Integration** - Direct ChatGPT integration for conversational AI
+- **Voice Analysis** - AI-powered voice analysis for student feedback
+- **Vision Analysis** - AI-powered image and video analysis
+- **Smart Recommendations** - AI-driven activity and exercise recommendations
+
+### Example Commands:
+- "Generate an AI lesson plan for teaching basketball fundamentals"
+- "Use AI to create content for my fitness class"
+- "Analyze this student's performance using AI insights"
+- "Get AI recommendations for improving my class activities"
+
+### Benefits:
+✅ **Time savings** - Generate content in seconds, not hours  
+✅ **High-quality content** - AI-generated content aligned with standards  
+✅ **Personalized learning** - AI adapts to student needs  
+✅ **Advanced insights** - AI-powered analytics reveal patterns  
+✅ **Intelligent assistance** - ChatGPT integration for natural language interaction
+
+### Configuration:
+- Uses `OPENAI_API_KEY` environment variable
+- Integrated across all AI-powered features
+- Replaces mock implementations with real AI capabilities
+
+---
+
+## Google Cloud Translation Service ✅ **ENABLED**
+### What It Does:
+- **Automatic Translation** - Translate messages and content to multiple languages
+- **Text-to-Speech** - Generate audio content in multiple languages
+- **Language Support** - Support for 100+ languages
+- **Parent Communication** - Automatic translation for parent messages
+- **Assignment Translation** - Translate assignments for multilingual students
+- **Fallback Support** - Graceful fallback to mock service if Google Cloud not configured
+
+### Example Commands:
+- "Send a message to Sarah's parents in Spanish"
+- "Translate this assignment for my Spanish-speaking students"
+- "Generate audio instructions in multiple languages"
+
+### Benefits:
+✅ **Multilingual support** - Communicate with all families  
+✅ **Inclusive education** - No language barriers  
+✅ **Automatic translation** - No manual translation needed  
+✅ **Professional quality** - Google Cloud Translation accuracy  
+✅ **Flexible deployment** - Works with or without Google Cloud credentials
+
+### Configuration:
+- Uses `GOOGLE_APPLICATION_CREDENTIALS` environment variable
+- Automatic fallback to mock service if not configured
+- Integrated with communication and assignment systems
+
+---
+
+## Enhanced Dashboard Features ✅ **ENABLED**
+### What It Does:
+- **Layout Validation** - Validates dashboard layouts for consistency
+- **Widget Configuration Validation** - Ensures widget configurations are valid
+- **Theme Configuration** - Customizable dashboard themes with validation
+- **Dashboard Search** - Search across widgets and dashboard data
+- **Advanced Filtering** - Filter dashboard data by multiple criteria
+- **Theme Preview Generation** - Preview themes before applying
+- **Export Capabilities** - Export dashboards to CSV, PDF, JSON formats
+- **Sharing & Embedding** - Share dashboards and generate embed codes
+
+### Example Commands:
+- "Search for all attendance widgets in my dashboards"
+- "Filter dashboard data for Period 3 classes"
+- "Preview the dark theme before applying it"
+- "Export my dashboard to PDF"
+
+### Benefits:
+✅ **Better organization** - Validated layouts prevent errors  
+✅ **Easy discovery** - Search helps find widgets quickly  
+✅ **Customization** - Themes personalize your dashboard  
+✅ **Data export** - Export data for external analysis  
+✅ **Sharing** - Share dashboards with colleagues
+
+---
+
+## Enhanced Security Features ✅ **ENABLED**
+### What It Does:
+- **Access Validation** - Validates user access based on roles and permissions
+- **Security Event Logging** - Comprehensive security event logging to database
+- **Role-Based Access Control** - Enforces role-based permissions
+- **Security Audit Trail** - Complete audit trail of security events
+- **Active User Verification** - Verifies user account status before access
+
+### Benefits:
+✅ **Enhanced security** - Comprehensive access control  
+✅ **Audit compliance** - Complete security event logging  
+✅ **Role management** - Fine-grained permission control  
+✅ **Security monitoring** - Track all security-related events
+
+---
+
+## Enhanced AI Widget Service ✅ **ENABLED**
+### What It Does:
+- **Real Database Queries** - All AI widgets now query actual database data
+- **Team Configuration Suggestions** - AI-powered team suggestions based on real student data
+- **Safety Risk Identification** - Real-time safety risk analysis from database
+- **Driving Progress Tracking** - Track student driving progress with real data
+- **Skill Gap Analysis** - Identify skill gaps using actual assessment data
+- **Mental Health Risk Assessment** - Assess mental health risks from real metrics
+- **Equipment Optimization** - Optimize equipment inventory using usage data
+- **Smart Alerts** - AI-generated alerts based on real-time data
+- **Student Self-Assessments** - AI-powered self-assessment creation
+
+### Benefits:
+✅ **Real-time insights** - Based on actual student data  
+✅ **Accurate recommendations** - Data-driven suggestions  
+✅ **Proactive alerts** - Early warning system for issues  
+✅ **Comprehensive analysis** - Multi-dimensional data analysis
+
+---
+
+## Enhanced Safety Report Generator ✅ **ENABLED**
+### What It Does:
+- **Statistical Analysis** - Advanced statistical analysis of safety data
+- **Time Series Decomposition** - Decompose safety trends over time
+- **Incident Clustering** - Visualize incident patterns and clusters
+- **Safety Visualizations** - Professional charts and graphs
+- **Trend Analysis** - Identify safety trends and patterns
+- **Comprehensive Reports** - Generate detailed safety reports
+
+### Benefits:
+✅ **Data-driven safety** - Statistical analysis reveals patterns  
+✅ **Visual insights** - Charts make trends easy to understand  
+✅ **Proactive management** - Identify issues before they become problems  
+✅ **Professional reports** - Publication-ready safety documentation
+
+---
+
 # 🚀 Future Enhancements (Planned)
  Real-time activity monitoring
  Advanced machine learning predictions
@@ -1822,7 +2011,7 @@ core)
  Automated report generation
  Mobile app integration
  Voice-only interface
- Multi-language support
+ Multi-language support (enhanced with Google Cloud Translation)
 --
 # 📞 Getting Started
 he AI Assistant is available through:

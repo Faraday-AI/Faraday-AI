@@ -118,8 +118,41 @@ class StudentManager:
     def load_student_data(self):
         """Load student data from persistent storage."""
         try:
-            # TODO: Implement data loading from persistent storage
-            self.logger.info("Student data loaded successfully")
+            from sqlalchemy import text
+            from app.models.physical_education.student.models import Student
+            
+            # Add timeout to prevent hangs
+            try:
+                self.db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            
+            # Use with_entities to avoid loading relationships - only select needed columns
+            students = self.db.query(Student).with_entities(
+                Student.id,
+                Student.first_name,
+                Student.last_name,
+                Student.grade_level,
+                Student.date_of_birth,
+                Student.email
+            ).limit(1000).all()  # Limit to prevent memory issues
+            
+            # Populate in-memory cache
+            for student in students:
+                student_id = str(student.id)
+                self.students[student_id] = {
+                    "student_id": student_id,
+                    "first_name": student.first_name,
+                    "last_name": student.last_name,
+                    "grade_level": student.grade_level.value if hasattr(student.grade_level, 'value') else str(student.grade_level),
+                    "date_of_birth": student.date_of_birth.isoformat() if student.date_of_birth else None,
+                    "email": student.email,
+                    "current_classes": [],
+                    "progress_history": [],
+                    "assessments": []
+                }
+            
+            self.logger.info(f"Loaded {len(students)} students from database")
         except Exception as e:
             self.logger.error(f"Error loading student data: {str(e)}")
             raise
@@ -127,8 +160,43 @@ class StudentManager:
     def load_class_data(self):
         """Load class data from persistent storage."""
         try:
-            # TODO: Implement data loading from persistent storage
-            self.logger.info("Class data loaded successfully")
+            from sqlalchemy import text
+            from app.models.physical_education.class_.models import PhysicalEducationClass
+            
+            # Add timeout to prevent hangs
+            try:
+                self.db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            
+            # Use with_entities to avoid loading relationships - only select needed columns
+            classes = self.db.query(PhysicalEducationClass).with_entities(
+                PhysicalEducationClass.id,
+                PhysicalEducationClass.name,
+                PhysicalEducationClass.description,
+                PhysicalEducationClass.grade_level,
+                PhysicalEducationClass.class_type,
+                PhysicalEducationClass.max_students,
+                PhysicalEducationClass.start_date,
+                PhysicalEducationClass.end_date
+            ).limit(500).all()  # Limit to prevent memory issues
+            
+            # Populate in-memory cache
+            for pe_class in classes:
+                class_id = str(pe_class.id)
+                self.classes[class_id] = {
+                    "class_id": class_id,
+                    "name": pe_class.name,
+                    "description": pe_class.description,
+                    "grade_level": pe_class.grade_level.value if hasattr(pe_class.grade_level, 'value') else str(pe_class.grade_level),
+                    "class_type": pe_class.class_type.value if hasattr(pe_class.class_type, 'value') else str(pe_class.class_type),
+                    "max_students": pe_class.max_students,
+                    "start_date": pe_class.start_date.isoformat() if pe_class.start_date else None,
+                    "end_date": pe_class.end_date.isoformat() if pe_class.end_date else None,
+                    "students": []
+                }
+            
+            self.logger.info(f"Loaded {len(classes)} classes from database")
         except Exception as e:
             self.logger.error(f"Error loading class data: {str(e)}")
             raise
@@ -838,35 +906,55 @@ class StudentManager:
             if not self.db:
                 raise ValueError("Database session not available")
             
-            # Check if student and class exist
-            from app.models.physical_education.student.models import Student
-            from app.models.physical_education.class_.models import PhysicalEducationClass, ClassStudent
+            from sqlalchemy import text
+            from app.models.physical_education.class_.models import ClassStudent
             from app.models.physical_education.pe_enums.pe_types import ClassStatus
             
-            student = self.db.query(Student).filter(Student.id == student_id).first()
-            if not student:
+            # Set timeout to prevent hanging queries
+            try:
+                self.db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            
+            # Use raw SQL for existence checks to avoid ORM relationship loading
+            # Check if student exists
+            student_exists = self.db.execute(
+                text("SELECT id FROM public.students WHERE id = :id"),
+                {"id": student_id}
+            ).fetchone()
+            if not student_exists:
                 raise ValueError(f"Student {student_id} not found")
             
-            class_ = self.db.query(PhysicalEducationClass).filter(PhysicalEducationClass.id == class_id).first()
-            if not class_:
+            # Check if class exists and get max_students
+            class_data = self.db.execute(
+                text("SELECT id, max_students FROM public.physical_education_classes WHERE id = :id"),
+                {"id": class_id}
+            ).fetchone()
+            if not class_data:
                 raise ValueError(f"Class {class_id} not found")
             
+            max_students = class_data[1]
+            
             # Check if student is already enrolled
-            existing_enrollment = self.db.query(ClassStudent).filter(
-                ClassStudent.student_id == student_id,
-                ClassStudent.class_id == class_id
-            ).first()
+            existing_enrollment = self.db.execute(
+                text("""
+                    SELECT id FROM public.physical_education_class_students 
+                    WHERE student_id = :student_id AND class_id = :class_id
+                """),
+                {"student_id": student_id, "class_id": class_id}
+            ).fetchone()
             
             if existing_enrollment:
                 raise ValueError(f"Student {student_id} is already enrolled in class {class_id}")
             
-            # Check class capacity
-            current_enrollment_count = self.db.query(ClassStudent).filter(
-                ClassStudent.class_id == class_id
-            ).count()
+            # Check class capacity using raw SQL
+            current_enrollment_count = self.db.execute(
+                text("SELECT COUNT(*) FROM public.physical_education_class_students WHERE class_id = :class_id"),
+                {"class_id": class_id}
+            ).scalar()
             
-            if class_.max_students and current_enrollment_count >= class_.max_students:
-                raise ValueError(f"Class {class_id} is at maximum capacity ({class_.max_students} students)")
+            if max_students and current_enrollment_count >= max_students:
+                raise ValueError(f"Class {class_id} is at maximum capacity ({max_students} students)")
             
             # Create enrollment record
             enrollment = ClassStudent(

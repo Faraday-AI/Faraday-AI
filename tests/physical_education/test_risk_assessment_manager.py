@@ -319,7 +319,7 @@ async def test_create_assessment_success(risk_manager, db_session, assessment_da
         assessment = await risk_manager.get_assessment(result["assessment_id"], db=db_session)
         if assessment:
             db_session.delete(assessment)
-            db_session.commit()
+            db_session.flush()  # Use flush() instead of commit() to prevent data loss in test mode
     except:
         pass
 
@@ -365,7 +365,7 @@ async def test_get_assessment_success(risk_manager, db_session, assessment_data)
     # Cleanup
     try:
         db_session.delete(result)
-        db_session.commit()
+        db_session.flush()  # Use flush() instead of commit() to prevent data loss in test mode
     except:
         pass
 
@@ -421,7 +421,7 @@ async def test_get_assessments_with_filters(risk_manager, db_session, assessment
     try:
         for assessment in result:
             db_session.delete(assessment)
-        db_session.commit()
+        db_session.flush()  # Use flush() instead of commit() to prevent data loss in test mode
     except:
         pass
 
@@ -457,7 +457,7 @@ async def test_update_assessment_success(risk_manager, db_session, assessment_da
     # Cleanup
     try:
         db_session.delete(updated)
-        db_session.commit()
+        db_session.flush()  # Use flush() instead of commit() to prevent data loss in test mode
     except:
         pass
 
@@ -537,7 +537,7 @@ async def test_get_assessment_statistics(risk_manager, db_session, assessment_da
             assessment = await risk_manager.get_assessment(str(assessment_id), db=db_session)
             if assessment:
                 db_session.delete(assessment)
-        db_session.commit()
+        db_session.flush()  # Use flush() instead of commit() to prevent data loss in test mode
     except:
         pass
 
@@ -582,7 +582,7 @@ async def test_bulk_update_assessments(risk_manager, db_session, assessment_data
             assessment = await risk_manager.get_assessment(assessment_id, db=db_session)
             if assessment:
                 db_session.delete(assessment)
-        db_session.commit()
+        db_session.flush()  # Use flush() instead of commit() to prevent data loss in test mode
     except:
         pass
 

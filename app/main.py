@@ -357,11 +357,228 @@ WEBSOCKET_PORT = int(os.getenv('WEBSOCKET_PORT', find_available_port(9100, 9200)
 
 app_settings = get_settings()
 
-app = FastAPI(
-    title="Faraday AI Educational Platform",
-    description="AI-powered educational platform with multiple GPT assistants",
-    version="1.0.0"
-)
+def create_app(test_mode: bool = False) -> FastAPI:
+    """
+    Create and configure a FastAPI application instance.
+    
+    This factory function allows creating fresh app instances for testing,
+    ensuring complete isolation between tests.
+    
+    Args:
+        test_mode: If True, skips database initialization and other production-only setup
+    
+    Returns:
+        Configured FastAPI application instance
+    """
+    # Create a new FastAPI instance
+    app_instance = FastAPI(
+        title="Faraday AI Educational Platform",
+        description="AI-powered educational platform with multiple GPT assistants",
+        version="1.0.0"
+    )
+    
+    # Create a debug router
+    debug_router = APIRouter(prefix="/api/debug", tags=["debug"])
+
+    @debug_router.get("/paths", include_in_schema=True)
+    async def debug_paths(request: Request):
+        """Debug endpoint to check file paths."""
+        logger.info(f"Debug endpoint called with method: {request.method}, url: {request.url}")
+        try:
+            static_path = Path("app/static")
+            services_path = static_path / "services"
+            phys_ed_path = services_path / "phys-ed.html"
+            
+            result = {
+                "static_path_exists": static_path.exists(),
+                "services_path_exists": services_path.exists(),
+                "phys_ed_path_exists": phys_ed_path.exists(),
+                "static_path": str(static_path),
+                "services_path": str(services_path),
+                "phys_ed_path": str(phys_ed_path),
+                "static_files": [f.name for f in static_path.glob("**/*") if f.is_file()]
+            }
+            logger.info(f"Debug endpoint result: {result}")
+            return JSONResponse(content=result)
+        except Exception as e:
+            logger.error(f"Debug error: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    # Include routers
+    app_instance.include_router(memory_router, prefix="/api/v1/memory", tags=["memory"])
+    app_instance.include_router(math_assistant_router, prefix="/api/v1/math", tags=["math"])
+    app_instance.include_router(science_assistant_router, prefix="/api/v1/science", tags=["science"])
+    app_instance.include_router(health_router, tags=["System"])
+    app_instance.include_router(ai_analysis_router, prefix="/api")
+    app_instance.include_router(debug_router)
+    app_instance.include_router(activity_management, prefix="/api/v1/activities", tags=["activities"])
+    app_instance.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
+    app_instance.include_router(dashboard_api_router, prefix="/api/v1/dashboard", tags=["dashboard"])
+    app_instance.include_router(api_router)
+    from app.api.v1.endpoints.user_analytics import router as user_analytics_router
+    app_instance.include_router(user_analytics_router, prefix="/api/v1/analytics", tags=["user-analytics"])
+    app_instance.include_router(analytics.router, prefix="/api/v1/dashboard/analytics", tags=["analytics"])
+    app_instance.include_router(compatibility.router, prefix="/api/v1/compatibility", tags=["compatibility"])
+    app_instance.include_router(gpt_context.router, prefix="/api/v1/gpt-context", tags=["gpt-context"])
+    app_instance.include_router(gpt_manager.router, prefix="/api/v1/gpt-manager", tags=["gpt-manager"])
+    app_instance.include_router(resource_optimization.router, prefix="/api/v1/resource-optimization", tags=["resource-optimization"])
+    app_instance.include_router(access_control.router, prefix="/api/v1/access-control", tags=["access-control"])
+    app_instance.include_router(resource_sharing.router, prefix="/api/v1/resource-sharing", tags=["resource-sharing"])
+    app_instance.include_router(optimization_monitoring.router, prefix="/api/v1/optimization-monitoring", tags=["optimization-monitoring"])
+    app_instance.include_router(notifications.router, prefix="/api/v1/notifications", tags=["notifications"])
+    app_instance.include_router(educational.router, prefix="/api/v1/educational", tags=["educational"])
+    app_instance.include_router(pe_router, prefix="/api/v1/phys-ed", tags=["physical-education"])
+    app_instance.include_router(health_fitness_router, prefix="/api/v1/physical-education", tags=["physical-education"])
+    app_instance.include_router(activity_recommendations_router, prefix="/api/v1/physical-education", tags=["physical-education"])
+    app_instance.include_router(auth_router, prefix="/api/v1/auth", tags=["auth"])
+    from app.api.v1.endpoints.beta_students import router as beta_students_router
+    app_instance.include_router(beta_students_router, prefix="/api/v1", tags=["beta"])
+    app_instance.include_router(rbac_management_router, prefix="/api/v1/rbac-management", tags=["rbac-management"])
+
+    # Mount static files at /static instead of root
+    base_dir = Path(__file__).parent.parent
+    logger.info(f"Base directory: {base_dir}")
+
+    # Try deployment path first
+    static_dir = Path("/app/static")
+    logger.info(f"Checking deployment static directory at {static_dir}")
+
+    if not static_dir.exists():
+        # Fall back to local development path
+        static_dir = base_dir / "static"
+        logger.info(f"Deployment path not found, checking local path at {static_dir}")
+        
+        if not static_dir.exists():
+            logger.error(f"Static directory not found at {static_dir}")
+            raise RuntimeError("Static directory not found")
+        else:
+            logger.info(f"Using local static directory at {static_dir}")
+    else:
+        logger.info(f"Using deployment static directory at {static_dir}")
+
+    # Verify static directory contents
+    if static_dir.exists():
+        logger.info(f"Static directory contents: {[f.name for f in static_dir.glob('*')]}")
+
+    app_instance.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+
+    # Configure CORS
+    app_instance.add_middleware(
+        CORSMiddleware,
+        allow_origins=app_settings.CORS_ORIGINS,
+        allow_credentials=app_settings.CORS_CREDENTIALS,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Set up rate limiting for access control endpoints
+    setup_rate_limiting(app_instance)
+
+    # Set up authentication for access control endpoints
+    setup_auth_middleware(app_instance)
+
+    # Initialize services (only in non-test mode)
+    if not test_mode:
+        @app_instance.on_event("startup")
+        async def startup_event():
+            """Initialize application services on startup."""
+            try:
+                # Initialize database engines first
+                logger.info("Starting database engine initialization...")
+                initialize_engines()
+                logger.info("Database engines initialized")
+                
+                # Initialize database
+                logger.info("Starting database initialization...")
+                if not await init_db():
+                    raise RuntimeError("Database initialization failed")
+                logger.info("Database initialized successfully")
+                
+                # Physical education model relationships are now handled with full module paths
+                logger.info("Physical education model relationships configured")
+                
+                # Initialize services after database is ready
+                logger.info("Initializing application services...")
+                global failover_manager, load_balancer, monitoring_service, load_balancer_service
+                failover_manager = RegionalFailoverManager()
+                load_balancer = GlobalLoadBalancer(failover_manager)
+                monitoring_service = MonitoringService()
+                
+                # Initialize load balancer service
+                db_session = next(get_db())
+                resource_service = get_resource_sharing_service(db_session)
+                
+                # Start background tasks for resource sharing service (monitoring, cleanup)
+                try:
+                    await resource_service.start_background_tasks()
+                    logger.info("Resource sharing service background tasks started")
+                except Exception as e:
+                    logger.warning(f"Could not start resource sharing background tasks: {e}")
+                
+                load_balancer_service = LoadBalancerService(
+                    load_balancer=load_balancer,
+                    monitoring_service=monitoring_service,
+                    resource_service=resource_service
+                )
+                
+                # Include load balancer router
+                app_instance.include_router(load_balancer_service.router, prefix="/api/load-balancer", tags=["Load Balancer"])
+                
+                # Start Prometheus metrics server only in the main process
+                if settings.ENABLE_METRICS and os.environ.get('WORKER_CLASS') != 'uvicorn.workers.UvicornWorker':
+                    try:
+                        start_http_server(METRICS_PORT)
+                        logger.info(f"Prometheus metrics server started on port {METRICS_PORT}")
+                    except OSError as e:
+                        if "Address already in use" in str(e):
+                            logger.warning(f"Metrics server port {METRICS_PORT} already in use, skipping metrics server startup")
+                        else:
+                            logger.error(f"Error starting metrics server: {e}")
+                            raise
+                
+                # Initialize rate limiter
+                redis_instance = redis.asyncio.Redis.from_url(
+                    settings.REDIS_URL,
+                    encoding="utf-8",
+                    decode_responses=True
+                )
+                await FastAPILimiter.init(redis_instance)
+                
+                logger.info("Application startup complete")
+            except Exception as e:
+                logger.error(f"Error during startup: {e}")
+                raise
+
+        @app_instance.on_event("shutdown")
+        async def shutdown_event():
+            """Cleanup the application on shutdown."""
+            try:
+                # Cleanup physical education services
+                await service_integration.cleanup()
+                
+                # Cleanup other services
+                await get_realtime_collaboration_service().cleanup()
+                await get_file_processing_service().cleanup()
+                await get_ai_analytics_service().cleanup()
+                
+                # Shutdown resource sharing service background tasks
+                try:
+                    db_session = next(get_db())
+                    resource_service = get_resource_sharing_service(db_session)
+                    await resource_service.shutdown()
+                    logger.info("Resource sharing service background tasks stopped")
+                except Exception as e:
+                    logger.warning(f"Error shutting down resource sharing service: {e}")
+                
+                logging.info("Application shutdown completed successfully")
+            except Exception as e:
+                logging.error(f"Error during shutdown: {str(e)}")
+                raise
+
+    return app_instance
+
+# Create the global app instance for production use
+app = create_app(test_mode=False)
 
 # Create a debug router
 debug_router = APIRouter(prefix="/api/debug", tags=["debug"])

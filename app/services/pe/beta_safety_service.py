@@ -99,12 +99,26 @@ class BetaSafetyService(SafetyService):
     async def get_emergency_procedures(self) -> List[Dict]:
         """Get emergency procedures for this beta teacher's context."""
         try:
-            # Use user_id (Integer) for created_by
-            procedures = self.db.query(EmergencyProcedure).filter(
-                EmergencyProcedure.is_active == True,
-                EmergencyProcedure.created_by == self.user_id
-            ).all()
-            return [self._procedure_to_dict(p) for p in procedures]
+            from sqlalchemy import text
+            # Set timeout to prevent hanging queries
+            try:
+                self.db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            # Use raw SQL to avoid ORM overhead completely
+            # NOTE: emergency_procedures table has: id, name, description, procedure_type, class_id, 
+            # steps, contact_info, is_active, last_drill_date, next_drill_date, created_by, created_at, updated_at
+            procedures = self.db.execute(
+                text("""
+                    SELECT id, name, description, procedure_type, steps, contact_info,
+                           is_active, last_drill_date, next_drill_date, created_by, created_at, updated_at
+                    FROM public.emergency_procedures
+                    WHERE is_active = true AND created_by = :user_id
+                """),
+                {"user_id": self.user_id}
+            ).fetchall()
+            # Convert tuple results to dicts
+            return [self._procedure_tuple_to_dict(p) for p in procedures]
         except SQLAlchemyError as e:
             self.db.rollback()
             raise HTTPException(
@@ -130,11 +144,26 @@ class BetaSafetyService(SafetyService):
     async def get_incident_reports(self) -> List[Dict]:
         """Get incident reports for this beta teacher's context."""
         try:
-            # Use user_id (Integer) for teacher_id, not teacher_id (UUID)
-            incidents = self.db.query(SafetyIncident).filter(
-                SafetyIncident.teacher_id == self.user_id
-            ).all()
-            return [self._incident_to_dict(i) for i in incidents]
+            from sqlalchemy import text
+            # Set timeout to prevent hanging queries
+            try:
+                self.db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            # Use raw SQL to avoid ORM overhead completely
+            incidents = self.db.execute(
+                text("""
+                    SELECT id, student_id, activity_id, protocol_id, incident_date,
+                           incident_type, severity, description, location, teacher_id,
+                           equipment_id, action_taken, follow_up_required, follow_up_notes,
+                           incident_metadata
+                    FROM public.safety_incidents
+                    WHERE teacher_id = :user_id
+                """),
+                {"user_id": self.user_id}
+            ).fetchall()
+            # Convert tuple results to dicts
+            return [self._incident_tuple_to_dict(i) for i in incidents]
         except SQLAlchemyError as e:
             self.db.rollback()
             raise HTTPException(
@@ -165,4 +194,45 @@ class BetaSafetyService(SafetyService):
         # SafetyIncident.teacher_id is Integer (users.id), not UUID
         incident['teacher_id'] = self.user_id
         return await super().create_incident_report(incident)
+    
+    def _procedure_tuple_to_dict(self, procedure_tuple) -> Dict:
+        """Convert EmergencyProcedure tuple (from raw SQL) to dictionary."""
+        # Tuple order matches raw SQL SELECT order:
+        # id, name, description, procedure_type, steps, contact_info,
+        # is_active, last_drill_date, next_drill_date, created_by, created_at, updated_at
+        return {
+            "id": procedure_tuple[0],
+            "name": procedure_tuple[1],
+            "description": procedure_tuple[2],
+            "procedure_type": procedure_tuple[3],
+            "steps": procedure_tuple[4],
+            "contact_info": procedure_tuple[5],
+            "is_active": procedure_tuple[6],
+            "last_drill_date": procedure_tuple[7].isoformat() if procedure_tuple[7] else None,
+            "next_drill_date": procedure_tuple[8].isoformat() if procedure_tuple[8] else None,
+            "created_by": procedure_tuple[9],
+            "created_at": procedure_tuple[10].isoformat() if procedure_tuple[10] else None,
+            "updated_at": procedure_tuple[11].isoformat() if procedure_tuple[11] else None
+        }
+    
+    def _incident_tuple_to_dict(self, incident_tuple) -> Dict:
+        """Convert SafetyIncident tuple (from with_entities) to dictionary."""
+        # Tuple order matches with_entities order
+        return {
+            "id": incident_tuple[0],
+            "student_id": incident_tuple[1],
+            "activity_id": incident_tuple[2],
+            "protocol_id": incident_tuple[3],
+            "incident_date": incident_tuple[4].isoformat() if incident_tuple[4] else None,
+            "incident_type": incident_tuple[5].value if hasattr(incident_tuple[5], 'value') else str(incident_tuple[5]),
+            "severity": incident_tuple[6].value if hasattr(incident_tuple[6], 'value') else str(incident_tuple[6]),
+            "description": incident_tuple[7],
+            "location": incident_tuple[8],
+            "teacher_id": incident_tuple[9],
+            "equipment_id": incident_tuple[10],
+            "action_taken": incident_tuple[11],
+            "follow_up_required": incident_tuple[12],
+            "follow_up_notes": incident_tuple[13],
+            "incident_metadata": incident_tuple[14]
+        }
 

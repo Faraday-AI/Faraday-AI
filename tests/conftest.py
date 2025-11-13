@@ -205,13 +205,26 @@ def db_session(engine, tables, test_schema):
         try:
             connection = engine.connect()
             
+            # CRITICAL FIX: Do NOT start a transaction with connection.begin()
+            # Starting a transaction and then closing the connection without committing
+            # causes SQLAlchemy to rollback the transaction, which can affect committed data
+            # Instead, let SQLAlchemy manage transactions automatically through the session
+            # We'll use SAVEPOINTs for test isolation, which don't require an outer transaction
+            
+            # CRITICAL: Execute connection-level setup queries BEFORE creating the session
+            # These queries need to be explicitly committed to ensure they persist
+            # Since we're NOT using connection.begin(), we need to use connection.commit() after each
+            # to ensure the implicit transaction is committed and won't be rolled back on close
             # Set the search path to use the test schema for PostgreSQL
             if test_schema:
-                connection.execute(text(f"SET search_path TO {test_schema}, public"))
-                connection.commit()
+                try:
+                    connection.execute(text(f"SET search_path TO {test_schema}, public"))
+                    connection.commit()  # CRITICAL: Explicitly commit to ensure it persists
+                except Exception:
+                    pass  # Ignore if not supported
             
             # Add timeouts to surface blocking DB operations
-            # Increased to 15 seconds to allow complex queries with large datasets
+            # These are session-level settings that should persist
             try:
                 # PostgreSQL timeouts in milliseconds
                 # PRODUCTION-READY: Increased statement_timeout from 15s to 60s for full suite
@@ -219,16 +232,15 @@ def db_session(engine, tables, test_schema):
                 # 60s is reasonable for comprehensive integration tests with real database
                 connection.execute(text("SET statement_timeout = 60000"))  # 60 seconds
                 connection.execute(text("SET lock_timeout = 10000"))  # 10 seconds (increased from 5s)
-                connection.commit()
+                connection.commit()  # CRITICAL: Explicitly commit to ensure settings persist
             except Exception:
                 # Ignore if not supported (e.g., sqlite or restricted roles)
                 pass
             
-            # Begin a transaction for test isolation
-            trans = connection.begin()
-            
-            # Create session bound to the transaction
-            Session = sessionmaker(bind=connection)
+            # Create session bound to the connection
+            # CRITICAL: Use autocommit=False, autoflush=False to ensure proper transaction management
+            # SQLAlchemy will automatically start a transaction when we execute the first query
+            Session = sessionmaker(bind=connection, autocommit=False, autoflush=False)
             session = Session()
             
             # For PostgreSQL, use SAVEPOINT for nested transaction support
@@ -238,31 +250,42 @@ def db_session(engine, tables, test_schema):
             savepoint_created = False
             
             if is_postgres:
+                # CRITICAL: Start a transaction explicitly for the session
+                # This ensures the SAVEPOINT is created within a transaction
+                # The session will manage this transaction, not the connection
+                session.begin()
+                
+                # Create SAVEPOINT FIRST for test isolation
+                # CRITICAL: SAVEPOINT must be created before any queries that might affect the database
+                session.execute(text("SAVEPOINT test"))
+                savepoint_created = True
+                
                 # CRITICAL FIX: Sync sequences to MAX(id) to prevent duplicate key errors
                 # When tests create records, sequences must be ahead of existing data
                 # This ensures auto-increment IDs don't conflict with seeded data
                 # Sequences don't rollback with SAVEPOINTs, so we sync at test start
+                # NOTE: These queries run AFTER SAVEPOINT to ensure they're within transaction isolation
+                # However, sequence changes persist even after rollback, which is intentional
                 try:
                     # Sync sequences for tables commonly used in tests
                     # This prevents "duplicate key" errors when test data IDs conflict with seeded data
+                    # Only sync sequences for tables that still have data to avoid resetting empty tables
                     sequence_sync_queries = [
-                        "SELECT setval('physical_education_classes_id_seq', COALESCE((SELECT MAX(id) FROM physical_education_classes), 1), true)",
-                        "SELECT setval('students_id_seq', COALESCE((SELECT MAX(id) FROM students), 1), true)",
+                        # Only sync activities and activity_categories - these tables still have data
+                        # DO NOT sync students or physical_education_classes - these are empty and syncing resets them
                         "SELECT setval('activities_id_seq', COALESCE((SELECT MAX(id) FROM activities), 1), true)",
                         "SELECT setval('activity_categories_id_seq', COALESCE((SELECT MAX(id) FROM activity_categories), 1), true)",
                     ]
                     for sync_query in sequence_sync_queries:
                         try:
                             connection.execute(text(sync_query))
+                            connection.commit()  # CRITICAL: Explicitly commit sequence sync to ensure it persists
                         except Exception:
                             # Table or sequence might not exist, skip it
                             pass
                 except Exception:
                     # If sequence syncing fails, continue anyway - better to have test fail than suite hang
                     pass
-                
-                session.execute(text("SAVEPOINT test"))
-                savepoint_created = True
             
             # Test the connection by executing a simple query
             try:
@@ -278,14 +301,45 @@ def db_session(engine, tables, test_schema):
             original_refresh = session.refresh
             
             def safe_commit():
-                """Commit that uses flush() if in nested transaction (SAVEPOINT)."""
-                # Always check both in_nested_transaction and TEST_MODE for reliability
-                in_nested = hasattr(session, 'in_nested_transaction') and session.in_nested_transaction()
+                """Commit that uses flush() in test mode to prevent data loss.
+                
+                CRITICAL: In test mode, we're always in a transaction that will be rolled back.
+                Using flush() ensures changes are visible within the transaction but won't persist.
+                Never call original_commit() in test mode - it would commit the outer transaction
+                and cause data loss when tests run against the real database.
+                
+                CRITICAL FIX: We use raw SQL SAVEPOINT, which SQLAlchemy's in_nested_transaction()
+                might not detect. So we ALWAYS use flush() when TEST_MODE is set, regardless of
+                in_nested_transaction() check. This ensures fixtures calling commit() don't
+                accidentally commit the outer transaction and cause data loss.
+                """
+                # CRITICAL FIX: Always use flush() in test mode, never commit
+                # This prevents any test from accidentally committing the outer transaction
+                # which would cause data loss in the real database
                 is_test = os.getenv("TEST_MODE") == "true"
-                if in_nested or is_test:
+                in_nested = hasattr(session, 'in_nested_transaction') and session.in_nested_transaction()
+                
+                # CRITICAL: We use raw SQL SAVEPOINT, so in_nested_transaction() might return False
+                # But we KNOW we're in a test transaction, so ALWAYS use flush() if TEST_MODE is set
+                # This prevents fixtures from committing the outer transaction
+                if is_test:
+                    # ALWAYS use flush() in test mode - we're in a SAVEPOINT transaction
+                    # that will be rolled back, so flush() is safe and prevents data loss
+                    session.flush()
+                elif in_nested:
+                    # Also use flush() if SQLAlchemy detects a nested transaction
                     session.flush()
                 else:
-                    original_commit()
+                    # Only commit if we're NOT in test mode and NOT in nested transaction
+                    # This should never happen in tests, but keep for safety
+                    import logging
+                    import traceback
+                    logger = logging.getLogger(__name__)
+                    logger.error("⚠️  WARNING: commit() called outside test mode or nested transaction!")
+                    logger.error(f"   TEST_MODE={is_test}, in_nested={in_nested}")
+                    logger.error(f"   Stack trace:\n{''.join(traceback.format_stack()[-5:-1])}")
+                    # Even in this case, use flush() to be safe
+                    session.flush()
             
             def safe_refresh(instance):
                 """Refresh that is a no-op in test mode to prevent hangs."""
@@ -314,45 +368,90 @@ def db_session(engine, tables, test_schema):
                 # This ensures the next test starts with a clean thread-local state
                 clear_test_session()
                 
-                # BEST PRACTICE: Explicitly rollback to SAVEPOINT before outer transaction rollback
+                # BEST PRACTICE: Explicitly rollback to SAVEPOINT to discard test changes
                 # This ensures test data is properly isolated and doesn't leak between tests
-                # FIX: This prevents "duplicate key" errors when tests run in full suite
-                # CRITICAL: Must rollback to SAVEPOINT BEFORE session.rollback() to ensure proper isolation
+                # CRITICAL FIX: We removed the outer transaction (connection.begin()) to prevent
+                # accidental rollback of committed data. Now we only rollback the SAVEPOINT.
                 if is_postgres and savepoint_created:
                     try:
-                        # Check if transaction is still active before attempting rollback
-                        if connection.in_transaction():
-                            # Explicitly rollback to the SAVEPOINT we created
-                            # This ensures all test changes are discarded and IDs don't conflict
-                            # Do this BEFORE session.rollback() to ensure proper nested transaction handling
-                            session.execute(text("ROLLBACK TO SAVEPOINT test"))
+                        # Explicitly rollback to the SAVEPOINT we created
+                        # This ensures all test changes are discarded and IDs don't conflict
+                        session.execute(text("ROLLBACK TO SAVEPOINT test"))
                     except Exception as rollback_err:
                         # If SAVEPOINT doesn't exist, transaction is aborted, or already rolled back, that's okay
                         # This can happen if:
                         # 1. The transaction was already aborted due to an error
                         # 2. The SAVEPOINT was already released
                         # 3. The connection is closed
-                        # Continue with cleanup - the outer transaction rollback will handle it
                         pass
                 
-                # Close session before outer transaction rollback
-                # session.rollback() may conflict with explicit SAVEPOINT rollback, so skip it if we did ROLLBACK TO SAVEPOINT
+                # CRITICAL: After SAVEPOINT rollback, SQLAlchemy doesn't automatically clear the identity map
+                # Objects remain in memory with stale values, which can cause tests to find stale data
+                # We must explicitly expunge all objects from the identity map to prevent state pollution
                 try:
-                    if not (is_postgres and savepoint_created):
-                        # Only do session.rollback() if we didn't do explicit SAVEPOINT rollback
-                        session.rollback()
-                except Exception:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    
+                    # Get all objects in the identity map before expunging
+                    identity_map_size = len(session.identity_map)
+                    if identity_map_size > 0:
+                        logger.debug(f"db_session teardown: Expunging {identity_map_size} objects from identity map after SAVEPOINT rollback")
+                        
+                        # Expunge all objects from the identity map
+                        # This prevents stale objects from being found by subsequent tests
+                        for obj in list(session.identity_map.values()):
+                            try:
+                                session.expunge(obj)
+                            except Exception:
+                                # Object might already be expunged or invalid, continue
+                                pass
+                        
+                        # Also clear new, dirty, and deleted collections
+                        session.expunge_all()
+                        
+                        logger.debug(f"db_session teardown: Identity map cleared, {len(session.identity_map)} objects remaining")
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.debug(f"Error expunging identity map during teardown: {e}")
                     pass
-                finally:
-                    session.close()
                 
-                # Rollback outer transaction
+                # CRITICAL FIX: Explicitly rollback the session's transaction BEFORE closing
+                # This ensures the session's transaction is rolled back, but won't affect committed data
+                # We must rollback the session's transaction explicitly to prevent SQLAlchemy from
+                # trying to rollback when we close the connection, which might affect committed data
                 try:
-                    trans.rollback()
-                except Exception:
+                    # Rollback the session's transaction explicitly
+                    # This ensures test data is discarded without affecting committed data
+                    if session.in_transaction():
+                        session.rollback()
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error rolling back session transaction: {e}")
                     pass
-                finally:
+                
+                # CRITICAL FIX: Close session first, then connection
+                # After explicit rollback, closing the session is safe
+                try:
+                    session.close()
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error closing session: {e}")
+                    pass
+                
+                # Close the connection
+                # CRITICAL: Since we removed connection.begin(), there's no connection-level transaction
+                # All queries executed on connection.execute() were explicitly committed (SET statements, sequence sync)
+                # The session's transaction was explicitly rolled back above, so closing connection is safe
+                try:
                     connection.close()
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Error closing connection: {e}")
+                    pass
             break  # Success, exit retry loop
             
         except (OperationalError, Exception) as e:
@@ -370,7 +469,7 @@ def sample_data(db_session):
     pass
 
 @pytest.fixture(autouse=True, scope="function")
-def ensure_global_app_state_clean():
+def ensure_global_app_state_clean(db_session):
     """
     CRITICAL: Comprehensive state pollution cleanup before and after EVERY test.
     
@@ -387,6 +486,10 @@ def ensure_global_app_state_clean():
     7. Async event loops and pending tasks
     
     This fixture ensures ALL sources are cleaned between tests.
+    
+    CRITICAL FIX: This fixture now depends on db_session to ensure the test session
+    is set BEFORE we clear it. This ensures db_session runs first and sets the test
+    session, then we can clear it at the end of the test.
     """
     # Import app here to avoid circular imports
     from app.main import app
@@ -398,11 +501,20 @@ def ensure_global_app_state_clean():
         app.state.limiter = Limiter(key_func=get_remote_address)
     
     # 1. Clear FastAPI dependency overrides
+    # CRITICAL: The client fixture depends on this fixture, so it runs AFTER this fixture.
+    # This means at the START of the test, we should clear ALL overrides (including get_db)
+    # to ensure no stale overrides from previous tests persist.
+    # The client fixture will then set a fresh override with the current test's session.
+    # DO NOT restore get_db override here - let the client fixture set it fresh.
+    from app.core.database import get_db
+    # Clear ALL overrides, including get_db - the client fixture will set it fresh
     app.dependency_overrides.clear()
     
-    # 2. Clear context variables (database sessions)
-    from app.core.database import clear_test_session
-    clear_test_session()
+    # 2. CRITICAL: Do NOT clear context variables here - db_session fixture sets it
+    # We'll clear it at the end of the test instead
+    # The db_session fixture depends on this fixture, so it will run AFTER this fixture
+    # But we want db_session to run FIRST to set the test session, so we make this
+    # fixture depend on db_session instead
     
     # 3. PRODUCTION-READY: Clean up any pending async tasks
     # This prevents async tasks from previous tests from interfering with new tests
@@ -475,7 +587,12 @@ def ensure_global_app_state_clean():
     yield
     
     # 5. Cleanup AFTER test - clear everything again
+    # CRITICAL: Clear ALL overrides, including get_db.
+    # The client fixture's teardown also clears it, but we clear it here too to ensure
+    # no stale overrides persist to the next test.
+    # The next test's client fixture will set a fresh override with the correct session.
     app.dependency_overrides.clear()
+    from app.core.database import clear_test_session
     clear_test_session()
     
     # 6. PRODUCTION-READY: Clean up any pending async tasks after test

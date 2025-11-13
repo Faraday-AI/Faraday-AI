@@ -41,12 +41,13 @@ class MSGraphService:
             redirect_uri=self.settings.REDIRECT_URI
         )
 
-    async def get_token(self, auth_code: str) -> Dict[str, Any]:
+    def get_token(self, auth_code: str) -> Dict[str, Any]:
         """Get access token from authorization code."""
         if not self.client:
             return {"status": "error", "error": "Microsoft Graph Service not properly initialized"}
         try:
-            result = await self.client.acquire_token_by_authorization_code(
+            # MSAL acquire_token_by_authorization_code is synchronous
+            result = self.client.acquire_token_by_authorization_code(
                 code=auth_code,
                 scopes=self.scope,
                 redirect_uri=self.settings.REDIRECT_URI
@@ -58,10 +59,11 @@ class MSGraphService:
             logger.error(f"Error getting token: {str(e)}")
             return {"status": "error", "error": str(e)}
 
-    async def get_user_info(self, token: str) -> Dict[str, Any]:
+    def get_user_info(self, token: str) -> Dict[str, Any]:
         """Get user information from Microsoft Graph."""
         try:
             headers = {"Authorization": f"Bearer {token}"}
+            # requests.get is synchronous, but we can make it async-compatible by running in executor if needed
             response = requests.get(
                 "https://graph.microsoft.com/v1.0/me",
                 headers=headers
@@ -70,6 +72,23 @@ class MSGraphService:
             return {"status": "success", "data": response.json()}
         except requests.exceptions.RequestException as e:
             logger.error(f"Error getting user info: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    def refresh_token(self, refresh_token: str) -> Dict[str, Any]:
+        """Refresh Microsoft access token using refresh token."""
+        if not self.client:
+            return {"status": "error", "error": "Microsoft Graph Service not properly initialized"}
+        try:
+            # MSAL acquire_token_by_refresh_token is synchronous
+            result = self.client.acquire_token_by_refresh_token(
+                refresh_token=refresh_token,
+                scopes=self.scope
+            )
+            if "access_token" in result:
+                return {"status": "success", "token": result}
+            return {"status": "error", "error": result.get("error_description", "Unknown error")}
+        except Exception as e:
+            logger.error(f"Error refreshing token: {str(e)}")
             return {"status": "error", "error": str(e)}
 
 @lru_cache()

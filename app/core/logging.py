@@ -107,16 +107,21 @@ def setup_logging():
     root_logger = logging.getLogger()
     root_logger.setLevel(settings.LOG_LEVEL)
     
-    # Remove existing handlers
-    for handler in root_logger.handlers[:]:
-        root_logger.removeHandler(handler)
+    # CRITICAL: Only remove handlers if we're not in test mode
+    # In test mode, pytest manages logging and removing handlers can suppress logs
+    is_test_mode = os.getenv("TEST_MODE") == "true"
+    if not is_test_mode:
+        # Remove existing handlers
+        for handler in root_logger.handlers[:]:
+            root_logger.removeHandler(handler)
     
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(settings.LOG_LEVEL)
-    console_formatter = logging.Formatter(settings.LOG_FORMAT)
-    console_handler.setFormatter(console_formatter)
-    root_logger.addHandler(console_handler)
+    # Console handler - always add in non-test mode, or if no handlers exist in test mode
+    if not is_test_mode or len(root_logger.handlers) == 0:
+        console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(settings.LOG_LEVEL)
+        console_formatter = logging.Formatter(settings.LOG_FORMAT)
+        console_handler.setFormatter(console_formatter)
+        root_logger.addHandler(console_handler)
     
     # File handler with rotation
     file_handler = logging.handlers.RotatingFileHandler(

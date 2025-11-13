@@ -46,11 +46,10 @@ def generate_models():
         inspector = inspect(engine)
         existing_tables = inspector.get_table_names()
         
-        # Drop activity_category_associations table if it exists
-        if "activity_category_associations" in existing_tables:
-            print("Dropping activity_category_associations table...")
-            SharedBase.metadata.tables["activity_category_associations"].drop(bind=engine)
-            existing_tables.remove("activity_category_associations")
+        # CRITICAL FIX: Do NOT drop activity_category_associations table
+        # This table is seeded by the main seed script and should persist across container restarts
+        # Dropping it causes data loss when the container restarts
+        # The table will be created if it doesn't exist, but we won't drop existing data
         
         # First, create any missing dependency tables
         dependency_tables = ["subject_categories", "assistant_profiles"]

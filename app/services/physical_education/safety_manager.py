@@ -90,8 +90,79 @@ class SafetyManager:
     def load_safety_data(self):
         """Load safety data from persistent storage."""
         try:
-            # TODO: Implement data loading from persistent storage
-            self.logger.info("Safety data loaded successfully")
+            from sqlalchemy import text
+            from app.models.physical_education.safety.models import (
+                SafetyProtocol, EmergencyProcedure, RiskAssessment, SafetyIncident
+            )
+            
+            # Add timeout to prevent hangs
+            try:
+                self.db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            
+            # Load safety protocols
+            protocols = self.db.query(SafetyProtocol).limit(100).all()
+            for protocol in protocols:
+                protocol_id = str(protocol.id)
+                self.safety_protocols["protocols"][protocol_id] = {
+                    "id": protocol_id,
+                    "name": protocol.name,
+                    "description": protocol.description,
+                    "protocol_type": protocol.protocol_type.value if hasattr(protocol.protocol_type, 'value') else str(protocol.protocol_type),
+                    "is_active": protocol.is_active
+                }
+            
+            # Load emergency procedures
+            procedures = self.db.query(EmergencyProcedure).filter(
+                EmergencyProcedure.is_active == True
+            ).limit(50).all()
+            for procedure in procedures:
+                procedure_id = str(procedure.id)
+                self.emergency_procedures[procedure_id] = {
+                    "id": procedure_id,
+                    "name": procedure.name,
+                    "description": procedure.description,
+                    "procedure_type": procedure.procedure_type.value if hasattr(procedure.procedure_type, 'value') else str(procedure.procedure_type),
+                    "steps": procedure.steps if isinstance(procedure.steps, list) else []
+                }
+            
+            # Load recent risk assessments (last 30 days)
+            from datetime import timedelta
+            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            assessments = self.db.query(RiskAssessment).filter(
+                RiskAssessment.assessment_date >= thirty_days_ago
+            ).limit(100).all()
+            
+            for assessment in assessments:
+                activity_id = str(assessment.activity_id)
+                if activity_id not in self.risk_assessments:
+                    self.risk_assessments[activity_id] = []
+                self.risk_assessments[activity_id].append({
+                    "id": assessment.id,
+                    "risk_level": assessment.risk_level,
+                    "assessment_date": assessment.assessment_date.isoformat() if assessment.assessment_date else None,
+                    "activity_risks": assessment.activity_risks if isinstance(assessment.activity_risks, list) else []
+                })
+            
+            # Load recent safety incidents (last 30 days)
+            incidents = self.db.query(SafetyIncident).filter(
+                SafetyIncident.incident_date >= thirty_days_ago
+            ).limit(100).all()
+            
+            for incident in incidents:
+                activity_id = str(incident.activity_id)
+                if activity_id not in self.incidents:
+                    self.incidents[activity_id] = []
+                self.incidents[activity_id].append({
+                    "id": incident.id,
+                    "incident_type": incident.incident_type.value if hasattr(incident.incident_type, 'value') else str(incident.incident_type),
+                    "severity": incident.severity.value if hasattr(incident.severity, 'value') else str(incident.severity),
+                    "description": incident.description,
+                    "incident_date": incident.incident_date.isoformat() if incident.incident_date else None
+                })
+            
+            self.logger.info(f"Loaded {len(protocols)} protocols, {len(procedures)} procedures, {len(assessments)} assessments, {len(incidents)} incidents from database")
         except Exception as e:
             self.logger.error(f"Error loading safety data: {str(e)}")
             raise
@@ -449,9 +520,18 @@ class SafetyManager:
             return {}
 
     def get_current_environmental_conditions(self, environment: str) -> Dict[str, Any]:
-        """Get current environmental conditions."""
+        """Get current environmental conditions.
+        
+        Note: Currently returns mock data. For production, integrate with:
+        - IoT sensor APIs (temperature, humidity, air quality)
+        - Environmental monitoring systems
+        - Facility management APIs
+        
+        The method signature is ready for external API integration.
+        """
         try:
-            # TODO: Replace with actual sensor data or API calls
+            # TODO: Replace with actual sensor data or API calls when sensor infrastructure is available
+            # Example integration: sensor_api.get_current_readings(environment)
             return {
                 "temperature": 22,  # Celsius
                 "humidity": 50,  # Percentage

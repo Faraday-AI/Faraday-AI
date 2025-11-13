@@ -355,8 +355,78 @@ class RecommendationEngine:
 
     def _calculate_performance_score(self, activity: Activity, student: Student) -> float:
         """Calculate score based on student's recent performance in similar activities."""
-        # TODO: Implement performance-based scoring
-        return 0.5
+        try:
+            from sqlalchemy import text
+            from datetime import datetime, timedelta
+            
+            # Set timeout for query
+            try:
+                self.db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            
+            # Get student's recent performance in similar activities (last 30 days)
+            thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+            
+            # Query for similar activities (same type or category)
+            activity_type = activity.activity_type if hasattr(activity, 'activity_type') else None
+            
+            # Get performance records for this student in similar activities
+            if activity_type:
+                # Query StudentActivityPerformance for recent similar activities
+                performance_query = text("""
+                    SELECT AVG(score) as avg_score, COUNT(*) as activity_count
+                    FROM student_activity_performance
+                    WHERE student_id = :student_id
+                    AND activity_id IN (
+                        SELECT id FROM activities 
+                        WHERE activity_type = :activity_type
+                        LIMIT 10
+                    )
+                    AND created_at >= :start_date
+                """)
+                
+                result = self.db.execute(
+                    performance_query,
+                    {
+                        "student_id": student.id,
+                        "activity_type": activity_type.value if hasattr(activity_type, 'value') else str(activity_type),
+                        "start_date": thirty_days_ago
+                    }
+                ).fetchone()
+                
+                if result and result[0] is not None and result[1] > 0:
+                    avg_score = float(result[0])
+                    activity_count = int(result[1])
+                    
+                    # Normalize score (assuming scores are 0-100, convert to 0-1)
+                    normalized_score = min(1.0, max(0.0, avg_score / 100.0))
+                    
+                    # Weight by number of activities (more data = more confidence)
+                    confidence = min(1.0, activity_count / 5.0)  # Full confidence at 5+ activities
+                    
+                    # Combine normalized score with confidence
+                    performance_score = normalized_score * confidence + 0.3 * (1 - confidence)  # Default to 0.3 if low confidence
+                    
+                    return performance_score
+            
+            # Fallback: check if student has any performance history
+            any_performance = self.db.execute(
+                text("SELECT COUNT(*) FROM student_activity_performance WHERE student_id = :student_id"),
+                {"student_id": student.id}
+            ).scalar()
+            
+            if any_performance and any_performance > 0:
+                # Student has some history, return moderate score
+                return 0.5
+            else:
+                # No history, return neutral score
+                return 0.5
+                
+        except Exception as e:
+            self.logger.error(f"Error calculating performance score: {str(e)}")
+            # Return neutral score on error
+            return 0.5
 
     def _get_top_recommendations(
         self,

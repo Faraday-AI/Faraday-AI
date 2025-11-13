@@ -127,16 +127,16 @@ class Settings(BaseSettings):
     API_VERSION: str = os.getenv("API_VERSION", "1.0")
     
     # Security Settings
-    SECRET_KEY: str = Field(default="development_secret_key_replace_in_production")
+    SECRET_KEY: str = os.getenv("SECRET_KEY") or os.getenv("JWT_SECRET_KEY", "development_secret_key_replace_in_production")
     ALGORITHM: str = "HS256"
     ALLOWED_DOMAINS: List[str] = Field(default_factory=lambda: os.getenv("ALLOWED_DOMAINS", "[]").strip('[]').split(','))
     REQUIRE_DISTRICT_EMAIL: bool = Field(default=True)
     
     # Microsoft Graph Settings
-    CLIENT_ID: str = Field(alias="MSCLIENTID", default="development")
-    CLIENT_SECRET: str = Field(alias="MSCLIENTSECRET", default="development")
-    TENANT_ID: str = Field(alias="MSTENANTID", default="development")
-    REDIRECT_URI: str = Field(default="http://localhost:8000/auth/callback")
+    CLIENT_ID: str = os.getenv("MSCLIENTID", "")
+    CLIENT_SECRET: str = os.getenv("MSCLIENTSECRET", "")
+    TENANT_ID: str = os.getenv("MSTENANTID", "")
+    REDIRECT_URI: str = os.getenv("REDIRECT_URI", "http://localhost:8000/auth/callback")
     SCOPE: str = "User.Read Mail.Read Files.ReadWrite.All"
 
     # ML Model Settings

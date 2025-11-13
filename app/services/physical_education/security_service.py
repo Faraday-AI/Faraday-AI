@@ -285,32 +285,141 @@ class SecurityService:
         db: Session = Depends(get_db)
     ) -> bool:
         """Validate user access level."""
-        if required_level not in self.access_levels:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Invalid access level: {required_level}"
-            )
-        
-        # TODO: Implement actual user level check from database
-        return True
+        try:
+            from sqlalchemy import text
+            from app.models.core.user import User
+            
+            if required_level not in self.access_levels:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid access level: {required_level}"
+                )
+            
+            # Convert user_id to int if needed
+            user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+            
+            # Add timeout to prevent hangs
+            try:
+                db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            
+            # Query user from database
+            user = db.query(User).filter(User.id == user_id_int).first()
+            if not user:
+                self.logger.warning(f"User {user_id_int} not found")
+                return False
+            
+            # Check if user is active
+            if not user.is_active:
+                self.logger.warning(f"User {user_id_int} is not active")
+                return False
+            
+            # Check user role from database
+            user_role = (user.role or "").lower()
+            required_level_lower = required_level.lower()
+            
+            # Map role values to access levels
+            role_mapping = {
+                "student": "student",
+                "teacher": "teacher",
+                "admin": "admin",
+                "super_admin": "admin",
+                "health_staff": "health_staff",
+                "staff": "teacher"
+            }
+            
+            mapped_role = role_mapping.get(user_role, user_role)
+            
+            # Admin has access to everything
+            if mapped_role == "admin":
+                return True
+            
+            # Check if user role matches required level
+            if mapped_role == required_level_lower:
+                return True
+            
+            # Check hierarchy: teacher can access student level, admin can access all
+            if required_level_lower == "student" and mapped_role == "teacher":
+                return True
+            
+            return False
+        except HTTPException:
+            raise
+        except Exception as e:
+            self.logger.error(f"Error validating access: {str(e)}")
+            return False
 
     async def log_security_event(
         self,
         event_type: str,
         user_id: str,
         details: Dict[str, Any],
-        db: Session = Depends(get_db)
+        db: Session = Depends(get_db),
+        ip_address: Optional[str] = None,
+        severity: str = "info",
+        resource_type: Optional[str] = None,
+        resource_id: Optional[str] = None,
+        action: Optional[str] = None,
+        success: str = "unknown"
     ) -> Dict[str, Any]:
-        """Log a security event."""
-        event = {
-            "event_type": event_type,
-            "user_id": user_id,
-            "timestamp": datetime.utcnow().isoformat(),
-            "details": details
-        }
-        
-        # TODO: Implement actual logging to database
-        return event
+        """Log a security event to database."""
+        try:
+            from sqlalchemy import text
+            from app.models.security.event.security_event import SecurityEvent
+            
+            # Convert user_id to int if needed
+            user_id_int = None
+            if user_id and user_id != "system":
+                try:
+                    user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+                except (ValueError, TypeError):
+                    user_id_int = None
+            
+            # Add timeout to prevent hangs
+            try:
+                db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            
+            # Create security event record
+            security_event = SecurityEvent(
+                event_type=event_type,
+                user_id=user_id_int,
+                ip_address=ip_address,
+                details=details,
+                description=details.get("description", f"Security event: {event_type}"),
+                severity=severity,
+                resource_type=resource_type,
+                resource_id=str(resource_id) if resource_id else None,
+                action=action,
+                success=success
+            )
+            
+            db.add(security_event)
+            db.flush()  # Use flush() in test mode, commit() in production
+            
+            # Return event dict for compatibility
+            event = {
+                "id": security_event.id,
+                "event_type": event_type,
+                "user_id": user_id,
+                "timestamp": security_event.created_at.isoformat() if security_event.created_at else datetime.utcnow().isoformat(),
+                "details": details,
+                "severity": severity
+            }
+            
+            return event
+        except Exception as e:
+            self.logger.error(f"Error logging security event to database: {str(e)}")
+            # Return basic event dict even if database logging fails
+            return {
+                "event_type": event_type,
+                "user_id": user_id,
+                "timestamp": datetime.utcnow().isoformat(),
+                "details": details,
+                "error": str(e)
+            }
 
     async def validate_request(
         self,

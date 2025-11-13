@@ -57,4 +57,8 @@ def seed_activity_category_associations(session: Session) -> None:
                     session.add(assoc)
     
     session.flush()
+    # CRITICAL: Use commit() instead of flush() to ensure data persists across container restarts
+    # flush() only makes data visible within the current transaction, but doesn't persist it
+    # commit() actually writes the data to the database, making it permanent
+    session.commit()
     print("Activity category associations seeded successfully!") 

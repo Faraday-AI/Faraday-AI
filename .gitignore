@@ -177,6 +177,11 @@ test_*
 temp/
 tmp/
 
+# Utility scripts that may contain sensitive information
+check_tokens.py
+*_tokens.py
+*_secrets.py
+
 # Log files
 *.log
 logs/

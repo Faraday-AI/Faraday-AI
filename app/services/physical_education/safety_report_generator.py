@@ -237,9 +237,9 @@ class SafetyReportGenerator:
                 incident_stats, risk_stats, equipment_stats
             )
             
-            # Generate visualizations
+            # Generate visualizations (pass statistical_analysis for advanced visualizations)
             visualizations = await self._generate_visualizations(
-                incident_stats, risk_stats, equipment_stats
+                incident_stats, risk_stats, equipment_stats, statistical_analysis
             )
             
             # Generate recommendations
@@ -440,7 +440,8 @@ class SafetyReportGenerator:
         self,
         incident_stats: Dict[str, Any],
         risk_stats: Dict[str, Any],
-        equipment_stats: Dict[str, Any]
+        equipment_stats: Dict[str, Any],
+        statistical_analysis: Optional[Dict[str, Any]] = None
     ) -> Dict[str, str]:
         """Generate visualizations for the report."""
         visualizations = {}
@@ -649,17 +650,77 @@ class SafetyReportGenerator:
             visualizations["risk_impact"] = base64.b64encode(buf.getvalue()).decode('utf-8')
             plt.close()
         
-        # Time series decomposition plot - skip if statistical analysis not available
-        # Note: statistical_analysis is not available in this method scope
-        # This visualization would require statistical_analysis to be passed as a parameter
-        # For now, skip to avoid AttributeError
-        # TODO: Pass statistical_analysis as parameter to _generate_visualizations if needed
+        # Time series decomposition plot - now available via parameter
+        if statistical_analysis and "seasonal_decomposition" in statistical_analysis:
+            try:
+                decomposition = statistical_analysis["seasonal_decomposition"]
+                plt.figure(figsize=(12, 8))
+                
+                # Plot original, trend, seasonal, and residual
+                dates = sorted(incident_stats.get("trends", {}).keys()) if "trends" in incident_stats else []
+                if dates and len(decomposition.get("trend", [])) > 0:
+                    plt.subplot(4, 1, 1)
+                    plt.plot(dates, [incident_stats["trends"][d] for d in dates], label="Original")
+                    plt.title("Time Series Decomposition")
+                    plt.legend()
+                    
+                    plt.subplot(4, 1, 2)
+                    plt.plot(dates[:len(decomposition["trend"])], decomposition["trend"], label="Trend")
+                    plt.legend()
+                    
+                    plt.subplot(4, 1, 3)
+                    plt.plot(dates[:len(decomposition["seasonal"])], decomposition["seasonal"], label="Seasonal")
+                    plt.legend()
+                    
+                    plt.subplot(4, 1, 4)
+                    plt.plot(dates[:len(decomposition["residual"])], decomposition["residual"], label="Residual")
+                    plt.legend()
+                    
+                    plt.tight_layout()
+                    buf = BytesIO()
+                    plt.savefig(buf, format='png')
+                    buf.seek(0)
+                    visualizations["time_series_decomposition"] = base64.b64encode(buf.getvalue()).decode('utf-8')
+                    plt.close()
+            except Exception as e:
+                self.logger.warning(f"Time series decomposition visualization failed: {str(e)}")
+                plt.close()
         
-        # Cluster visualization - skip if statistical analysis not available
-        # Note: statistical_analysis is not available in this method scope
-        # This visualization would require statistical_analysis to be passed as a parameter
-        # For now, skip to avoid AttributeError
-        # TODO: Pass statistical_analysis as parameter to _generate_visualizations if needed
+        # Cluster visualization - now available via parameter
+        if statistical_analysis and "incident_clusters" in statistical_analysis:
+            try:
+                clusters = statistical_analysis["incident_clusters"]
+                if "cluster_centers" in clusters and "labels" in clusters:
+                    plt.figure(figsize=(10, 6))
+                    
+                    # Plot cluster centers
+                    centers = np.array(clusters["cluster_centers"])
+                    labels = clusters["labels"]
+                    
+                    if len(centers) > 0 and centers.shape[1] >= 2:
+                        # Plot clusters
+                        for i, center in enumerate(centers):
+                            cluster_points = [j for j, label in enumerate(labels) if label == i]
+                            if cluster_points:
+                                plt.scatter(
+                                    [centers[i, 0]] * len(cluster_points),
+                                    [centers[i, 1]] * len(cluster_points),
+                                    label=f"Cluster {i}",
+                                    alpha=0.6
+                                )
+                        
+                        plt.title("Incident Clustering Analysis")
+                        plt.xlabel("Feature 1")
+                        plt.ylabel("Feature 2")
+                        plt.legend()
+                        buf = BytesIO()
+                        plt.savefig(buf, format='png')
+                        buf.seek(0)
+                        visualizations["incident_clusters"] = base64.b64encode(buf.getvalue()).decode('utf-8')
+                        plt.close()
+            except Exception as e:
+                self.logger.warning(f"Cluster visualization failed: {str(e)}")
+                plt.close()
         
         return visualizations
 

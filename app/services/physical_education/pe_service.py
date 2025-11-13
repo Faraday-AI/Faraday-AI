@@ -208,15 +208,50 @@ class PEService(BaseService):
     
     async def get_lesson_plans_count(self) -> int:
         """Get the total number of lesson plans generated."""
-        # For now, return a placeholder value
-        # TODO: Implement actual lesson plan counting logic
-        return 0
+        try:
+            from sqlalchemy import func, text
+            from app.models.lesson_plan.models import LessonPlan
+            
+            # Add timeout to prevent hangs
+            try:
+                self.db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            
+            # Count all lesson plans
+            count = self.db.query(func.count(LessonPlan.id)).scalar() or 0
+            return count
+        except Exception as e:
+            self.logger.error(f"Error counting lesson plans: {str(e)}")
+            return 0
     
     async def get_active_students_count(self) -> int:
         """Get the number of active students using the service."""
-        # For now, return a placeholder value
-        # TODO: Implement actual student counting logic
-        return 0
+        try:
+            from sqlalchemy import func, text
+            from app.models.physical_education.student.models import Student
+            from app.models.physical_education.class_.models import ClassStudent, ClassStatus
+            
+            # Add timeout to prevent hangs
+            try:
+                self.db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            except:
+                pass
+            
+            # Count students with active class enrollments
+            # A student is considered active if they have at least one active enrollment
+            count = self.db.query(func.count(func.distinct(ClassStudent.student_id))).filter(
+                ClassStudent.status == ClassStatus.ACTIVE
+            ).scalar() or 0
+            
+            # If no enrollments, fall back to counting all students
+            if count == 0:
+                count = self.db.query(func.count(Student.id)).scalar() or 0
+            
+            return count
+        except Exception as e:
+            self.logger.error(f"Error counting active students: {str(e)}")
+            return 0
     
     # Helper methods
     async def generate_activities(self, grade_level: str, focus_areas: List[str]) -> List[Dict[str, Any]]:

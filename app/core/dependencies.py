@@ -19,7 +19,7 @@ from redis import Redis
 from prometheus_client import Counter, Histogram
 
 from app.core.config import settings
-from app.core.database import get_db, get_async_db
+from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash
 from app.core.cache import get_cache, Cache
 from app.core.monitoring import (
@@ -44,8 +44,10 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login
 # Logger
 logger = logging.getLogger(__name__)
 
-async def get_current_user(
-    db: AsyncSession = Depends(get_async_db),
+# Note: get_current_user is defined in app.core.auth
+# This async version is not currently used but kept for potential future use
+async def get_current_user_async(
+    db: AsyncSession = None,  # Will need get_async_db when implemented
     token: str = Depends(oauth2_scheme)
 ) -> User:
     """Get current user from token."""
@@ -72,8 +74,8 @@ async def get_current_user(
         )
     return user
 
-async def get_current_active_user(
-    current_user: User = Depends(get_current_user),
+async def get_current_active_user_async(
+    current_user: User = Depends(get_current_user_async),
 ) -> User:
     """Get current active user."""
     if not current_user.is_active:
@@ -83,8 +85,8 @@ async def get_current_active_user(
         )
     return current_user
 
-async def get_current_active_superuser(
-    current_user: User = Depends(get_current_user),
+async def get_current_active_superuser_async(
+    current_user: User = Depends(get_current_user_async),
 ) -> User:
     """Get current active superuser."""
     if not current_user.is_superuser:
@@ -102,13 +104,17 @@ def get_db_session() -> Generator[Session, None, None]:
     finally:
         db.close()
 
+# Note: get_async_db is not yet implemented in database.py
+# This function is kept for potential future use
 async def get_async_db_session() -> AsyncGenerator[AsyncSession, None]:
     """Get async database session."""
-    async with get_async_db() as db:
-        try:
-            yield db
-        finally:
-            await db.close()
+    # TODO: Implement get_async_db in app.core.database
+    raise NotImplementedError("Async database sessions are not yet implemented")
+    # async with get_async_db() as db:
+    #     try:
+    #         yield db
+    #     finally:
+    #         await db.close()
 
 def get_repository(
     model: Type[ModelType],

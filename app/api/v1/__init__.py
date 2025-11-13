@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 from .endpoints import activity_router, ai_analysis_router, lesson_plans_router, pe_router, user_profile_router, user_preferences_router, role_management_router, permission_management_router, organization_management_router, team_management_router, user_analytics_router, beta_testing_router
 from .endpoints import resource_management, beta_teacher_dashboard, beta_safety, beta_assessment, beta_security, beta_resource_management, dashboard_resource_management, dashboard_context_analytics, beta_context_analytics, dashboard_preferences, beta_dashboard_preferences
+from .endpoints import microsoft_auth, beta_microsoft_auth, microsoft_calendar, beta_microsoft_calendar, microsoft_health
 from .middleware import auth, rate_limit
 
 # Create main router
@@ -30,6 +31,19 @@ router.include_router(dashboard_context_analytics.router, prefix="/api/v1")
 router.include_router(beta_context_analytics.router, prefix="/api/v1")
 router.include_router(dashboard_preferences.router, prefix="/api/v1")
 router.include_router(beta_dashboard_preferences.router, prefix="/api/v1")
+# Microsoft integration routers
+# CRITICAL: Log router inclusion to verify it happens
+import sys
+print(f"app/api/v1/__init__.py: Including microsoft_auth router with prefix=/api/v1", file=sys.stderr, flush=True)
+import logging
+logger = logging.getLogger(__name__)
+logger.info(f"Including microsoft_auth router with prefix=/api/v1")
+router.include_router(microsoft_auth.router, prefix="/api/v1", tags=["microsoft-authentication"])
+print(f"app/api/v1/__init__.py: microsoft_auth router included, routes: {[r.path for r in microsoft_auth.router.routes]}", file=sys.stderr, flush=True)
+router.include_router(beta_microsoft_auth.router, prefix="/api/v1", tags=["beta-microsoft-authentication"])
+router.include_router(microsoft_calendar.router, prefix="/api/v1", tags=["microsoft-calendar"])
+router.include_router(beta_microsoft_calendar.router, prefix="/api/v1", tags=["beta-microsoft-calendar"])
+router.include_router(microsoft_health.router, prefix="/api/v1", tags=["microsoft-health"])
 
 # Export middleware functions for use in main FastAPI app
 authentication_middleware = auth.add_authentication

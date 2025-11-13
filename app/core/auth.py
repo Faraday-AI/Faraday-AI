@@ -1,5 +1,5 @@
 import os
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
@@ -12,7 +12,7 @@ from app.core.database import get_db
 class TestOAuth2PasswordBearer(OAuth2PasswordBearer):
     """Custom OAuth2 scheme that bypasses authentication in test mode."""
     
-    async def __call__(self, request):
+    async def __call__(self, request: Request) -> Optional[str]:
         # Skip authentication in test mode
         if os.getenv("TEST_MODE") == "true" or os.getenv("TESTING") == "true":
             return "test_token"
@@ -68,15 +68,42 @@ async def get_current_user(
     """Get current user from token."""
     # Skip authentication in test mode
     if os.getenv("TEST_MODE") == "true" or os.getenv("TESTING") == "true":
-        # Return a mock user for testing
-        mock_user = User(
-            username="test",
-            email="test@example.com",
-            full_name="Test User",
-            disabled=False,
-            scopes=["activities:read", "activities:write", "admin"]
-        )
-        return mock_user
+        # In test mode, decode the JWT token to get the actual email from the test
+        # This ensures the endpoint can find the correct user in the database
+        try:
+            from jose import jwt
+            SECRET_KEY = os.getenv("JWT_SECRET_KEY", settings.JWT_SECRET_KEY)
+            ALGORITHM = os.getenv("JWT_ALGORITHM", settings.JWT_ALGORITHM)
+            
+            # Decode the token to get email
+            if token and token != "test_token":
+                payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+                email = payload.get("email", "test@example.com")
+                username = payload.get("sub", email.split("@")[0] if "@" in email else "test")
+            else:
+                # Fallback if token is "test_token" (from TestOAuth2PasswordBearer)
+                email = "test@example.com"
+                username = "test"
+            
+            # Return a user with the email from the JWT token
+            mock_user = User(
+                username=username,
+                email=email,
+                full_name="Test User",
+                disabled=False,
+                scopes=["activities:read", "activities:write", "admin"]
+            )
+            return mock_user
+        except Exception:
+            # Fallback to hardcoded user if token decode fails
+            mock_user = User(
+                username="test",
+                email="test@example.com",
+                full_name="Test User",
+                disabled=False,
+                scopes=["activities:read", "activities:write", "admin"]
+            )
+            return mock_user
     
     if isinstance(token, str):
         return await verify_token(token, db)

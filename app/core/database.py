@@ -295,14 +295,28 @@ def get_db() -> Generator[Session, None, None]:
     In test mode (TEST_MODE=true), uses the test session from fixtures if available.
     Otherwise, creates a new session from SessionLocal.
     
-    Uses thread-local storage to ensure each test thread has its own isolated session.
+    Uses context-local storage (contextvars) to ensure each test context has its own isolated session.
+    NOTE: contextvars are context-local, not thread-local, so they work with async code.
     """
     # In test mode, use the test session if it's been set by test fixtures for this context
+    # BUT: If FastAPI dependency override is set, it will be used instead of this code path
+    # So this code only runs if dependency override is NOT set
     if os.getenv("TEST_MODE") == "true":
         test_session = _test_session_context.get()
         if test_session is not None:
+            # CRITICAL: In test mode, yield the test session so endpoint uses same session as test
+            # This ensures the endpoint sees the same identity map as the test
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"get_db() returning test session from context: {id(test_session)}, identity_map_size={len(test_session.identity_map)}")
             yield test_session
             return
+        else:
+            # Test session not set - this shouldn't happen in test mode
+            # Log a warning but create a new session to prevent errors
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning("get_db() called in test mode but test session not set - creating new session")
     
     # Normal operation: create a new session
     db = SessionLocal()

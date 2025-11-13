@@ -4,10 +4,9 @@ import openai
 from app.services.core.base_service import BaseService
 from app.models.educational.curriculum.lesson_plan import LessonPlan
 from app.core.config import get_settings
-from google.cloud import translate
-from google.cloud import texttospeech
 import logging
 from app.models.core.types import Subject
+from app.services.translation.translation_service import get_translation_service
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -18,8 +17,24 @@ class AILessonEnhancement(BaseService):
     def __init__(self):
         super().__init__("ai_lesson_enhancement")
         self.openai_client = openai.Client(api_key=settings.OPENAI_API_KEY)
-        self.translate_client = translate.Client()
-        self.tts_client = texttospeech.TextToSpeechClient()
+        
+        # Use TranslationService with fallback to mock
+        try:
+            self.translation_service = get_translation_service()
+        except Exception as e:
+            logger.warning(f"Translation service not available, using mock: {str(e)}")
+            from app.services.translation.translation_service import MockTranslationService
+            self.translation_service = MockTranslationService()
+        
+        # Text-to-speech is optional - handle gracefully if not available
+        self.tts_client = None
+        try:
+            from google.cloud import texttospeech
+            self.tts_client = texttospeech.TextToSpeechClient()
+        except (ImportError, Exception) as e:
+            logger.warning(f"Text-to-speech not available: {str(e)}")
+            self.tts_client = None
+        
         self.model = "gpt-4"  # Using GPT-4 for better lesson planning
 
     async def initialize(self):
@@ -191,37 +206,49 @@ class AILessonEnhancement(BaseService):
             {lesson_plan.direct_instruction}
             """
 
-            # Translate to common languages
+            # Translate to common languages using TranslationService
             translations = {}
             for target_language in ['es', 'pt', 'zh-CN']:  # Spanish, Portuguese, Chinese
-                result = self.translate_client.translate(
-                    key_terms,
-                    target_language=target_language
-                )
-                translations[target_language] = result['translatedText']
+                try:
+                    # TranslationService has async translate_text method
+                    result = await self.translation_service.translate_text(
+                        key_terms,
+                        target_language=target_language
+                    )
+                    translations[target_language] = result.get('translated_text', key_terms)
+                except Exception as e:
+                    logger.warning(f"Translation to {target_language} failed: {str(e)}")
+                    translations[target_language] = key_terms  # Fallback to original
 
-            # Generate audio for key terms
-            audio_files = {}
-            synthesis_input = texttospeech.SynthesisInput(text=key_terms)
-            
-            voice = texttospeech.VoiceSelectionParams(
-                language_code="en-US",
-                ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
-            )
-            
-            audio_config = texttospeech.AudioConfig(
-                audio_encoding=texttospeech.AudioEncoding.MP3
-            )
+            # Generate audio for key terms (if TTS is available)
+            audio_content = None
+            if self.tts_client:
+                try:
+                    from google.cloud import texttospeech
+                    synthesis_input = texttospeech.SynthesisInput(text=key_terms)
+                    
+                    voice = texttospeech.VoiceSelectionParams(
+                        language_code="en-US",
+                        ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+                    )
+                    
+                    audio_config = texttospeech.AudioConfig(
+                        audio_encoding=texttospeech.AudioEncoding.MP3
+                    )
 
-            response = self.tts_client.synthesize_speech(
-                input=synthesis_input,
-                voice=voice,
-                audio_config=audio_config
-            )
+                    response = self.tts_client.synthesize_speech(
+                        input=synthesis_input,
+                        voice=voice,
+                        audio_config=audio_config
+                    )
+                    audio_content = response.audio_content
+                except Exception as e:
+                    logger.warning(f"Text-to-speech generation failed: {str(e)}")
+                    audio_content = None
 
             return {
                 "translations": translations,
-                "audio_content": response.audio_content,
+                "audio_content": audio_content,
                 "type": "language_support"
             }
         except Exception as e:
