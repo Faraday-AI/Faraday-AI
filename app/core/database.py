@@ -50,9 +50,10 @@ def get_region_db_url(region: str) -> str:
     return base_url
 
 # Create SQLAlchemy engine with connection pooling and SSL configuration
-# For Azure PostgreSQL, use longer timeouts to handle network latency
+# Use shorter timeouts for faster failure detection - retry logic handles retries
+# This prevents long startup times that cause Render to timeout
 is_azure_postgres = "database.azure.com" in DATABASE_URL if DATABASE_URL else False
-connect_timeout = 60 if is_azure_postgres else 30  # Longer timeout for Azure
+connect_timeout = 15 if is_azure_postgres else 10  # Shorter timeout for faster startup
 
 engine = create_engine(
     DATABASE_URL,
@@ -69,7 +70,7 @@ engine = create_engine(
     poolclass=QueuePool,
     pool_size=5,
     max_overflow=10,
-    pool_timeout=60 if is_azure_postgres else 30,  # Longer pool timeout for Azure
+    pool_timeout=20 if is_azure_postgres else 15,  # Shorter pool timeout for faster startup
     pool_recycle=1800,
     pool_pre_ping=True,  # Enable connection health checks
     echo=False  # Set to True for SQL query logging (useful for debugging)
@@ -277,8 +278,11 @@ async def init_db() -> bool:
     import time
     import asyncio
     
-    max_retries = 3
-    base_delay = 5  # Start with 5 seconds
+    # Reduce retries and delays for faster startup - don't block app startup for too long
+    # If database is unavailable, app should start anyway and retry on first request
+    # Total max time: 15s + 2s + 15s = ~32 seconds max (instead of 3+ minutes)
+    max_retries = 2  # Only 2 attempts to avoid long startup times
+    base_delay = 2  # Shorter delay between retries
     
     for attempt in range(max_retries):
         try:

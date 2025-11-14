@@ -873,7 +873,9 @@ async def startup_event():
         logger.info("Application startup complete")
     except Exception as e:
         logger.error(f"Error during startup: {e}")
-        raise
+        # Don't raise - allow app to start even if some services fail
+        # This prevents 502 errors when database is temporarily unavailable
+        logger.warning("⚠️  App will start with degraded functionality - some features may be unavailable")
 
 @app.on_event("shutdown")
 async def shutdown_event():
