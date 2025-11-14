@@ -269,50 +269,80 @@ async def init_db() -> bool:
     Note: initialize_engines() should be called separately before this function.
     This function only tests the database connection and performs data initialization.
     
+    Uses retry logic with exponential backoff for Azure PostgreSQL connections.
+    
     Returns:
         bool: True if initialization was successful, False otherwise
     """
-    try:
-        # Create a test connection to verify database is working
-        # Use a longer timeout for Azure PostgreSQL connections
-        import time
-        start_time = time.time()
-        
+    import time
+    import asyncio
+    
+    max_retries = 3
+    base_delay = 5  # Start with 5 seconds
+    
+    for attempt in range(max_retries):
         try:
-            with engine.connect() as conn:
-                # Test query
-                conn.execute(text("SELECT 1"))
+            start_time = time.time()
+            
+            try:
+                with engine.connect() as conn:
+                    # Test query
+                    conn.execute(text("SELECT 1"))
+                    elapsed = time.time() - start_time
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.info(f"Database connection successful (took {elapsed:.2f}s)")
+                    return True
+            except Exception as conn_error:
                 elapsed = time.time() - start_time
-                print(f"Database connection successful (took {elapsed:.2f}s)")
-        except Exception as conn_error:
-            elapsed = time.time() - start_time
-            error_msg = str(conn_error)
-            print(f"Database connection failed after {elapsed:.2f}s: {error_msg}")
+                error_msg = str(conn_error)
+                
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Database connection attempt {attempt + 1}/{max_retries} failed after {elapsed:.2f}s: {error_msg}")
+                
+                # If this is the last attempt, provide detailed diagnostics
+                if attempt == max_retries - 1:
+                    logger.error("All database connection attempts failed")
+                    
+                    # Provide helpful diagnostics for Azure PostgreSQL
+                    if "database.azure.com" in (DATABASE_URL or ""):
+                        logger.error("\nAzure PostgreSQL Connection Troubleshooting:")
+                        logger.error("1. Verify DATABASE_URL format: postgresql://user:password@server.postgres.database.azure.com:5432/dbname?sslmode=require")
+                        logger.error("2. Check Azure firewall rules allow Render IPs")
+                        logger.error("3. Verify SSL certificate is valid")
+                        logger.error("4. Check if database server is running and accessible")
+                    
+                    # Log more details for timeout errors
+                    if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+                        logger.error("\nTimeout Error - Possible causes:")
+                        logger.error("- Network latency between Render and Azure")
+                        logger.error("- Firewall blocking connection")
+                        logger.error("- Database server overloaded")
+                        logger.error("- Incorrect connection string")
+                    
+                    return False
+                
+                # Wait before retrying with exponential backoff
+                delay = base_delay * (2 ** attempt)
+                logger.info(f"Retrying database connection in {delay} seconds...")
+                await asyncio.sleep(delay)
+                
+        except Exception as e:
+            error_msg = str(e)
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error initializing database: {error_msg}")
             
-            # Provide helpful diagnostics for Azure PostgreSQL
-            if "database.azure.com" in (DATABASE_URL or ""):
-                print("\nAzure PostgreSQL Connection Troubleshooting:")
-                print("1. Verify DATABASE_URL format: postgresql://user:password@server.postgres.database.azure.com:5432/dbname?sslmode=require")
-                print("2. Check Azure firewall rules allow Render IPs")
-                print("3. Verify SSL certificate is valid")
-                print("4. Check if database server is running and accessible")
+            if attempt == max_retries - 1:
+                return False
             
-            raise  # Re-raise to be caught by outer try/except
-            
-        return True
-    except Exception as e:
-        error_msg = str(e)
-        print(f"Error initializing database: {error_msg}")
-        
-        # Log more details for timeout errors
-        if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
-            print("\nTimeout Error - Possible causes:")
-            print("- Network latency between Render and Azure")
-            print("- Firewall blocking connection")
-            print("- Database server overloaded")
-            print("- Incorrect connection string")
-        
-        return False
+            # Wait before retrying
+            delay = base_delay * (2 ** attempt)
+            logger.info(f"Retrying database connection in {delay} seconds...")
+            await asyncio.sleep(delay)
+    
+    return False
 
 # Context-local storage for test sessions (used in test mode)
 # Using contextvars ensures each test context (including async) has its own isolated session

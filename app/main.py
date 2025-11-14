@@ -738,11 +738,17 @@ async def startup_event():
         initialize_engines()  # Remove await since it's synchronous
         logger.info("Database engines initialized")
         
-        # Initialize database
+        # Initialize database with retry logic
         logger.info("Starting database initialization...")
-        if not await init_db():
-            raise RuntimeError("Database initialization failed")
-        logger.info("Database initialized successfully")
+        db_init_success = await init_db()
+        if not db_init_success:
+            # Log critical error but allow app to start for graceful degradation
+            # Database-dependent endpoints will handle errors appropriately
+            logger.critical("⚠️  Database initialization failed - app will start but database features may be unavailable")
+            logger.critical("⚠️  Please check Azure PostgreSQL firewall rules and DATABASE_URL configuration")
+            logger.critical("⚠️  The app will continue to retry database connections on endpoint access")
+        else:
+            logger.info("Database initialized successfully")
         
         # Physical education model relationships are now handled with full module paths
         logger.info("Physical education model relationships configured")
@@ -754,25 +760,36 @@ async def startup_event():
         load_balancer = GlobalLoadBalancer(failover_manager)
         monitoring_service = MonitoringService()
         
-        # Initialize load balancer service
-        db_session = next(get_db())
-        resource_service = get_resource_sharing_service(db_session)
+        # Initialize load balancer service (only if database is available)
+        if db_init_success:
+            try:
+                db_session = next(get_db())
+                resource_service = get_resource_sharing_service(db_session)
+                
+                # Start background tasks for resource sharing service (monitoring, cleanup)
+                try:
+                    await resource_service.start_background_tasks()
+                    logger.info("Resource sharing service background tasks started")
+                except Exception as e:
+                    logger.warning(f"Could not start resource sharing background tasks: {e}")
+                
+                load_balancer_service = LoadBalancerService(
+                    load_balancer=load_balancer,
+                    monitoring_service=monitoring_service,
+                    resource_service=resource_service
+                )
+            except Exception as e:
+                logger.warning(f"Could not initialize load balancer service (database may be unavailable): {e}")
+                load_balancer_service = None
+        else:
+            logger.warning("Skipping load balancer service initialization - database unavailable")
+            load_balancer_service = None
         
-        # Start background tasks for resource sharing service (monitoring, cleanup)
-        try:
-            await resource_service.start_background_tasks()
-            logger.info("Resource sharing service background tasks started")
-        except Exception as e:
-            logger.warning(f"Could not start resource sharing background tasks: {e}")
-        
-        load_balancer_service = LoadBalancerService(
-            load_balancer=load_balancer,
-            monitoring_service=monitoring_service,
-            resource_service=resource_service
-        )
-        
-        # Include load balancer router
-        app.include_router(load_balancer_service.router, prefix="/api/load-balancer", tags=["Load Balancer"])
+        # Include load balancer router (only if service was initialized)
+        if load_balancer_service:
+            app.include_router(load_balancer_service.router, prefix="/api/load-balancer", tags=["Load Balancer"])
+        else:
+            logger.warning("Load balancer router not included - service unavailable")
         
         # Start Prometheus metrics server only in the main process
         if settings.ENABLE_METRICS and os.environ.get('WORKER_CLASS') != 'uvicorn.workers.UvicornWorker':
@@ -797,58 +814,61 @@ async def startup_event():
         except Exception as e:
             logger.warning(f"Rate limiter initialization failed (Redis may not be available): {e}")
         
-        # Set admin user on startup (runs every time app starts)
-        try:
-            from sqlalchemy import text
-            admin_email = "jmartucci@faraday-ai.com"
-            db_session = next(get_db())
-            
-            # Try to update existing user to admin
-            result = db_session.execute(text("""
-                UPDATE users 
-                SET role = 'admin', 
-                    is_superuser = true, 
-                    is_active = true,
-                    disabled = false
-                WHERE email = :email
-            """), {"email": admin_email})
-            
-            if result.rowcount > 0:
-                db_session.commit()
-                logger.info(f"✅ Updated user {admin_email} to admin with full access!")
-            else:
-                # User not in users table, check teacher_registrations
-                teacher_check = db_session.execute(text("""
-                    SELECT email, password_hash, first_name, last_name 
-                    FROM teacher_registrations 
-                    WHERE email = :email
-                """), {"email": admin_email}).fetchone()
+        # Set admin user on startup (runs every time app starts, only if database is available)
+        if db_init_success:
+            try:
+                from sqlalchemy import text
+                admin_email = "jmartucci@faraday-ai.com"
+                db_session = next(get_db())
                 
-                if teacher_check:
-                    # Create admin user from teacher_registrations
-                    db_session.execute(text("""
-                        INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, created_at, updated_at)
-                        VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, NOW(), NOW())
-                        ON CONFLICT (email) DO UPDATE 
-                        SET role = 'admin',
-                            is_superuser = true,
-                            is_active = true,
-                            disabled = false
-                    """), {
-                        "email": teacher_check[0],
-                        "password_hash": teacher_check[1],
-                        "first_name": teacher_check[2],
-                        "last_name": teacher_check[3]
-                    })
+                # Try to update existing user to admin
+                result = db_session.execute(text("""
+                    UPDATE users 
+                    SET role = 'admin', 
+                        is_superuser = true, 
+                        is_active = true,
+                        disabled = false
+                    WHERE email = :email
+                """), {"email": admin_email})
+                
+                if result.rowcount > 0:
                     db_session.commit()
-                    logger.info(f"✅ Created admin user {admin_email} from teacher_registrations!")
+                    logger.info(f"✅ Updated user {admin_email} to admin with full access!")
                 else:
-                    logger.info(f"ℹ️  Admin user {admin_email} not found. Register first, then restart app.")
-            
-            db_session.close()
-        except Exception as e:
-            logger.warning(f"Could not set admin user on startup: {e}")
-            # Don't fail startup if admin setup fails
+                    # User not in users table, check teacher_registrations
+                    teacher_check = db_session.execute(text("""
+                        SELECT email, password_hash, first_name, last_name 
+                        FROM teacher_registrations 
+                        WHERE email = :email
+                    """), {"email": admin_email}).fetchone()
+                    
+                    if teacher_check:
+                        # Create admin user from teacher_registrations
+                        db_session.execute(text("""
+                            INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, created_at, updated_at)
+                            VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, NOW(), NOW())
+                            ON CONFLICT (email) DO UPDATE 
+                            SET role = 'admin',
+                                is_superuser = true,
+                                is_active = true,
+                                disabled = false
+                        """), {
+                            "email": teacher_check[0],
+                            "password_hash": teacher_check[1],
+                            "first_name": teacher_check[2],
+                            "last_name": teacher_check[3]
+                        })
+                        db_session.commit()
+                        logger.info(f"✅ Created admin user {admin_email} from teacher_registrations!")
+                    else:
+                        logger.info(f"ℹ️  Admin user {admin_email} not found. Register first, then restart app.")
+                
+                db_session.close()
+            except Exception as e:
+                logger.warning(f"Could not set admin user on startup: {e}")
+                # Don't fail startup if admin setup fails
+        else:
+            logger.warning("Skipping admin user setup - database unavailable")
         
         logger.info("Application startup complete")
     except Exception as e:
