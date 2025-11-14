@@ -491,11 +491,17 @@ def create_app(test_mode: bool = False) -> FastAPI:
                 initialize_engines()
                 logger.info("Database engines initialized")
                 
-                # Initialize database
+                # Initialize database with retry logic
                 logger.info("Starting database initialization...")
-                if not await init_db():
-                    raise RuntimeError("Database initialization failed")
-                logger.info("Database initialized successfully")
+                db_init_success = await init_db()
+                if not db_init_success:
+                    # Log critical error but allow app to start for graceful degradation
+                    # Database-dependent endpoints will handle errors appropriately
+                    logger.critical("⚠️  Database initialization failed - app will start but database features may be unavailable")
+                    logger.critical("⚠️  Please check Azure PostgreSQL firewall rules and DATABASE_URL configuration")
+                    logger.critical("⚠️  The app will continue to retry database connections on endpoint access")
+                else:
+                    logger.info("Database initialized successfully")
                 
                 # Physical education model relationships are now handled with full module paths
                 logger.info("Physical education model relationships configured")
@@ -507,25 +513,36 @@ def create_app(test_mode: bool = False) -> FastAPI:
                 load_balancer = GlobalLoadBalancer(failover_manager)
                 monitoring_service = MonitoringService()
                 
-                # Initialize load balancer service
-                db_session = next(get_db())
-                resource_service = get_resource_sharing_service(db_session)
+                # Initialize load balancer service (only if database is available)
+                if db_init_success:
+                    try:
+                        db_session = next(get_db())
+                        resource_service = get_resource_sharing_service(db_session)
+                        
+                        # Start background tasks for resource sharing service (monitoring, cleanup)
+                        try:
+                            await resource_service.start_background_tasks()
+                            logger.info("Resource sharing service background tasks started")
+                        except Exception as e:
+                            logger.warning(f"Could not start resource sharing background tasks: {e}")
+                        
+                        load_balancer_service = LoadBalancerService(
+                            load_balancer=load_balancer,
+                            monitoring_service=monitoring_service,
+                            resource_service=resource_service
+                        )
+                    except Exception as e:
+                        logger.warning(f"Could not initialize load balancer service (database may be unavailable): {e}")
+                        load_balancer_service = None
+                else:
+                    logger.warning("Skipping load balancer service initialization - database unavailable")
+                    load_balancer_service = None
                 
-                # Start background tasks for resource sharing service (monitoring, cleanup)
-                try:
-                    await resource_service.start_background_tasks()
-                    logger.info("Resource sharing service background tasks started")
-                except Exception as e:
-                    logger.warning(f"Could not start resource sharing background tasks: {e}")
-                
-                load_balancer_service = LoadBalancerService(
-                    load_balancer=load_balancer,
-                    monitoring_service=monitoring_service,
-                    resource_service=resource_service
-                )
-                
-                # Include load balancer router
-                app_instance.include_router(load_balancer_service.router, prefix="/api/load-balancer", tags=["Load Balancer"])
+                # Include load balancer router (only if service was initialized)
+                if load_balancer_service:
+                    app_instance.include_router(load_balancer_service.router, prefix="/api/load-balancer", tags=["Load Balancer"])
+                else:
+                    logger.warning("Load balancer router not included - service unavailable")
                 
                 # Start Prometheus metrics server only in the main process
                 if settings.ENABLE_METRICS and os.environ.get('WORKER_CLASS') != 'uvicorn.workers.UvicornWorker':
@@ -550,7 +567,9 @@ def create_app(test_mode: bool = False) -> FastAPI:
                 logger.info("Application startup complete")
             except Exception as e:
                 logger.error(f"Error during startup: {e}")
-                raise
+                # Don't raise - allow app to start even if some services fail
+                # This prevents 502 errors when database is temporarily unavailable
+                logger.warning("⚠️  App will start with degraded functionality - some features may be unavailable")
 
         @app_instance.on_event("shutdown")
         async def shutdown_event():

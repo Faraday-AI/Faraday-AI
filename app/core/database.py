@@ -309,21 +309,58 @@ async def init_db() -> bool:
                 if attempt == max_retries - 1:
                     logger.error("All database connection attempts failed")
                     
-                    # Provide helpful diagnostics for Azure PostgreSQL
+                    # Enhanced diagnostics for Azure PostgreSQL
                     if "database.azure.com" in (DATABASE_URL or ""):
-                        logger.error("\nAzure PostgreSQL Connection Troubleshooting:")
-                        logger.error("1. Verify DATABASE_URL format: postgresql://user:password@server.postgres.database.azure.com:5432/dbname?sslmode=require")
-                        logger.error("2. Check Azure firewall rules allow Render IPs")
-                        logger.error("3. Verify SSL certificate is valid")
-                        logger.error("4. Check if database server is running and accessible")
+                        parsed = None
+                        host = "faraday-ai-db.postgres.database.azure.com"
+                        
+                        # Parse connection string for diagnostics (mask password)
+                        try:
+                            from urllib.parse import urlparse
+                            parsed = urlparse(DATABASE_URL)
+                            masked_url = f"{parsed.scheme}://{parsed.username}:***@{parsed.hostname}:{parsed.port}{parsed.path}"
+                            logger.error(f"\nConnection String: {masked_url}")
+                            logger.error(f"Host: {parsed.hostname}")
+                            logger.error(f"Port: {parsed.port}")
+                            logger.error(f"Database: {parsed.path.lstrip('/')}")
+                            logger.error(f"SSL Mode: {parsed.query}")
+                            host = parsed.hostname
+                        except Exception as e:
+                            logger.error(f"Could not parse connection string: {e}")
+                        
+                        logger.error("\n🔍 Azure PostgreSQL Connection Diagnostics:")
+                        logger.error("1. ✅ DATABASE_URL format appears correct")
+                        logger.error("2. ❌ Connection timeout - likely firewall/network issue")
+                        logger.error("3. Check Azure Portal → PostgreSQL → Networking:")
+                        logger.error("   - Ensure 'Allow access to Azure services' is ON")
+                        logger.error("   - Check firewall rules allow Render IPs")
+                        logger.error("   - Verify no IP restrictions were added")
+                        logger.error("4. Check Azure Portal → PostgreSQL → Overview:")
+                        logger.error("   - Verify server status is 'Running' (not Paused)")
+                        logger.error("   - Check service health status")
+                        logger.error("5. Test from Render Shell:")
+                        logger.error("   - Try: psql 'postgresql://faraday_admin:***@faraday-ai-db.postgres.database.azure.com:5432/postgres?sslmode=require'")
+                        
+                        # Try to get more connection details
+                        try:
+                            import socket
+                            logger.error(f"\n6. Testing DNS resolution for {host}...")
+                            try:
+                                ip = socket.gethostbyname(host)
+                                logger.error(f"   ✅ DNS resolved to: {ip}")
+                            except socket.gaierror as e:
+                                logger.error(f"   ❌ DNS resolution failed: {e}")
+                        except Exception as e:
+                            logger.error(f"   ⚠️  Could not test DNS: {e}")
                     
                     # Log more details for timeout errors
                     if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
-                        logger.error("\nTimeout Error - Possible causes:")
-                        logger.error("- Network latency between Render and Azure")
-                        logger.error("- Firewall blocking connection")
-                        logger.error("- Database server overloaded")
-                        logger.error("- Incorrect connection string")
+                        logger.error("\n⏱️  Timeout Error Analysis:")
+                        logger.error("- Connection times out after 15 seconds")
+                        logger.error("- This suggests the connection is being blocked, not just slow")
+                        logger.error("- Most likely: Azure firewall blocking Render's IP addresses")
+                        logger.error("- Less likely: Network routing issue between Render and Azure")
+                        logger.error("- Action: Check Azure firewall rules and allow Render IPs")
                     
                     return False
                 
