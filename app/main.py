@@ -49,6 +49,8 @@ from app.core.health import router as health_router
 from app.services.physical_education import service_integration
 from app.api.v1.middleware.cache import add_caching
 from app.api.v1 import router as api_router
+from app.api.v1.endpoints.speech_to_text import router as speech_to_text_router
+from app.api.v1.endpoints.guest_chat import router as guest_chat_router
 from fastapi_limiter import FastAPILimiter
 from app.middleware.auth import AuthMiddleware
 from app.api.v1.middleware.rate_limit import add_rate_limiting
@@ -618,6 +620,10 @@ app.include_router(activity_management, prefix="/api/v1/activities", tags=["acti
 app.include_router(dashboard.router, prefix="/api/v1/dashboard", tags=["dashboard"])
 app.include_router(dashboard_api_router, prefix="/api/v1/dashboard", tags=["dashboard"])  # Includes ai-widgets and other sub-routers
 app.include_router(api_router)  # Uncommented for development - needed for user profile endpoints
+# Include speech-to-text router directly to ensure it's registered
+app.include_router(speech_to_text_router, prefix="/api/v1", tags=["speech-to-text"])
+# Include guest chat router directly to ensure it's registered
+app.include_router(guest_chat_router, prefix="/api/v1", tags=["guest-chat"])
 # Include user analytics router separately to avoid conflicts
 from app.api.v1.endpoints.user_analytics import router as user_analytics_router
 app.include_router(user_analytics_router, prefix="/api/v1/analytics", tags=["user-analytics"])
@@ -818,8 +824,117 @@ async def shutdown_event():
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
-    return {"message": "Microsoft Graph API Integration"}
+    """Root endpoint - serves the main landing page."""
+    try:
+        # Determine static directory path (same logic as static file mounting)
+        base_dir = Path(__file__).parent.parent
+        static_dir = Path("/app/static")
+        
+        if not static_dir.exists():
+            static_dir = base_dir / "static"
+        
+        if not static_dir.exists():
+            logger.error(f"Static directory not found for root route")
+            raise HTTPException(status_code=500, detail="Static files not found")
+        
+        # Read index.html
+        index_path = static_dir / "index.html"
+        
+        if not index_path.exists():
+            logger.error(f"index.html not found at {index_path}")
+            raise HTTPException(status_code=404, detail="Landing page not found")
+        
+        with open(index_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html; charset=utf-8"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving root page: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving landing page: {str(e)}")
+
+@app.get("/pricing")
+async def pricing():
+    """Pricing page endpoint - serves the pricing guide."""
+    try:
+        # Determine static directory path (same logic as static file mounting)
+        base_dir = Path(__file__).parent.parent
+        static_dir = Path("/app/static")
+        
+        if not static_dir.exists():
+            static_dir = base_dir / "static"
+        
+        if not static_dir.exists():
+            logger.error(f"Static directory not found for pricing route")
+            raise HTTPException(status_code=500, detail="Static files not found")
+        
+        # Read pricing.html
+        pricing_path = static_dir / "pricing.html"
+        
+        if not pricing_path.exists():
+            logger.error(f"pricing.html not found at {pricing_path}")
+            raise HTTPException(status_code=404, detail="Pricing page not found")
+        
+        with open(pricing_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html; charset=utf-8"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving pricing page: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving pricing page: {str(e)}")
+
+@app.get("/dashboard")
+async def dashboard():
+    """Dashboard endpoint - serves the main dashboard page."""
+    try:
+        # Determine static directory path (same logic as static file mounting)
+        base_dir = Path(__file__).parent.parent
+        static_dir = Path("/app/static")
+        
+        if not static_dir.exists():
+            static_dir = base_dir / "static"
+        
+        if not static_dir.exists():
+            logger.error(f"Static directory not found for dashboard route")
+            raise HTTPException(status_code=500, detail="Static files not found")
+        
+        # Read dashboard.html
+        dashboard_path = static_dir / "dashboard.html"
+        
+        if not dashboard_path.exists():
+            logger.error(f"dashboard.html not found at {dashboard_path}")
+            raise HTTPException(status_code=404, detail="Dashboard page not found")
+        
+        with open(dashboard_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html; charset=utf-8"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving dashboard page: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving dashboard page: {str(e)}")
 
 @app.post("/test")
 async def test_endpoint():

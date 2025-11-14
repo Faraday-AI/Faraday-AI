@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Dashboard</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="Faraday AI Dashboard - Your AI-powered educational assistant">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1 class="logo">Faraday AI</h1>
+                <nav class="main-nav">
+                    <a href="/" class="nav-link">Home</a>
+                    <a href="/static/services/teacher-admin.html" class="nav-link">Services</a>
+                    <a href="/static/pricing.html" class="nav-link">Pricing</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <span class="user-name" id="userName">Loading...</span>
+                    <button class="logout-btn" id="logoutBtn">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Layout -->
+        <div class="dashboard-layout">
+            <!-- Left Sidebar - Widgets Panel -->
+            <aside class="widgets-sidebar" id="widgetsSidebar">
+                <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
+                <div class="sidebar-header">
+                    <h2>Dashboard Widgets</h2>
+                    <button class="toggle-sidebar" id="toggleSidebar" aria-label="Toggle sidebar">
+                        <span class="icon">←</span>
+                    </button>
+                </div>
+                <div class="widgets-list" id="widgetsList">
+                    <div class="widget-category">
+                        <h3>Physical Education</h3>
+                        <div class="widget-items">
+                            <div class="widget-item" data-widget="attendance">📊 Attendance & Analytics</div>
+                            <div class="widget-item" data-widget="teams">👥 Team Management</div>
+                            <div class="widget-item" data-widget="adaptive">♿ Adaptive PE</div>
+                            <div class="widget-item" data-widget="performance">📈 Performance Analytics</div>
+                            <div class="widget-item" data-widget="safety">🛡️ Safety & Risk Management</div>
+                            <div class="widget-item" data-widget="insights">🎯 Class Insights</div>
+                            <div class="widget-item" data-widget="fitness">💪 Exercise & Fitness</div>
+                            <div class="widget-item" data-widget="lesson-planning">📋 Lesson Planning</div>
+                            <div class="widget-item" data-widget="video">🎥 Video & Movement</div>
+                            <div class="widget-item" data-widget="activities">📅 Activity Management</div>
+                            <div class="widget-item" data-widget="assessment">🎓 Assessment & Skills</div>
+                            <div class="widget-item" data-widget="psychology">🧠 Sports Psychology</div>
+                            <div class="widget-item" data-widget="parent-comm">👨‍👩‍👧 Parent Communication</div>
+                            <div class="widget-item" data-widget="collaboration">👥 Collaboration</div>
+                            <div class="widget-item" data-widget="health">🏥 Health & Nutrition</div>
+                            <div class="widget-item" data-widget="drivers-ed">🚗 Driver's Education</div>
+                            <div class="widget-item" data-widget="management">⚙️ Management Tools</div>
+                        </div>
+                    </div>
+                    <div class="widget-category">
+                        <h3>General</h3>
+                        <div class="widget-items">
+                            <div class="widget-item" data-widget="calendar">📅 Calendar</div>
+                            <div class="widget-item" data-widget="analytics">📊 Analytics</div>
+                            <div class="widget-item" data-widget="notifications">🔔 Notifications</div>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="dashboard-main">
+                <!-- AI Chat Interface -->
+                <section class="chat-section" id="chatSection">
+                    <div class="chat-resize-handle" id="chatResizeHandle"></div>
+                    <div class="chat-header">
+                        <button class="collapse-chat-btn" id="collapseChatBtn" aria-label="Collapse/Expand chat" title="Collapse/Expand chat">
+                            <span class="icon" id="collapseChatIcon">▼</span>
+                        </button>
+                        <div class="avatar-container">
+                            <div class="ai-avatar" id="aiAvatar">
+                                <div class="avatar-face">👤</div>
+                                <div class="avatar-status" id="avatarStatus">●</div>
+                            </div>
+                            <div class="avatar-info">
+                                <h3>Your AI Assistant</h3>
+                                <p class="avatar-status-text" id="avatarStatusText">Ready to help</p>
+                            </div>
+                        </div>
+                        <div class="chat-controls">
+                            <button class="control-btn" id="voiceToggle" aria-label="Toggle voice input">
+                                <span class="icon">🎤</span>
+                            </button>
+                            <button class="control-btn" id="clearChat" aria-label="Clear chat">
+                                <span class="icon">🗑️</span>
+                            </button>
+                            <button class="control-btn" id="logViewerBtn" aria-label="View logs" title="View application logs">
+                                <span class="icon">📋</span>
+                            </button>
+                            <button class="control-btn" id="settingsBtn" aria-label="Settings">
+                                <span class="icon">⚙️</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai-message">
+                            <div class="message-avatar">👤</div>
+                            <div class="message-content">
+                                <p><strong>Hello! I'm your AI assistant.</strong> I can help you with all 39 widget features including attendance, teams, lesson planning, safety, performance analytics, and much more.</p>
+                                <p style="margin-top: 0.75rem;"><strong>How it works:</strong></p>
+                                <ul style="margin-top: 0.5rem; padding-left: 1.5rem; text-align: left;">
+                                    <li>You can ask me to do <strong>anything</strong> - I handle all 39 features whether widgets are on your dashboard or not</li>
+                                    <li>Widget cards on your dashboard are just <strong>visual displays</strong> - they show data when I return results</li>
+                                    <li>If you ask for something and the widget isn't on your dashboard, I can <strong>add it automatically</strong> to show the results</li>
+                                    <li>Try: "Create a lesson plan on basketball" or "Show me attendance for Period 3"</li>
+                                </ul>
+                                <span class="message-time">Just now</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <div class="input-wrapper">
+                            <textarea 
+                                id="chatInput" 
+                                class="chat-input" 
+                                placeholder="Type your message or click the microphone to speak..."
+                                rows="1"
+                            ></textarea>
+                            <button class="send-btn" id="sendBtn" aria-label="Send message">
+                                <span class="icon">➤</span>
+                            </button>
+                        </div>
+                        <div class="input-hints">
+                            <span class="hint">💡 <strong>Tip:</strong> You can ask for any of the 39 widget features, even if they're not on your dashboard. The AI will handle it and can add the widget automatically if needed.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Widgets Display Area -->
+                <section class="widgets-section">
+                    <div class="widgets-header">
+                        <div class="widgets-header-left">
+                            <button class="floating-sidebar-toggle" id="floatingSidebarToggle" aria-label="Open widgets sidebar" style="display: none;">
+                                <span class="icon">☰</span>
+                            </button>
+                            <h2>Your Dashboard</h2>
+                        </div>
+                        <div class="widget-controls">
+                            <button class="btn-secondary" id="addWidgetBtn">+ Add Widget</button>
+                            <button class="btn-secondary" id="customizeLayoutBtn">Customize Layout</button>
+                        </div>
+                    </div>
+                    <div class="widgets-grid" id="widgetsGrid">
+                        <!-- Widgets will be dynamically added here -->
+                        <div class="widget-placeholder">
+                            <p>👋 Start a conversation with your AI assistant to add widgets to your dashboard</p>
+                            <p class="hint-text">Try saying: "Show me attendance patterns" or "Display my class insights"</p>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Log Viewer Panel -->
+    <div class="log-viewer" id="logViewer">
+        <div class="log-viewer-header">
+            <h3>Application Logs</h3>
+            <div class="log-viewer-controls">
+                <button class="log-btn" id="clearLogsBtn" title="Clear logs">Clear</button>
+                <button class="log-btn" id="exportLogsBtn" title="Export logs">Export</button>
+                <button class="log-btn" id="closeLogViewerBtn" title="Close log viewer">&times;</button>
+            </div>
+        </div>
+        <div class="log-viewer-filters">
+            <label class="log-filter">
+                <input type="checkbox" id="filterError" checked> Errors
+            </label>
+            <label class="log-filter">
+                <input type="checkbox" id="filterWarn" checked> Warnings
+            </label>
+            <label class="log-filter">
+                <input type="checkbox" id="filterInfo" checked> Info
+            </label>
+            <label class="log-filter">
+                <input type="checkbox" id="filterDebug"> Debug
+            </label>
+        </div>
+        <div class="log-viewer-content" id="logViewerContent">
+            <div class="log-entry info">
+                <span class="log-time">[System]</span>
+                <span class="log-message">Log viewer initialized. All console messages will appear here.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal" id="settingsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Dashboard Settings</h2>
+                <button class="modal-close" id="closeSettingsModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-section">
+                    <h3>Theme</h3>
+                    <div class="theme-options">
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="dark" checked>
+                            <span>Dark</span>
+                        </label>
+                        <label class="theme-option">
+                            <input type="radio" name="theme" value="light">
+                            <span>Light</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="settings-section">
+                    <h3>Notifications</h3>
+                    <label class="setting-item">
+                        <input type="checkbox" id="enableNotifications" checked>
+                        <span>Enable notifications</span>
+                    </label>
+                    <label class="setting-item">
+                        <input type="checkbox" id="enableSounds">
+                        <span>Enable sound alerts</span>
+                    </label>
+                </div>
+                <div class="settings-section">
+                    <h3>Voice Input</h3>
+                    <label class="setting-item">
+                        <input type="checkbox" id="enableVoiceInput" checked>
+                        <span>Enable voice input</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-primary" id="saveSettings">Save Settings</button>
+                <button class="btn-secondary" id="cancelSettings">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>
+

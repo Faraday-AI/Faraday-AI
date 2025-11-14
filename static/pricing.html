@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faraday AI - Pricing Plans</title>
+    <link rel="stylesheet" href="/static/css/services.css">
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
+    <meta name="description" content="Choose the perfect subscription plan for your educational needs">
+    <style>
+        :root {
+            --accent-color: #e74c3c;
+            --background-color: #000000;
+            --border-radius: 8px;
+            --card-background: #1a1a1a;
+            --card-hover: #2a2a2a;
+            --primary-color: #3498db;
+            --secondary-color: #ffd700;
+            --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+            --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.2);
+            --spacing-unit: 1rem;
+            --text-color: #ffffff;
+            --text-light: #bdc3c7;
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            -webkit-font-smoothing: antialiased;
+            background-color: var(--background-color);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .service-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .service-header {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4) 0;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+        }
+
+        .service-hero h1 {
+            color: var(--text-color);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .service-tagline {
+            color: var(--text-light);
+            font-size: 1.2rem;
+            line-height: 1.6;
+            font-weight: 600;
+        }
+
+        .back-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            display: inline-block;
+        }
+
+        .back-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+        }
+
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .pricing-card {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-md);
+            transition: var(--transition);
+            border: 2px solid transparent;
+            position: relative;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--secondary-color);
+        }
+
+        .pricing-card.featured {
+            border-color: var(--secondary-color);
+            border-width: 3px;
+        }
+
+        .pricing-card.featured::before {
+            content: "Most Popular";
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .plan-name {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price {
+            font-size: 3rem;
+            font-weight: 700;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .plan-price .currency {
+            font-size: 1.5rem;
+            vertical-align: top;
+        }
+
+        .plan-price .period {
+            font-size: 1rem;
+            color: var(--text-light);
+            font-weight: 400;
+        }
+
+        .plan-description {
+            color: var(--text-light);
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+        }
+
+        .plan-features {
+            list-style: none;
+            padding: 0;
+            margin: 1.5rem 0;
+        }
+
+        .plan-features li {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            font-weight: 500;
+        }
+
+        .plan-features li:last-child {
+            border-bottom: none;
+        }
+
+        .plan-features li::before {
+            content: "✓ ";
+            color: var(--secondary-color);
+            font-weight: 700;
+            margin-right: 0.5rem;
+        }
+
+        .plan-features li.disabled {
+            color: var(--text-light);
+            opacity: 0.5;
+        }
+
+        .plan-features li.disabled::before {
+            content: "✗ ";
+            color: #e74c3c;
+        }
+
+        .cta-button {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: var(--border-radius);
+            font-weight: 600;
+            text-decoration: none;
+            transition: var(--transition);
+            cursor: pointer;
+            width: 100%;
+            display: block;
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .cta-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .cta-button.secondary {
+            background-color: transparent;
+            border: 2px solid var(--secondary-color);
+            color: var(--secondary-color);
+        }
+
+        .cta-button.secondary:hover {
+            background-color: var(--secondary-color);
+            color: var(--primary-color);
+        }
+
+        .comparison-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1.5rem;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .comparison-table th {
+            background-color: rgba(41, 128, 185, 0.2);
+            color: var(--secondary-color);
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            font-weight: 500;
+        }
+
+        .check {
+            color: var(--secondary-color);
+            font-weight: 700;
+        }
+
+        .cross {
+            color: #e74c3c;
+            font-weight: 700;
+        }
+
+        .faq-section {
+            background-color: var(--card-background);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-md);
+        }
+
+        .faq-item {
+            margin-bottom: 1.5rem;
+        }
+
+        .faq-question {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--secondary-color);
+            margin-bottom: 0.5rem;
+        }
+
+        .faq-answer {
+            color: var(--text-light);
+            font-weight: 500;
+            line-height: 1.6;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--text-light);
+        }
+
+        .service-header {
+            text-align: center;
+            padding: calc(var(--spacing-unit) * 4) 0;
+            margin-bottom: calc(var(--spacing-unit) * 3);
+            background: linear-gradient(to right, rgba(26, 26, 26, 0.9), rgba(41, 128, 185, 0.9)), url('/static/images/coming-soon.png');
+            background-size: cover;
+            background-position: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-md);
+            border-top: 8px solid var(--secondary-color);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .service-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 var(--spacing-unit);
+            margin-bottom: calc(var(--spacing-unit) * 2);
+            width: 100%;
+            position: relative;
+        }
+
+        .nav-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 0;
+            position: absolute;
+            left: var(--spacing-unit);
+            top: 0;
+        }
+
+        .auth-section {
+            position: absolute;
+            right: var(--spacing-unit);
+            top: 0;
+        }
+
+        .service-hero {
+            max-width: 800px;
+            margin: 0 auto;
+            padding-top: calc(var(--spacing-unit) * 4);
+        }
+
+        .service-hero h1 {
+            color: var(--text-color);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .service-tagline {
+            color: var(--text-light);
+            font-size: 1.2rem;
+            line-height: 1.6;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="service-container">
+        <!-- Header Section -->
+        <header class="service-header">
+            <nav class="service-nav">
+                <div class="nav-buttons">
+                    <a href="/" class="back-button">← Back to Home</a>
+                    <a href="/static/services/teacher-admin.html" class="back-button">← Back to Teachers</a>
+                    <a href="/static/services/student-tutors.html" class="back-button">← Back to Students</a>
+                    <a href="/static/services/additional-services.html" class="back-button">← Back to Additional Services</a>
+                </div>
+            </nav>
+            <div class="service-hero">
+                <h1>Pricing Plans</h1>
+                <p class="service-tagline">Choose the perfect plan for your educational needs. All plans include access to AI assistants through natural conversation.</p>
+            </div>
+        </header>
+
+        <!-- Pricing Cards -->
+        <div class="pricing-grid">
+            <!-- FREE Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">FREE</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>0<span class="period">/month</span>
+                </div>
+                <p class="plan-description">Perfect for trying out Faraday AI</p>
+                <ul class="plan-features">
+                    <li>Basic dashboard access</li>
+                    <li>Basic student management</li>
+                    <li>Basic grade management</li>
+                    <li>Basic parent communication</li>
+                    <li class="disabled">AI-powered widgets</li>
+                    <li class="disabled">AI lesson planning</li>
+                    <li class="disabled">Microsoft integration</li>
+                    <li class="disabled">LMS integration</li>
+                    <li class="disabled">OpenAI features</li>
+                    <li class="disabled">Priority support</li>
+                </ul>
+                <a href="/dashboard" class="cta-button" style="text-decoration: none; display: inline-block;">Start Free Trial</a>
+            </div>
+
+            <!-- BASIC Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">BASIC</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>29.99<span class="period">/month</span>
+                </div>
+                <p class="plan-description">For individual teachers and small schools</p>
+                <ul class="plan-features">
+                    <li>Full dashboard access</li>
+                    <li>Full student management</li>
+                    <li>Full grade management</li>
+                    <li>Full parent communication</li>
+                    <li>Basic AI-powered widgets</li>
+                    <li>Basic AI lesson planning</li>
+                    <li>Basic AI student analysis</li>
+                    <li>Basic AI safety reports</li>
+                    <li>Microsoft/Azure AD integration</li>
+                    <li>Microsoft Calendar integration</li>
+                    <li>Limited OpenAI features</li>
+                    <li>Basic analytics</li>
+                    <li class="disabled">LMS integration</li>
+                    <li class="disabled">Priority support</li>
+                    <li class="disabled">API access</li>
+                </ul>
+                <button class="cta-button" onclick="showComingSoon()">Get Started</button>
+            </div>
+
+            <!-- PROFESSIONAL Plan (Featured) -->
+            <div class="pricing-card featured">
+                <div class="plan-name">PROFESSIONAL</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>79.99<span class="period">/month</span>
+                </div>
+                <p class="plan-description">For schools, departments, and multiple teachers</p>
+                <ul class="plan-features">
+                    <li>Full dashboard access</li>
+                    <li>Full student management</li>
+                    <li>Full grade management</li>
+                    <li>Full parent communication</li>
+                    <li>Advanced AI-powered widgets</li>
+                    <li>Advanced AI lesson planning</li>
+                    <li>Advanced AI student analysis</li>
+                    <li>Advanced AI safety reports</li>
+                    <li>Full Microsoft/Azure AD integration</li>
+                    <li>Full Microsoft Calendar integration</li>
+                    <li>Full OpenAI features</li>
+                    <li>Advanced analytics</li>
+                    <li>LMS integration (All 6 systems)</li>
+                    <li>Priority support</li>
+                    <li>Limited API access</li>
+                    <li>Custom reports</li>
+                </ul>
+                <button class="cta-button" onclick="showComingSoon()">Get Started</button>
+            </div>
+
+            <!-- ENTERPRISE Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">ENTERPRISE</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>199.99<span class="period">/month</span>
+                </div>
+                <p class="plan-description">For districts and large organizations</p>
+                <ul class="plan-features">
+                    <li>Full dashboard access + custom</li>
+                    <li>Full student management</li>
+                    <li>Full grade management</li>
+                    <li>Full parent communication</li>
+                    <li>Unlimited AI-powered widgets</li>
+                    <li>Full AI suite</li>
+                    <li>Full AI student analysis</li>
+                    <li>Full AI safety reports</li>
+                    <li>Full Microsoft integration + custom</li>
+                    <li>Full OpenAI features + custom</li>
+                    <li>Full analytics suite</li>
+                    <li>Full LMS integration (All 6 systems)</li>
+                    <li>Dedicated support</li>
+                    <li>Full API access</li>
+                    <li>Custom integrations</li>
+                    <li>White-label options</li>
+                </ul>
+                <button class="cta-button" onclick="showComingSoon()">Contact Sales</button>
+            </div>
+
+            <!-- CUSTOM Plan -->
+            <div class="pricing-card">
+                <div class="plan-name">CUSTOM</div>
+                <div class="plan-price">
+                    <span class="currency">$</span>Custom<span class="period"></span>
+                </div>
+                <p class="plan-description">For large districts with special requirements</p>
+                <ul class="plan-features">
+                    <li>Fully customized feature set</li>
+                    <li>All Enterprise features included</li>
+                    <li>Custom integrations</li>
+                    <li>Dedicated account manager</li>
+                    <li>SLA guarantees</li>
+                    <li>Custom billing arrangements</li>
+                    <li>Priority implementation</li>
+                    <li>Training and onboarding</li>
+                    <li>Custom support channels</li>
+                </ul>
+                <button class="cta-button secondary" onclick="showComingSoon()">Contact Sales</button>
+            </div>
+        </div>
+
+        <!-- Feature Comparison Table -->
+        <div class="comparison-section">
+            <h2 style="color: var(--secondary-color); font-size: 2rem; margin-bottom: 1rem; text-align: center;">Feature Comparison</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th>FREE</th>
+                        <th>BASIC</th>
+                        <th>PROFESSIONAL</th>
+                        <th>ENTERPRISE</th>
+                        <th>CUSTOM</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>AI-Powered Widgets</strong></td>
+                        <td class="cross">Limited</td>
+                        <td class="check">Basic</td>
+                        <td class="check">Advanced</td>
+                        <td class="check">Unlimited</td>
+                        <td class="check">Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AI Lesson Planning</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅ Basic</td>
+                        <td class="check">✅ Advanced</td>
+                        <td class="check">✅ Full Suite</td>
+                        <td class="check">✅ Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>AI Student Analysis</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅ Basic</td>
+                        <td class="check">✅ Advanced</td>
+                        <td class="check">✅ Full Suite</td>
+                        <td class="check">✅ Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Microsoft/Azure AD</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅ Basic</td>
+                        <td class="check">✅ Full</td>
+                        <td class="check">✅ Full + Custom</td>
+                        <td class="check">✅ Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Microsoft Calendar</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅ Basic</td>
+                        <td class="check">✅ Full</td>
+                        <td class="check">✅ Full + Custom</td>
+                        <td class="check">✅ Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>OpenAI Integration</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅ Limited</td>
+                        <td class="check">✅ Full</td>
+                        <td class="check">✅ Full + Custom</td>
+                        <td class="check">✅ Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>LMS Integration</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅ All 6 Systems</td>
+                        <td class="check">✅ All 6 Systems</td>
+                        <td class="check">✅ Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Analytics</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅ Basic</td>
+                        <td class="check">✅ Advanced</td>
+                        <td class="check">✅ Full Suite</td>
+                        <td class="check">✅ Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>API Access</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅ Limited</td>
+                        <td class="check">✅ Full</td>
+                        <td class="check">✅ Custom</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Priority Support</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅</td>
+                        <td class="check">✅</td>
+                        <td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Custom Integrations</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅</td>
+                        <td class="check">✅</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dedicated Support</strong></td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="cross">❌</td>
+                        <td class="check">✅</td>
+                        <td class="check">✅</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="faq-section">
+            <h2 style="color: var(--secondary-color); font-size: 2rem; margin-bottom: 2rem; text-align: center;">Frequently Asked Questions</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">Can I change plans later?</div>
+                <div class="faq-answer">Yes! You can upgrade or downgrade your plan at any time. Changes take effect at the start of your next billing cycle.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What payment methods do you accept?</div>
+                <div class="faq-answer">We accept credit cards, PayPal, and for Enterprise/Custom plans, bank transfers and purchase orders.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Is there a free trial?</div>
+                <div class="faq-answer">Yes! The FREE plan is available for all users to try out the platform. You can upgrade to a paid plan at any time.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What LMS systems are supported?</div>
+                <div class="faq-answer">Professional and Enterprise plans include integration with Canvas, Blackboard, Moodle, PowerSchool, Schoology, and Google Classroom.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Do you offer yearly billing with discounts?</div>
+                <div class="faq-answer">Yes! Annual plans typically save you 2 months of service. Contact us for yearly pricing details.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What happens if I exceed my usage limits?</div>
+                <div class="faq-answer">We'll notify you before you reach your limits. You can upgrade your plan or purchase additional usage credits.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">Can I cancel anytime?</div>
+                <div class="faq-answer">Yes, you can cancel your subscription at any time. Your access will continue until the end of your current billing period.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question">What's included in "AI assistants through natural conversation"?</div>
+                <div class="faq-answer">All plans include access to our conversational AI interface where you interact with intelligent avatars through natural dialogue—no complex interfaces, just conversation.</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p style="font-weight: 600;">FARADAY-AI, LLC 2025</p>
+            <p style="color: var(--text-light); margin-top: 0.5rem;">Questions? Contact us for more information about our pricing plans.</p>
+        </footer>
+    </div>
+
+    <script>
+        function showComingSoon() {
+            alert('Subscription management coming soon! Contact us to get started.');
+        }
+    </script>
+</body>
+</html>
+

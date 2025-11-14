@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from .endpoints import activity_router, ai_analysis_router, lesson_plans_router, pe_router, user_profile_router, user_preferences_router, role_management_router, permission_management_router, organization_management_router, team_management_router, user_analytics_router, beta_testing_router
 from .endpoints import resource_management, beta_teacher_dashboard, beta_safety, beta_assessment, beta_security, beta_resource_management, dashboard_resource_management, dashboard_context_analytics, beta_context_analytics, dashboard_preferences, beta_dashboard_preferences
-from .endpoints import microsoft_auth, beta_microsoft_auth, microsoft_calendar, beta_microsoft_calendar, microsoft_health
+from .endpoints import microsoft_auth, beta_microsoft_auth, microsoft_calendar, beta_microsoft_calendar, microsoft_health, speech_to_text, guest_chat
 from .middleware import auth, rate_limit
 
 # Create main router
@@ -44,6 +44,10 @@ router.include_router(beta_microsoft_auth.router, prefix="/api/v1", tags=["beta-
 router.include_router(microsoft_calendar.router, prefix="/api/v1", tags=["microsoft-calendar"])
 router.include_router(beta_microsoft_calendar.router, prefix="/api/v1", tags=["beta-microsoft-calendar"])
 router.include_router(microsoft_health.router, prefix="/api/v1", tags=["microsoft-health"])
+# Speech-to-text router - include with /api/v1 prefix to match other routes
+router.include_router(speech_to_text.router, prefix="/api/v1", tags=["speech-to-text"])
+# Guest chat router - allows chat without authentication
+router.include_router(guest_chat.router, prefix="/api/v1", tags=["guest-chat"])
 
 # Export middleware functions for use in main FastAPI app
 authentication_middleware = auth.add_authentication

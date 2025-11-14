@@ -31,7 +31,7 @@ def migrate_teachers_full():
 
     print('🚀 FULL TEACHER MIGRATION - CLEAN ARCHITECTURE')
     print('=' * 80)
-    print('⚠️  FALLBACK POINT: Current commit (Fix test suite: resolve 9 safety service errors, optimize queries, and improve test fixtures)')
+    print('⚠️  FALLBACK POINT: Commit 55f88d2f (Security: Remove hardcoded secrets, add Microsoft integration, LMS preparation docs)')
     print('=' * 80)
 
     try:
