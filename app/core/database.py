@@ -114,8 +114,11 @@ def acquire_db_lock():
         
         return lock_fd
     except (IOError, OSError) as e:
-        # Lock is held by another process or file doesn't exist
-        print(f"Database initialization already in progress by another process, skipping... (Error: {e})")
+        # Lock is held by another process - this is normal when Docker is already initializing
+        # It's safe to skip initialization if another process is handling it
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Database initialization already in progress by another process (likely Docker), skipping... (Error: {e})")
         return None
 
 def release_db_lock(lock_fd):
@@ -134,7 +137,11 @@ def initialize_engines():
     # Try to acquire the database initialization lock
     lock_fd = acquire_db_lock()
     if not lock_fd:
-        print("Database initialization already in progress by another process, skipping...")
+        # Another process (likely Docker container) is already initializing the database
+        # This is expected and safe - we can skip initialization
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Database initialization already in progress by another process (likely Docker), skipping...")
         return
     
     try:
@@ -259,13 +266,13 @@ def initialize_engines():
 async def init_db() -> bool:
     """Initialize the database with required data.
     
+    Note: initialize_engines() should be called separately before this function.
+    This function only tests the database connection and performs data initialization.
+    
     Returns:
         bool: True if initialization was successful, False otherwise
     """
     try:
-        # Initialize database engines first
-        initialize_engines()
-        
         # Create a test connection to verify database is working
         # Use a longer timeout for Azure PostgreSQL connections
         import time
