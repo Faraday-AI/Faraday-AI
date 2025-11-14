@@ -50,6 +50,10 @@ def get_region_db_url(region: str) -> str:
     return base_url
 
 # Create SQLAlchemy engine with connection pooling and SSL configuration
+# For Azure PostgreSQL, use longer timeouts to handle network latency
+is_azure_postgres = "database.azure.com" in DATABASE_URL if DATABASE_URL else False
+connect_timeout = 60 if is_azure_postgres else 30  # Longer timeout for Azure
+
 engine = create_engine(
     DATABASE_URL,
     connect_args={
@@ -57,7 +61,7 @@ engine = create_engine(
     } if DATABASE_URL.startswith("sqlite") else {
         "sslmode": "require",  # Always require SSL for security
         "application_name": "faraday-ai",  # Add application name for better monitoring
-        "connect_timeout": 30,  # Connection timeout in seconds
+        "connect_timeout": connect_timeout,  # Connection timeout in seconds (longer for Azure)
         "keepalives_idle": 600,  # TCP keepalive idle time
         "keepalives_interval": 30,  # TCP keepalive interval
         "keepalives_count": 3  # TCP keepalive count
@@ -65,9 +69,10 @@ engine = create_engine(
     poolclass=QueuePool,
     pool_size=5,
     max_overflow=10,
-    pool_timeout=30,
+    pool_timeout=60 if is_azure_postgres else 30,  # Longer pool timeout for Azure
     pool_recycle=1800,
-    pool_pre_ping=True  # Enable connection health checks
+    pool_pre_ping=True,  # Enable connection health checks
+    echo=False  # Set to True for SQL query logging (useful for debugging)
 )
 
 # Create session factory
@@ -262,13 +267,44 @@ async def init_db() -> bool:
         initialize_engines()
         
         # Create a test connection to verify database is working
-        with engine.connect() as conn:
-            # Test query
-            conn.execute(text("SELECT 1"))
+        # Use a longer timeout for Azure PostgreSQL connections
+        import time
+        start_time = time.time()
+        
+        try:
+            with engine.connect() as conn:
+                # Test query
+                conn.execute(text("SELECT 1"))
+                elapsed = time.time() - start_time
+                print(f"Database connection successful (took {elapsed:.2f}s)")
+        except Exception as conn_error:
+            elapsed = time.time() - start_time
+            error_msg = str(conn_error)
+            print(f"Database connection failed after {elapsed:.2f}s: {error_msg}")
+            
+            # Provide helpful diagnostics for Azure PostgreSQL
+            if "database.azure.com" in (DATABASE_URL or ""):
+                print("\nAzure PostgreSQL Connection Troubleshooting:")
+                print("1. Verify DATABASE_URL format: postgresql://user:password@server.postgres.database.azure.com:5432/dbname?sslmode=require")
+                print("2. Check Azure firewall rules allow Render IPs")
+                print("3. Verify SSL certificate is valid")
+                print("4. Check if database server is running and accessible")
+            
+            raise  # Re-raise to be caught by outer try/except
             
         return True
     except Exception as e:
-        print(f"Error initializing database: {e}")
+        error_msg = str(e)
+        print(f"Error initializing database: {error_msg}")
+        
+        # Log more details for timeout errors
+        if "timeout" in error_msg.lower() or "timed out" in error_msg.lower():
+            print("\nTimeout Error - Possible causes:")
+            print("- Network latency between Render and Azure")
+            print("- Firewall blocking connection")
+            print("- Database server overloaded")
+            print("- Incorrect connection string")
+        
         return False
 
 # Context-local storage for test sessions (used in test mode)
