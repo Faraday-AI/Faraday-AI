@@ -2280,6 +2280,58 @@ def seed_database():
 
                 print("="*50)
                 
+                # Set admin user (if email exists in database)
+                print("\n" + "="*50)
+                print("SETTING ADMIN USER")
+                print("="*50)
+                try:
+                    admin_email = "jmartucci@faraday-ai.com"
+                    result = session.execute(text("""
+                        UPDATE users 
+                        SET role = 'admin', 
+                            is_superuser = true, 
+                            is_active = true,
+                            disabled = false
+                        WHERE email = :email
+                    """), {"email": admin_email})
+                    
+                    if result.rowcount > 0:
+                        print(f"✅ Updated user {admin_email} to admin with full access!")
+                    else:
+                        print(f"⚠️  User {admin_email} not found in users table.")
+                        # Try to create admin user from teacher_registrations if it exists there
+                        teacher_check = session.execute(text("""
+                            SELECT email, password_hash, first_name, last_name 
+                            FROM teacher_registrations 
+                            WHERE email = :email
+                        """), {"email": admin_email}).fetchone()
+                        
+                        if teacher_check:
+                            # User exists in teacher_registrations, create in users table
+                            session.execute(text("""
+                                INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, created_at, updated_at)
+                                VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, NOW(), NOW())
+                                ON CONFLICT (email) DO UPDATE 
+                                SET role = 'admin',
+                                    is_superuser = true,
+                                    is_active = true,
+                                    disabled = false
+                            """), {
+                                "email": teacher_check[0],
+                                "password_hash": teacher_check[1],
+                                "first_name": teacher_check[2],
+                                "last_name": teacher_check[3]
+                            })
+                            session.commit()
+                            print(f"✅ Created admin user {admin_email} from teacher_registrations!")
+                        else:
+                            print(f"ℹ️  User {admin_email} not found. Register first, then this will update you to admin on next deployment.")
+                    
+                    session.commit()
+                except Exception as e:
+                    print(f"⚠️  Could not set admin user: {e}")
+                    session.rollback()
+                    # Don't fail the entire seeding process if admin setup fails
                 
                 # Final count summary
                 print("\n" + "="*50)

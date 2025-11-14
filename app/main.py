@@ -787,12 +787,68 @@ async def startup_event():
                     raise
         
         # Initialize rate limiter
-        redis_instance = redis.asyncio.Redis.from_url(
-            settings.REDIS_URL,
-            encoding="utf-8",
-            decode_responses=True
-        )
-        await FastAPILimiter.init(redis_instance)
+        try:
+            redis_instance = redis.asyncio.Redis.from_url(
+                settings.REDIS_URL,
+                encoding="utf-8",
+                decode_responses=True
+            )
+            await FastAPILimiter.init(redis_instance)
+        except Exception as e:
+            logger.warning(f"Rate limiter initialization failed (Redis may not be available): {e}")
+        
+        # Set admin user on startup (runs every time app starts)
+        try:
+            from sqlalchemy import text
+            admin_email = "jmartucci@faraday-ai.com"
+            db_session = next(get_db())
+            
+            # Try to update existing user to admin
+            result = db_session.execute(text("""
+                UPDATE users 
+                SET role = 'admin', 
+                    is_superuser = true, 
+                    is_active = true,
+                    disabled = false
+                WHERE email = :email
+            """), {"email": admin_email})
+            
+            if result.rowcount > 0:
+                db_session.commit()
+                logger.info(f"✅ Updated user {admin_email} to admin with full access!")
+            else:
+                # User not in users table, check teacher_registrations
+                teacher_check = db_session.execute(text("""
+                    SELECT email, password_hash, first_name, last_name 
+                    FROM teacher_registrations 
+                    WHERE email = :email
+                """), {"email": admin_email}).fetchone()
+                
+                if teacher_check:
+                    # Create admin user from teacher_registrations
+                    db_session.execute(text("""
+                        INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, created_at, updated_at)
+                        VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, NOW(), NOW())
+                        ON CONFLICT (email) DO UPDATE 
+                        SET role = 'admin',
+                            is_superuser = true,
+                            is_active = true,
+                            disabled = false
+                    """), {
+                        "email": teacher_check[0],
+                        "password_hash": teacher_check[1],
+                        "first_name": teacher_check[2],
+                        "last_name": teacher_check[3]
+                    })
+                    db_session.commit()
+                    logger.info(f"✅ Created admin user {admin_email} from teacher_registrations!")
+                else:
+                    logger.info(f"ℹ️  Admin user {admin_email} not found. Register first, then restart app.")
+            
+            db_session.close()
+        except Exception as e:
+            logger.warning(f"Could not set admin user on startup: {e}")
+            # Don't fail startup if admin setup fails
         
         logger.info("Application startup complete")
     except Exception as e:
