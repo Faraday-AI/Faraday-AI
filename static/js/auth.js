@@ -370,16 +370,58 @@ window.initializeAuthForm = function() {
                 return;
             }
 
+            // Parse name into first and last name
+            const nameParts = name.trim().split(/\s+/);
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
+
             // Show loading state
             registerButton.disabled = true;
             showLoading(registerLoading);
 
-            // Simulate loading for a moment
-            setTimeout(() => {
+            // Register with API
+            try {
+                const response = await fetch('/api/v1/auth/teacher/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                        first_name: firstName,
+                        last_name: lastName
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    hideLoading(registerLoading);
+                    showSuccess(registerSuccess, data.message || 'Registration successful! Please check your email to verify your account.');
+                    // Clear form
+                    document.getElementById('register-name').value = '';
+                    document.getElementById('register-email').value = '';
+                    document.getElementById('register-password').value = '';
+                    document.getElementById('register-confirm-password').value = '';
+                } else {
+                    hideLoading(registerLoading);
+                    registerButton.disabled = false;
+                    const errorMsg = data.detail || data.message || 'Registration failed. Please try again.';
+                    if (errorMsg.toLowerCase().includes('email')) {
+                        showError(registerEmailError, errorMsg);
+                    } else if (errorMsg.toLowerCase().includes('password')) {
+                        showError(registerPasswordError, errorMsg);
+                    } else {
+                        showError(registerNameError, errorMsg);
+                    }
+                }
+            } catch (error) {
                 hideLoading(registerLoading);
                 registerButton.disabled = false;
-                showSuccess(registerSuccess, 'Coming Soon! Registration is not yet available.');
-            }, 1000);
+                showError(registerNameError, 'Network error. Please check your connection and try again.');
+                console.error('Registration error:', error);
+            }
         });
     }
 

@@ -31,7 +31,7 @@ def migrate_teachers_full():
 
     print('🚀 FULL TEACHER MIGRATION - CLEAN ARCHITECTURE')
     print('=' * 80)
-    print('⚠️  FALLBACK POINT: Commit 55f88d2f (Security: Remove hardcoded secrets, add Microsoft integration, LMS preparation docs)')
+    print('⚠️  FALLBACK POINT: Commit 0f3ce707 (Add dashboard resizable panels, guest chat with SMS integration, and frontend updates)')
     print('=' * 80)
 
     try:
@@ -359,7 +359,7 @@ def migrate_teachers_full():
     except Exception as e:
         print(f'❌ Error during migration: {e}')
         session.rollback()
-        print('🔄 All changes rolled back - fallback to commit 2ab865dd')
+        print('🔄 All changes rolled back - fallback to commit 0f3ce707')
         import traceback
         traceback.print_exc()
         raise

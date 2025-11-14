@@ -44,30 +44,49 @@ class RedisCluster:
         self.replication_enabled = True
         self.replication_timeout = 1.0  # seconds
         self._current_region = self.primary_region  # Default to primary region
+        self.is_available = False  # Track if Redis is available
         
     def initialize(self):
-        """Initialize Redis clients for all regions."""
+        """Initialize Redis clients for all regions. Gracefully handles Redis unavailability."""
+        # Always try to initialize - if it fails, we'll gracefully degrade
+        
         try:
+            initialized_regions = 0
             for region in Region:
-                # Get region-specific Redis URL
-                redis_url = self._get_region_redis_url(region)
-                
-                # Create Redis client
-                self.clients[region.value] = redis.Redis.from_url(
-                    redis_url,
-                    decode_responses=True,
-                    socket_timeout=5,
-                    socket_connect_timeout=5,
-                    retry_on_timeout=True
-                )
-                
-                # Test connection
-                self.clients[region.value].ping()
-                logger.info(f"Redis client initialized for region {region.value}")
+                try:
+                    # Get region-specific Redis URL
+                    redis_url = self._get_region_redis_url(region)
+                    
+                    # Create Redis client
+                    client = redis.Redis.from_url(
+                        redis_url,
+                        decode_responses=True,
+                        socket_timeout=5,
+                        socket_connect_timeout=5,
+                        retry_on_timeout=True
+                    )
+                    
+                    # Test connection with short timeout
+                    client.ping()
+                    self.clients[region.value] = client
+                    logger.info(f"Redis client initialized for region {region.value}")
+                    initialized_regions += 1
+                except Exception as e:
+                    logger.warning(f"Failed to initialize Redis for region {region.value}: {e}")
+                    # Continue with other regions
+                    continue
+            
+            if initialized_regions > 0:
+                self.is_available = True
+                logger.info(f"Redis cluster initialized with {initialized_regions} region(s)")
+            else:
+                self.is_available = False
+                logger.warning("No Redis regions could be initialized. Cache will operate in degraded mode.")
                 
         except Exception as e:
-            logger.error(f"Failed to initialize Redis cluster: {e}")
-            raise
+            logger.warning(f"Failed to initialize Redis cluster: {e}. Cache will operate in degraded mode.")
+            self.is_available = False
+            # Don't raise - allow app to start without Redis
             
     def _get_region_redis_url(self, region: Region) -> str:
         """Get Redis URL for a specific region."""
@@ -81,24 +100,27 @@ class RedisCluster:
             return base_url.replace("redis://", f"redis://redis-{region.value}-")
         return base_url
         
-    def get_client(self, region: Optional[Region] = None) -> redis.Redis:
-        """Get Redis client for a specific region."""
+    def get_client(self, region: Optional[Region] = None) -> Optional[redis.Redis]:
+        """Get Redis client for a specific region. Returns None if Redis is not available."""
+        if not self.is_available:
+            return None
         if region is None:
             region = self._current_region
-        return self.clients[region.value]
+        return self.clients.get(region.value)
         
     async def replicate(self, key: str, value: Any, ttl: Optional[int] = None):
         """Replicate data to all regions."""
-        if not self.replication_enabled:
+        if not self.replication_enabled or not self.is_available:
             return
             
         tasks = []
         for region in Region:
             if region != self.primary_region:
-                client = self.clients[region.value]
-                tasks.append(
-                    self._replicate_to_region(client, key, value, ttl)
-                )
+                client = self.clients.get(region.value)
+                if client:
+                    tasks.append(
+                        self._replicate_to_region(client, key, value, ttl)
+                    )
                 
         if tasks:
             await asyncio.gather(*tasks, return_exceptions=True)
@@ -134,6 +156,7 @@ redis_cluster = RedisCluster()
 redis_cluster.initialize()
 
 # Initialize default Redis client (for backward compatibility)
+# This may be None if Redis is not available
 redis_client = redis_cluster.get_client(redis_cluster.primary_region)
 
 def get_cache_key(prefix: str, *args, **kwargs) -> str:
@@ -150,9 +173,14 @@ class Cache:
         self.redis = redis_client or redis_cluster.get_client()
         self.replicate = replicate
         self.logger = logging.getLogger(__name__)
+        self._in_memory_cache: Dict[str, Any] = {}  # Fallback in-memory cache
     
     def get(self, key: str) -> Optional[Any]:
         """Get value from cache."""
+        # If Redis is not available, use in-memory cache
+        if self.redis is None:
+            return self._in_memory_cache.get(key)
+            
         try:
             with cache_operation_duration.time():
                 value = self.redis.get(key)
@@ -163,10 +191,16 @@ class Cache:
                 return None
         except redis.RedisError as e:
             self.logger.error(f"Cache get error: {str(e)}")
-            return None
+            # Fallback to in-memory cache
+            return self._in_memory_cache.get(key)
     
     def set(self, key: str, value: Any, ttl: int = 3600) -> bool:
         """Set value in cache with TTL and optional replication."""
+        # If Redis is not available, use in-memory cache
+        if self.redis is None:
+            self._in_memory_cache[key] = value
+            return True
+            
         try:
             with cache_operation_duration.time():
                 success = self.redis.setex(
@@ -181,24 +215,45 @@ class Cache:
                 return success
         except redis.RedisError as e:
             self.logger.error(f"Cache set error: {str(e)}")
-            return False
+            # Fallback to in-memory cache
+            self._in_memory_cache[key] = value
+            return True
     
     def delete(self, key: str) -> bool:
         """Delete value from cache."""
+        # If Redis is not available, use in-memory cache
+        if self.redis is None:
+            if key in self._in_memory_cache:
+                del self._in_memory_cache[key]
+                return True
+            return False
+            
         try:
             with cache_operation_duration.time():
                 success = bool(self.redis.delete(key))
                 
                 if success and self.replicate:
                     asyncio.run(redis_cluster.replicate(key, None))
+                
+                # Also remove from in-memory cache
+                self._in_memory_cache.pop(key, None)
                     
                 return success
         except redis.RedisError as e:
             self.logger.error(f"Cache delete error: {str(e)}")
+            # Fallback to in-memory cache
+            if key in self._in_memory_cache:
+                del self._in_memory_cache[key]
+                return True
             return False
     
     def clear(self) -> bool:
         """Clear all cache entries."""
+        # If Redis is not available, clear in-memory cache
+        if self.redis is None:
+            self._in_memory_cache.clear()
+            return True
+            
         try:
             with cache_operation_duration.time():
                 success = self.redis.flushdb()
@@ -208,12 +263,18 @@ class Cache:
                     for region in Region:
                         if region != redis_cluster.primary_region:
                             client = redis_cluster.get_client(region)
-                            client.flushdb()
+                            if client:
+                                client.flushdb()
+                
+                # Also clear in-memory cache
+                self._in_memory_cache.clear()
                     
                 return success
         except redis.RedisError as e:
             self.logger.error(f"Cache clear error: {str(e)}")
-            return False
+            # Fallback to in-memory cache
+            self._in_memory_cache.clear()
+            return True
 
 # Singleton instance of Cache
 _cache_instance = None
@@ -243,6 +304,10 @@ def cached(prefix: str, ttl: int = 3600, replicate: bool = True):
         @wraps(func)
         def wrapper(*args, **kwargs):
             cache_key = get_cache_key(prefix, *args, **kwargs)
+            
+            # If Redis is not available, just execute the function
+            if redis_client is None:
+                return func(*args, **kwargs)
             
             try:
                 with cache_operation_duration.time():

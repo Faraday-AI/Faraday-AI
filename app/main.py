@@ -51,6 +51,7 @@ from app.api.v1.middleware.cache import add_caching
 from app.api.v1 import router as api_router
 from app.api.v1.endpoints.speech_to_text import router as speech_to_text_router
 from app.api.v1.endpoints.guest_chat import router as guest_chat_router
+from app.api.v1.endpoints.teacher_auth import router as teacher_auth_router
 from fastapi_limiter import FastAPILimiter
 from app.middleware.auth import AuthMiddleware
 from app.api.v1.middleware.rate_limit import add_rate_limiting
@@ -624,6 +625,8 @@ app.include_router(api_router)  # Uncommented for development - needed for user 
 app.include_router(speech_to_text_router, prefix="/api/v1", tags=["speech-to-text"])
 # Include guest chat router directly to ensure it's registered
 app.include_router(guest_chat_router, prefix="/api/v1", tags=["guest-chat"])
+# Include teacher auth router for registration and login
+app.include_router(teacher_auth_router, prefix="/api/v1", tags=["teacher-authentication"])
 # Include user analytics router separately to avoid conflicts
 from app.api.v1.endpoints.user_analytics import router as user_analytics_router
 app.include_router(user_analytics_router, prefix="/api/v1/analytics", tags=["user-analytics"])
