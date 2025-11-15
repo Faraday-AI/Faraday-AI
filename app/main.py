@@ -81,7 +81,7 @@ from app.api.v1.endpoints import educational
 from app.core.load_balancer import GlobalLoadBalancer
 from app.core.regional_failover import RegionalFailoverManager
 from app.dashboard.services.monitoring import MonitoringService
-from app.dashboard.services.resource_sharing import ResourceSharingService
+from app.dashboard.services.resource_sharing_service import ResourceSharingService
 from app.dashboard.services.load_balancer_service import LoadBalancerService
 from app.services.physical_education import service_integration
 from pydantic import BaseModel

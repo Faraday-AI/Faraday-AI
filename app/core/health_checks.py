@@ -35,10 +35,18 @@ async def check_minio(region_value: Optional[str] = None) -> Dict[str, Any]:
         minio_endpoint = None
         minio_secure = False
         
-        # If MINIO_URL is set (e.g., http://minio.example.com:9000), parse it
+        # If MINIO_URL is set (e.g., http://minio.example.com:9000 or https://minio.onrender.com), parse it
         if settings.MINIO_URL:
             parsed_url = urlparse(settings.MINIO_URL)
+            # For Render web services, the port is handled by the load balancer (443 for HTTPS, 80 for HTTP)
+            # Extract just the hostname (netloc includes port if specified, but we'll use it as-is)
             minio_endpoint = parsed_url.netloc or parsed_url.path
+            # Remove port if it's the default HTTPS (443) or HTTP (80) port for Render
+            if minio_endpoint and ':' in minio_endpoint:
+                host, port = minio_endpoint.rsplit(':', 1)
+                # Remove default ports for Render web services
+                if port in ('443', '80'):
+                    minio_endpoint = host
             minio_secure = parsed_url.scheme == "https"
             logger.info(f"MinIO health check using MINIO_URL: {settings.MINIO_URL} (endpoint: {minio_endpoint}, secure: {minio_secure})")
         else:
