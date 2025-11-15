@@ -3,9 +3,13 @@ Main application module.
 """
 
 import logging
+import os
+# Suppress TensorFlow CUDA warnings (common in multi-worker setups)
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress INFO and WARNING messages
+os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'  # Prevent GPU memory growth issues
+
 from typing import Optional, Dict, Any, List, Tuple
 import tempfile
-import os
 import json
 from pathlib import Path
 from functools import lru_cache
@@ -95,6 +99,11 @@ from app.models.core.core_models import Region
 # Configure logging
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
+
+# Suppress TensorFlow CUDA registration warnings (common in multi-worker gunicorn setups)
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+# Suppress absl (TensorFlow dependency) warnings
+logging.getLogger('absl').setLevel(logging.ERROR)
 
 # User streaks tracking
 USER_STREAKS = {}
