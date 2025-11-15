@@ -4323,10 +4323,11 @@ async def check_redis():
 
 async def check_minio():
     try:
-        # Add MinIO check logic here
-        return "ready"
+        from app.core.health_checks import check_minio as health_check_minio
+        result = await health_check_minio()
+        return "ready" if result.get("status") == "healthy" else "not_ready"
     except Exception as e:
-        logger.error(f"MinIO check failed: {str(e)}")
+        logger.warning(f"MinIO check failed: {str(e)}")
         return "not_ready"
 
 async def check_models():

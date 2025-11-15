@@ -78,25 +78,58 @@ class Settings(BaseSettings):
     )
     
     # MinIO settings
+    # Support MINIO_URL for Render/production (format: http://host:port or https://host:port)
+    # Also support MINIO_ENDPOINT for direct endpoint configuration (format: host:port)
+    MINIO_URL: Optional[str] = os.getenv("MINIO_URL")  # Full URL (e.g., http://minio.example.com:9000)
+    
+    # Determine if we're in Docker or Render environment
+    _is_docker = check_service_availability("localhost", 9000)
+    # Render sets various env vars - check for any of them
+    _is_render = any([
+        os.getenv("RENDER") is not None,
+        os.getenv("RENDER_SERVICE_ID") is not None,
+        os.getenv("RENDER_SERVICE_NAME") is not None,
+        os.getenv("RENDER_EXTERNAL_URL") is not None,
+        "/opt/render" in os.getcwd() if os.getcwd() else False  # Render uses /opt/render/project/src
+    ])
+    
     MINIO_ENDPOINT: str = os.getenv(
-        "DOCKER_MINIO_URL" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_URL",
-        "localhost:9000"
+        "MINIO_ENDPOINT",  # Direct endpoint (e.g., minio.example.com:9000)
+        # Don't default to Docker service names on Render or when MinIO isn't available locally
+        "localhost:9000" if (_is_render or not _is_docker) else (
+            os.getenv(
+                "DOCKER_MINIO_URL",
+                "minio:9000"
+            )
+        )
     )
     MINIO_ACCESS_KEY: str = os.getenv(
-        "DOCKER_MINIO_ACCESS_KEY" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_ACCESS_KEY",
-        "minioadmin"
+        "MINIO_ACCESS_KEY",
+        os.getenv(
+            "DOCKER_MINIO_ACCESS_KEY" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_ACCESS_KEY",
+            "minioadmin"
+        )
     )
     MINIO_SECRET_KEY: str = os.getenv(
-        "DOCKER_MINIO_SECRET_KEY" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_SECRET_KEY",
-        "minioadmin"
+        "MINIO_SECRET_KEY",
+        os.getenv(
+            "DOCKER_MINIO_SECRET_KEY" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_SECRET_KEY",
+            "minioadmin"
+        )
     )
     MINIO_BUCKET: str = os.getenv(
-        "DOCKER_MINIO_BUCKET" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_BUCKET",
-        "faraday-media"
+        "MINIO_BUCKET",
+        os.getenv(
+            "DOCKER_MINIO_BUCKET" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_BUCKET",
+            "faraday-media"
+        )
     )
     MINIO_SECURE: bool = os.getenv(
-        "DOCKER_MINIO_SECURE" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_SECURE",
-        "false"
+        "MINIO_SECURE",
+        os.getenv(
+            "DOCKER_MINIO_SECURE" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_SECURE",
+            "false"
+        )
     ).lower() == "true"
     
     # OpenAI settings

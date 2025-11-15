@@ -1,11 +1,13 @@
 from typing import Dict, Any, Optional
 import os
+from urllib.parse import urlparse
 from redis import asyncio as aioredis
 from minio import Minio
 from sqlalchemy import text
 import logging
 from datetime import datetime
 from app.core.database import engine
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -29,26 +31,51 @@ async def check_redis(redis_url: str, region_value: Optional[str] = None) -> Dic
 async def check_minio(region_value: Optional[str] = None) -> Dict[str, Any]:
     """Check MinIO connection and health for a specific region."""
     try:
-        # Use the local MinIO endpoint since we're not actually running multi-region
+        # Parse MinIO endpoint from MINIO_URL or MINIO_ENDPOINT
+        minio_endpoint = None
+        minio_secure = False
+        
+        # If MINIO_URL is set (e.g., http://minio.example.com:9000), parse it
+        if settings.MINIO_URL:
+            parsed_url = urlparse(settings.MINIO_URL)
+            minio_endpoint = parsed_url.netloc or parsed_url.path
+            minio_secure = parsed_url.scheme == "https"
+            logger.info(f"MinIO health check using MINIO_URL: {settings.MINIO_URL} (endpoint: {minio_endpoint}, secure: {minio_secure})")
+        else:
+            # Use MINIO_ENDPOINT directly (e.g., minio.example.com:9000)
+            minio_endpoint = settings.MINIO_ENDPOINT
+            minio_secure = settings.MINIO_SECURE
+            logger.info(f"MinIO health check using MINIO_ENDPOINT: {minio_endpoint} (secure: {minio_secure})")
+        
+        if not minio_endpoint:
+            return {
+                "status": "not_configured",
+                "message": "MinIO endpoint not configured",
+                "region": region_value if region_value else "default"
+            }
+        
+        # Create MinIO client using settings
         minio_client = Minio(
-            "minio:9000",  # Use the Docker service name
-            access_key="minioadmin",
-            secret_key="minioadmin",
-            secure=False
+            minio_endpoint,
+            access_key=settings.MINIO_ACCESS_KEY,
+            secret_key=settings.MINIO_SECRET_KEY,
+            secure=minio_secure
         )
         
+        # Test connection by listing buckets
         minio_client.list_buckets()
         return {"status": "healthy", "connection": "ok", "region": region_value if region_value else "default"}
     except Exception as e:
-        logger.error(f"MinIO health check failed for region {region_value if region_value else 'default'}: {str(e)}")
+        # Log error but don't fail the application - MinIO may not be available in all environments
+        logger.warning(f"MinIO health check failed for region {region_value if region_value else 'default'}: {str(e)}")
         return {
             "status": "unhealthy",
             "error": str(e),
             "region": region_value if region_value else "default",
             "details": {
-                "endpoint": "minio:9000",
-                "access_key": "configured",
-                "secure": False
+                "endpoint": minio_endpoint if 'minio_endpoint' in locals() else "not_configured",
+                "access_key": "configured" if settings.MINIO_ACCESS_KEY else "not_configured",
+                "secure": minio_secure if 'minio_secure' in locals() else False
             }
         }
 
