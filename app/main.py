@@ -590,7 +590,10 @@ def create_app(test_mode: bool = False) -> FastAPI:
                 # Cleanup other services
                 await get_realtime_collaboration_service().cleanup()
                 await get_file_processing_service().cleanup()
-                await get_ai_analytics_service().cleanup()
+                # AIAnalyticsService doesn't have a cleanup method, skip it
+                ai_analytics = get_ai_analytics_service()
+                if hasattr(ai_analytics, 'cleanup'):
+                    await ai_analytics.cleanup()
                 
                 # Shutdown resource sharing service background tasks
                 try:
@@ -915,7 +918,10 @@ async def shutdown_event():
         # Cleanup other services
         await get_realtime_collaboration_service().cleanup()
         await get_file_processing_service().cleanup()
-        await get_ai_analytics_service().cleanup()
+        # AIAnalyticsService doesn't have a cleanup method, skip it
+        ai_analytics = get_ai_analytics_service()
+        if hasattr(ai_analytics, 'cleanup'):
+            await ai_analytics.cleanup()
         
         # Shutdown resource sharing service background tasks
         try:
