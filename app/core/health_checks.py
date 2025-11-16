@@ -41,11 +41,12 @@ async def check_minio(region_value: Optional[str] = None) -> Dict[str, Any]:
             # For Render web services, the port is handled by the load balancer (443 for HTTPS, 80 for HTTP)
             # Extract just the hostname (netloc includes port if specified, but we'll use it as-is)
             minio_endpoint = parsed_url.netloc or parsed_url.path
-            # Remove port if it's the default HTTPS (443) or HTTP (80) port for Render
+            # Remove port if it's the default HTTPS (443), HTTP (80), or MinIO API (9000) port for Render
+            # Render web services don't expose internal ports like 9000 directly
             if minio_endpoint and ':' in minio_endpoint:
                 host, port = minio_endpoint.rsplit(':', 1)
-                # Remove default ports for Render web services
-                if port in ('443', '80'):
+                # Remove default ports for Render web services (443, 80) and MinIO API port (9000)
+                if port in ('443', '80', '9000'):
                     minio_endpoint = host
             minio_secure = parsed_url.scheme == "https"
             logger.info(f"MinIO health check using MINIO_URL: {settings.MINIO_URL} (endpoint: {minio_endpoint}, secure: {minio_secure})")
@@ -75,16 +76,30 @@ async def check_minio(region_value: Optional[str] = None) -> Dict[str, Any]:
         import asyncio
         from concurrent.futures import ThreadPoolExecutor
         
-        loop = asyncio.get_event_loop()
         try:
+            # Get the running event loop (more reliable than get_event_loop)
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = asyncio.get_event_loop()
+            
             # Run the synchronous call in a thread with a timeout
-            with ThreadPoolExecutor() as executor:
-                buckets = await asyncio.wait_for(
-                    loop.run_in_executor(executor, minio_client.list_buckets),
-                    timeout=10.0  # 10 second timeout
-                )
-        except asyncio.TimeoutError:
-            raise Exception(f"MinIO connection timed out after 10 seconds to {minio_endpoint}")
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                try:
+                    buckets = await asyncio.wait_for(
+                        loop.run_in_executor(executor, minio_client.list_buckets),
+                        timeout=5.0  # 5 second timeout (reduced from 10s to fail faster)
+                    )
+                    logger.info(f"MinIO health check succeeded for region {region_value if region_value else 'default'}")
+                except asyncio.TimeoutError:
+                    logger.warning(f"MinIO connection timed out after 5 seconds to {minio_endpoint}")
+                    raise Exception(f"MinIO connection timed out after 5 seconds to {minio_endpoint}")
+        except Exception as timeout_error:
+            # Re-raise timeout errors to be caught by outer exception handler
+            if "timed out" in str(timeout_error):
+                raise
+            # For other errors, let them bubble up
+            raise
         return {"status": "healthy", "connection": "ok", "region": region_value if region_value else "default"}
     except Exception as e:
         # Log error but don't fail the application - MinIO may not be available in all environments
