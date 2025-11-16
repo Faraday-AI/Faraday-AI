@@ -70,8 +70,21 @@ async def check_minio(region_value: Optional[str] = None) -> Dict[str, Any]:
             secure=minio_secure
         )
         
-        # Test connection by listing buckets
-        minio_client.list_buckets()
+        # Test connection by listing buckets with timeout
+        # Use asyncio to add timeout to the synchronous list_buckets call
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+        
+        loop = asyncio.get_event_loop()
+        try:
+            # Run the synchronous call in a thread with a timeout
+            with ThreadPoolExecutor() as executor:
+                buckets = await asyncio.wait_for(
+                    loop.run_in_executor(executor, minio_client.list_buckets),
+                    timeout=10.0  # 10 second timeout
+                )
+        except asyncio.TimeoutError:
+            raise Exception(f"MinIO connection timed out after 10 seconds to {minio_endpoint}")
         return {"status": "healthy", "connection": "ok", "region": region_value if region_value else "default"}
     except Exception as e:
         # Log error but don't fail the application - MinIO may not be available in all environments
