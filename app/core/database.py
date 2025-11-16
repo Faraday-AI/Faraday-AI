@@ -68,8 +68,8 @@ engine = create_engine(
         "keepalives_count": 3  # TCP keepalive count
     },
     poolclass=QueuePool,
-    pool_size=5,
-    max_overflow=10,
+    pool_size=2,  # Reduced to fit within 2 vCore limit (supports both local + Render)
+    max_overflow=3,  # Reduced to fit within 2 vCore limit
     pool_timeout=20 if is_azure_postgres else 15,  # Shorter pool timeout for faster startup
     pool_recycle=1800,
     pool_pre_ping=True,  # Enable connection health checks

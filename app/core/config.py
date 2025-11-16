@@ -83,7 +83,27 @@ class Settings(BaseSettings):
     MINIO_URL: Optional[str] = os.getenv("MINIO_URL")  # Full URL (e.g., http://minio.example.com:9000)
     
     # Determine if we're in Docker or Render environment
-    _is_docker = check_service_availability("localhost", 9000)
+    # Better Docker detection: check for Docker-specific indicators
+    def _is_in_docker() -> bool:
+        """Check if we're running inside a Docker container."""
+        # Check for Docker-specific files
+        if os.path.exists("/.dockerenv"):
+            return True
+        # Check for Docker in cgroup
+        try:
+            with open("/proc/self/cgroup", "r") as f:
+                return "docker" in f.read()
+        except:
+            pass
+        # Check if we can resolve the 'minio' hostname (Docker Compose service name)
+        try:
+            socket.gethostbyname("minio")
+            return True
+        except:
+            pass
+        return False
+    
+    _is_docker = _is_in_docker()
     # Render sets various env vars - check for any of them
     _is_render = any([
         os.getenv("RENDER") is not None,
@@ -93,43 +113,37 @@ class Settings(BaseSettings):
         "/opt/render" in os.getcwd() if os.getcwd() else False  # Render uses /opt/render/project/src
     ])
     
-    MINIO_ENDPOINT: str = os.getenv(
-        "MINIO_ENDPOINT",  # Direct endpoint (e.g., minio.example.com:9000)
-        # Don't default to Docker service names on Render or when MinIO isn't available locally
-        "localhost:9000" if (_is_render or not _is_docker) else (
-            os.getenv(
-                "DOCKER_MINIO_URL",
-                "minio:9000"
-            )
-        )
-    )
+    # Determine MinIO endpoint based on environment
+    # Priority: MINIO_ENDPOINT env var > MINIO_URL (for Render) > Docker service name > localhost
+    if os.getenv("MINIO_ENDPOINT"):
+        # Explicitly set via environment variable
+        _minio_endpoint_default = os.getenv("MINIO_ENDPOINT")
+    elif _is_render:
+        # Render: use localhost or parse from MINIO_URL if provided
+        _minio_endpoint_default = "localhost:9000"
+    elif _is_docker:
+        # Docker: use service name (accessible via Docker Compose networking)
+        _minio_endpoint_default = "minio:9000"
+    else:
+        # Local development (outside Docker): use localhost with mapped port
+        _minio_endpoint_default = "localhost:9002"  # Docker Compose maps 9000->9002
+    
+    MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", _minio_endpoint_default)
     MINIO_ACCESS_KEY: str = os.getenv(
         "MINIO_ACCESS_KEY",
-        os.getenv(
-            "DOCKER_MINIO_ACCESS_KEY" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_ACCESS_KEY",
-            "minioadmin"
-        )
+        os.getenv("DOCKER_MINIO_ACCESS_KEY", "minioadmin")
     )
     MINIO_SECRET_KEY: str = os.getenv(
         "MINIO_SECRET_KEY",
-        os.getenv(
-            "DOCKER_MINIO_SECRET_KEY" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_SECRET_KEY",
-            "minioadmin"
-        )
+        os.getenv("DOCKER_MINIO_SECRET_KEY", "minioadmin")
     )
     MINIO_BUCKET: str = os.getenv(
         "MINIO_BUCKET",
-        os.getenv(
-            "DOCKER_MINIO_BUCKET" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_BUCKET",
-            "faraday-media"
-        )
+        os.getenv("DOCKER_MINIO_BUCKET", "faraday-media")
     )
     MINIO_SECURE: bool = os.getenv(
         "MINIO_SECURE",
-        os.getenv(
-            "DOCKER_MINIO_SECURE" if check_service_availability("localhost", 9000) else "LOCAL_MINIO_SECURE",
-            "false"
-        )
+        os.getenv("DOCKER_MINIO_SECURE", "false")
     ).lower() == "true"
     
     # OpenAI settings

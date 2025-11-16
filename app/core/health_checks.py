@@ -88,12 +88,12 @@ async def check_minio(region_value: Optional[str] = None) -> Dict[str, Any]:
                 try:
                     buckets = await asyncio.wait_for(
                         loop.run_in_executor(executor, minio_client.list_buckets),
-                        timeout=5.0  # 5 second timeout (reduced from 10s to fail faster)
+                        timeout=2.0  # 2 second timeout to fail faster and not block startup
                     )
                     logger.info(f"MinIO health check succeeded for region {region_value if region_value else 'default'}")
                 except asyncio.TimeoutError:
-                    logger.warning(f"MinIO connection timed out after 5 seconds to {minio_endpoint}")
-                    raise Exception(f"MinIO connection timed out after 5 seconds to {minio_endpoint}")
+                    logger.warning(f"MinIO connection timed out after 2 seconds to {minio_endpoint}")
+                    raise Exception(f"MinIO connection timed out after 2 seconds to {minio_endpoint}")
         except Exception as timeout_error:
             # Re-raise timeout errors to be caught by outer exception handler
             if "timed out" in str(timeout_error):

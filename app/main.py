@@ -1223,17 +1223,35 @@ async def memory():
 async def health_check():
     """Comprehensive health check endpoint."""
     try:
-        # Check database connection
+        # Check database connection (non-blocking, simple query)
         try:
-            await init_db()
-            db_status = "healthy"
+            from sqlalchemy import text
+            import asyncio
+            from concurrent.futures import ThreadPoolExecutor
+            
+            def check_db():
+                with engine.connect() as conn:
+                    result = conn.execute(text("SELECT 1"))
+                    return result.scalar()
+            
+            # Run in thread pool with timeout to prevent hanging
+            loop = asyncio.get_event_loop()
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                result = await asyncio.wait_for(
+                    loop.run_in_executor(executor, check_db),
+                    timeout=3.0
+                )
+            db_status = "healthy" if result == 1 else "unhealthy"
+        except asyncio.TimeoutError:
+            logger.error("Database health check timed out after 3 seconds")
+            db_status = "unhealthy"
         except Exception as e:
             logger.error(f"Database health check failed: {str(e)}")
             db_status = "unhealthy"
 
-        # Check Redis connection
+        # Check Redis connection (with timeout)
         try:
-            redis_client = redis.Redis.from_url(settings.REDIS_URL)
+            redis_client = redis.Redis.from_url(settings.REDIS_URL, socket_connect_timeout=2, socket_timeout=2)
             redis_client.ping()
             redis_status = "healthy"
         except Exception as e:
@@ -4349,15 +4367,35 @@ async def readiness_probe():
 
 async def check_database():
     try:
-        await init_db()
-        return "ready"
+        # Use non-blocking database check instead of init_db()
+        from sqlalchemy import text
+        import asyncio
+        from concurrent.futures import ThreadPoolExecutor
+        
+        def check_db():
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT 1"))
+                return result.scalar()
+        
+        # Run in thread pool with timeout to prevent hanging
+        loop = asyncio.get_event_loop()
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            result = await asyncio.wait_for(
+                loop.run_in_executor(executor, check_db),
+                timeout=3.0
+            )
+        return "ready" if result == 1 else "not_ready"
+    except asyncio.TimeoutError:
+        logger.error("Database check timed out after 3 seconds")
+        return "not_ready"
     except Exception as e:
         logger.error(f"Database check failed: {str(e)}")
         return "not_ready"
 
 async def check_redis():
     try:
-        redis_client = redis.Redis.from_url(settings.REDIS_URL)
+        # Add timeout to prevent hanging
+        redis_client = redis.Redis.from_url(settings.REDIS_URL, socket_connect_timeout=2, socket_timeout=2)
         redis_client.ping()
         return "ready"
     except Exception as e:
