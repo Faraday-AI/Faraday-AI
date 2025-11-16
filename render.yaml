@@ -155,6 +155,18 @@ services:
         sync: false
       - key: MINIO_BUCKET
         value: faraday-media
+      - key: SMTP_SERVER
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USERNAME
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: FROM_EMAIL
+        sync: false
+      - key: FROM_NAME
+        sync: false
       - key: ENABLE_METRICS
         value: "true"
       - key: DEBUG

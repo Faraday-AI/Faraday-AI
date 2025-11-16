@@ -4257,9 +4257,35 @@ async def serve_service_page_head(service_name: str):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     logger.error(f"Validation error: {exc}")
+    
+    # Safely serialize errors - ensure all values are JSON serializable
+    errors = exc.errors()
+    serialized_errors = []
+    for error in errors:
+        serialized_error = {}
+        for key, value in error.items():
+            # Convert any non-serializable objects to strings
+            if not isinstance(value, (str, int, float, bool, type(None), list, dict)):
+                serialized_error[key] = str(value)
+            elif isinstance(value, dict):
+                # Recursively serialize nested dicts
+                serialized_error[key] = {k: str(v) if not isinstance(v, (str, int, float, bool, type(None), list, dict)) else v for k, v in value.items()}
+            else:
+                serialized_error[key] = value
+        serialized_errors.append(serialized_error)
+    
+    # Safely serialize body - convert any non-serializable objects to strings
+    body = exc.body
+    try:
+        import json
+        json.dumps(body)  # Test if body is JSON serializable
+    except (TypeError, ValueError):
+        # If body contains non-serializable objects, convert to string representation
+        body = str(body) if body is not None else None
+    
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-        content={"detail": exc.errors(), "body": exc.body},
+        content={"detail": serialized_errors, "body": body},
     )
 
 @app.exception_handler(StarletteHTTPException)
@@ -4272,10 +4298,12 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    logger.error(f"Unhandled error: {exc}")
+    logger.error(f"Unhandled error: {exc}", exc_info=True)
+    # Ensure detail is always a string, not an exception object
+    detail = str(exc) if exc else "Internal server error"
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": "Internal server error"},
+        content={"detail": detail},
     )
 
 @app.get("/ready")

@@ -516,6 +516,66 @@
             color: #1a73e8;
         }
 
+        /* Free Trial CTA Section Styles */
+        .free-trial-section {
+            width: 100%;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #1a73e8 0%, #3498db 100%);
+            text-align: center;
+            margin: 40px 0 0 0;
+            position: relative;
+            z-index: 9997;
+        }
+
+        .free-trial-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .free-trial-section h2 {
+            color: #fff;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .free-trial-section p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+        }
+
+        .free-trial-button {
+            display: inline-block;
+            background-color: #ffd700;
+            color: #1a73e8;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            position: relative;
+            z-index: 9998;
+        }
+
+        .free-trial-button:hover {
+            background-color: #e6c200;
+            color: #1c6ea4;
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
         /* Footer Styles */
         .footer {
             width: 100%;
@@ -548,11 +608,6 @@
 
         .social-links a:hover {
             color: #1a73e8;
-        }
-
-        .footer-links {
-            margin-bottom: 1rem;
-            text-align: center;
         }
 
         .footer-links a {
@@ -1296,6 +1351,15 @@
             </div>
         </div>
 
+        <!-- Free Trial CTA Section -->
+        <div class="free-trial-section">
+            <div class="free-trial-content">
+                <h2>Ready to Get Started?</h2>
+                <p>Try our Guest Dashboard and explore all features for free</p>
+                <a href="/dashboard" class="free-trial-button">Start Free Trial</a>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="footer" role="contentinfo">
             <div class="footer-content">
@@ -1569,47 +1633,8 @@
             element.classList.remove('active');
         }
 
-        // Login Form Handler
-        const loginFormElement = document.querySelector('.login-form');
-        loginFormElement.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const loginSuccess = document.querySelector('.login-success');
-            const loginEmailError = document.querySelector('.login-email-error');
-            const loginPasswordError = document.querySelector('.login-password-error');
-
-            // Reset errors and success messages
-            hideError(loginEmailError);
-            hideError(loginPasswordError);
-            hideSuccess(loginSuccess);
-
-            // Show coming soon message
-            loginSuccess.classList.add('active');
-            showSuccess(loginSuccess, 'Coming Soon! Login functionality will be available shortly.');
-        });
-
-        // Registration Form Handler
-        const registerFormElement = document.querySelector('.register-form');
-        registerFormElement.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const registerSuccess = document.querySelector('.register-success');
-            const registerNameError = document.querySelector('.register-name-error');
-            const registerEmailError = document.querySelector('.register-email-error');
-            const registerPasswordError = document.querySelector('.register-password-error');
-            const registerConfirmPasswordError = document.querySelector('.register-confirm-password-error');
-
-            // Reset errors and success messages
-            hideError(registerNameError);
-            hideError(registerEmailError);
-            hideError(registerPasswordError);
-            hideError(registerConfirmPasswordError);
-            hideSuccess(registerSuccess);
-
-            // Show coming soon message
-            registerSuccess.classList.add('active');
-            showSuccess(registerSuccess, 'Coming Soon! Registration functionality will be available shortly.');
-        });
+        // Login and Registration handlers are handled by /static/js/auth.js
+        // No need for duplicate handlers here
     </script>
 </body>
 </html> 

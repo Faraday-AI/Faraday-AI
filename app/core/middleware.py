@@ -98,18 +98,24 @@ class ErrorHandlingMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
         except Exception as e:
             # Log error
+            error_msg = str(e) if e else "Unknown error"
             logger.error(
-                f"Error occurred: {str(e)}",
+                f"Error occurred: {error_msg}",
                 extra={
                     "request_id": getattr(request.state, "request_id", None),
-                    "error": str(e),
+                    "error": error_msg,
                     "path": request.url.path
                 }
             )
             
-            # Return formatted error response
+            # Re-raise HTTPException so it can be handled by exception handlers
+            from fastapi import HTTPException
+            if isinstance(e, HTTPException):
+                raise
+            
+            # Return formatted error response for other exceptions
             return Response(
-                content=str(e),
+                content=error_msg,
                 status_code=500,
                 media_type="text/plain"
             )

@@ -321,12 +321,71 @@ window.initializeAuthForm = function() {
             loginButton.disabled = true;
             showLoading(loginLoading);
 
-            // Simulate loading for a moment
-            setTimeout(() => {
+            // Login with API
+            try {
+                const response = await fetch('/api/v1/auth/teacher/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && (data.success || data.access_token)) {
+                    hideLoading(loginLoading);
+                    
+                    // Store tokens and user data
+                    if (data.access_token) {
+                        localStorage.setItem('access_token', data.access_token);
+                    }
+                    if (data.refresh_token) {
+                        localStorage.setItem('refresh_token', data.refresh_token);
+                    }
+                    if (data.teacher_id) {
+                        localStorage.setItem('teacher_id', data.teacher_id);
+                    }
+                    if (data.email) {
+                        localStorage.setItem('user_email', data.email);
+                    }
+                    
+                    showSuccess(loginSuccess, data.message || 'Login successful! Redirecting...');
+                    
+                    // Clear form
+                    document.getElementById('login-email').value = '';
+                    document.getElementById('login-password').value = '';
+                    
+                    // Update auth button to show logout
+                    updateAuthButton();
+                    
+                    // Redirect to dashboard after a short delay
+                    setTimeout(() => {
+                        closeAuthForm();
+                        // Force redirect - use replace to prevent back button issues
+                        window.location.replace('/dashboard');
+                    }, 1500);
+                } else {
+                    hideLoading(loginLoading);
+                    loginButton.disabled = false;
+                    const errorMsg = data.detail || data.message || 'Login failed. Please check your credentials and try again.';
+                    if (errorMsg.toLowerCase().includes('email') || errorMsg.toLowerCase().includes('not verified')) {
+                        showError(loginEmailError, errorMsg);
+                    } else if (errorMsg.toLowerCase().includes('password')) {
+                        showError(loginPasswordError, errorMsg);
+                    } else {
+                        showError(loginEmailError, errorMsg);
+                    }
+                }
+            } catch (error) {
                 hideLoading(loginLoading);
                 loginButton.disabled = false;
-                showSuccess(loginSuccess, 'Coming Soon! This feature is not yet available.');
-            }, 1000);
+                showError(loginEmailError, 'Network error. Please check your connection and try again.');
+                console.error('Login error:', error);
+            }
         });
     }
 
@@ -404,6 +463,28 @@ window.initializeAuthForm = function() {
                     document.getElementById('register-email').value = '';
                     document.getElementById('register-password').value = '';
                     document.getElementById('register-confirm-password').value = '';
+                    
+                    // Switch to login form after a short delay
+                    setTimeout(() => {
+                        // Switch to login tab
+                        const loginToggle = document.querySelector('.login-toggle');
+                        const registerToggle = document.querySelector('.register-toggle');
+                        const loginForm = document.querySelector('.login-form');
+                        const registerForm = document.querySelector('.register-form');
+                        
+                        if (loginToggle && registerToggle && loginForm && registerForm) {
+                            loginForm.classList.add('active');
+                            registerForm.classList.remove('active');
+                            loginToggle.classList.add('active');
+                            registerToggle.classList.remove('active');
+                        }
+                        
+                        // Pre-fill email in login form
+                        const loginEmailInput = document.getElementById('login-email');
+                        if (loginEmailInput) {
+                            loginEmailInput.value = email;
+                        }
+                    }, 2000);
                 } else {
                     hideLoading(registerLoading);
                     registerButton.disabled = false;
@@ -455,4 +536,45 @@ window.closeAuthForm = function() {
     const authContainer = document.getElementById('auth-container');
     authContainer.style.display = 'none';
     document.body.style.overflow = 'auto';
-}; 
+};
+
+// Check if user is logged in
+function isLoggedIn() {
+    return !!localStorage.getItem('access_token');
+}
+
+// Update auth button based on login status
+function updateAuthButton() {
+    const authButton = document.querySelector('.auth-button');
+    if (!authButton) return;
+    
+    if (isLoggedIn()) {
+        authButton.textContent = 'Logout';
+        authButton.onclick = logout;
+    } else {
+        authButton.textContent = 'Login / Register';
+        authButton.onclick = showAuthForm;
+    }
+}
+
+// Logout function
+window.logout = function() {
+    // Clear all auth data from localStorage
+    localStorage.removeItem('access_token');
+    localStorage.removeItem('refresh_token');
+    localStorage.removeItem('teacher_id');
+    localStorage.removeItem('user_email');
+    
+    // Update auth button
+    updateAuthButton();
+    
+    // If on dashboard, redirect to homepage
+    if (window.location.pathname === '/dashboard' || window.location.pathname.startsWith('/dashboard/')) {
+        window.location.href = '/';
+    }
+};
+
+// Initialize auth button on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateAuthButton();
+}); 

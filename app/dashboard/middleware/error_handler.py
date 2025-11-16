@@ -18,20 +18,29 @@ class ErrorHandlerMiddleware(BaseHTTPMiddleware):
             logger.error(f"Error processing request: {str(e)}")
             logger.error(traceback.format_exc())
 
-            # Create error response
+            # Create error response - ensure all values are JSON serializable
             error_response = {
                 "error": {
-                    "message": str(e),
-                    "type": type(e).__name__,
+                    "message": str(e) if e else "Unknown error",
+                    "type": type(e).__name__ if e else "Exception",
                     "status_code": getattr(e, "status_code", HTTP_500_INTERNAL_SERVER_ERROR)
                 }
             }
 
-            # Add additional context for specific error types
+            # Add additional context for specific error types - ensure detail is a string
             if hasattr(e, "detail"):
-                error_response["error"]["detail"] = e.detail
+                detail = e.detail
+                # Ensure detail is JSON serializable (convert to string if needed)
+                if not isinstance(detail, (str, int, float, bool, type(None), list, dict)):
+                    detail = str(detail)
+                error_response["error"]["detail"] = detail
             if hasattr(e, "headers"):
-                error_response["error"]["headers"] = e.headers
+                headers = e.headers
+                # Ensure headers are JSON serializable
+                if isinstance(headers, dict):
+                    error_response["error"]["headers"] = {k: str(v) for k, v in headers.items()}
+                else:
+                    error_response["error"]["headers"] = str(headers) if headers else None
 
             return JSONResponse(
                 status_code=error_response["error"]["status_code"],

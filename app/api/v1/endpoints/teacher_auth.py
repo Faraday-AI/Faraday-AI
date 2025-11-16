@@ -132,20 +132,12 @@ async def register_teacher(
             specializations=request.specializations
         )
         
-        # Send verification email
-        try:
-            await email_service.send_verification_email(
-                email=request.email,
-                name=f"{request.first_name} {request.last_name}",
-                token=result["verification_token"]
-            )
-        except Exception as e:
-            logger.warning(f"Failed to send verification email to {request.email}: {str(e)}")
-            # Don't fail registration if email sending fails
+        # Email verification is disabled - skip sending verification email
+        # (Email service setup can be added later when Microsoft 365 is configured)
         
         return TeacherAuthResponse(
             success=True,
-            message="Registration successful. Please check your email to verify your account.",
+            message=result.get("message", "Registration successful. Please check your email to verify your account."),
             teacher_id=result["teacher_id"],
             email=result["email"]
         )
@@ -190,14 +182,7 @@ async def login_teacher(
                 detail="Invalid email or password"
             )
         
-        # Check for email verification error
-        if "error" in teacher_data:
-            if teacher_data["error"] == "Email not verified":
-                return TeacherAuthResponse(
-                    success=False,
-                    message="Please verify your email address before logging in",
-                    teacher_id=teacher_data["teacher_id"]
-                )
+        # Email verification is disabled - proceed directly to token creation
         
         # Create access token
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
