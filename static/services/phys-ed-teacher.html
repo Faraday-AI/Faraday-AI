@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Updated: Comprehensive PE Teacher Assistant content -->
+    <!-- Updated: Comprehensive PE Teacher Assistant content with Login Button -->
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faraday AI - Physical Education Teacher Assistant</title>
@@ -214,10 +214,11 @@
 
         .service-nav {
             display: flex;
-            justify-content: flex-start;
+            justify-content: space-between;
             align-items: center;
             padding: 0 var(--spacing-unit);
             margin-bottom: calc(var(--spacing-unit) * 2);
+            position: relative;
         }
 
         .back-button {
@@ -235,6 +236,129 @@
             background-color: #e6c200;
             color: #1c6ea4;
             transform: translateY(-2px);
+        }
+
+        .auth-section {
+            position: absolute;
+            right: var(--spacing-unit);
+            top: 0;
+            z-index: 1000;
+        }
+        
+        /* Ensure auth button in nav is visible with gold background */
+        .auth-section .auth-button {
+            background-color: var(--secondary-color) !important;
+            color: var(--primary-color) !important;
+            border: none !important;
+            padding: 0.75rem 1.5rem !important;
+            border-radius: var(--border-radius) !important;
+            font-weight: 600 !important;
+            font-size: 1em !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            cursor: pointer !important;
+            box-shadow: var(--shadow-md) !important;
+        }
+        
+        .auth-section .auth-button:hover {
+            background-color: #e6c200 !important;
+            color: #1c6ea4 !important;
+            transform: translateY(-2px) !important;
+        }
+
+        /* Auth Form Styles - Centered Modal */
+        .auth-container {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: rgba(0, 0, 0, 0.8) !important;
+            display: none !important;
+            justify-content: center !important;
+            align-items: center !important;
+            z-index: 10000 !important;
+            padding: 20px !important;
+        }
+
+        .auth-container[style*="display: block"],
+        .auth-container.active,
+        .auth-container.show {
+            display: flex !important;
+        }
+
+        .auth-form {
+            background: #fff !important;
+            padding: 2rem !important;
+            border-radius: 10px !important;
+            width: 90% !important;
+            max-width: 400px !important;
+            position: relative !important;
+            margin: auto !important;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3) !important;
+        }
+
+        .auth-header h2 {
+            color: #333 !important;
+            font-size: 1.5rem !important;
+            margin: 0 !important;
+            font-weight: 600 !important;
+        }
+
+        .form-group input {
+            width: 100% !important;
+            padding: 0.5rem !important;
+            border: 1px solid #ddd !important;
+            border-radius: 4px !important;
+            box-sizing: border-box !important;
+            background-color: #fff !important;
+            color: #333 !important;
+        }
+
+        .form-group input:focus {
+            outline: none !important;
+            border-color: #1a73e8 !important;
+            background-color: #fff !important;
+            color: #333 !important;
+        }
+
+        .form-group input::placeholder {
+            color: #999 !important;
+        }
+
+        /* Hide success/error messages by default */
+        .login-success,
+        .register-success,
+        .login-email-error,
+        .login-password-error,
+        .register-name-error,
+        .register-email-error,
+        .register-password-error,
+        .register-confirm-password-error {
+            display: none;
+        }
+
+        /* Show success/error messages when they have content (set via JavaScript) */
+        .login-success[style*="display: block"],
+        .register-success[style*="display: block"],
+        .login-email-error[style*="display: block"],
+        .login-password-error[style*="display: block"],
+        .register-name-error[style*="display: block"],
+        .register-email-error[style*="display: block"],
+        .register-password-error[style*="display: block"],
+        .register-confirm-password-error[style*="display: block"] {
+            display: block !important;
+        }
+
+        .login-loading,
+        .register-loading {
+            display: none !important;
+        }
+
+        .login-loading.active,
+        .register-loading.active {
+            display: block !important;
         }
 
         .getting-started-section {
@@ -284,6 +408,9 @@
         <header class="service-header">
             <nav class="service-nav">
                 <a href="/static/services/teacher-admin.html#features" class="back-button">← Back to Teacher & Admin Assistants</a>
+                <div class="auth-section">
+                    <button class="auth-button" onclick="showAuthForm()">Login / Register</button>
+                </div>
             </nav>
             <div class="service-hero">
                 <h1>Physical Education Teacher Assistant</h1>
@@ -508,7 +635,143 @@
         </footer>
     </div>
 
+    <div id="auth-container" class="auth-container" style="display: none;"></div>
+
+    <script src="/static/js/services.js"></script>
+    <script src="/static/js/auth.js?v=2.0"></script>
     <script>
+        // Ensure auth form is properly initialized
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for auth.js to load, then ensure form is initialized if it exists
+            setTimeout(function() {
+                const authContainer = document.getElementById('auth-container');
+                if (authContainer && authContainer.innerHTML.trim() !== '') {
+                    // Form is already loaded, initialize it
+                    if (typeof window.initializeAuthForm === 'function') {
+                        window.initializeAuthForm();
+                    }
+                }
+            }, 100);
+        });
+
+        // Override showAuthForm to ensure form is loaded and initialized
+        window.showAuthForm = function() {
+            const authContainer = document.getElementById('auth-container');
+            if (!authContainer) {
+                console.error('Auth container not found');
+                return;
+            }
+
+            // Show the container
+            authContainer.style.display = 'flex';
+            authContainer.classList.add('active', 'show');
+            document.body.style.overflow = 'hidden';
+
+            // Check if form is already loaded
+            const hasForm = authContainer.querySelector('.auth-form');
+            
+            if (hasForm) {
+                // Form already exists, clear any existing messages and initialize it
+                const loginSuccess = authContainer.querySelector('.login-success');
+                const registerSuccess = authContainer.querySelector('.register-success');
+                if (loginSuccess) {
+                    loginSuccess.style.display = 'none';
+                    loginSuccess.textContent = '';
+                }
+                if (registerSuccess) {
+                    registerSuccess.style.display = 'none';
+                    registerSuccess.textContent = '';
+                }
+                // Initialize the auth form
+                setTimeout(function() {
+                    if (typeof window.initializeAuthForm === 'function') {
+                        console.log('Re-initializing auth form...');
+                        window.initializeAuthForm();
+                    } else {
+                        console.error('initializeAuthForm function not available!');
+                    }
+                    
+                    // Ensure close button works (add event listener as backup)
+                    const closeButton = document.querySelector('.auth-close-button');
+                    if (closeButton) {
+                        // Remove existing onclick and add event listener
+                        closeButton.removeAttribute('onclick');
+                        closeButton.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            if (typeof window.closeAuthForm === 'function') {
+                                window.closeAuthForm();
+                            } else {
+                                console.error('closeAuthForm function not available!');
+                                // Fallback: hide the container directly
+                                const container = document.getElementById('auth-container');
+                                if (container) {
+                                    container.style.display = 'none';
+                                    container.classList.remove('active', 'show');
+                                    document.body.style.overflow = 'auto';
+                                }
+                            }
+                        });
+                        console.log('Close button event listener attached');
+                    }
+                }, 50);
+            } else {
+                // Load form dynamically with cache busting
+                fetch('/static/auth-form.html?v=' + Date.now())
+                    .then(response => response.text())
+                    .then(html => {
+                        authContainer.innerHTML = html;
+                        // Clear any messages that might have been in the HTML
+                        const loginSuccess = authContainer.querySelector('.login-success');
+                        const registerSuccess = authContainer.querySelector('.register-success');
+                        if (loginSuccess) {
+                            loginSuccess.style.display = 'none';
+                            loginSuccess.textContent = '';
+                        }
+                        if (registerSuccess) {
+                            registerSuccess.style.display = 'none';
+                            registerSuccess.textContent = '';
+                        }
+                        // Show login form by default
+                        const loginForm = document.querySelector('.login-form');
+                        const registerForm = document.querySelector('.register-form');
+                        const loginToggle = document.querySelector('.login-toggle');
+                        const registerToggle = document.querySelector('.register-toggle');
+                        
+                        if (loginForm && registerForm && loginToggle && registerToggle) {
+                            loginForm.classList.add('active');
+                            registerForm.classList.remove('active');
+                            loginToggle.classList.add('active');
+                            registerToggle.classList.remove('active');
+                        }
+                        
+                        // Initialize the auth form AFTER a short delay to ensure DOM is ready
+                        // This will attach the proper submit handlers with preventDefault and close button
+                        setTimeout(function() {
+                            if (typeof window.initializeAuthForm === 'function') {
+                                console.log('Initializing auth form...');
+                                window.initializeAuthForm();
+                                
+                                // Verify the handler was attached
+                                const form = document.querySelector('.login-form');
+                                if (form) {
+                                    console.log('Login form found, handler should be attached');
+                                } else {
+                                    console.error('Login form not found after initialization!');
+                                }
+                            } else {
+                                console.error('initializeAuthForm function not available!');
+                            }
+                        }, 100);
+                    })
+                    .catch(error => {
+                        console.error('Error loading auth form:', error);
+                        // Fallback: redirect to login page
+                        window.location.href = '/login';
+                    });
+            }
+        };
+
         function showComingSoon() {
             alert('This feature is coming soon! Stay tuned for updates.');
         }

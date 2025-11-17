@@ -472,6 +472,30 @@ def create_app(test_mode: bool = False) -> FastAPI:
     if static_dir.exists():
         logger.info(f"Static directory contents: {[f.name for f in static_dir.glob('*')]}")
 
+    # Add specific route for phys-ed-teacher.html to prevent caching
+    @app_instance.get("/static/services/phys-ed-teacher.html")
+    async def serve_phys_ed_teacher():
+        """Serve phys-ed-teacher.html with no-cache headers."""
+        try:
+            service_path = static_dir / "services" / "phys-ed-teacher.html"
+            if not service_path.exists():
+                raise HTTPException(status_code=404, detail="Service page not found")
+            with open(service_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+            return HTMLResponse(
+                content=content,
+                headers={
+                    "Cache-Control": "no-cache, no-store, must-revalidate",
+                    "Pragma": "no-cache",
+                    "Expires": "0",
+                    "Content-Type": "text/html; charset=utf-8"
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error serving phys-ed-teacher.html: {str(e)}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
+    # Mount static files - HTML files will be served with no-cache via middleware
     app_instance.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
     # Configure CORS
@@ -482,6 +506,17 @@ def create_app(test_mode: bool = False) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    
+    # Add middleware to prevent caching of HTML files
+    @app_instance.middleware("http")
+    async def no_cache_html_middleware(request: Request, call_next):
+        response = await call_next(request)
+        # Add no-cache headers for HTML files served from /static
+        if request.url.path.startswith("/static/") and request.url.path.endswith(".html"):
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
 
     # Set up rate limiting for access control endpoints
     setup_rate_limiting(app_instance)
@@ -708,6 +743,29 @@ if static_dir.exists():
 else:
     logger.error("Static directory does not exist after all checks")
 
+# Add specific route for phys-ed-teacher.html to prevent caching
+@app.get("/static/services/phys-ed-teacher.html")
+async def serve_phys_ed_teacher():
+    """Serve phys-ed-teacher.html with no-cache headers."""
+    try:
+        service_path = static_dir / "services" / "phys-ed-teacher.html"
+        if not service_path.exists():
+            raise HTTPException(status_code=404, detail="Service page not found")
+        with open(service_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "Content-Type": "text/html; charset=utf-8"
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error serving phys-ed-teacher.html: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 # Configure CORS
@@ -718,6 +776,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Add middleware to prevent caching of HTML files
+@app.middleware("http")
+async def no_cache_html_middleware(request: Request, call_next):
+    response = await call_next(request)
+    # Add no-cache headers for HTML files served from /static
+    if request.url.path.startswith("/static/") and request.url.path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 # Set up rate limiting for access control endpoints
 setup_rate_limiting(app)
@@ -1069,24 +1138,244 @@ async def login_page():
         .back-link:hover {{
             text-decoration: underline;
         }}
+        /* Auth form styles */
+        .auth-form {{
+            position: relative;
+        }}
+        .auth-header {{
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }}
+        .auth-header h2 {{
+            font-size: 1.5rem;
+            margin-bottom: 0.8rem;
+            color: #333;
+        }}
+        .auth-close-button {{
+            display: none; /* Hide close button on standalone login page */
+        }}
+        .auth-tabs {{
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #ddd;
+        }}
+        .auth-tab {{
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 1.1em;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }}
+        .auth-tab.active {{
+            color: #1a73e8;
+            border-bottom: 2px solid #1a73e8;
+            font-weight: 600;
+        }}
+        .form-group {{
+            margin-bottom: 1rem;
+        }}
+        .form-group label {{
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }}
+        .form-group input {{
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            background-color: #fff;
+            color: #333;
+        }}
+        .form-group input:focus {{
+            outline: none;
+            border-color: #1a73e8;
+        }}
+        .login-form, .register-form {{
+            display: none;
+        }}
+        .login-form.active, .register-form.active {{
+            display: block;
+        }}
+        .login-button, .register-button {{
+            width: 100%;
+            padding: 0.75rem;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 1rem;
+        }}
+        .login-button:hover, .register-button:hover {{
+            background: #1557b0;
+        }}
+        .login-email-error, .login-password-error,
+        .register-name-error, .register-email-error,
+        .register-password-error, .register-confirm-password-error {{
+            color: #ff4444;
+            font-size: 0.9em;
+            margin-top: 0.5rem;
+            display: none;
+        }}
+        .login-success, .register-success {{
+            color: #00C851;
+            font-size: 1.1em;
+            margin-top: 1rem;
+            display: none;
+            padding: 15px;
+            background-color: rgba(0, 200, 81, 0.1);
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #00C851;
+        }}
+        .login-loading, .register-loading {{
+            display: none;
+            text-align: center;
+            margin: 1rem 0;
+        }}
+        .login-loading.active, .register-loading.active {{
+            display: block;
+        }}
+        .login-loading::after {{
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(26, 115, 232, 0.3);
+            border-radius: 50%;
+            border-top-color: #1a73e8;
+            animation: spin 1s linear infinite;
+        }}
+        @keyframes spin {{
+            to {{ transform: rotate(360deg); }}
+        }}
     </style>
 </head>
 <body>
     <div class="login-container">
         <a href="/" class="back-link">← Back to Home</a>
-        <div id="auth-container" style="display: block;"></div>
+        <div id="auth-container"></div>
     </div>
-    <script src="/static/js/auth.js"></script>
+    <script src="/static/js/auth.js?v=3.0"></script>
     <script>
+        // Define toggleForms function for auth tabs (if not already defined)
+        if (typeof window.toggleForms !== 'function') {{
+            window.toggleForms = function() {{
+                const loginForm = document.querySelector('.login-form');
+                const registerForm = document.querySelector('.register-form');
+                const loginToggle = document.querySelector('.login-toggle');
+                const registerToggle = document.querySelector('.register-toggle');
+                
+                if (loginForm && registerForm && loginToggle && registerToggle) {{
+                    loginForm.classList.toggle('active');
+                    registerForm.classList.toggle('active');
+                    loginToggle.classList.toggle('active');
+                    registerToggle.classList.toggle('active');
+                }}
+            }};
+        }}
+        
         // Load auth form content when page loads
         document.addEventListener('DOMContentLoaded', function() {{
-            fetch('/static/auth-form.html')
+            console.log('Login page: Loading auth form...');
+            fetch('/static/auth-form.html?v=' + Date.now())
                 .then(response => response.text())
                 .then(html => {{
-                    document.getElementById('auth-container').innerHTML = html;
-                    if (window.initializeAuthForm) {{
-                        window.initializeAuthForm();
+                    console.log('Login page: Auth form loaded, initializing...');
+                    const authContainer = document.getElementById('auth-container');
+                    authContainer.innerHTML = html;
+                    
+                    // Clear any existing success/error messages
+                    const loginSuccess = authContainer.querySelector('.login-success');
+                    const registerSuccess = authContainer.querySelector('.register-success');
+                    const loginEmailError = authContainer.querySelector('.login-email-error');
+                    const loginPasswordError = authContainer.querySelector('.login-password-error');
+                    if (loginSuccess) {{
+                        loginSuccess.textContent = '';
+                        loginSuccess.style.display = 'none';
                     }}
+                    if (registerSuccess) {{
+                        registerSuccess.textContent = '';
+                        registerSuccess.style.display = 'none';
+                    }}
+                    if (loginEmailError) {{
+                        loginEmailError.textContent = '';
+                        loginEmailError.style.display = 'none';
+                    }}
+                    if (loginPasswordError) {{
+                        loginPasswordError.textContent = '';
+                        loginPasswordError.style.display = 'none';
+                    }}
+                    
+                    // Ensure forms have onsubmit="return false;"
+                    const loginForm = authContainer.querySelector('.login-form');
+                    const registerForm = authContainer.querySelector('.register-form');
+                    if (loginForm) {{
+                        loginForm.setAttribute('onsubmit', 'return false;');
+                    }}
+                    if (registerForm) {{
+                        registerForm.setAttribute('onsubmit', 'return false;');
+                    }}
+                    
+                    // Remove any onclick handlers from toggle buttons and add proper event listeners
+                    const loginToggle = authContainer.querySelector('.login-toggle');
+                    const registerToggle = authContainer.querySelector('.register-toggle');
+                    if (loginToggle) {{
+                        loginToggle.removeAttribute('onclick');
+                        loginToggle.addEventListener('click', function(e) {{
+                            e.preventDefault();
+                            if (window.toggleForms) window.toggleForms();
+                        }});
+                    }}
+                    if (registerToggle) {{
+                        registerToggle.removeAttribute('onclick');
+                        registerToggle.addEventListener('click', function(e) {{
+                            e.preventDefault();
+                            if (window.toggleForms) window.toggleForms();
+                        }});
+                    }}
+                    
+                    // Initialize the auth form handlers after a short delay to ensure DOM is ready
+                    setTimeout(function() {{
+                        if (window.initializeAuthForm) {{
+                            console.log('Login page: Calling initializeAuthForm()');
+                            window.initializeAuthForm();
+                            console.log('Login page: initializeAuthForm() completed');
+                            
+                            // Double-check that forms have proper handlers by verifying submit handlers exist
+                            const loginFormCheck = document.querySelector('.login-form');
+                            if (loginFormCheck) {{
+                                console.log('Login page: Login form found, checking handlers...');
+                                // Force re-initialization if needed
+                                const hasHandler = loginFormCheck.getAttribute('onsubmit');
+                                if (!hasHandler || hasHandler !== 'return false;') {{
+                                    console.log('Login page: Re-setting onsubmit handler');
+                                    loginFormCheck.setAttribute('onsubmit', 'return false;');
+                                }}
+                            }}
+                        }} else {{
+                            console.error('Login page: initializeAuthForm not available!');
+                            // Retry after a longer delay
+                            setTimeout(function() {{
+                                if (window.initializeAuthForm) {{
+                                    console.log('Login page: Retrying initializeAuthForm()');
+                                    window.initializeAuthForm();
+                                }} else {{
+                                    console.error('Login page: initializeAuthForm still not available after retry');
+                                }}
+                            }}, 1000);
+                        }}
+                    }}, 100);
                 }})
                 .catch(error => {{
                     console.error('Error loading auth form:', error);
@@ -4339,8 +4628,15 @@ async def analyze_file(
 async def serve_service_page(service_name: str):
     """Serve static service pages."""
     try:
+        # Determine static directory path
+        base_dir = Path(__file__).parent.parent
+        static_dir = Path("/app/static")
+        
+        if not static_dir.exists():
+            static_dir = base_dir / "static"
+        
         # Use the absolute path in the Docker container
-        service_path = Path("app/static/services") / f"{service_name}.html"
+        service_path = static_dir / "services" / f"{service_name}.html"
         
         # Check if the file exists
         if not service_path.exists():
@@ -4348,14 +4644,16 @@ async def serve_service_page(service_name: str):
             raise HTTPException(status_code=404, detail=f"Service page not found: {service_name}")
             
         # Read the file content
-        with open(service_path, 'r') as f:
+        with open(service_path, 'r', encoding='utf-8') as f:
             content = f.read()
             
         return HTMLResponse(
             content=content,
             headers={
-                "Cache-Control": "no-cache",
-                "Content-Type": "text/html"
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+                "Content-Type": "text/html; charset=utf-8"
             }
         )
     except Exception as e:

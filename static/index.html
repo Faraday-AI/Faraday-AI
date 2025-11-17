@@ -724,22 +724,26 @@
         }
 
         .auth-container.active {
-            display: flex;
+            display: flex !important;
+        }
+        
+        /* Force flex display when shown via JavaScript */
+        .auth-container.show {
+            display: flex !important;
         }
 
         .auth-container > div {
             position: relative;
             width: 90%;
-            max-width: 300px; /* Reduced from 350px */
-            max-height: 70vh; /* Reduced from 80vh */
-            background-color: rgba(0, 0, 0, 0.95);
-            padding: 1.2rem; /* Reduced from 1.5rem */
+            max-width: 400px;
+            max-height: 80vh;
+            background-color: #ffffff;
+            padding: 2rem;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(26, 115, 232, 0.3);
             overflow-y: auto;
             margin: auto;
-            margin-top: 40px; /* Increased from 20px */
         }
 
         .auth-header {
@@ -748,56 +752,91 @@
         }
 
         .auth-header h2 {
-            font-size: 1.3rem; /* Reduced from 1.5rem */
-            margin-bottom: 0.6rem; /* Reduced from 0.8rem */
+            font-size: 1.5rem;
+            margin-bottom: 0.8rem;
+            color: #333;
         }
 
         .form-group {
-            margin-bottom: 0.8rem; /* Reduced from 1rem */
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
         }
 
         .form-group input {
-            padding: 0.5rem; /* Reduced from 0.6rem */
-            font-size: 0.85rem; /* Reduced from 0.9rem */
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            background-color: #fff;
+            color: #333;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1a73e8;
+            background-color: #fff;
+            color: #333;
+        }
+
+        .form-group input::placeholder {
+            color: #999;
         }
 
         .auth-button {
-            background: #FFD700;
-            color: #1a73e8;
+            background: #1a73e8;
+            color: #ffffff;
             border: none;
-            outline: 2px solid #1a73e8;
             border-radius: 4px;
-            padding: 4px 8px;
-            margin: 0;
+            padding: 0.75rem 1.5rem;
+            margin: 1rem 0 0 0;
             cursor: pointer;
             transition: all 0.3s ease;
             text-align: center;
-            width: auto;
-            max-width: 100px;
+            width: 100%;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            font-size: 0.7em;
-            font-weight: 500;
-            position: relative;
-            padding-right: 30px;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .auth-button:hover {
+            background: #1557b0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
         .auth-close-button {
             position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
+            top: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.1);
             border: none;
-            color: #1a73e8;
-            font-size: 1.5em;
+            color: #333;
+            font-size: 2em;
             cursor: pointer;
-            padding: 5px;
-            opacity: 0.7;
-            transition: opacity 0.3s ease;
+            padding: 8px 12px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
             z-index: 10001;
+            line-height: 1;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .auth-close-button:hover {
-            opacity: 1;
+            background: rgba(0, 0, 0, 0.2);
+            color: #000;
+            transform: scale(1.1);
         }
 
         .auth-toggle {
@@ -810,7 +849,7 @@
         .auth-toggle button {
             background: none;
             border: none;
-            color: rgba(255, 255, 255, 0.7);
+            color: #666;
             font-size: 1.1em;
             cursor: pointer;
             padding: 0.5rem 1rem;
@@ -818,8 +857,9 @@
         }
 
         .auth-toggle button.active {
-            color: white;
+            color: #1a73e8;
             border-bottom: 2px solid #1a73e8;
+            font-weight: 600;
         }
 
         .auth-form {
@@ -827,7 +867,12 @@
         }
 
         .auth-form.active {
-            display: block;
+            display: block !important;
+        }
+
+        /* Ensure form wrapper is visible when container is active */
+        .auth-container.active > div {
+            display: block !important;
         }
 
         .auth-error {
@@ -1379,7 +1424,7 @@
     </div>
 
     <!-- Authentication Container -->
-    <div class="auth-container">
+    <div id="auth-container" class="auth-container">
         <div>
             <button class="auth-close-button" onclick="closeAuthForm()">&times;</button>
             <div class="auth-header">
@@ -1391,7 +1436,7 @@
             </div>
 
             <!-- Login Form -->
-            <form class="auth-form login-form active">
+            <form class="auth-form login-form active" onsubmit="return false;">
                 <div class="form-group">
                     <label for="login-email">Email</label>
                     <input type="email" id="login-email" placeholder="Enter your email" required>
@@ -1408,7 +1453,7 @@
             </form>
 
             <!-- Registration Form -->
-            <form class="auth-form register-form">
+            <form class="auth-form register-form" onsubmit="return false;">
                 <div class="form-group">
                     <label for="register-name">Full Name</label>
                     <input type="text" id="register-name" placeholder="Enter your full name" required>
@@ -1453,8 +1498,83 @@
     <!-- Font Awesome for social icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
-    <script src="/static/js/auth.js"></script>
-    <script src="/static/js/services.js"></script>
+    <script>
+        // Define showAuthForm and closeAuthForm BEFORE auth.js and services.js load
+        // to ensure they work with the embedded form
+        // Always define this version to take precedence over auth.js
+        window.showAuthForm = function() {
+                console.log('showAuthForm() called');
+                const authContainer = document.getElementById('auth-container') || document.querySelector('.auth-container');
+                console.log('showAuthForm - authContainer found:', !!authContainer);
+                if (authContainer) {
+                    // Use requestAnimationFrame to ensure this runs after any other style changes
+                    requestAnimationFrame(function() {
+                        // Force display: flex with highest priority
+                        authContainer.style.setProperty('display', 'flex', 'important');
+                        // Add both active and show classes
+                        authContainer.classList.add('active', 'show');
+                        document.body.style.overflow = 'hidden';
+                        
+                        console.log('showAuthForm - Container display set to flex, classes added');
+                        console.log('showAuthForm - Container computed display:', window.getComputedStyle(authContainer).display);
+                        
+                        // Use a MutationObserver to prevent inline display styles from being set to block (but allow none for closing)
+                        if (!authContainer._displayObserver) {
+                            const observer = new MutationObserver(function(mutations) {
+                                mutations.forEach(function(mutation) {
+                                    if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
+                                        // Only prevent display: block, allow display: none (for closing)
+                                        const currentDisplay = authContainer.style.display;
+                                        if (currentDisplay === 'block') {
+                                            console.log('MutationObserver: Preventing display:block, forcing display:flex');
+                                            authContainer.style.setProperty('display', 'flex', 'important');
+                                        }
+                                        // Allow display: none to pass through (for closing)
+                                    }
+                                });
+                            });
+                            observer.observe(authContainer, { attributes: true, attributeFilter: ['style'] });
+                            authContainer._displayObserver = observer;
+                            console.log('showAuthForm - MutationObserver attached');
+                        }
+                        
+                        // Ensure auth form is initialized
+                        if (window.initializeAuthForm) {
+                            console.log('showAuthForm - Calling initializeAuthForm()');
+                            window.initializeAuthForm();
+                        } else {
+                            console.warn('showAuthForm - initializeAuthForm not available');
+                        }
+                    });
+                } else {
+                    console.error('showAuthForm - Auth container not found!');
+                }
+        };
+
+        if (typeof window.closeAuthForm !== 'function') {
+            window.closeAuthForm = function() {
+                console.log('closeAuthForm() called');
+                const authContainer = document.getElementById('auth-container') || document.querySelector('.auth-container');
+                if (authContainer) {
+                    // Disconnect the observer if it exists
+                    if (authContainer._displayObserver) {
+                        authContainer._displayObserver.disconnect();
+                        delete authContainer._displayObserver;
+                        console.log('closeAuthForm - MutationObserver disconnected');
+                    }
+                    // Remove classes and force display: none
+                    authContainer.classList.remove('active', 'show');
+                    authContainer.style.setProperty('display', 'none', 'important');
+                    document.body.style.overflow = 'auto';
+                    console.log('closeAuthForm - Container hidden');
+                } else {
+                    console.error('closeAuthForm - Auth container not found!');
+                }
+            };
+        }
+    </script>
+    <script src="/static/js/auth.js?v=3.0"></script>
+    <script src="/static/js/services.js?v=2.0"></script>
     <script>
         // Newsletter Signup
         function closeNewsletter() {
@@ -1560,33 +1680,8 @@
             }
         }
 
-        // Show Authentication Form - use the one from services.js/auth.js
-        // The auth container is already in the DOM, so we just need to show it
-        // and ensure auth.js handlers are attached
-        if (typeof window.showAuthForm !== 'function') {
-            window.showAuthForm = function() {
-                const authContainer = document.querySelector('.auth-container');
-                if (authContainer) {
-                    authContainer.style.display = 'block';
-                    document.body.style.overflow = 'hidden';
-                    // Ensure auth form is initialized
-                    if (window.initializeAuthForm) {
-                        window.initializeAuthForm();
-                    }
-                }
-            };
-        }
-
-        // Close Authentication Form - use the one from services.js/auth.js
-        if (typeof window.closeAuthForm !== 'function') {
-            window.closeAuthForm = function() {
-                const authContainer = document.querySelector('.auth-container');
-                if (authContainer) {
-                    authContainer.style.display = 'none';
-                    document.body.style.overflow = 'auto';
-                }
-            };
-        }
+        // showAuthForm and closeAuthForm are now defined before services.js loads
+        // (moved to top of page before script includes)
 
         // Close Authentication Form when clicking outside
         document.addEventListener('click', (e) => {
@@ -1650,28 +1745,103 @@
         // Login and Registration handlers are handled by /static/js/auth.js
         // Initialize auth forms if they're already in the DOM (embedded forms)
         document.addEventListener('DOMContentLoaded', function() {
-            // Wait a bit for auth.js to load
-            setTimeout(function() {
-                // Check if forms are already in the page (not loaded dynamically)
+            // Ensure auth container starts hidden
+            const authContainer = document.getElementById('auth-container');
+            if (authContainer) {
+                authContainer.style.display = 'none';
+                authContainer.classList.remove('active');
+                document.body.style.overflow = 'auto';
+            }
+            
+            // Function to initialize auth forms
+            function tryInitializeAuthForms() {
+                console.log('Checking for auth forms...');
                 const loginForm = document.querySelector('.login-form');
                 const registerForm = document.querySelector('.register-form');
+                console.log('Login form found:', !!loginForm);
+                console.log('Register form found:', !!registerForm);
+                console.log('initializeAuthForm available:', typeof window.initializeAuthForm);
+                
                 if (loginForm || registerForm) {
                     // Forms are embedded, initialize them
                     if (window.initializeAuthForm) {
                         console.log('Initializing auth forms from index.html');
-                        window.initializeAuthForm();
+                        try {
+                            window.initializeAuthForm();
+                            console.log('initializeAuthForm() call completed');
+                        } catch (error) {
+                            console.error('Error calling initializeAuthForm:', error);
+                        }
                     } else {
                         console.warn('initializeAuthForm not available, waiting for auth.js to load...');
                         // Retry after a short delay
                         setTimeout(function() {
                             if (window.initializeAuthForm) {
                                 console.log('Retrying auth form initialization');
-                                window.initializeAuthForm();
+                                try {
+                                    window.initializeAuthForm();
+                                    console.log('initializeAuthForm() call completed (retry)');
+                                } catch (error) {
+                                    console.error('Error calling initializeAuthForm (retry):', error);
+                                }
+                            } else {
+                                console.error('initializeAuthForm still not available after retry');
                             }
                         }, 500);
                     }
+                } else {
+                    console.warn('No auth forms found in DOM');
                 }
-            }, 100);
+            }
+            
+            // Wait a bit for auth.js to load, then try multiple times
+            setTimeout(tryInitializeAuthForms, 200);
+            setTimeout(tryInitializeAuthForms, 500);
+            setTimeout(tryInitializeAuthForms, 1000);
+            
+            // Verify showAuthForm is available (backup check)
+            if (typeof window.showAuthForm !== 'function') {
+                console.error('showAuthForm is not defined after all scripts loaded!');
+            }
+            
+            // Add direct event listener to login button as backup
+            const loginButton = document.querySelector('.auth-button-container .auth-button');
+            if (loginButton) {
+                // Remove any existing onclick to prevent conflicts
+                loginButton.removeAttribute('onclick');
+                loginButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Login button clicked - calling showAuthForm()');
+                    console.log('showAuthForm type:', typeof window.showAuthForm);
+                    console.log('showAuthForm value:', window.showAuthForm);
+                    if (typeof window.showAuthForm === 'function') {
+                        try {
+                            console.log('About to call showAuthForm()...');
+                            window.showAuthForm();
+                            console.log('showAuthForm() call completed');
+                        } catch (error) {
+                            console.error('Error calling showAuthForm():', error);
+                        }
+                    } else {
+                        console.error('showAuthForm is not a function!', typeof window.showAuthForm);
+                        // Try to manually show the container as fallback
+                        const authContainer = document.getElementById('auth-container');
+                        if (authContainer) {
+                            console.log('Fallback: Manually showing auth container');
+                            authContainer.style.setProperty('display', 'flex', 'important');
+                            authContainer.classList.add('active', 'show');
+                            document.body.style.overflow = 'hidden';
+                            if (window.initializeAuthForm) {
+                                window.initializeAuthForm();
+                            }
+                        }
+                    }
+                });
+                console.log('Direct event listener added to login button');
+            } else {
+                console.warn('Login button not found for event listener');
+            }
         });
     </script>
 </body>
