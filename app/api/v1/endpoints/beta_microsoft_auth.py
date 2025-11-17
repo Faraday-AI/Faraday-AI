@@ -193,7 +193,7 @@ async def microsoft_callback_beta(
                 id=str(uuid.uuid4()),
                 email=microsoft_email,
                 is_active=True,
-                email_verified=True  # Microsoft email is already verified
+                is_verified=True  # Microsoft email is already verified
             )
             db.add(teacher)
             db.flush()
@@ -202,7 +202,7 @@ async def microsoft_callback_beta(
         else:
             # Update existing teacher
             teacher.is_active = True
-            teacher.email_verified = True
+            teacher.is_verified = True
             db.flush()
             logger.info(f"Updated existing beta teacher from Microsoft account: {microsoft_email}")
         

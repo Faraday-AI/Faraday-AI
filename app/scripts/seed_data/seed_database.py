@@ -303,6 +303,31 @@ def seed_database():
             # Step 1: Drop all tables and recreate them (development approach)
             print("Dropping and recreating tables...")
             try:
+                # Set statement timeout to prevent hanging (5 minutes)
+                session.execute(text("SET statement_timeout = '5min'"))
+                session.execute(text("SET lock_timeout = '1min'"))
+                
+                # Terminate any blocking connections (except our own and system connections)
+                # This helps when Render or other services are holding locks
+                print("Checking for blocking connections...")
+                try:
+                    blocking_query = text("""
+                        SELECT pg_terminate_backend(pid)
+                        FROM pg_stat_activity
+                        WHERE datname = current_database()
+                        AND pid != pg_backend_pid()
+                        AND state = 'idle in transaction'
+                        AND query_start < NOW() - INTERVAL '10 seconds'
+                    """)
+                    terminated = session.execute(blocking_query)
+                    count = len(list(terminated.fetchall())) if hasattr(terminated, 'fetchall') else 0
+                    if count > 0:
+                        print(f"Terminated {count} idle blocking connections")
+                    session.commit()
+                except Exception as e:
+                    print(f"Note: Could not check/terminate blocking connections: {e}")
+                    session.rollback()
+                
                 # Get all existing tables
                 result = session.execute(text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'"))
                 existing_tables = [row[0] for row in result.fetchall()]
@@ -318,15 +343,59 @@ def seed_database():
                         
                         for table_name in batch:
                             try:
+                                # Core tables with many dependencies need longer timeout (2 minutes)
+                                # These are often locked by active connections
+                                core_tables = ['organizations', 'departments', 'users', 'health_checks', 'students', 'activities']
+                                timeout = '2min' if table_name in core_tables else '30s'
+                                
+                                session.execute(text(f"SET LOCAL statement_timeout = '{timeout}'"))
                                 session.execute(text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
+                                session.execute(text(f"RESET statement_timeout"))
                                 print(f"Dropped table: {table_name}")
                             except Exception as e:
-                                print(f"Warning: Could not drop table {table_name}: {e}")
+                                error_msg = str(e)
+                                if 'timeout' in error_msg.lower() or 'QueryCanceled' in error_msg:
+                                    print(f"⚠️  Timeout dropping {table_name} (locked by active connections). Will retry at end.")
+                                    # Try to continue - CASCADE should handle it, but if it times out, we'll skip
+                                    session.rollback()
+                                else:
+                                    print(f"Warning: Could not drop table {table_name}: {e}")
+                                    session.rollback()
+                                # Reset timeout and continue
+                                try:
+                                    session.execute(text("RESET statement_timeout"))
+                                except:
+                                    pass
                         
                         session.commit()
                         print(f"Completed batch {i//batch_size + 1}")
                 else:
                     print("No existing tables found")
+                
+                # Try to drop any remaining tables that timed out (they might be droppable now)
+                print("Attempting to drop any remaining tables that may have timed out...")
+                try:
+                    result = session.execute(text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'"))
+                    remaining_tables = [row[0] for row in result.fetchall()]
+                    if remaining_tables:
+                        print(f"Found {len(remaining_tables)} remaining tables, attempting to drop...")
+                        for table_name in remaining_tables:
+                            try:
+                                session.execute(text(f"SET LOCAL statement_timeout = '10s'"))
+                                session.execute(text(f"DROP TABLE IF EXISTS {table_name} CASCADE"))
+                                session.execute(text(f"RESET statement_timeout"))
+                                print(f"Dropped remaining table: {table_name}")
+                            except Exception as e:
+                                print(f"Note: Could not drop {table_name} (may be in use or have complex dependencies): {e}")
+                                session.rollback()
+                                try:
+                                    session.execute(text("RESET statement_timeout"))
+                                except:
+                                    pass
+                        session.commit()
+                except Exception as e:
+                    print(f"Note: Error checking for remaining tables: {e}")
+                    session.rollback()
                 
                 # Also drop any remaining indexes that might persist
                 try:

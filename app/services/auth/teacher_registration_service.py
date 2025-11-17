@@ -168,7 +168,7 @@ class TeacherRegistrationService:
                 FROM teacher_registrations 
                 WHERE verification_token = :token 
                 AND verification_expires > NOW()
-                AND email_verified = FALSE
+                AND is_verified = FALSE
             """)
             
             result = self.db.execute(query, {'token': token}).fetchone()
@@ -181,7 +181,7 @@ class TeacherRegistrationService:
             # Update verification status
             update_query = text("""
                 UPDATE teacher_registrations 
-                SET email_verified = TRUE, 
+                SET is_verified = TRUE, 
                     verification_token = NULL,
                     verification_expires = NULL,
                     updated_at = NOW()
@@ -213,7 +213,7 @@ class TeacherRegistrationService:
             # Check if teacher exists and needs verification
             query = text("""
                 SELECT id FROM teacher_registrations 
-                WHERE email = :email AND email_verified = FALSE
+                WHERE email = :email AND is_verified = FALSE
             """)
             
             result = self.db.execute(query, {'email': email.lower().strip()}).fetchone()
