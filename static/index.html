@@ -1634,7 +1634,18 @@
         }
 
         // Login and Registration handlers are handled by /static/js/auth.js
-        // No need for duplicate handlers here
+        // Initialize auth forms if they're already in the DOM (embedded forms)
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if forms are already in the page (not loaded dynamically)
+            const loginForm = document.querySelector('.login-form');
+            const registerForm = document.querySelector('.register-form');
+            if (loginForm || registerForm) {
+                // Forms are embedded, initialize them
+                if (window.initializeAuthForm) {
+                    window.initializeAuthForm();
+                }
+            }
+        });
     </script>
 </body>
 </html> 
