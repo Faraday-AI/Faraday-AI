@@ -112,18 +112,60 @@ async function loadUserInfo() {
             return;
         }
         
-        const response = await fetch(`${API_BASE_URL}/users/me`, {
-            headers: {
-                'Authorization': `Bearer ${token}`
+        // Check if token is for a teacher (has type: "teacher" in payload)
+        let isTeacher = false;
+        try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            isTeacher = payload.type === 'teacher';
+        } catch (e) {
+            // If we can't decode, try both endpoints
+        }
+        
+        // Try teacher endpoint first if token indicates teacher, otherwise try both
+        let response;
+        let endpoint = isTeacher ? `${API_BASE_URL}/auth/teacher/me` : `${API_BASE_URL}/users/me`;
+        
+        try {
+            response = await fetch(endpoint, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            // If teacher endpoint fails and we haven't tried users endpoint, try that
+            if (!response.ok && isTeacher) {
+                response = await fetch(`${API_BASE_URL}/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
             }
-        });
+        } catch (fetchError) {
+            // If first attempt fails, try the other endpoint
+            if (isTeacher) {
+                response = await fetch(`${API_BASE_URL}/users/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+            } else {
+                response = await fetch(`${API_BASE_URL}/auth/teacher/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+            }
+        }
         
         if (!response.ok) {
             throw new Error('Failed to load user info');
         }
         
         currentUser = await response.json();
-        document.getElementById('userName').textContent = currentUser.email || 'User';
+        // Handle both teacher and user response formats
+        const email = currentUser.email || currentUser.user?.email;
+        const name = currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : email;
+        document.getElementById('userName').textContent = name || email || 'User';
     } catch (error) {
         console.error('Error loading user info:', error);
         // Fallback to email from token if available
@@ -131,7 +173,8 @@ async function loadUserInfo() {
         if (token) {
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
-                document.getElementById('userName').textContent = payload.email || 'User';
+                const email = payload.email || 'User';
+                document.getElementById('userName').textContent = email;
             } catch (e) {
                 document.getElementById('userName').textContent = 'Guest';
             }

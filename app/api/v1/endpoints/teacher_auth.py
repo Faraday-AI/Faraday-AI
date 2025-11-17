@@ -8,13 +8,16 @@ for individual teachers without school district integration.
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr, Field, validator
 from sqlalchemy.orm import Session
+from jose import JWTError, jwt
 
 from app.core.database import get_db
 from app.core.auth import create_access_token, create_refresh_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from app.core.config import settings
+from app.models.teacher_registration import TeacherRegistration
 from app.services.auth.teacher_registration_service import TeacherRegistrationService
 from app.services.email.email_service import EmailService
 
@@ -223,6 +226,87 @@ async def login_teacher(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An unexpected error occurred during login"
+        )
+
+@router.get(
+    "/me",
+    summary="Get current teacher information",
+    description="Get the current authenticated teacher's information from the JWT token",
+    response_description="Teacher information"
+)
+async def get_current_teacher(
+    authorization: str = Header(None),
+    db: Session = Depends(get_db)
+):
+    """Get current teacher information from JWT token."""
+    try:
+        if not authorization:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="No authorization token provided"
+            )
+        
+        # Extract token from "Bearer <token>"
+        if not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authorization header format"
+            )
+        
+        token = authorization.split(" ")[1]
+        
+        # Decode JWT token
+        try:
+            payload = jwt.decode(
+                token,
+                settings.JWT_SECRET_KEY,
+                algorithms=[settings.JWT_ALGORITHM]
+            )
+        except JWTError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired token"
+            )
+        
+        # Get email from token
+        email = payload.get("email")
+        if not email:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token does not contain email"
+            )
+        
+        # Look up teacher in database
+        teacher = db.query(TeacherRegistration).filter(
+            TeacherRegistration.email == email,
+            TeacherRegistration.is_active == True
+        ).first()
+        
+        if not teacher:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Teacher not found"
+            )
+        
+        # Return teacher information
+        return {
+            "id": str(teacher.id),
+            "email": teacher.email,
+            "first_name": teacher.first_name,
+            "last_name": teacher.last_name,
+            "school_name": teacher.school_name,
+            "is_verified": teacher.is_verified,
+            "is_active": teacher.is_active,
+            "created_at": teacher.created_at.isoformat() if teacher.created_at else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error getting current teacher: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred while retrieving teacher information"
         )
 
 @router.post(
