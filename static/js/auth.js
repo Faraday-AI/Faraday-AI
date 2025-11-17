@@ -294,11 +294,18 @@ window.initializeAuthForm = function() {
     // Login Form Handler
     const loginFormElement = document.querySelector('.login-form');
     if (loginFormElement) {
-        loginFormElement.addEventListener('submit', async (e) => {
+        // Remove any existing event listeners by cloning the form
+        const newLoginForm = loginFormElement.cloneNode(true);
+        loginFormElement.parentNode.replaceChild(newLoginForm, loginFormElement);
+        
+        newLoginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            e.stopPropagation();
             
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
+            console.log('Login form submitted');
+            
+            const email = document.getElementById('login-email')?.value;
+            const password = document.getElementById('login-password')?.value;
             const loginButton = document.querySelector('.login-button');
             const loginLoading = document.querySelector('.login-loading');
             const loginSuccess = document.querySelector('.login-success');
@@ -392,8 +399,13 @@ window.initializeAuthForm = function() {
     // Registration Form Handler
     const registerFormElement = document.querySelector('.register-form');
     if (registerFormElement) {
-        registerFormElement.addEventListener('submit', async (e) => {
+        // Remove any existing event listeners by cloning the form
+        const newRegisterForm = registerFormElement.cloneNode(true);
+        registerFormElement.parentNode.replaceChild(newRegisterForm, registerFormElement);
+        
+        newRegisterForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            e.stopPropagation();
             
             const name = document.getElementById('register-name').value;
             const email = document.getElementById('register-email').value;

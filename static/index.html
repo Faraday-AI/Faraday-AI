@@ -1560,18 +1560,32 @@
             }
         }
 
-        // Show Authentication Form
-        function showAuthForm() {
-            const authContainer = document.querySelector('.auth-container');
-            authContainer.style.display = 'block';
-            document.body.style.overflow = 'hidden';
+        // Show Authentication Form - use the one from services.js/auth.js
+        // The auth container is already in the DOM, so we just need to show it
+        // and ensure auth.js handlers are attached
+        if (typeof window.showAuthForm !== 'function') {
+            window.showAuthForm = function() {
+                const authContainer = document.querySelector('.auth-container');
+                if (authContainer) {
+                    authContainer.style.display = 'block';
+                    document.body.style.overflow = 'hidden';
+                    // Ensure auth form is initialized
+                    if (window.initializeAuthForm) {
+                        window.initializeAuthForm();
+                    }
+                }
+            };
         }
 
-        // Close Authentication Form
-        function closeAuthForm() {
-            const authContainer = document.querySelector('.auth-container');
-            authContainer.style.display = 'none';
-            document.body.style.overflow = 'auto';
+        // Close Authentication Form - use the one from services.js/auth.js
+        if (typeof window.closeAuthForm !== 'function') {
+            window.closeAuthForm = function() {
+                const authContainer = document.querySelector('.auth-container');
+                if (authContainer) {
+                    authContainer.style.display = 'none';
+                    document.body.style.overflow = 'auto';
+                }
+            };
         }
 
         // Close Authentication Form when clicking outside
@@ -1636,15 +1650,28 @@
         // Login and Registration handlers are handled by /static/js/auth.js
         // Initialize auth forms if they're already in the DOM (embedded forms)
         document.addEventListener('DOMContentLoaded', function() {
-            // Check if forms are already in the page (not loaded dynamically)
-            const loginForm = document.querySelector('.login-form');
-            const registerForm = document.querySelector('.register-form');
-            if (loginForm || registerForm) {
-                // Forms are embedded, initialize them
-                if (window.initializeAuthForm) {
-                    window.initializeAuthForm();
+            // Wait a bit for auth.js to load
+            setTimeout(function() {
+                // Check if forms are already in the page (not loaded dynamically)
+                const loginForm = document.querySelector('.login-form');
+                const registerForm = document.querySelector('.register-form');
+                if (loginForm || registerForm) {
+                    // Forms are embedded, initialize them
+                    if (window.initializeAuthForm) {
+                        console.log('Initializing auth forms from index.html');
+                        window.initializeAuthForm();
+                    } else {
+                        console.warn('initializeAuthForm not available, waiting for auth.js to load...');
+                        // Retry after a short delay
+                        setTimeout(function() {
+                            if (window.initializeAuthForm) {
+                                console.log('Retrying auth form initialization');
+                                window.initializeAuthForm();
+                            }
+                        }, 500);
+                    }
                 }
-            }
+            }, 100);
         });
     </script>
 </body>
