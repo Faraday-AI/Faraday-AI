@@ -26,15 +26,19 @@ if (typeof window.showAuthForm !== 'function') {
                 document.body.style.overflow = 'hidden';
                 console.log('services.js - Container display set to flex, computed:', window.getComputedStyle(authContainer).display);
                 
-                // Attach MutationObserver to prevent display: block
+                // Attach MutationObserver to prevent display: block (but allow display: none)
                 if (!authContainer._displayObserver) {
                     const observer = new MutationObserver(function(mutations) {
                         mutations.forEach(function(mutation) {
                             if (mutation.type === 'attributes' && mutation.attributeName === 'style') {
                                 const currentDisplay = authContainer.style.display;
+                                // Only prevent display: block, allow display: none for closing
                                 if (currentDisplay === 'block') {
                                     console.log('services.js MutationObserver: Preventing display:block, forcing display:flex');
                                     authContainer.style.setProperty('display', 'flex', 'important');
+                                } else if (currentDisplay === 'none') {
+                                    // Allow display: none (for closing) - don't interfere
+                                    console.log('services.js MutationObserver: Allowing display:none (closing)');
                                 }
                             }
                         });
@@ -84,12 +88,59 @@ if (typeof window.showAuthForm !== 'function') {
 // Check if closeAuthForm is already defined
 if (typeof window.closeAuthForm !== 'function') {
     window.closeAuthForm = function() {
-        const authContainer = document.getElementById('auth-container');
+        console.log('=== closeAuthForm() called from services.js ===');
+        const authContainer = document.getElementById('auth-container') || document.querySelector('.auth-container');
+        console.log('closeAuthForm - Container found:', !!authContainer);
         if (authContainer) {
-            authContainer.style.display = 'none';
-            authContainer.classList.remove('active');
+            console.log('closeAuthForm - Current display:', window.getComputedStyle(authContainer).display);
+            
+            // Disconnect ALL observers if they exist
+            if (authContainer._displayObserver) {
+                console.log('closeAuthForm - Disconnecting MutationObserver...');
+                authContainer._displayObserver.disconnect();
+                delete authContainer._displayObserver;
+                console.log('closeAuthForm - MutationObserver disconnected');
+            }
+            
+            // Remove all classes
+            authContainer.classList.remove('active', 'show');
+            console.log('closeAuthForm - Classes removed');
+            
+            // Force display: none with multiple methods
+            authContainer.style.removeProperty('display');
+            authContainer.style.setProperty('display', 'none', 'important');
+            console.log('closeAuthForm - Display set to none');
+            
+            // Also set via setAttribute as backup
+            authContainer.setAttribute('style', 'display: none !important;');
+            console.log('closeAuthForm - Display set via setAttribute');
+            
+            // Restore body overflow
             document.body.style.overflow = 'auto';
+            console.log('closeAuthForm - Body overflow restored');
+            
+            // Verify it's hidden
+            const computedDisplay = window.getComputedStyle(authContainer).display;
+            console.log('closeAuthForm - Final computed display:', computedDisplay);
+            
+            if (computedDisplay !== 'none') {
+                console.error('closeAuthForm - WARNING: Container still visible! Forcing again...');
+                // Last resort: remove from DOM temporarily
+                const parent = authContainer.parentNode;
+                if (parent) {
+                    parent.removeChild(authContainer);
+                    setTimeout(function() {
+                        parent.appendChild(authContainer);
+                        authContainer.style.setProperty('display', 'none', 'important');
+                    }, 10);
+                }
+            } else {
+                console.log('closeAuthForm - ✅ Container successfully hidden');
+            }
+        } else {
+            console.error('closeAuthForm - ❌ Auth container not found!');
         }
+        console.log('=== closeAuthForm() completed ===');
     };
 }
 

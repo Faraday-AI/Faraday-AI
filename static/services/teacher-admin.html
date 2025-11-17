@@ -446,6 +446,9 @@
             transition: opacity 0.3s ease !important;
             z-index: 10001 !important;
             line-height: 1 !important;
+            pointer-events: auto !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
         }
 
         .auth-close-button:hover {
@@ -763,12 +766,12 @@
             </div>
         </footer>
     </div>
-    
+
     <!-- Auth Container for login/register form -->
     <div id="auth-container" class="auth-container" style="display: none;"></div>
 
     <script src="/static/js/services.js"></script>
-    <script src="/static/js/auth.js?v=2.0"></script>
+    <script src="/static/js/auth.js?v=3.0"></script>
     <script>
         // Ensure auth form is properly initialized
         document.addEventListener('DOMContentLoaded', function() {
@@ -820,6 +823,80 @@
                     } else {
                         console.error('initializeAuthForm function not available!');
                     }
+                    
+                    // Ensure close button works as backup
+                    setTimeout(function() {
+                        const closeButton = authContainer.querySelector('.auth-close-button');
+                        if (closeButton) {
+                            console.log('Close button found in backup handler, attaching...');
+                            // Clone to remove all existing listeners
+                            const newCloseButton = closeButton.cloneNode(true);
+                            closeButton.parentNode.replaceChild(newCloseButton, closeButton);
+                            
+                            const closeHandler = function(e) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                console.log('Close button clicked (backup handler)!');
+                                
+                                // Always hide the container directly (more reliable)
+                                const container = document.getElementById('auth-container') || document.querySelector('.auth-container');
+                                console.log('Backup handler - Container found:', !!container);
+                                if (container) {
+                                    console.log('Backup handler - Current display:', window.getComputedStyle(container).display);
+                                    
+                                    // Disconnect observer first
+                                    if (container._displayObserver) {
+                                        console.log('Backup handler - Disconnecting MutationObserver...');
+                                        container._displayObserver.disconnect();
+                                        delete container._displayObserver;
+                                    }
+                                    
+                                    // Remove classes
+                                    container.classList.remove('active', 'show');
+                                    console.log('Backup handler - Classes removed');
+                                    
+                                    // Force hide with multiple methods
+                                    container.style.removeProperty('display');
+                                    container.style.setProperty('display', 'none', 'important');
+                                    container.setAttribute('style', 'display: none !important;');
+                                    console.log('Backup handler - Display set to none');
+                                    
+                                    // Restore body overflow
+                                    document.body.style.overflow = 'auto';
+                                    
+                                    // Verify
+                                    const finalDisplay = window.getComputedStyle(container).display;
+                                    console.log('Backup handler - Final display:', finalDisplay);
+                                    if (finalDisplay === 'none') {
+                                        console.log('Backup handler - ✅ Container hidden successfully!');
+                                    } else {
+                                        console.error('Backup handler - ❌ Container still visible!');
+                                    }
+                                } else {
+                                    console.error('Backup handler - Container not found!');
+                                }
+                                
+                                // Also try calling closeAuthForm if available (for consistency)
+                                if (typeof window.closeAuthForm === 'function') {
+                                    console.log('Backup handler - Also calling closeAuthForm()...');
+                                    try {
+                                        window.closeAuthForm();
+                                    } catch (err) {
+                                        console.error('Backup handler - Error calling closeAuthForm:', err);
+                                    }
+                                } else {
+                                    console.log('Backup handler - closeAuthForm not available, using direct method');
+                                }
+                                
+                                return false;
+                            };
+                            
+                            newCloseButton.addEventListener('click', closeHandler, true);
+                            newCloseButton.addEventListener('click', closeHandler, false);
+                            newCloseButton.setAttribute('onclick', 'event.preventDefault(); event.stopPropagation(); const c = document.getElementById("auth-container") || document.querySelector(".auth-container"); if(c) { if(c._displayObserver) { c._displayObserver.disconnect(); delete c._displayObserver; } c.style.removeProperty("display"); c.style.setProperty("display", "none", "important"); c.setAttribute("style", "display: none !important;"); c.classList.remove("active", "show"); document.body.style.overflow = "auto"; } if(typeof window.closeAuthForm === "function") { try { window.closeAuthForm(); } catch(e) { console.error("onclick closeAuthForm error:", e); } } return false;');
+                            console.log('Close button backup handler attached in teacher-admin.html');
+                        }
+                    }, 200);
                 }, 50);
             } else {
                 // Load form dynamically with cache busting
@@ -851,32 +928,106 @@
                             registerToggle.classList.remove('active');
                         }
                         
-                        // Initialize the auth form AFTER a short delay to ensure DOM is ready
-                        // This will attach the proper submit handlers with preventDefault and close button
-                        setTimeout(function() {
-                            console.log('Checking for initializeAuthForm...');
-                            console.log('typeof window.initializeAuthForm:', typeof window.initializeAuthForm);
-                            console.log('window.initializeAuthForm:', window.initializeAuthForm);
-                            if (typeof window.initializeAuthForm === 'function') {
-                                console.log('Initializing auth form...');
-                                try {
-                                    window.initializeAuthForm();
-                                    console.log('initializeAuthForm() call completed');
-                                } catch (err) {
-                                    console.error('Error calling initializeAuthForm():', err);
-                                }
-                                
-                                // Verify the handler was attached
-                                const form = document.querySelector('.login-form');
-                                if (form) {
-                                    console.log('Login form found, handler should be attached');
-                                } else {
-                                    console.error('Login form not found after initialization!');
-                                }
-                            } else {
-                                console.error('initializeAuthForm function not available! Type:', typeof window.initializeAuthForm);
-                            }
-                        }, 100);
+                           // Initialize the auth form AFTER a short delay to ensure DOM is ready
+                           // This will attach the proper submit handlers with preventDefault and close button
+                           setTimeout(function() {
+                               console.log('Checking for initializeAuthForm...');
+                               console.log('typeof window.initializeAuthForm:', typeof window.initializeAuthForm);
+                               console.log('window.initializeAuthForm:', window.initializeAuthForm);
+                               if (typeof window.initializeAuthForm === 'function') {
+                                   console.log('Initializing auth form...');
+                                   try {
+                                       window.initializeAuthForm();
+                                       console.log('initializeAuthForm() call completed');
+                                   } catch (err) {
+                                       console.error('Error calling initializeAuthForm():', err);
+                                   }
+                                   
+                                   // Verify the handler was attached
+                                   const form = document.querySelector('.login-form');
+                                   if (form) {
+                                       console.log('Login form found, handler should be attached');
+                                   } else {
+                                       console.error('Login form not found after initialization!');
+                                   }
+                                   
+                                   // Ensure close button works as backup
+                                   setTimeout(function() {
+                                       const closeButton = authContainer.querySelector('.auth-close-button');
+                                       if (closeButton) {
+                                           console.log('Close button found in dynamic load backup, attaching...');
+                                           // Clone to remove all existing listeners
+                                           const newCloseButton = closeButton.cloneNode(true);
+                                           closeButton.parentNode.replaceChild(newCloseButton, closeButton);
+                                           
+                                           const closeHandler = function(e) {
+                                               e.preventDefault();
+                                               e.stopPropagation();
+                                               console.log('Close button clicked (dynamic load backup)!');
+                                               
+                                               // Always hide the container directly (more reliable)
+                                               const container = document.getElementById('auth-container') || document.querySelector('.auth-container');
+                                               console.log('Backup handler - Container found:', !!container);
+                                               if (container) {
+                                                   console.log('Backup handler - Current display:', window.getComputedStyle(container).display);
+                                                   
+                                                   // Disconnect observer first
+                                                   if (container._displayObserver) {
+                                                       console.log('Backup handler - Disconnecting MutationObserver...');
+                                                       container._displayObserver.disconnect();
+                                                       delete container._displayObserver;
+                                                   }
+                                                   
+                                                   // Remove classes
+                                                   container.classList.remove('active', 'show');
+                                                   console.log('Backup handler - Classes removed');
+                                                   
+                                                   // Force hide with multiple methods
+                                                   container.style.removeProperty('display');
+                                                   container.style.setProperty('display', 'none', 'important');
+                                                   container.setAttribute('style', 'display: none !important;');
+                                                   console.log('Backup handler - Display set to none');
+                                                   
+                                                   // Restore body overflow
+                                                   document.body.style.overflow = 'auto';
+                                                   
+                                                   // Verify
+                                                   const finalDisplay = window.getComputedStyle(container).display;
+                                                   console.log('Backup handler - Final display:', finalDisplay);
+                                                   if (finalDisplay === 'none') {
+                                                       console.log('Backup handler - ✅ Container hidden successfully!');
+                                                   } else {
+                                                       console.error('Backup handler - ❌ Container still visible!');
+                                                   }
+                                               } else {
+                                                   console.error('Backup handler - Container not found!');
+                                               }
+                                               
+                                               // Also try calling closeAuthForm if available (for consistency)
+                                               if (typeof window.closeAuthForm === 'function') {
+                                                   console.log('Backup handler - Also calling closeAuthForm()...');
+                                                   try {
+                                                       window.closeAuthForm();
+                                                   } catch (err) {
+                                                       console.error('Backup handler - Error calling closeAuthForm:', err);
+                                                   }
+                                               } else {
+                                                   console.log('Backup handler - closeAuthForm not available, using direct method');
+                                               }
+                                               
+                                               return false;
+                                           };
+                                           
+                                           newCloseButton.addEventListener('click', closeHandler, true);
+                                           newCloseButton.addEventListener('click', closeHandler, false);
+                                           newCloseButton.setAttribute('onclick', 'event.preventDefault(); event.stopPropagation(); const c = document.getElementById("auth-container") || document.querySelector(".auth-container"); if(c) { if(c._displayObserver) { c._displayObserver.disconnect(); delete c._displayObserver; } c.style.removeProperty("display"); c.style.setProperty("display", "none", "important"); c.setAttribute("style", "display: none !important;"); c.classList.remove("active", "show"); document.body.style.overflow = "auto"; } if(typeof window.closeAuthForm === "function") { try { window.closeAuthForm(); } catch(e) { console.error("onclick closeAuthForm error:", e); } } return false;');
+                                           console.log('Close button backup handler attached in teacher-admin.html (dynamic load)');
+                                       }
+                                   }, 250);
+                               } else {
+                                   console.error('initializeAuthForm function not available! Type:', typeof window.initializeAuthForm);
+                               }
+                           }, 100);
                     })
                     .catch(error => {
                         console.error('Error loading auth form:', error);
@@ -897,8 +1048,8 @@
                 const target = document.querySelector(this.getAttribute('href'));
                 if (target) {
                     target.scrollIntoView({
-                        behavior: 'smooth'
-                    });
+                    behavior: 'smooth'
+                });
                 }
             });
         });

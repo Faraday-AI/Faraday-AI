@@ -613,28 +613,54 @@ window.initializeAuthForm = function() {
         });
         
         // Ensure close button works (add event listener after form is cloned)
-        const closeButton = document.querySelector('.auth-close-button');
-        if (closeButton) {
-            // Remove existing onclick and add event listener
-            closeButton.removeAttribute('onclick');
-            closeButton.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (typeof window.closeAuthForm === 'function') {
-                    window.closeAuthForm();
-                } else {
-                    console.error('closeAuthForm function not available!');
-                    // Fallback: hide the container directly
-                    const container = document.getElementById('auth-container');
-                    if (container) {
-                        container.style.display = 'none';
-                        container.classList.remove('active', 'show');
-                        document.body.style.overflow = 'auto';
+        // Use setTimeout to ensure this runs after all DOM manipulation
+        setTimeout(function() {
+            const closeButton = document.querySelector('.auth-close-button');
+            if (closeButton) {
+                console.log('Close button found, attaching handlers...');
+                // Remove existing onclick and all event listeners by cloning
+                const newCloseButton = closeButton.cloneNode(true);
+                closeButton.parentNode.replaceChild(newCloseButton, closeButton);
+                
+                // Add multiple event listeners to ensure it works
+                const closeHandler = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Close button clicked!');
+                    if (typeof window.closeAuthForm === 'function') {
+                        window.closeAuthForm();
+                    } else {
+                        console.error('closeAuthForm function not available!');
+                        // Fallback: hide the container directly
+                        const container = document.getElementById('auth-container') || document.querySelector('.auth-container');
+                        if (container) {
+                            // Disconnect observer if exists
+                            if (container._displayObserver) {
+                                container._displayObserver.disconnect();
+                                delete container._displayObserver;
+                            }
+                            container.style.setProperty('display', 'none', 'important');
+                            container.classList.remove('active', 'show');
+                            document.body.style.overflow = 'auto';
+                        }
                     }
-                }
-            });
-            console.log('Close button event listener attached in initializeAuthForm');
-        }
+                    return false;
+                };
+                
+                // Add click listener with capture phase
+                newCloseButton.addEventListener('click', closeHandler, true);
+                // Add click listener with bubble phase
+                newCloseButton.addEventListener('click', closeHandler, false);
+                // Add mousedown as backup
+                newCloseButton.addEventListener('mousedown', closeHandler, true);
+                // Set onclick as final fallback
+                newCloseButton.setAttribute('onclick', 'event.preventDefault(); event.stopPropagation(); if(typeof window.closeAuthForm === "function") { window.closeAuthForm(); } else { const c = document.getElementById("auth-container") || document.querySelector(".auth-container"); if(c) { if(c._displayObserver) { c._displayObserver.disconnect(); delete c._displayObserver; } c.style.setProperty("display", "none", "important"); c.classList.remove("active", "show"); document.body.style.overflow = "auto"; } } return false;');
+                
+                console.log('Close button handlers attached (multiple methods)');
+            } else {
+                console.error('Close button not found after DOM manipulation!');
+            }
+        }, 150);
         
         console.log('=== initializeAuthForm() completed successfully ===');
     } catch (error) {
@@ -708,12 +734,60 @@ if (typeof window.showAuthForm !== 'function') {
 // Close auth form - only define if not already defined (e.g., by index.html)
 if (typeof window.closeAuthForm !== 'function') {
     window.closeAuthForm = function() {
-        const authContainer = document.getElementById('auth-container');
+        console.log('=== closeAuthForm() called ===');
+        const authContainer = document.getElementById('auth-container') || document.querySelector('.auth-container');
+        console.log('closeAuthForm - Container found:', !!authContainer);
         if (authContainer) {
-            authContainer.style.display = 'none';
-            authContainer.classList.remove('active');
+            console.log('closeAuthForm - Current display:', window.getComputedStyle(authContainer).display);
+            console.log('closeAuthForm - Current classes:', authContainer.className);
+            
+            // Disconnect ALL observers if they exist
+            if (authContainer._displayObserver) {
+                console.log('closeAuthForm - Disconnecting MutationObserver...');
+                authContainer._displayObserver.disconnect();
+                delete authContainer._displayObserver;
+                console.log('closeAuthForm - MutationObserver disconnected');
+            }
+            
+            // Remove all classes
+            authContainer.classList.remove('active', 'show');
+            console.log('closeAuthForm - Classes removed');
+            
+            // Force display: none with multiple methods
+            authContainer.style.removeProperty('display');
+            authContainer.style.setProperty('display', 'none', 'important');
+            console.log('closeAuthForm - Display set to none');
+            
+            // Also set via setAttribute as backup
+            authContainer.setAttribute('style', 'display: none !important;');
+            console.log('closeAuthForm - Display set via setAttribute');
+            
+            // Restore body overflow
             document.body.style.overflow = 'auto';
+            console.log('closeAuthForm - Body overflow restored');
+            
+            // Verify it's hidden
+            const computedDisplay = window.getComputedStyle(authContainer).display;
+            console.log('closeAuthForm - Final computed display:', computedDisplay);
+            
+            if (computedDisplay !== 'none') {
+                console.error('closeAuthForm - WARNING: Container still visible! Forcing again...');
+                // Last resort: remove from DOM temporarily
+                const parent = authContainer.parentNode;
+                if (parent) {
+                    parent.removeChild(authContainer);
+                    setTimeout(function() {
+                        parent.appendChild(authContainer);
+                        authContainer.style.setProperty('display', 'none', 'important');
+                    }, 10);
+                }
+            } else {
+                console.log('closeAuthForm - ✅ Container successfully hidden');
+            }
+        } else {
+            console.error('closeAuthForm - ❌ Auth container not found!');
         }
+        console.log('=== closeAuthForm() completed ===');
     };
 }
 
