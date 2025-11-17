@@ -876,13 +876,14 @@ async def startup_event():
                     if teacher_check:
                         # Create admin user from teacher_registrations
                         db_session.execute(text("""
-                            INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, created_at, updated_at)
-                            VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, NOW(), NOW())
+                            INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, status, created_at, updated_at)
+                            VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, 'ACTIVE', NOW(), NOW())
                             ON CONFLICT (email) DO UPDATE 
                             SET role = 'admin',
                                 is_superuser = true,
                                 is_active = true,
-                                disabled = false
+                                disabled = false,
+                                status = 'ACTIVE'
                         """), {
                             "email": teacher_check[0],
                             "password_hash": teacher_check[1],
@@ -1012,6 +1013,108 @@ async def pricing():
     except Exception as e:
         logger.error(f"Error serving pricing page: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error serving pricing page: {str(e)}")
+
+@app.get("/login")
+async def login_page():
+    """Login page endpoint - serves a standalone login page with auth functionality."""
+    try:
+        # Determine static directory path
+        base_dir = Path(__file__).parent.parent
+        static_dir = Path("/app/static")
+        
+        if not static_dir.exists():
+            static_dir = base_dir / "static"
+        
+        if not static_dir.exists():
+            logger.error(f"Static directory not found for login route")
+            raise HTTPException(status_code=500, detail="Static files not found")
+        
+        # Create a complete HTML page with auth form and scripts
+        login_html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Faraday AI</title>
+    <style>
+        * {{
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }}
+        .login-container {{
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }}
+        .back-link {{
+            display: inline-block;
+            margin-bottom: 1rem;
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }}
+        .back-link:hover {{
+            text-decoration: underline;
+        }}
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <a href="/" class="back-link">← Back to Home</a>
+        <div id="auth-container" style="display: block;"></div>
+    </div>
+    <script src="/static/js/auth.js"></script>
+    <script>
+        // Load auth form content when page loads
+        document.addEventListener('DOMContentLoaded', function() {{
+            fetch('/static/auth-form.html')
+                .then(response => response.text())
+                .then(html => {{
+                    document.getElementById('auth-container').innerHTML = html;
+                    if (window.initializeAuthForm) {{
+                        window.initializeAuthForm();
+                    }}
+                }})
+                .catch(error => {{
+                    console.error('Error loading auth form:', error);
+                    document.getElementById('auth-container').innerHTML = 
+                        '<p style="color: red;">Error loading login form. Please <a href="/">go back</a> and try again.</p>';
+                }});
+        }});
+        
+        // Check if already logged in and redirect
+        if (localStorage.getItem('access_token')) {{
+            window.location.replace('/dashboard');
+        }}
+    </script>
+</body>
+</html>"""
+        
+        return HTMLResponse(
+            content=login_html,
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html; charset=utf-8"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving login page: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving login page: {str(e)}")
 
 @app.get("/dashboard")
 async def dashboard():

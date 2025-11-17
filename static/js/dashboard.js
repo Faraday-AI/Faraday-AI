@@ -45,8 +45,23 @@ async function initializeDashboard() {
             return;
         }
 
-        // Load user info
-        await loadUserInfo();
+        // Load user info (don't fail if this errors - token exists so user is authenticated)
+        try {
+            await loadUserInfo();
+        } catch (userInfoError) {
+            console.warn('Could not load user info, but token exists. Using token data:', userInfoError);
+            // Extract email from token as fallback
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                const email = payload.email || 'User';
+                const userNameEl = document.getElementById('userName');
+                if (userNameEl) {
+                    userNameEl.textContent = email;
+                }
+            } catch (e) {
+                console.warn('Could not decode token:', e);
+            }
+        }
         
         // Load dashboard state
         await loadDashboardState();
@@ -59,11 +74,13 @@ async function initializeDashboard() {
         
     } catch (error) {
         console.error('Error initializing dashboard:', error);
-        // If auth fails, show login overlay
-        if (error.message && error.message.includes('401')) {
+        // Only show login overlay if there's no token
+        const token = localStorage.getItem('access_token');
+        if (!token) {
             showLoginOverlay();
         } else {
-            showError('Failed to load dashboard. Please try again.');
+            // Token exists but something else failed - show error but don't force login
+            showError('Failed to load dashboard. Please try refreshing the page.');
         }
     }
 }
@@ -78,7 +95,7 @@ function showLoginOverlay() {
             <h2>Welcome to Faraday AI Dashboard</h2>
             <p>Please log in to access your dashboard</p>
             <div class="login-buttons">
-                <button class="btn-primary" onclick="window.location.href='/static/auth-form.html'">Go to Login</button>
+                <button class="btn-primary" onclick="window.location.href='/login'">Go to Login</button>
                 <button class="btn-secondary" onclick="hideLoginOverlay()">Continue as Guest (Limited)</button>
             </div>
             <div class="login-back-buttons">
