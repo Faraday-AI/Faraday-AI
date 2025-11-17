@@ -39,7 +39,7 @@ window.addEventListener('beforeunload', () => {
 async function initializeDashboard() {
     try {
         // Check authentication
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         if (!token) {
             showLoginOverlay();
             return;
@@ -106,7 +106,7 @@ function hideLoginOverlay() {
 // Load user information
 async function loadUserInfo() {
     try {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         if (!token) {
             document.getElementById('userName').textContent = 'Guest';
             return;
@@ -127,7 +127,7 @@ async function loadUserInfo() {
     } catch (error) {
         console.error('Error loading user info:', error);
         // Fallback to email from token if available
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         if (token) {
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
@@ -144,7 +144,7 @@ async function loadUserInfo() {
 // Load dashboard state
 async function loadDashboardState() {
     try {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         
         // Try to load from localStorage first (works for both guest and authenticated)
         if (loadWidgetsFromLocalStorage() && activeWidgets.length > 0) {
@@ -204,7 +204,7 @@ async function loadDashboardState() {
             renderWidgets();
         } else {
             // Initialize default dashboard (only if authenticated)
-            const token = localStorage.getItem('auth_token');
+            const token = localStorage.getItem('access_token');
             if (token) {
                 await initializeDashboardState();
             } else {
@@ -220,7 +220,7 @@ async function initializeDashboardState() {
         const response = await fetch(`${API_BASE_URL}/dashboard/initialize`, {
             method: 'POST',
             headers: {
-                'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
                 'Content-Type': 'application/json'
             }
         });
@@ -500,7 +500,7 @@ async function sendMessage() {
     updateAvatarStatus('typing', 'Thinking...');
     
     try {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         
         // Prepare headers - include token if available, but don't require it
         const headers = {
@@ -685,7 +685,7 @@ async function addWidget(widgetType) {
             return;
         }
         
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         
         // Create widget locally (works for both guest and authenticated users)
         const widget = {
@@ -752,7 +752,7 @@ async function addWidget(widgetType) {
 // Get or create dashboard ID for authenticated users
 async function getOrCreateDashboardId() {
     try {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         if (!token) return null;
         
         // Try to get existing dashboard
@@ -1059,7 +1059,7 @@ function tryWidgetExample(widgetType) {
 // Remove widget
 async function removeWidget(widgetId) {
     try {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         
         // Remove locally first
         activeWidgets = activeWidgets.filter(w => w.id !== widgetId);
@@ -1846,7 +1846,7 @@ async function toggleVoiceInput() {
                         formData.append('audio', audioBlob, `recording.${mimeType.split('/')[1].split(';')[0]}`);
                         formData.append('language', 'en');
                         
-                        const token = localStorage.getItem('auth_token');
+                        const token = localStorage.getItem('access_token');
                         const headers = {};
                         if (token) {
                             headers['Authorization'] = `Bearer ${token}`;
@@ -2138,7 +2138,11 @@ function toggleSidebar() {
 // Logout
 function logout() {
     if (confirm('Are you sure you want to logout?')) {
-        localStorage.removeItem('auth_token');
+        // Clear all auth data from localStorage
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('teacher_id');
+        localStorage.removeItem('user_email');
         window.location.href = '/';
     }
 }
