@@ -903,19 +903,39 @@ function renderWidgets() {
         return;
     }
     
-    widgetsGrid.innerHTML = activeWidgets.map(widget => `
-        <div class="widget-card" data-widget-id="${widget.id}">
+    widgetsGrid.innerHTML = activeWidgets.map(widget => {
+        // Check if widget has actual data to print (not just instructions)
+        const hasData = widget.data && Object.keys(widget.data).length > 0;
+        const dataString = hasData ? JSON.stringify(widget.data) : '';
+        const isTextPrompt = hasData && (typeof widget.data === 'string' || 
+                            (typeof widget.data === 'object' && 
+                             Object.keys(widget.data).length === 1 && 
+                             (widget.data.message || widget.data.text || widget.data.prompt || widget.data.description)));
+        const hasPrintableData = hasData && !isTextPrompt && dataString.length >= 50 && 
+                                !dataString.includes('Try asking') && !dataString.includes('example');
+        
+        // Get widget size (default to 'medium' if not set)
+        const widgetSize = widget.size || 'medium';
+        const sizeClass = `widget-size-${widgetSize}`;
+        
+        return `
+        <div class="widget-card ${sizeClass}" data-widget-id="${widget.id}" data-widget-size="${widgetSize}">
             <div class="widget-card-header">
                 <h3 class="widget-card-title">${getWidgetTitle(widget.type)}</h3>
                 <div class="widget-card-actions">
-                    <button class="widget-action-btn" onclick="removeWidget('${widget.id}')" title="Remove">×</button>
+                    <button class="widget-action-btn widget-resize-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();toggleWidgetSize('${widget.id}');})(event)" title="Expand/Collapse widget">⛶</button>
+                    ${hasPrintableData ? `<button class="widget-action-btn widget-print-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();printWidget('${widget.id}');})(event)" title="Print widget data">🖨️</button>` : ''}
+                    ${hasPrintableData ? `<button class="widget-action-btn widget-email-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();emailWidget('${widget.id}');})(event)" title="Email widget data">📧</button>` : ''}
+                    ${hasPrintableData ? `<button class="widget-action-btn widget-sms-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();smsWidget('${widget.id}');})(event)" title="Send widget data via SMS">💬</button>` : ''}
+                    <button class="widget-action-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();removeWidget('${widget.id}');})(event)" title="Remove widget from dashboard">×</button>
                 </div>
             </div>
             <div class="widget-card-content">
                 ${renderWidgetContent(widget)}
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 }
 
 // Get widget title
@@ -1443,6 +1463,780 @@ function tryWidgetExample(widgetType) {
     // Auto-resize textarea
     chatInput.style.height = 'auto';
     chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+}
+
+// SMS widget data
+function smsWidget(widgetId) {
+    try {
+        const widget = activeWidgets.find(w => w.id === widgetId);
+        if (!widget) {
+            console.error('Widget not found:', widgetId);
+            return;
+        }
+        
+        // Get widget title
+        const widgetTitle = getWidgetTitle(widget.type);
+        
+        // Get the formatted data for SMS (concise format due to character limits)
+        let smsBody = '';
+        
+        if (widget.data && Object.keys(widget.data).length > 0) {
+            // Format data for SMS (keep it concise - SMS has 160 char limit per message)
+            smsBody = formatWidgetDataForSMS(widget.data, widget.type, widgetTitle);
+        } else {
+            smsBody = `${widgetTitle}: No data available.`;
+        }
+        
+        // Check if SMS protocol is supported (works on mobile devices)
+        // For desktop, we'll prompt for phone number and use the backend SMS service
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            // Mobile device - use sms: protocol
+            const phoneNumber = prompt('Enter phone number (E.164 format, e.g., +1234567890):');
+            if (phoneNumber) {
+                const smsLink = `sms:${phoneNumber}?body=${encodeURIComponent(smsBody)}`;
+                window.location.href = smsLink;
+            }
+        } else {
+            // Desktop - prompt for phone number and offer to use backend SMS service
+            const phoneNumber = prompt('Enter phone number to send SMS to (E.164 format, e.g., +1234567890):');
+            if (phoneNumber) {
+                // Validate phone number format (basic E.164 check)
+                if (!/^\+[1-9]\d{1,14}$/.test(phoneNumber)) {
+                    alert('Please enter a valid phone number in E.164 format (e.g., +1234567890)');
+                    return;
+                }
+                
+                // Ask if user wants to send via backend SMS service
+                const useBackend = confirm('Would you like to send this SMS via the Faraday AI SMS service?\n\nClick OK to send via backend, or Cancel to copy the message to clipboard.');
+                
+                if (useBackend) {
+                    // Send via backend SMS service
+                    sendSMSViaBackend(phoneNumber, smsBody);
+                } else {
+                    // Copy to clipboard as fallback
+                    navigator.clipboard.writeText(smsBody).then(() => {
+                        alert('Message copied to clipboard! You can paste it into your SMS app.\n\nPhone number: ' + phoneNumber);
+                    }).catch(() => {
+                        // Fallback if clipboard API fails
+                        const textArea = document.createElement('textarea');
+                        textArea.value = smsBody;
+                        document.body.appendChild(textArea);
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                        alert('Message copied to clipboard! You can paste it into your SMS app.\n\nPhone number: ' + phoneNumber);
+                    });
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error sending SMS widget:', error);
+        alert('Failed to send SMS. Please try again.');
+    }
+}
+
+// Send SMS via backend service
+async function sendSMSViaBackend(phoneNumber, message) {
+    try {
+        const token = localStorage.getItem('access_token');
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        // Check if send_sms function is available via the chat endpoint
+        // We'll use the chat endpoint to send SMS since it has access to the send_sms function
+        const response = await fetch(`${API_BASE_URL}/chat/message`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                message: `Send an SMS to ${phoneNumber} with the following message: ${message}`,
+                context: []
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`SMS send failed: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.response && result.response.toLowerCase().includes('sent') || 
+            result.response && result.response.toLowerCase().includes('success')) {
+            alert('SMS sent successfully!');
+        } else {
+            // If the AI didn't send it, show the response and offer to copy
+            alert('SMS may not have been sent. Response: ' + (result.response || 'Unknown error'));
+        }
+        
+    } catch (error) {
+        console.error('Error sending SMS via backend:', error);
+        alert('Failed to send SMS via backend service. Error: ' + error.message);
+    }
+}
+
+// Format widget data for SMS (concise format)
+function formatWidgetDataForSMS(data, widgetType, widgetTitle) {
+    // SMS has character limits, so keep it concise
+    let smsText = `${widgetTitle}\n`;
+    
+    if (!data || typeof data !== 'object') {
+        smsText += 'No data';
+        return smsText;
+    }
+    
+    // Special handling for fitness widget with workout data
+    if (widgetType === 'fitness' && data.exercises && Array.isArray(data.exercises)) {
+        if (data.plan_name) {
+            smsText += `${data.plan_name}\n`;
+        }
+        data.exercises.slice(0, 5).forEach((exercise, index) => {
+            smsText += `${index + 1}. ${exercise.name || 'Exercise'}`;
+            if (exercise.sets && exercise.reps) {
+                smsText += ` (${exercise.sets}x${exercise.reps})`;
+            }
+            smsText += '\n';
+        });
+        if (data.exercises.length > 5) {
+            smsText += `...and ${data.exercises.length - 5} more`;
+        }
+    }
+    // Handle arrays - show first few items
+    else if (Array.isArray(data)) {
+        if (data.length === 0) {
+            smsText += 'No items';
+        } else {
+            data.slice(0, 3).forEach((item, index) => {
+                if (typeof item === 'object') {
+                    smsText += `${index + 1}. ${JSON.stringify(item).substring(0, 50)}...\n`;
+                } else {
+                    smsText += `${index + 1}. ${String(item).substring(0, 100)}\n`;
+                }
+            });
+            if (data.length > 3) {
+                smsText += `...${data.length - 3} more items`;
+            }
+        }
+    }
+    // Handle objects - show key summary
+    else {
+        const keys = Object.keys(data);
+        keys.slice(0, 5).forEach(key => {
+            const value = data[key];
+            let valueStr = '';
+            if (typeof value === 'object' && value !== null) {
+                valueStr = JSON.stringify(value).substring(0, 30) + '...';
+            } else {
+                valueStr = String(value).substring(0, 50);
+            }
+            smsText += `${key}: ${valueStr}\n`;
+        });
+        if (keys.length > 5) {
+            smsText += `...${keys.length - 5} more fields`;
+        }
+    }
+    
+    // Truncate if too long (SMS limit is ~160 chars per message, but we'll allow up to 500 for multi-part)
+    const maxLength = 500;
+    if (smsText.length > maxLength) {
+        smsText = smsText.substring(0, maxLength - 3) + '...';
+    }
+    
+    return smsText;
+}
+
+// Email widget data
+function emailWidget(widgetId) {
+    try {
+        const widget = activeWidgets.find(w => w.id === widgetId);
+        if (!widget) {
+            console.error('Widget not found:', widgetId);
+            return;
+        }
+        
+        // Get widget title
+        const widgetTitle = getWidgetTitle(widget.type);
+        
+        // Get the formatted data for email
+        let emailBody = '';
+        let emailSubject = `${widgetTitle} - Widget Data`;
+        
+        if (widget.data && Object.keys(widget.data).length > 0) {
+            // Format data for email
+            emailBody = formatWidgetDataForEmail(widget.data, widget.type, widgetTitle);
+        } else {
+            emailBody = `Widget: ${widgetTitle}\n\nNo data available.`;
+        }
+        
+        // Create mailto link
+        const subject = encodeURIComponent(emailSubject);
+        const body = encodeURIComponent(emailBody);
+        const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
+        
+        // Open email client
+        window.location.href = mailtoLink;
+        
+    } catch (error) {
+        console.error('Error emailing widget:', error);
+        alert('Failed to open email client. Please try again.');
+    }
+}
+
+// Format widget data for email
+function formatWidgetDataForEmail(data, widgetType, widgetTitle) {
+    let emailText = `${widgetTitle}\n`;
+    emailText += `${'='.repeat(widgetTitle.length)}\n\n`;
+    emailText += `Generated on: ${new Date().toLocaleString()}\n\n`;
+    emailText += `${'-'.repeat(50)}\n\n`;
+    
+    if (!data || typeof data !== 'object') {
+        emailText += 'No data available\n';
+        return emailText;
+    }
+    
+    // Special handling for fitness widget with workout data
+    if (widgetType === 'fitness' && data.exercises && Array.isArray(data.exercises)) {
+        if (data.plan_name) {
+            emailText += `Workout Plan: ${data.plan_name}\n\n`;
+        }
+        emailText += 'Exercises:\n';
+        emailText += `${'-'.repeat(50)}\n`;
+        data.exercises.forEach((exercise, index) => {
+            emailText += `\n${index + 1}. ${exercise.name || 'Exercise ' + (index + 1)}\n`;
+            if (exercise.sets && exercise.reps) {
+                emailText += `   Sets: ${exercise.sets} × Reps: ${exercise.reps}\n`;
+            }
+            if (exercise.description) {
+                emailText += `   ${exercise.description}\n`;
+            }
+        });
+        if (data.description) {
+            emailText += `\n${'-'.repeat(50)}\n`;
+            emailText += `Description: ${data.description}\n`;
+        }
+    }
+    // Handle arrays
+    else if (Array.isArray(data)) {
+        if (data.length === 0) {
+            emailText += 'No items found\n';
+        } else {
+            emailText += 'Items:\n';
+            emailText += `${'-'.repeat(50)}\n`;
+            data.forEach((item, index) => {
+                emailText += `\n${index + 1}. `;
+                if (typeof item === 'object') {
+                    emailText += formatDataObjectForEmail(item, 1);
+                } else {
+                    emailText += String(item) + '\n';
+                }
+            });
+        }
+    }
+    // Handle objects
+    else {
+        emailText += formatDataObjectForEmail(data, 0);
+    }
+    
+    emailText += `\n${'-'.repeat(50)}\n`;
+    emailText += `\nThis data was generated from the Faraday AI dashboard.\n`;
+    
+    return emailText;
+}
+
+// Format a data object for email
+function formatDataObjectForEmail(obj, depth = 0) {
+    if (depth > 3) return '...\n';
+    
+    let text = '';
+    const keys = Object.keys(obj);
+    
+    if (keys.length === 0) {
+        return 'No data\n';
+    }
+    
+    keys.forEach(key => {
+        const value = obj[key];
+        const indent = '  '.repeat(depth);
+        
+        if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            text += `${indent}${key}:\n`;
+            text += formatDataObjectForEmail(value, depth + 1);
+        } else if (Array.isArray(value)) {
+            text += `${indent}${key}: [${value.length} items]\n`;
+            if (value.length <= 5 && depth < 2) {
+                value.forEach((item, index) => {
+                    if (typeof item === 'object') {
+                        text += `${indent}  ${index + 1}. `;
+                        text += formatDataObjectForEmail(item, depth + 1);
+                    } else {
+                        text += `${indent}  ${index + 1}. ${String(item)}\n`;
+                    }
+                });
+            }
+        } else {
+            text += `${indent}${key}: ${formatValueForEmail(value)}\n`;
+        }
+    });
+    
+    return text;
+}
+
+// Format a single value for email
+function formatValueForEmail(value) {
+    if (value === null || value === undefined) {
+        return 'null';
+    }
+    
+    if (typeof value === 'boolean' || typeof value === 'number') {
+        return String(value);
+    }
+    
+    if (Array.isArray(value)) {
+        if (value.length === 0) {
+            return '[]';
+        }
+        if (value.length <= 3) {
+            return `[${value.map(v => formatValueForEmail(v)).join(', ')}]`;
+        }
+        return `[${value.length} items]`;
+    }
+    
+    if (typeof value === 'object') {
+        const objKeys = Object.keys(value);
+        if (objKeys.length === 0) {
+            return '{}';
+        }
+        if (objKeys.length <= 3) {
+            return `{${objKeys.map(k => `${k}: ${formatValueForEmail(value[k])}`).join(', ')}}`;
+        }
+        return `{${objKeys.length} keys}`;
+    }
+    
+    return String(value);
+}
+
+// Print widget data
+function printWidget(widgetId) {
+    try {
+        const widget = activeWidgets.find(w => w.id === widgetId);
+        if (!widget) {
+            console.error('Widget not found:', widgetId);
+            return;
+        }
+        
+        // Get widget title
+        const widgetTitle = getWidgetTitle(widget.type);
+        
+        // Get widget content element
+        const widgetCard = document.querySelector(`[data-widget-id="${widgetId}"]`);
+        if (!widgetCard) {
+            console.error('Widget card element not found');
+            return;
+        }
+        
+        const widgetContent = widgetCard.querySelector('.widget-card-content');
+        if (!widgetContent) {
+            console.error('Widget content element not found');
+            return;
+        }
+        
+        // Create a new window for printing
+        const printWindow = window.open('', '_blank', 'width=800,height=600');
+        if (!printWindow) {
+            alert('Please allow pop-ups to print widget data.');
+            return;
+        }
+        
+        // Get the formatted data
+        let printContent = '';
+        
+        if (widget.data && Object.keys(widget.data).length > 0) {
+            // Format data for printing
+            printContent = formatWidgetDataForPrint(widget.data, widget.type, widgetTitle);
+        } else {
+            printContent = `
+                <h1>${escapeHtml(widgetTitle)}</h1>
+                <p>No data available to print.</p>
+            `;
+        }
+        
+        // Write the print document
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>${escapeHtml(widgetTitle)} - Print</title>
+                <style>
+                    @media print {
+                        @page {
+                            margin: 1in;
+                        }
+                        body {
+                            margin: 0;
+                            padding: 0;
+                        }
+                    }
+                    body {
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        padding: 20px;
+                    }
+                    h1 {
+                        color: #2c3e50;
+                        border-bottom: 3px solid #3498db;
+                        padding-bottom: 10px;
+                        margin-bottom: 20px;
+                    }
+                    h2 {
+                        color: #34495e;
+                        margin-top: 25px;
+                        margin-bottom: 15px;
+                    }
+                    h3 {
+                        color: #555;
+                        margin-top: 20px;
+                        margin-bottom: 10px;
+                    }
+                    h4 {
+                        color: #666;
+                        margin-top: 15px;
+                        margin-bottom: 8px;
+                    }
+                    .workout-plan {
+                        margin: 20px 0;
+                    }
+                    .workout-plan-title {
+                        font-size: 1.3em;
+                        font-weight: bold;
+                        margin-bottom: 15px;
+                        color: #2c3e50;
+                    }
+                    .workout-exercises {
+                        list-style: none;
+                        padding: 0;
+                        margin: 0;
+                    }
+                    .workout-exercise {
+                        margin: 15px 0;
+                        padding: 15px;
+                        background: #f8f9fa;
+                        border-left: 4px solid #3498db;
+                        border-radius: 4px;
+                    }
+                    .exercise-name {
+                        display: block;
+                        font-size: 1.1em;
+                        font-weight: bold;
+                        color: #2c3e50;
+                        margin-bottom: 8px;
+                    }
+                    .exercise-sets-reps {
+                        display: block;
+                        color: #7f8c8d;
+                        margin-bottom: 8px;
+                        font-weight: 600;
+                    }
+                    .exercise-description {
+                        margin: 8px 0 0 0;
+                        color: #555;
+                    }
+                    .workout-description {
+                        margin-top: 15px;
+                        padding: 10px;
+                        background: #ecf0f1;
+                        border-radius: 4px;
+                        color: #555;
+                    }
+                    ul, ol {
+                        margin: 10px 0;
+                        padding-left: 30px;
+                    }
+                    li {
+                        margin: 8px 0;
+                    }
+                    dl {
+                        margin: 15px 0;
+                    }
+                    dt {
+                        font-weight: bold;
+                        color: #2c3e50;
+                        margin-top: 10px;
+                    }
+                    dd {
+                        margin-left: 20px;
+                        margin-bottom: 8px;
+                        color: #555;
+                    }
+                    pre {
+                        background: #f4f4f4;
+                        padding: 15px;
+                        border-radius: 4px;
+                        overflow-x: auto;
+                        font-size: 0.9em;
+                        line-height: 1.5;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 15px 0;
+                    }
+                    th, td {
+                        border: 1px solid #ddd;
+                        padding: 10px;
+                        text-align: left;
+                    }
+                    th {
+                        background-color: #3498db;
+                        color: white;
+                        font-weight: bold;
+                    }
+                    tr:nth-child(even) {
+                        background-color: #f8f9fa;
+                    }
+                    .print-date {
+                        color: #7f8c8d;
+                        font-size: 0.9em;
+                        margin-bottom: 20px;
+                    }
+                    .no-data {
+                        color: #95a5a6;
+                        font-style: italic;
+                        text-align: center;
+                        padding: 40px;
+                    }
+                </style>
+            </head>
+            <body>
+                ${printContent}
+                <div class="print-date" style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #ddd;">
+                    Printed on ${new Date().toLocaleString()}
+                </div>
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        
+        // Wait for content to load, then print
+        printWindow.onload = function() {
+            setTimeout(() => {
+                printWindow.print();
+            }, 250);
+        };
+        
+    } catch (error) {
+        console.error('Error printing widget:', error);
+        alert('Failed to print widget. Please try again.');
+    }
+}
+
+// Format widget data for printing
+function formatWidgetDataForPrint(data, widgetType, widgetTitle) {
+    let html = `<h1>${escapeHtml(widgetTitle)}</h1>`;
+    
+    if (!data || typeof data !== 'object') {
+        html += '<p class="no-data">No data available</p>';
+        return html;
+    }
+    
+    // Special handling for fitness widget with workout data
+    if (widgetType === 'fitness' && data.exercises && Array.isArray(data.exercises)) {
+        html += '<div class="workout-plan">';
+        if (data.plan_name) {
+            html += `<h2 class="workout-plan-title">${escapeHtml(data.plan_name)}</h2>`;
+        }
+        html += '<ul class="workout-exercises">';
+        data.exercises.forEach((exercise, index) => {
+            html += '<li class="workout-exercise">';
+            html += `<span class="exercise-name">${index + 1}. ${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</span>`;
+            if (exercise.sets && exercise.reps) {
+                html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
+            }
+            if (exercise.description) {
+                html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+            }
+            html += '</li>';
+        });
+        html += '</ul>';
+        if (data.description) {
+            html += `<p class="workout-description">${escapeHtml(data.description)}</p>`;
+        }
+        html += '</div>';
+    }
+    // Handle arrays
+    else if (Array.isArray(data)) {
+        if (data.length === 0) {
+            html += '<p class="no-data">No items found</p>';
+        } else {
+            html += '<ul>';
+            data.forEach((item, index) => {
+                if (typeof item === 'object') {
+                    html += `<li><strong>Item ${index + 1}:</strong><br>${formatDataObjectForPrint(item)}</li>`;
+                } else {
+                    html += `<li>${escapeHtml(String(item))}</li>`;
+                }
+            });
+            html += '</ul>';
+        }
+    }
+    // Handle objects
+    else {
+        html += formatDataObjectForPrint(data);
+    }
+    
+    return html;
+}
+
+// Format a data object for printing
+function formatDataObjectForPrint(obj, depth = 0) {
+    if (depth > 3) return '<span>...</span>';
+    
+    let html = '';
+    const keys = Object.keys(obj);
+    
+    if (keys.length === 0) {
+        return '<p class="no-data">No data</p>';
+    }
+    
+    // Check if it's a simple key-value display
+    if (keys.length <= 10 && keys.every(key => {
+        const val = obj[key];
+        return typeof val !== 'object' || val === null || Array.isArray(val);
+    })) {
+        html += '<dl>';
+        keys.forEach(key => {
+            const value = obj[key];
+            html += `<dt>${escapeHtml(key)}:</dt>`;
+            html += `<dd>${formatValueForPrint(value, depth + 1)}</dd>`;
+        });
+        html += '</dl>';
+    } else {
+        // Complex nested structure - show as formatted JSON
+        html += `<pre>${escapeHtml(JSON.stringify(obj, null, 2))}</pre>`;
+    }
+    
+    return html;
+}
+
+// Format a single value for printing
+function formatValueForPrint(value, depth = 0) {
+    if (value === null || value === undefined) {
+        return '<span style="color: #95a5a6;">null</span>';
+    }
+    
+    if (typeof value === 'boolean') {
+        return `<strong>${value}</strong>`;
+    }
+    
+    if (typeof value === 'number') {
+        return `<strong>${value}</strong>`;
+    }
+    
+    if (Array.isArray(value)) {
+        if (value.length === 0) {
+            return '<span style="color: #95a5a6;">[]</span>';
+        }
+        if (value.length <= 5 && depth < 2) {
+            return `[${value.map(v => formatValueForPrint(v, depth + 1)).join(', ')}]`;
+        }
+        return `<span>[${value.length} items]</span>`;
+    }
+    
+    if (typeof value === 'object') {
+        if (depth >= 2) {
+            return '<span>{...}</span>';
+        }
+        const objKeys = Object.keys(value);
+        if (objKeys.length === 0) {
+            return '<span style="color: #95a5a6;">{}</span>';
+        }
+        if (objKeys.length <= 3) {
+            return `{${objKeys.map(k => `${k}: ${formatValueForPrint(value[k], depth + 1)}`).join(', ')}}`;
+        }
+        return `<span>{${objKeys.length} keys}</span>`;
+    }
+    
+    // String value
+    return escapeHtml(String(value));
+}
+
+// Toggle widget size between default (medium) and expanded (large)
+function toggleWidgetSize(widgetId) {
+    console.log('🔧 toggleWidgetSize called with widgetId:', widgetId);
+    try {
+        const widget = activeWidgets.find(w => w.id === widgetId);
+        if (!widget) {
+            console.error('❌ Widget not found:', widgetId, 'Available widgets:', activeWidgets.map(w => w.id));
+            alert('Widget not found. Please refresh the page.');
+            return;
+        }
+        
+        console.log('✅ Widget found:', widget);
+        
+        // Default size is 'medium', expanded size is 'large'
+        const currentSize = widget.size || 'medium';
+        const nextSize = currentSize === 'large' ? 'medium' : 'large';
+        
+        console.log(`📏 Current size: ${currentSize}, Next size: ${nextSize}`);
+        
+        // Update widget size
+        widget.size = nextSize;
+        
+        // Save to localStorage
+        saveWidgetsToLocalStorage();
+        console.log('💾 Widget size saved to localStorage');
+        
+        // Update the widget element directly (faster and more reliable than re-rendering)
+        const widgetElement = document.querySelector(`[data-widget-id="${widgetId}"]`);
+        if (widgetElement) {
+            // Remove all size classes
+            widgetElement.classList.remove('widget-size-small', 'widget-size-medium', 'widget-size-large', 'widget-size-extra-large');
+            // Add the new size class
+            widgetElement.classList.add(`widget-size-${nextSize}`);
+            // Update the data attribute
+            widgetElement.setAttribute('data-widget-size', nextSize);
+            
+            // Map sizes to grid column spans
+            const sizeToSpan = {
+                'medium': 6,
+                'large': 9
+            };
+            const spanValue = sizeToSpan[nextSize];
+            
+            // Also set grid-column directly as a fallback (in case CSS isn't working)
+            widgetElement.style.gridColumn = `span ${spanValue}`;
+            
+            console.log('✅ Widget element updated directly with class:', `widget-size-${nextSize}`);
+            console.log('✅ Grid column set to:', `span ${spanValue}`);
+            
+            // Force a reflow to ensure CSS is applied
+            void widgetElement.offsetHeight;
+        } else {
+            console.warn('⚠️ Widget element not found, falling back to full re-render');
+            // Fallback: re-render all widgets
+            renderWidgets();
+        }
+        
+        // Show feedback
+        const sizeLabels = {
+            'medium': 'Default size (2 columns)',
+            'large': 'Expanded size (3 columns)'
+        };
+        console.log(`✅ Widget resized to: ${sizeLabels[nextSize]}`);
+        
+    } catch (error) {
+        console.error('❌ Error resizing widget:', error);
+        console.error('Error stack:', error.stack);
+        alert('Failed to resize widget: ' + error.message);
+        showError('Failed to resize widget. Please try again.');
+    }
 }
 
 // Remove widget
@@ -2701,6 +3495,10 @@ function initializePanelCollapse() {
 
 // Make functions available globally for onclick handlers
 window.removeWidget = removeWidget;
+window.toggleWidgetSize = toggleWidgetSize;
+window.printWidget = printWidget;
+window.emailWidget = emailWidget;
+window.smsWidget = smsWidget;
 window.hideLoginOverlay = hideLoginOverlay;
 window.tryWidgetExample = tryWidgetExample;
 

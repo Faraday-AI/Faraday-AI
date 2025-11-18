@@ -620,12 +620,12 @@ body {
 
 .widgets-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(12, 1fr);
     gap: 1.5rem;
 }
 
 .widget-placeholder {
-    grid-column: 1 / -1;
+    grid-column: span 12; /* Full width */
     text-align: center;
     padding: 4rem 2rem;
     background-color: rgba(255, 255, 255, 0.02);
@@ -653,11 +653,57 @@ body {
     padding: 1.5rem;
     transition: var(--transition);
     box-shadow: var(--shadow-sm);
+    position: relative;
 }
 
 .widget-card:hover {
     box-shadow: var(--shadow-md);
     border-color: var(--primary-color);
+}
+
+/* Widget Size Classes */
+.widget-card.widget-size-small {
+    grid-column: span 3 !important; /* 1 column (3/12) */
+}
+
+.widget-card.widget-size-medium {
+    grid-column: span 6 !important; /* 2 columns (6/12) */
+}
+
+.widget-card.widget-size-large {
+    grid-column: span 9 !important; /* 3 columns (9/12) */
+}
+
+.widget-card.widget-size-extra-large {
+    grid-column: span 12 !important; /* 4 columns (12/12) */
+}
+
+/* Responsive widget sizing */
+@media (max-width: 1200px) {
+    .widget-card.widget-size-small {
+        grid-column: span 4 !important; /* 1 column on medium screens */
+    }
+    
+    .widget-card.widget-size-medium {
+        grid-column: span 8 !important; /* 2 columns on medium screens */
+    }
+    
+    .widget-card.widget-size-large {
+        grid-column: span 12 !important; /* Full width on medium screens */
+    }
+    
+    .widget-card.widget-size-extra-large {
+        grid-column: span 12 !important; /* Full width on medium screens */
+    }
+}
+
+@media (max-width: 768px) {
+    .widget-card.widget-size-small,
+    .widget-card.widget-size-medium,
+    .widget-card.widget-size-large,
+    .widget-card.widget-size-extra-large {
+        grid-column: span 12 !important; /* All widgets full width on mobile */
+    }
 }
 
 .widget-card-header {
@@ -687,10 +733,48 @@ body {
     cursor: pointer;
     padding: 0.25rem;
     transition: var(--transition);
+    position: relative;
 }
 
 .widget-action-btn:hover {
     color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+/* Enhanced tooltip styling for action buttons */
+.widget-action-btn[title] {
+    position: relative;
+}
+
+.widget-action-btn[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.4rem 0.6rem;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    border-radius: 4px;
+    pointer-events: none;
+    z-index: 1000;
+    margin-bottom: 0.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.widget-action-btn[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 4px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.9);
+    pointer-events: none;
+    z-index: 1001;
+    margin-bottom: -4px;
 }
 
 .widget-card-content {
@@ -985,6 +1069,8 @@ body {
     .widgets-grid {
         grid-template-columns: 1fr;
     }
+    
+    /* Widget sizes already handled above in @media (max-width: 768px) */
 
     .header-left {
         flex-direction: column;
