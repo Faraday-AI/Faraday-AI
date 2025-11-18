@@ -7,7 +7,7 @@ from app.dashboard.schemas.user_preferences import (
     UserPreferencesResponse,
     UserPreferencesUpdate
 )
-from app.core.auth import get_current_user
+from app.dashboard.dependencies.auth import get_current_user
 import logging
 
 logger = logging.getLogger(__name__)
