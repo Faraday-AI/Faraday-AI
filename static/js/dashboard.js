@@ -570,10 +570,11 @@ async function sendMessage() {
             headers['Authorization'] = `Bearer ${token}`;
         }
         
-        // Prepare context from chat history
-        const context = chatHistory.slice(-5).map(msg => ({
+        // Prepare context from chat history (limit to last 1 message to avoid token limits)
+        // The system prompt is already very comprehensive, so we only need the most recent context
+        const context = chatHistory.slice(-1).map(msg => ({
             role: msg.role,
-            content: msg.content
+            content: msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content
         }));
         
         // Send message to AI assistant (works for both authenticated and guest users)
@@ -599,6 +600,7 @@ async function sendMessage() {
         
         const result = await response.json();
         console.log('✅ Chat response received:', result);
+        console.log('📊 Widget data:', result.widget_data);
         
         // Add AI response to chat
         if (result.response) {
@@ -616,7 +618,10 @@ async function sendMessage() {
             // Check if the response mentions widget data that should be displayed
             // If the AI returns data for a specific widget type, update that widget
             if (result.widget_data) {
+                console.log('🔄 Updating widget with data:', result.widget_data);
                 updateWidgetWithData(result.widget_data);
+            } else {
+                console.log('⚠️ No widget_data in response');
             }
         } else {
             throw new Error('Invalid response format: missing "response" field');
@@ -940,6 +945,156 @@ function getWidgetTitle(widgetType) {
     return titles[widgetType] || widgetType;
 }
 
+// Format widget data for display
+function formatWidgetData(data, widgetType) {
+    if (!data || typeof data !== 'object') {
+        return '<div class="widget-data-display"><p>No data available</p></div>';
+    }
+    
+    // Format based on widget type and data structure
+    let html = '<div class="widget-data-display">';
+    
+    // Special handling for fitness widget with workout data
+    if (widgetType === 'fitness' && data.exercises && Array.isArray(data.exercises)) {
+        html += '<div class="workout-plan">';
+        if (data.plan_name) {
+            html += `<h4 class="workout-plan-title">${escapeHtml(data.plan_name)}</h4>`;
+        }
+        html += '<ul class="workout-exercises">';
+        data.exercises.forEach((exercise, index) => {
+            html += '<li class="workout-exercise">';
+            html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
+            if (exercise.sets && exercise.reps) {
+                html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
+            }
+            if (exercise.description) {
+                html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+            }
+            html += '</li>';
+        });
+        html += '</ul>';
+        if (data.description) {
+            html += `<p class="workout-description">${escapeHtml(data.description)}</p>`;
+        }
+        html += '</div>';
+    }
+    // Handle arrays
+    else if (Array.isArray(data)) {
+        if (data.length === 0) {
+            html += '<p class="widget-empty">No items found</p>';
+        } else {
+            html += '<ul class="widget-data-list">';
+            data.forEach((item, index) => {
+                if (typeof item === 'object') {
+                    html += `<li class="widget-data-item">
+                        <div class="widget-data-item-content">
+                            ${formatDataObject(item)}
+                        </div>
+                    </li>`;
+                } else {
+                    html += `<li class="widget-data-item">${escapeHtml(String(item))}</li>`;
+                }
+            });
+            html += '</ul>';
+        }
+    } 
+    // Handle objects with common structures
+    else if (data.students || data.attendance || data.teams || data.performance || data.insights) {
+        html += formatDataObject(data);
+    }
+    // Handle simple key-value pairs
+    else {
+        html += formatDataObject(data);
+    }
+    
+    html += '</div>';
+    return html;
+}
+
+// Format a data object into HTML
+function formatDataObject(obj, depth = 0) {
+    if (depth > 3) return '<span class="widget-data-deep">...</span>'; // Prevent infinite recursion
+    
+    let html = '';
+    const keys = Object.keys(obj);
+    
+    if (keys.length === 0) {
+        return '<p class="widget-empty">No data</p>';
+    }
+    
+    // Check if it's a simple key-value display
+    if (keys.length <= 5 && keys.every(key => {
+        const val = obj[key];
+        return typeof val !== 'object' || val === null || Array.isArray(val);
+    })) {
+        html += '<dl class="widget-data-dl">';
+        keys.forEach(key => {
+            const value = obj[key];
+            html += `<dt class="widget-data-key">${escapeHtml(key)}:</dt>`;
+            html += `<dd class="widget-data-value">${formatValue(value, depth + 1)}</dd>`;
+        });
+        html += '</dl>';
+    } else {
+        // Complex nested structure - show as formatted JSON
+        html += `<pre class="widget-data-json">${escapeHtml(JSON.stringify(obj, null, 2))}</pre>`;
+    }
+    
+    return html;
+}
+
+// Format a single value
+function formatValue(value, depth = 0) {
+    if (value === null || value === undefined) {
+        return '<span class="widget-data-null">null</span>';
+    }
+    
+    if (typeof value === 'boolean') {
+        return `<span class="widget-data-bool">${value}</span>`;
+    }
+    
+    if (typeof value === 'number') {
+        return `<span class="widget-data-number">${value}</span>`;
+    }
+    
+    if (Array.isArray(value)) {
+        if (value.length === 0) {
+            return '<span class="widget-data-empty">[]</span>';
+        }
+        if (value.length <= 3 && depth < 2) {
+            return `[${value.map(v => formatValue(v, depth + 1)).join(', ')}]`;
+        }
+        return `<span class="widget-data-array">[${value.length} items]</span>`;
+    }
+    
+    if (typeof value === 'object') {
+        if (depth >= 2) {
+            return '<span class="widget-data-object">{...}</span>';
+        }
+        const objKeys = Object.keys(value);
+        if (objKeys.length === 0) {
+            return '<span class="widget-data-empty">{}</span>';
+        }
+        if (objKeys.length <= 3) {
+            return `{${objKeys.map(k => `${k}: ${formatValue(value[k], depth + 1)}`).join(', ')}}`;
+        }
+        return `<span class="widget-data-object">{${objKeys.length} keys}</span>`;
+    }
+    
+    // String value
+    const str = String(value);
+    if (str.length > 100) {
+        return `<span class="widget-data-string">${escapeHtml(str.substring(0, 100))}...</span>`;
+    }
+    return `<span class="widget-data-string">${escapeHtml(str)}</span>`;
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Render widget content
 function renderWidgetContent(widget) {
     // Customize content based on widget type
@@ -1058,12 +1213,33 @@ function renderWidgetContent(widget) {
     const hasData = widget.data && Object.keys(widget.data).length > 0;
     
     if (hasData) {
-        // Widget has data - display it
-        return `
-            <div class="widget-data-display">
-                ${JSON.stringify(widget.data, null, 2)}
-            </div>
-        `;
+        // Check if data is actually structured data (not just text/prompts)
+        const dataString = JSON.stringify(widget.data);
+        const isTextPrompt = typeof widget.data === 'string' || 
+                            (typeof widget.data === 'object' && 
+                             Object.keys(widget.data).length === 1 && 
+                             (widget.data.message || widget.data.text || widget.data.prompt || widget.data.description));
+        
+        // If it looks like a prompt/instruction text, don't show it as data
+        if (isTextPrompt || dataString.length < 50 || dataString.includes('Try asking') || dataString.includes('example')) {
+            // This looks like instructions/prompts, show the default instructions instead
+            return `
+                <div class="widget-instructions">
+                    <div class="widget-icon-large">${info.icon}</div>
+                    <p class="widget-description">${info.description}</p>
+                    <div class="widget-examples">
+                        <p class="examples-title">Try asking your AI assistant:</p>
+                        <ul class="examples-list">
+                            ${info.examples.map(ex => `<li>${ex}</li>`).join('')}
+                        </ul>
+                    </div>
+                    <button class="widget-try-btn" onclick="tryWidgetExample('${widgetType}')">Try Example Command</button>
+                </div>
+            `;
+        }
+        
+        // Widget has structured data - display it nicely
+        return formatWidgetData(widget.data, widgetType);
     } else {
         // Widget is empty - show instructions
         return `

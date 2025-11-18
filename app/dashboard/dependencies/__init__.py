@@ -11,13 +11,13 @@ from app.dashboard.dependencies.auth import get_current_user, get_auth_deps
 __all__ = ["get_current_user", "get_auth_deps"]
 
 async def require_admin(
-    user_id: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ) -> bool:
     """Require admin privileges for the current user."""
     access_control = AccessControlService(db)
     has_permission = await access_control.check_permission(
-        user_id=user_id,
+        user_id=current_user["id"],
         resource_type=ResourceType.SYSTEM,
         action=ActionType.ADMINISTER
     )

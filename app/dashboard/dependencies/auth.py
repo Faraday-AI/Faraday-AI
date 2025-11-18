@@ -93,8 +93,8 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 # Standalone get_current_user function (like app/core/auth.py)
 # Note: Using module-level oauth2_scheme is fine - FastAPI ensures it's called per-request
 # The issue was test isolation, not dependency caching. Tests now use fresh clients.
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
-    """Get the current user from the JWT token."""
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> Dict[str, str]:
+    """Get the current user from the JWT token. Returns a dict with 'id' key for compatibility with dashboard endpoints."""
     # In test mode: if we got here, oauth2_scheme either:
     # 1. Returned a token (authorized request) - return test_user
     # 2. Raised 401 (unauthorized) - this function wouldn't be called
@@ -103,7 +103,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
     if test_mode:
         # Validate token exists and is not empty/None
         if token and isinstance(token, str) and len(token.strip()) > 0:
-            return "test_user"
+            return {"id": "test_user"}
         # No valid token - raise 401 (shouldn't happen if oauth2_scheme works correctly)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -118,7 +118,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> str:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid authentication credentials"
             )
-        return user_id
+        return {"id": user_id}
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -143,12 +143,12 @@ class AuthDependencies:
     ):
         """Dependency to require specific permissions."""
         async def permission_checker(
-            user_id: str = Depends(get_current_user),
+            current_user: Dict[str, str] = Depends(get_current_user),
             db: Session = Depends(get_db)
         ) -> bool:
             access_control = AccessControlService(db)
             has_permission = await access_control.check_permission(
-                user_id=user_id,
+                user_id=current_user["id"],
                 resource_type=resource_type,
                 action=action,
                 resource_id=resource_id
@@ -167,13 +167,13 @@ class AuthDependencies:
     ):
         """Dependency to require any of the specified permissions."""
         async def any_permission_checker(
-            user_id: str = Depends(get_current_user),
+            current_user: Dict[str, str] = Depends(get_current_user),
             db: Session = Depends(get_db)
         ) -> bool:
             access_control = AccessControlService(db)
             for permission in permissions:
                 has_permission = await access_control.check_permission(
-                    user_id=user_id,
+                    user_id=current_user["id"],
                     resource_type=ResourceType(permission["resource_type"]),
                     action=ActionType(permission["action"]),
                     resource_id=permission.get("resource_id")
@@ -192,13 +192,13 @@ class AuthDependencies:
     ):
         """Dependency to require all of the specified permissions."""
         async def all_permissions_checker(
-            user_id: str = Depends(get_current_user),
+            current_user: Dict[str, str] = Depends(get_current_user),
             db: Session = Depends(get_db)
         ) -> bool:
             access_control = AccessControlService(db)
             for permission in permissions:
                 has_permission = await access_control.check_permission(
-                    user_id=user_id,
+                    user_id=current_user["id"],
                     resource_type=ResourceType(permission["resource_type"]),
                     action=ActionType(permission["action"]),
                     resource_id=permission.get("resource_id")

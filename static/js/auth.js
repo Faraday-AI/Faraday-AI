@@ -799,12 +799,62 @@ function isLoggedIn() {
 // Update auth button based on login status
 function updateAuthButton() {
     const authButton = document.querySelector('.auth-button');
-    if (!authButton) return;
+    if (!authButton) {
+        console.log('updateAuthButton: No auth button found');
+        return;
+    }
     
-    if (isLoggedIn()) {
+    // On homepage, always show "Login / Register" 
+    // This prevents showing "Logout" when there's a stale token
+    const pathname = window.location.pathname;
+    const hostname = window.location.hostname;
+    // Check if we're on the homepage (root path or index.html)
+    const isHomepage = pathname === '/' || 
+                       pathname === '/index.html' || 
+                       pathname.endsWith('/index.html') ||
+                       pathname === '';
+    
+    console.log('updateAuthButton: pathname =', pathname, 'isHomepage =', isHomepage, 'isLoggedIn =', isLoggedIn());
+    
+    if (isHomepage) {
+        // On homepage, ALWAYS show login/register button (ignore token status completely)
+        console.log('updateAuthButton: Setting button to "Login / Register" (homepage - forcing login button)');
+        authButton.textContent = 'Login / Register';
+        // Remove any existing onclick attribute and set new one
+        authButton.removeAttribute('onclick');
+        // Clear any existing event listeners by cloning the button
+        const newButton = authButton.cloneNode(true);
+        authButton.parentNode.replaceChild(newButton, authButton);
+        // Set onclick on the new button
+        newButton.onclick = function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof window.showAuthForm === 'function') {
+                window.showAuthForm();
+            }
+        };
+        // Update the reference
+        const updatedButton = document.querySelector('.auth-button');
+        if (updatedButton && updatedButton !== newButton) {
+            updatedButton.textContent = 'Login / Register';
+            updatedButton.removeAttribute('onclick');
+            updatedButton.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window.showAuthForm === 'function') {
+                    window.showAuthForm();
+                }
+            };
+        }
+        return; // Exit early, don't check login status on homepage
+    } else if (isLoggedIn()) {
+        // On other pages (like dashboard), show logout if logged in
+        console.log('updateAuthButton: Setting button to "Logout" (logged in, not homepage)');
         authButton.textContent = 'Logout';
         authButton.onclick = logout;
     } else {
+        // Not logged in and not on homepage
+        console.log('updateAuthButton: Setting button to "Login / Register" (not logged in)');
         authButton.textContent = 'Login / Register';
         authButton.onclick = showAuthForm;
     }
@@ -827,7 +877,99 @@ window.logout = function() {
     }
 };
 
+// Force homepage button to "Login / Register" - runs immediately and repeatedly
+function forceHomepageLoginButton() {
+    const pathname = window.location.pathname;
+    const isHomepage = pathname === '/' || pathname === '/index.html' || pathname.endsWith('/index.html') || pathname === '';
+    
+    if (isHomepage) {
+        const authButton = document.querySelector('.auth-button');
+        if (authButton) {
+            const currentText = authButton.textContent.trim();
+            if (currentText === 'Logout' || currentText.toLowerCase() === 'logout') {
+                console.log('🔧 FORCING button to "Login / Register" on homepage (current text: "' + currentText + '")');
+                authButton.textContent = 'Login / Register';
+                authButton.removeAttribute('onclick');
+                // Clone button to remove all event listeners
+                const newButton = authButton.cloneNode(true);
+                authButton.parentNode.replaceChild(newButton, authButton);
+                newButton.onclick = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof window.showAuthForm === 'function') {
+                        window.showAuthForm();
+                    }
+                };
+            }
+        }
+    }
+}
+
 // Initialize auth button on page load
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 DOMContentLoaded: Running updateAuthButton()');
     updateAuthButton();
-}); 
+    
+    // On homepage, immediately force the button and set up watchers
+    const pathname = window.location.pathname;
+    const isHomepage = pathname === '/' || pathname === '/index.html' || pathname.endsWith('/index.html') || pathname === '';
+    
+    console.log('🔧 DOMContentLoaded: pathname =', pathname, 'isHomepage =', isHomepage);
+    
+    if (isHomepage) {
+        // Force immediately
+        forceHomepageLoginButton();
+        
+        // Force again after a short delay (in case something else runs after DOMContentLoaded)
+        setTimeout(forceHomepageLoginButton, 100);
+        setTimeout(forceHomepageLoginButton, 500);
+        setTimeout(forceHomepageLoginButton, 1000);
+        
+        const authButton = document.querySelector('.auth-button');
+        if (authButton) {
+            // Watch for changes to the button text and force it back to "Login / Register" if changed
+            const buttonObserver = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'childList' || mutation.type === 'characterData') {
+                        forceHomepageLoginButton();
+                    }
+                });
+            });
+            
+            // Observe the button for text changes
+            buttonObserver.observe(authButton, {
+                childList: true,
+                characterData: true,
+                subtree: true
+            });
+            
+            // Also check periodically (backup) - more aggressive
+            const checkInterval = setInterval(function() {
+                forceHomepageLoginButton();
+            }, 200);
+            
+            // Clear interval after 15 seconds (should be enough time for all scripts to load)
+            setTimeout(function() {
+                clearInterval(checkInterval);
+                console.log('🔧 Stopped periodic button check (15 seconds elapsed)');
+            }, 15000);
+        }
+    }
+});
+
+// Also run immediately when script loads (before DOMContentLoaded)
+(function() {
+    const pathname = window.location.pathname;
+    const isHomepage = pathname === '/' || pathname === '/index.html' || pathname.endsWith('/index.html') || pathname === '';
+    if (isHomepage) {
+        console.log('🔧 Script loaded: Immediately forcing homepage button');
+        // Run immediately
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', forceHomepageLoginButton);
+        } else {
+            forceHomepageLoginButton();
+        }
+        // Also run after a delay
+        setTimeout(forceHomepageLoginButton, 50);
+    }
+})(); 
