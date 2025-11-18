@@ -1101,105 +1101,239 @@ function renderWidgetContent(widget) {
     const widgetType = widget.type || widget.widget_type;
     
     const widgetInfo = {
+        // 1. Attendance Management
         'attendance': {
-            description: 'Track attendance patterns, predict absences, and identify at-risk students.',
-            examples: ['"Show me attendance for Period 3"', '"Which students are frequently absent?"', '"Predict absences for next week"'],
+            description: 'Track daily attendance, analyze patterns over time, and use ML to predict future absences. Identify at-risk students with declining attendance patterns.',
+            examples: ['"Mark attendance for my fourth period class today"', '"Show me attendance patterns for Period 3 this month"', '"Predict which students might be absent next week"', '"Identify students with attendance issues"'],
             icon: '📊'
         },
+        // 2. Team & Squad Management
         'teams': {
-            description: 'Create balanced teams and manage squads for activities.',
-            examples: ['"Create teams for basketball in Period 3"', '"Show me team configurations"', '"Balance teams by skill level"'],
+            description: 'Create balanced teams based on skill level, gender, or random distribution. Support multiple teams and squads within a class for various activities.',
+            examples: ['"Create 4 teams for Period 3 for basketball"', '"Make balanced teams for soccer by skill level"', '"Assign Sarah to the Red Team"', '"Show me all team configurations"'],
             icon: '👥'
         },
+        // 3. Adaptive PE Support
         'adaptive': {
-            description: 'Suggest accommodations and create adaptive activities for students with special needs.',
-            examples: ['"What accommodations should I use for Sarah?"', '"Create adaptive activity for knee injury"', '"Show adaptive PE options"'],
+            description: 'Get personalized accommodation suggestions for students with special needs based on IEPs, medical notes, or activity types. Create modified activities and track progress.',
+            examples: ['"What accommodations should I use for Sarah for running?"', '"Create an adaptive activity for a student with a knee injury"', '"Track IEP goals for John"', '"Show adaptive PE options for Period 2"'],
             icon: '♿'
         },
+        // 4. Performance Analytics
         'performance': {
-            description: 'View performance analytics, trends, and predictions for student progress.',
-            examples: ['"Show me performance trends"', '"Predict student outcomes"', '"Which students need intervention?"'],
+            description: 'Analyze student performance trends over time using ML models. Predict future performance, identify students needing intervention, and track skill mastery.',
+            examples: ['"Show me performance trends for Period 2 this semester"', '"Predict Sarah\'s performance in long jump next month"', '"Which students are struggling with throwing skills?"', '"Generate a performance report"'],
             icon: '📈'
         },
+        // 5. Safety & Risk Management
         'safety': {
-            description: 'Monitor safety risks, check medical conditions, and generate safety reports.',
-            examples: ['"Show me safety risks for Period 2"', '"Generate a safety report"', '"Check medical conditions for today"'],
+            description: 'Identify potential safety risks in activities or environments. Check student medical conditions and allergies, generate safety reports, and access emergency protocols.',
+            examples: ['"Identify safety risks for the rock climbing activity"', '"Check medical conditions for Period 3 today"', '"Generate a safety report for the last month"', '"What safety precautions do I need for outdoor activities?"'],
             icon: '🛡️'
         },
+        // 6. Comprehensive Class Insights
         'insights': {
-            description: 'Get comprehensive class insights combining attendance, performance, health, and more.',
-            examples: ['"Show me class insights for Period 3"', '"What are the key trends?"', '"Give me a class summary"'],
+            description: 'Get holistic insights by combining data from attendance, performance, health metrics, and engagement. Identify overall class trends and individual student needs.',
+            examples: ['"Show me comprehensive class insights for Period 3"', '"Give me an overview of my class\'s progress this quarter"', '"What are the key trends in student engagement?"', '"Identify students who need extra support"'],
             icon: '🎯'
         },
-        'fitness': {
-            description: 'Track fitness metrics, create workout plans, and monitor heart rate zones.',
-            examples: ['"Show me fitness data"', '"Create a workout plan"', '"Track heart rate zones"'],
-            icon: '💪'
+        // 7. Exercise Tracker
+        'exercise': {
+            description: 'Get personalized exercise recommendations based on student fitness levels and goals. Track exercise performance (reps, sets, duration) and predict progress over time.',
+            examples: ['"Recommend exercises for Sarah for strength training"', '"Track John\'s push-up performance"', '"Predict Sarah\'s running endurance improvement"', '"Show exercise progress for Period 2"'],
+            icon: '🏋️'
         },
-        'lesson-planning': {
-            description: 'Generate standards-aligned lesson plans, warmup routines, and curriculum materials.',
-            examples: ['"Create a lesson plan on basketball"', '"Generate warmup routines"', '"Plan lessons for next week"'],
-            icon: '📋'
+        // 8. Fitness Challenges
+        'challenges': {
+            description: 'Create and manage various fitness challenges (step count, push-up challenges, etc.). Track student participation and progress, generate leaderboards.',
+            examples: ['"Create a 30-day step challenge for Period 4"', '"Show the leaderboard for the push-up challenge"', '"Track participation in the cardio challenge"', '"Which students are leading the fitness challenge?"'],
+            icon: '🏆'
         },
-        'video': {
-            description: 'Analyze movement patterns, assess technique, and process video data.',
-            examples: ['"Analyze this video"', '"Show movement analysis"', '"Assess student technique"'],
-            icon: '🎥'
+        // 9. Heart Rate Zones
+        'heart-rate': {
+            description: 'Calculate personalized heart rate zones for students based on age and fitness level. Recommend target heart rates for different activities and monitor heart rate data.',
+            examples: ['"Calculate heart rate zones for John (age 15, intermediate fitness)"', '"Recommend target heart rate for a high-intensity cardio session"', '"Show heart rate data for Sarah during running"', '"What heart rate zone should Period 3 maintain for basketball?"'],
+            icon: '❤️'
         },
-        'activities': {
-            description: 'Manage activities, track progress, and get activity recommendations.',
-            examples: ['"Show me activity data"', '"Track activity progress"', '"Recommend activities for Period 2"'],
-            icon: '📅'
+        // 10. Nutrition Planning
+        'nutrition': {
+            description: 'Generate personalized meal plans based on student dietary restrictions, fitness goals, and caloric needs. Analyze nutrition intake and provide healthy eating recommendations.',
+            examples: ['"Create a meal plan for John (vegetarian, muscle gain goal)"', '"Analyze Sarah\'s daily caloric intake"', '"Give me healthy snack recommendations for my class"', '"Plan meals for students with food allergies"'],
+            icon: '🥗'
         },
-        'assessment': {
-            description: 'Create assessments, track skills, and identify knowledge gaps.',
-            examples: ['"Generate an assessment"', '"Show skill gaps"', '"Create a rubric"'],
-            icon: '🎓'
-        },
-        'psychology': {
-            description: 'Access sports psychology tools, mental health support, and performance psychology.',
-            examples: ['"Show mental health insights"', '"Suggest coping strategies"', '"Analyze game predictions"'],
-            icon: '🧠'
-        },
+        // 11. Parent Communication
         'parent-comm': {
-            description: 'Manage parent communication, send updates, and track communication history.',
-            examples: ['"Send parent update"', '"Show communication history"', '"Generate parent message"'],
+            description: 'Send messages to parents via email and SMS with automatic translation to 100+ languages. Send progress updates, attendance concerns, achievement notifications, and safety alerts.',
+            examples: ['"Send a progress update to Sarah\'s parents via email and text, translate to Spanish"', '"Generate an attendance concern message for John\'s parents"', '"Notify all parents about the upcoming field trip - translate for Spanish speakers"', '"Send achievement notification to parents"'],
             icon: '👨‍👩‍👧'
         },
-        'collaboration': {
-            description: 'Access collaboration features, share documents, and coordinate with team members.',
-            examples: ['"Show collaboration sessions"', '"Share this lesson plan"', '"Who\'s in the collaboration?"'],
-            icon: '👥'
+        // 12. Game Predictions
+        'game-predictions': {
+            description: 'Analyze team matchups, player statistics, and historical data to predict game outcomes. Get strategic insights and probability estimates.',
+            examples: ['"Predict the outcome of the Red Team vs. Blue Team basketball game"', '"Analyze player statistics for the upcoming soccer match"', '"What are the key factors for winning this game?"', '"Show me game prediction probabilities"'],
+            icon: '🎮'
         },
-        'health': {
-            description: 'Track health metrics, plan nutrition, and analyze health trends.',
-            examples: ['"Show health data"', '"Create nutrition plan"', '"Track health trends"'],
-            icon: '🏥'
+        // 13. Skill Assessment
+        'assessment': {
+            description: 'Generate customizable rubrics for skill assessment. Identify individual and class-wide skill gaps, track skill mastery over time.',
+            examples: ['"Create a rubric for basketball dribbling skills"', '"Show me skill gaps in Period 3 for throwing"', '"Track Sarah\'s progress in gymnastics skills"', '"Generate a skill assessment for soccer"'],
+            icon: '🎓'
         },
-        'drivers-ed': {
-            description: 'Manage driver\'s education curriculum, track progress, and handle safety incidents.',
-            examples: ['"Show driver\'s ed data"', '"Track driving hours"', '"Generate safety report"'],
-            icon: '🚗'
+        // 14. Sports Psychology
+        'psychology': {
+            description: 'Access tools for mental health assessment, suggest coping strategies for stress and anxiety, track student well-being, and offer performance psychology insights.',
+            examples: ['"Assess mental health risks for students in Period 2"', '"Suggest coping strategies for pre-game anxiety"', '"Track student stress levels"', '"What mental preparation techniques should I use?"'],
+            icon: '🧠'
         },
-        'management': {
-            description: 'Access management tools, equipment tracking, and administrative utilities.',
-            examples: ['"Show management dashboard"', '"Track equipment"', '"Manage classes"'],
-            icon: '⚙️'
+        // 15. Timer Management
+        'timer': {
+            description: 'Set up optimal timer settings for various activities (circuit training, timed drills). Manage countdowns and provide audio cues.',
+            examples: ['"Set up a timer for circuit training (45s work, 15s rest, 3 rounds)"', '"Start a 5-minute countdown for the warm-up"', '"Manage activity timers for Period 3"', '"What timer settings work best for interval training?"'],
+            icon: '⏱️'
         },
-        'calendar': {
-            description: 'View and manage calendar events, schedule meetings, and track important dates.',
-            examples: ['"Show my calendar"', '"Schedule an event"', '"What\'s on my calendar tomorrow?"'],
+        // 16. Warmup Routines
+        'warmup': {
+            description: 'Generate activity-specific warmup routines including dynamic stretches and light cardio. Get modifications for different fitness levels.',
+            examples: ['"Create a warmup routine for basketball practice"', '"Generate a dynamic stretching routine for running"', '"Suggest modifications for a beginner warmup"', '"What warmup should I use before soccer?"'],
+            icon: '🔥'
+        },
+        // 17. Weather Recommendations
+        'weather': {
+            description: 'Analyze current and forecasted weather conditions. Get suggestions for appropriate indoor or outdoor activities and safety warnings for extreme weather.',
+            examples: ['"Is it safe to have class outside today?"', '"Suggest indoor alternatives for a rainy day"', '"Provide safety warnings for extreme heat"', '"What activities work best in this weather?"'],
+            icon: '🌤️'
+        },
+        // 18. Lesson Plan Generation
+        'lesson-planning': {
+            description: 'Generate standards-aligned lesson plans for various PE activities. Include objectives, activities, equipment, and assessment methods. Save and reuse plans.',
+            examples: ['"Create a lesson plan on basketball fundamentals for 5th grade"', '"Generate a warmup routine for a soccer lesson"', '"Plan lessons for next week focusing on teamwork"', '"Show me saved lesson plans"'],
+            icon: '📋'
+        },
+        // 19. Video Processing & Movement Analysis
+        'video': {
+            description: 'Process and analyze video recordings of student movement to assess technique, identify areas for improvement, and provide visual feedback.',
+            examples: ['"Analyze movement patterns in this video of Sarah\'s long jump"', '"Assess John\'s throwing technique from the video"', '"Check video quality for movement analysis"', '"What improvements can Sarah make to her form?"'],
+            icon: '🎥'
+        },
+        // 20. Workout Planning
+        'fitness': {
+            description: 'Create structured workout plans for individuals or groups. Include exercise selection, sets, reps, rest periods, and progression plans for various fitness goals.',
+            examples: ['"Create a strength training workout plan for chest and triceps"', '"Design a cardio workout routine for general fitness"', '"Generate a personalized workout plan for Sarah (weight loss goal)"', '"Create workout for chest"'],
+            icon: '💪'
+        },
+        // 21. Routine Management
+        'routine': {
+            description: 'Create and manage daily or weekly PE routines. Organize activities and ensure smooth transitions between segments.',
+            examples: ['"Create a routine for Period 3 focusing on circuit training"', '"Organize activities for the morning PE session"', '"Manage daily routines"', '"Show me the routine schedule"'],
+            icon: '📝'
+        },
+        // 22. Activity Scheduling
+        'scheduling': {
+            description: 'Schedule and manage various PE activities including class times, locations, and required equipment. Detect and resolve scheduling conflicts.',
+            examples: ['"Schedule basketball practice for Period 4 on Tuesday"', '"Show me the activity schedule for next week"', '"Check for scheduling conflicts"', '"Reschedule the soccer activity"'],
             icon: '📅'
         },
-        'analytics': {
-            description: 'View comprehensive analytics, reports, and data visualizations.',
-            examples: ['"Show analytics dashboard"', '"Generate a report"', '"Show data trends"'],
+        // 23. Activity Tracking
+        'activities': {
+            description: 'Track student performance metrics during activities, monitor completion rates, and record participation data.',
+            examples: ['"Track performance for the running activity in Period 2"', '"Monitor completion of the obstacle course"', '"Record participation data for the team game"', '"Show activity completion rates"'],
             icon: '📊'
         },
+        // 24. Fitness Goal Management
+        'goals': {
+            description: 'Help students set realistic fitness goals, track their progress towards these goals, and provide motivational feedback.',
+            examples: ['"Create a fitness goal for Sarah to run a mile in under 8 minutes"', '"Show John\'s progress towards his strength goal"', '"Provide motivational feedback for the fitness challenge"', '"Which students have achieved their goals?"'],
+            icon: '🎯'
+        },
+        // 25. Activity Planning
+        'planning': {
+            description: 'Plan activities based on student demographics, available equipment, and learning objectives. Get suggestions for variations and modifications.',
+            examples: ['"Plan activities for Period 3 focusing on teamwork with limited equipment"', '"Suggest variations for a soccer drill"', '"Modify activity for different skill levels"', '"What activities work best for large classes?"'],
+            icon: '📐'
+        },
+        // 26. Activity Analytics
+        'analytics': {
+            description: 'Analyze data from various activities to identify trends, measure effectiveness, and generate reports on student engagement and performance.',
+            examples: ['"Analyze activity performance for the last month"', '"Calculate average engagement scores for team sports"', '"Generate a report on activity effectiveness"', '"What activities have the highest participation?"'],
+            icon: '📈'
+        },
+        // 27. Activity Recommendations
+        'recommendations': {
+            description: 'Get personalized activity recommendations for students or classes based on their interests, skill levels, and learning objectives.',
+            examples: ['"Recommend activities for Sarah based on her interest in gymnastics"', '"Suggest new activities for Period 3 to improve cardiovascular fitness"', '"Find activities suitable for beginners"', '"What activities match my class\'s skill level?"'],
+            icon: '💡'
+        },
+        // 28. Activity Visualization
+        'visualization': {
+            description: 'Create interactive charts, graphs, and other visualizations to display activity data, performance trends, and student progress.',
+            examples: ['"Create a chart showing performance trends for running"', '"Visualize attendance patterns over the semester"', '"Display student progress in a bar graph"', '"Show me a visualization of fitness data"'],
+            icon: '📊'
+        },
+        // 29. Activity Export
+        'export': {
+            description: 'Export activity data, reports, and lesson plans in various formats (CSV, PDF, JSON) for sharing or record-keeping.',
+            examples: ['"Export activity data for Period 3 to CSV"', '"Generate a PDF report of lesson plans"', '"Export student performance data to JSON"', '"Share this data with administrators"'],
+            icon: '💾'
+        },
+        // 30. Collaboration System
+        'collaboration': {
+            description: 'Facilitate real-time collaboration among teachers. Share lesson plans and resources, support co-teaching initiatives.',
+            examples: ['"Create a collaboration session for the PE department"', '"Share this lesson plan with John Smith"', '"Coordinate co-teaching activities for Period 2"', '"Who can I collaborate with on this project?"'],
+            icon: '🤝'
+        },
+        // 31. Notification System
         'notifications': {
-            description: 'View notifications, alerts, and important updates.',
-            examples: ['"Show notifications"', '"What are my alerts?"', '"Check for updates"'],
+            description: 'Send automated notifications and alerts to students, parents, and teachers regarding important updates, deadlines, or safety concerns.',
+            examples: ['"Send a notification to all students about the upcoming field trip"', '"Set up an alert for low equipment inventory"', '"Show notification history"', '"Notify parents about schedule changes"'],
             icon: '🔔'
+        },
+        // 32. Progress Tracking
+        'progress': {
+            description: 'Track student progress across multiple metrics (fitness, skills, academic). Visualize individual growth and identify areas needing improvement.',
+            examples: ['"Track Sarah\'s overall progress this semester"', '"Show John\'s progress in basketball skills"', '"Identify areas where students need improvement"', '"Generate a progress report for Period 3"'],
+            icon: '📊'
+        },
+        // 33. Health & Fitness Service
+        'health': {
+            description: 'Comprehensive service to manage all health and fitness-related data including metrics, workout plans, and nutrition.',
+            examples: ['"Record daily health metrics for Sarah"', '"Show overall fitness data for Period 3"', '"Manage health and fitness profiles"', '"What health trends are emerging?"'],
+            icon: '🏥'
+        },
+        // 34. Class Management
+        'class-management': {
+            description: 'Create, organize, and manage PE classes including student enrollment, scheduling, and grade-level assignments.',
+            examples: ['"Create a new PE class for 6th grade"', '"Enroll John in Period 3"', '"Organize classes by grade level"', '"Show me all my classes"'],
+            icon: '👨‍🏫'
+        },
+        // 35. Student Management
+        'student-management': {
+            description: 'Manage individual student profiles including personal information, medical history, emergency contacts, and academic records.',
+            examples: ['"Create a student profile for new student Emily"', '"Update Sarah\'s medical information"', '"View John\'s contact details"', '"Show all student records"'],
+            icon: '👤'
+        },
+        // 36. Health Metrics Management
+        'health-metrics': {
+            description: 'Track and analyze various health metrics such as heart rate, blood pressure, BMI, and sleep patterns. Identify trends and potential health concerns.',
+            examples: ['"Record Sarah\'s heart rate after exercise"', '"Show average BMI for Period 3"', '"Analyze sleep patterns for students"', '"What health trends should I be concerned about?"'],
+            icon: '📊'
+        },
+        // 37. Activity Engagement
+        'engagement': {
+            description: 'Measure student engagement levels during activities using various metrics (participation, effort, focus). Identify factors influencing engagement.',
+            examples: ['"Track engagement for the team sport activity"', '"Calculate engagement scores for Period 2"', '"Identify factors affecting student focus"', '"Which activities have the highest engagement?"'],
+            icon: '🎯'
+        },
+        // 38. Safety Report Generation
+        'safety-reports': {
+            description: 'Generate detailed safety reports for incidents, near-misses, or general safety audits. Track safety compliance and recommendations.',
+            examples: ['"Generate a safety report for the recent incident"', '"Audit safety compliance for the gym"', '"Track safety recommendations"', '"Show me safety statistics for this month"'],
+            icon: '🛡️'
+        },
+        // 39. Movement Analysis
+        'movement': {
+            description: 'Advanced analysis of student movement patterns using video or sensor data. Assess biomechanics, efficiency, and injury risk.',
+            examples: ['"Perform a biomechanical analysis of John\'s running form"', '"Assess movement efficiency for Sarah\'s gymnastics routine"', '"Identify injury risks in student movements"', '"What movement corrections should I suggest?"'],
+            icon: '🏃'
         }
     };
     
@@ -1261,26 +1395,45 @@ function renderWidgetContent(widget) {
 // Try widget example command
 function tryWidgetExample(widgetType) {
     const examples = {
-        'attendance': 'Show me attendance for Period 3',
-        'teams': 'Create teams for basketball in Period 3',
-        'adaptive': 'What accommodations should I use for Sarah?',
-        'performance': 'Show me performance trends',
-        'safety': 'Show me safety risks for Period 2',
-        'insights': 'Show me class insights for Period 3',
-        'fitness': 'Show me fitness data',
-        'lesson-planning': 'Create a lesson plan on basketball',
-        'video': 'Show movement analysis',
-        'activities': 'Show me activity data',
-        'assessment': 'Generate an assessment',
-        'psychology': 'Show mental health insights',
-        'parent-comm': 'Send parent update',
-        'collaboration': 'Show collaboration sessions',
-        'health': 'Show health data',
-        'drivers-ed': 'Show driver\'s ed data',
-        'management': 'Show management dashboard',
-        'calendar': 'Show my calendar',
-        'analytics': 'Show analytics dashboard',
-        'notifications': 'Show notifications'
+        'attendance': 'Mark attendance for my fourth period class today',
+        'teams': 'Create 4 teams for Period 3 for basketball',
+        'adaptive': 'What accommodations should I use for Sarah for running?',
+        'performance': 'Show me performance trends for Period 2 this semester',
+        'safety': 'Check medical conditions for Period 3 today',
+        'insights': 'Show me comprehensive class insights for Period 3',
+        'exercise': 'Recommend exercises for Sarah for strength training',
+        'challenges': 'Create a 30-day step challenge for Period 4',
+        'heart-rate': 'Calculate heart rate zones for John (age 15, intermediate fitness)',
+        'nutrition': 'Create a meal plan for John (vegetarian, muscle gain goal)',
+        'parent-comm': 'Send a progress update to Sarah\'s parents via email and text, translate to Spanish',
+        'game-predictions': 'Predict the outcome of the Red Team vs. Blue Team basketball game',
+        'assessment': 'Create a rubric for basketball dribbling skills',
+        'psychology': 'Assess mental health risks for students in Period 2',
+        'timer': 'Set up a timer for circuit training (45s work, 15s rest, 3 rounds)',
+        'warmup': 'Create a warmup routine for basketball practice',
+        'weather': 'Is it safe to have class outside today?',
+        'lesson-planning': 'Create a lesson plan on basketball fundamentals for 5th grade',
+        'video': 'Analyze movement patterns in this video of Sarah\'s long jump',
+        'fitness': 'Create a strength training workout plan for chest and triceps',
+        'routine': 'Create a routine for Period 3 focusing on circuit training',
+        'scheduling': 'Schedule basketball practice for Period 4 on Tuesday',
+        'activities': 'Track performance for the running activity in Period 2',
+        'goals': 'Create a fitness goal for Sarah to run a mile in under 8 minutes',
+        'planning': 'Plan activities for Period 3 focusing on teamwork with limited equipment',
+        'analytics': 'Analyze activity performance for the last month',
+        'recommendations': 'Recommend activities for Sarah based on her interest in gymnastics',
+        'visualization': 'Create a chart showing performance trends for running',
+        'export': 'Export activity data for Period 3 to CSV',
+        'collaboration': 'Create a collaboration session for the PE department',
+        'notifications': 'Send a notification to all students about the upcoming field trip',
+        'progress': 'Track Sarah\'s overall progress this semester',
+        'health': 'Record daily health metrics for Sarah',
+        'class-management': 'Create a new PE class for 6th grade',
+        'student-management': 'Create a student profile for new student Emily',
+        'health-metrics': 'Record Sarah\'s heart rate after exercise',
+        'engagement': 'Track engagement for the team sport activity',
+        'safety-reports': 'Generate a safety report for the recent incident',
+        'movement': 'Perform a biomechanical analysis of John\'s running form'
     };
     
     const exampleCommand = examples[widgetType] || 'Show me data for this widget';
