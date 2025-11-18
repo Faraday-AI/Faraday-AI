@@ -3350,6 +3350,13 @@ async function openSettings() {
     document.getElementById('analyticsOptIn').checked = localStorage.getItem('analytics_opt_in') !== 'false';
     document.getElementById('dataSharing').checked = localStorage.getItem('data_sharing') === 'true';
     
+    // Load selected avatar and voice
+    const selectedAvatarId = localStorage.getItem('selected_avatar_id') || '';
+    const selectedVoiceId = localStorage.getItem('selected_voice_id') || '';
+    
+    // Load avatars and voices from API
+    await loadAvatarsAndVoices(selectedAvatarId, selectedVoiceId);
+    
     // Try to load from backend API (for authenticated users)
     const token = localStorage.getItem('access_token');
     if (token) {
@@ -3400,11 +3407,395 @@ async function openSettings() {
     
     // Setup slider value displays
     setupSettingsSliders();
+    
+    // Setup voice search
+    setupVoiceSearch();
 }
 
 // Close settings
 function closeSettings() {
     document.getElementById('settingsModal').classList.remove('active');
+}
+
+// Load avatars and voices from API
+let availableAvatars = [];
+let availableVoices = [];
+let filteredVoices = [];
+
+async function loadAvatarsAndVoices(selectedAvatarId = '', selectedVoiceId = '') {
+    const token = localStorage.getItem('access_token');
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+    
+    // Load avatars
+    try {
+        const avatarsResponse = await fetch('/api/v1/beta/avatars', { headers });
+        if (avatarsResponse.ok) {
+            availableAvatars = await avatarsResponse.json();
+            populateAvatarSelect(selectedAvatarId);
+        } else {
+            console.error('Failed to load avatars:', avatarsResponse.status);
+            document.getElementById('selectedAvatar').innerHTML = '<option value="">Failed to load avatars</option>';
+        }
+    } catch (error) {
+        console.error('Error loading avatars:', error);
+        document.getElementById('selectedAvatar').innerHTML = '<option value="">Error loading avatars</option>';
+    }
+    
+    // Load voices
+    try {
+        const voicesResponse = await fetch('/api/v1/beta/voices?limit=500', { headers });
+        if (voicesResponse.ok) {
+            availableVoices = await voicesResponse.json();
+            console.log('Loaded voices:', availableVoices.length, availableVoices);
+            filteredVoices = [...availableVoices];
+            if (availableVoices.length === 0) {
+                console.warn('No voices returned from API');
+                document.getElementById('selectedVoice').innerHTML = '<option value="">No voices available. Using fallback voices...</option>';
+                // The backend should return fallback voices, but if not, we'll show a message
+            } else {
+                populateVoiceSelect(selectedVoiceId);
+            }
+        } else {
+            const errorText = await voicesResponse.text();
+            console.error('Failed to load voices:', voicesResponse.status, errorText);
+            document.getElementById('selectedVoice').innerHTML = `<option value="">Failed to load voices (${voicesResponse.status})</option>`;
+        }
+    } catch (error) {
+        console.error('Error loading voices:', error);
+        document.getElementById('selectedVoice').innerHTML = '<option value="">Error loading voices. Check console for details.</option>';
+    }
+}
+
+function populateAvatarSelect(selectedId = '') {
+    const select = document.getElementById('selectedAvatar');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">Select an avatar...</option>';
+    
+    // Remove existing change listener to avoid duplicates
+    const newSelect = select.cloneNode(true);
+    select.parentNode.replaceChild(newSelect, select);
+    
+    availableAvatars.forEach((avatar, index) => {
+        const option = document.createElement('option');
+        option.value = avatar.id;
+        // Use avatar_name if available, otherwise generate a name
+        const displayName = avatar.avatar_name || 
+                           avatar.name || 
+                           (avatar.avatar_type ? `${avatar.avatar_type} Avatar ${index + 1}` : `Avatar ${index + 1}`);
+        option.textContent = displayName;
+        if (avatar.id === selectedId || selectedId === avatar.id) {
+            option.selected = true;
+            showAvatarPreview(avatar);
+        }
+        newSelect.appendChild(option);
+    });
+    
+    // Add change listener
+    newSelect.addEventListener('change', (e) => {
+        const avatarId = e.target.value;
+        const avatar = availableAvatars.find(a => a.id === avatarId);
+        if (avatar) {
+            showAvatarPreview(avatar);
+        } else {
+            hideAvatarPreview();
+        }
+    });
+}
+
+function showAvatarPreview(avatar) {
+    const preview = document.getElementById('avatarPreview');
+    const previewImage = document.getElementById('avatarPreviewImage');
+    const previewDescription = document.getElementById('avatarPreviewDescription');
+    
+    if (!preview || !previewImage || !previewDescription) return;
+    
+    // Set image if available
+    const imageUrl = avatar.image_url || 
+                     avatar.avatar_config?.url || 
+                     avatar.avatar_config?.image_url ||
+                     '/static/avatars/default.png';
+    
+    if (imageUrl && imageUrl !== '/static/avatars/default.png') {
+        previewImage.src = imageUrl;
+        previewImage.style.display = 'block';
+        previewImage.onerror = function() {
+            // If image fails to load, hide it
+            previewImage.style.display = 'none';
+        };
+    } else {
+        previewImage.style.display = 'none';
+    }
+    
+    // Set description
+    const description = avatar.description || 
+                       `${avatar.avatar_type || 'Avatar'} - ${avatar.avatar_name || 'Preview'}`;
+    previewDescription.textContent = description;
+    preview.style.display = 'block';
+}
+
+function hideAvatarPreview() {
+    document.getElementById('avatarPreview').style.display = 'none';
+}
+
+function populateVoiceSelect(selectedId = '') {
+    const select = document.getElementById('selectedVoice');
+    if (!select) {
+        console.error('Voice select element not found');
+        return;
+    }
+    
+    // Clear existing options
+    select.innerHTML = '';
+    
+    if (!filteredVoices || filteredVoices.length === 0) {
+        console.warn('No voices to populate');
+        select.innerHTML = '<option value="">No voices available</option>';
+        return;
+    }
+    
+    console.log('Populating voice select with', filteredVoices.length, 'voices');
+    
+    filteredVoices.forEach((voice, index) => {
+        const option = document.createElement('option');
+        const voiceId = voice.id || voice.voice_id || `voice_${index}`;
+        option.value = voiceId;
+        
+        // Create a display name - build it step by step
+        let displayName = '';
+        if (voice.name) {
+            displayName = voice.name;
+        } else if (voice.template_name) {
+            displayName = voice.template_name;
+        } else {
+            displayName = voice.voice_type ? `${voice.voice_type} Voice` : 'Voice';
+            if (voice.metadata?.provider) {
+                displayName += ` (${voice.metadata.provider})`;
+            }
+            if (voice.metadata?.language) {
+                displayName += ` - ${voice.metadata.language}`;
+            }
+        }
+        
+        // Fallback if still empty
+        if (!displayName) {
+            displayName = `Voice ${index + 1}`;
+        }
+        
+        option.textContent = displayName;
+        
+        if ((voice.id === selectedId || voice.voice_id === selectedId || voiceId === selectedId) && selectedId) {
+            option.selected = true;
+            showVoicePreview(voice);
+        }
+        select.appendChild(option);
+    });
+    
+    // Ensure the select is visible and properly sized BEFORE cloning
+    select.style.display = 'block';
+    select.style.visibility = 'visible';
+    select.style.height = '200px';
+    select.style.minHeight = '200px';
+    select.style.maxHeight = '300px';
+    select.style.overflowY = 'auto';
+    
+    // Verify options are in the select before cloning
+    console.log('Options in select before clone:', select.options.length);
+    if (select.options.length === 0) {
+        console.error('No options in select! Cannot clone empty select.');
+        return;
+    }
+    
+    // Remove existing change listener to avoid duplicates by cloning
+    // Clone AFTER adding all options
+    const newSelect = select.cloneNode(true);
+    
+    // Preserve all attributes including size
+    newSelect.setAttribute('size', select.getAttribute('size') || '8');
+    newSelect.setAttribute('id', select.id);
+    
+    // Preserve inline styles and add explicit height
+    newSelect.style.cssText = select.style.cssText;
+    newSelect.style.height = '200px';
+    newSelect.style.minHeight = '200px';
+    newSelect.style.maxHeight = '300px';
+    newSelect.style.overflowY = 'auto';
+    newSelect.style.display = 'block';
+    newSelect.style.visibility = 'visible';
+    
+    // Verify cloned select has options
+    console.log('Options in cloned select:', newSelect.options.length);
+    
+    // Replace the original with the cloned one
+    select.parentNode.replaceChild(newSelect, select);
+    
+    // Verify the new select is in the DOM
+    const verifySelect = document.getElementById('selectedVoice');
+    console.log('Verification - select in DOM:', !!verifySelect);
+    console.log('Verification - options count:', verifySelect?.options.length);
+    
+    // Add change listener to the new select
+    newSelect.addEventListener('change', (e) => {
+        const voiceId = e.target.value;
+        const voice = filteredVoices.find(v => {
+            const vId = v.id || v.voice_id;
+            return vId === voiceId || v.id === voiceId || v.voice_id === voiceId;
+        });
+        if (voice) {
+            showVoicePreview(voice);
+        } else {
+            hideVoicePreview();
+        }
+    });
+    
+    // Log for debugging
+    console.log('Voice select populated with', newSelect.options.length, 'options');
+    console.log('First few options:', Array.from(newSelect.options).slice(0, 5).map(opt => opt.textContent));
+    
+    // Force a reflow to ensure the select is visible
+    newSelect.offsetHeight;
+    
+    // Scroll to top if needed
+    if (newSelect.scrollTop !== undefined) {
+        newSelect.scrollTop = 0;
+    }
+    
+    // Verify the select is in the DOM and visible
+    const computedStyle = window.getComputedStyle(newSelect);
+    const selectInfo = {
+        inDOM: document.body.contains(newSelect),
+        display: computedStyle.display,
+        visibility: computedStyle.visibility,
+        height: computedStyle.height,
+        width: computedStyle.width,
+        opacity: computedStyle.opacity,
+        zIndex: computedStyle.zIndex,
+        optionsCount: newSelect.options.length,
+        size: newSelect.getAttribute('size'),
+        clientHeight: newSelect.clientHeight,
+        offsetHeight: newSelect.offsetHeight,
+        scrollHeight: newSelect.scrollHeight
+    };
+    console.log('Select element details:', selectInfo);
+    
+    // If the select has no height, force it
+    if (parseInt(computedStyle.height) === 0 || computedStyle.height === 'auto') {
+        console.warn('Select has no height, setting explicit height');
+        newSelect.style.height = '200px';
+        newSelect.style.minHeight = '200px';
+    }
+    
+    // Ensure parent is visible
+    const parent = newSelect.parentElement;
+    if (parent) {
+        const parentStyle = window.getComputedStyle(parent);
+        const parentInfo = {
+            display: parentStyle.display,
+            visibility: parentStyle.visibility,
+            overflow: parentStyle.overflow,
+            overflowY: parentStyle.overflowY,
+            height: parentStyle.height,
+            maxHeight: parentStyle.maxHeight,
+            clientHeight: parent.clientHeight,
+            scrollHeight: parent.scrollHeight
+        };
+        console.log('Parent element:', parentInfo);
+        
+        // If parent has max-height and content is taller, ensure it's scrollable
+        if (parentInfo.maxHeight && parentInfo.maxHeight !== 'none') {
+            const maxHeightValue = parseInt(parentInfo.maxHeight);
+            if (parent.scrollHeight > maxHeightValue) {
+                console.log('Parent content exceeds max-height, ensuring scrollable');
+                parent.style.overflowY = 'auto';
+            }
+        }
+    }
+    
+    // Add a visible border to help debug visibility
+    newSelect.style.border = '2px solid #4a90e2';
+    newSelect.style.backgroundColor = 'var(--bg-secondary)';
+    
+    // Log the actual rendered dimensions
+    setTimeout(() => {
+        const rect = newSelect.getBoundingClientRect();
+        console.log('Select bounding rect:', {
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+            visible: rect.width > 0 && rect.height > 0
+        });
+        
+        // If height is 0, there's a rendering issue
+        if (rect.height === 0) {
+            console.error('Select has 0 height! This is a rendering issue.');
+            // Try forcing a different display mode
+            newSelect.style.display = 'block';
+            newSelect.style.position = 'relative';
+            newSelect.style.height = '200px';
+        }
+        
+        // Try to scroll the select into view if it's in a modal
+        newSelect.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        // Also try focusing it briefly to ensure it's visible
+        newSelect.focus();
+        setTimeout(() => newSelect.blur(), 100);
+    }, 100);
+}
+
+function showVoicePreview(voice) {
+    const preview = document.getElementById('voicePreview');
+    const previewName = document.getElementById('voicePreviewName');
+    const previewDescription = document.getElementById('voicePreviewDescription');
+    
+    previewName.textContent = voice.name || `Voice ${voice.id}`;
+    previewDescription.textContent = voice.description || `${voice.voice_type} voice${voice.metadata?.provider ? ` (${voice.metadata.provider})` : ''}${voice.metadata?.language ? ` - ${voice.metadata.language}` : ''}`;
+    preview.style.display = 'block';
+}
+
+function hideVoicePreview() {
+    document.getElementById('voicePreview').style.display = 'none';
+}
+
+function setupVoiceSearch() {
+    const searchInput = document.getElementById('voiceSearch');
+    const clearButton = document.getElementById('clearVoiceSearch');
+    const voiceSelect = document.getElementById('selectedVoice');
+    
+    if (!searchInput || !clearButton || !voiceSelect) return;
+    
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase().trim();
+        
+        if (searchTerm === '') {
+            filteredVoices = [...availableVoices];
+        } else {
+            filteredVoices = availableVoices.filter(voice => {
+                const name = (voice.name || '').toLowerCase();
+                const description = (voice.description || '').toLowerCase();
+                const provider = (voice.metadata?.provider || '').toLowerCase();
+                const language = (voice.metadata?.language || '').toLowerCase();
+                const voiceType = (voice.voice_type || '').toLowerCase();
+                
+                return name.includes(searchTerm) ||
+                       description.includes(searchTerm) ||
+                       provider.includes(searchTerm) ||
+                       language.includes(searchTerm) ||
+                       voiceType.includes(searchTerm);
+            });
+        }
+        
+        // Save current selection if any
+        const currentSelection = voiceSelect.value;
+        populateVoiceSelect(currentSelection);
+    });
+    
+    clearButton.addEventListener('click', () => {
+        searchInput.value = '';
+        filteredVoices = [...availableVoices];
+        const currentSelection = voiceSelect.value;
+        populateVoiceSelect(currentSelection);
+    });
 }
 
 // Setup slider value displays
@@ -3467,6 +3858,10 @@ async function saveSettings() {
     // Voice Input
     const enableVoiceInput = document.getElementById('enableVoiceInput').checked;
     
+    // Get selected avatar and voice
+    const selectedAvatarId = document.getElementById('selectedAvatar').value;
+    const selectedVoiceId = document.getElementById('selectedVoice').value;
+    
     // Avatar preferences
     const avatarScale = parseFloat(document.getElementById('avatarScale').value);
     const avatarOpacity = parseInt(document.getElementById('avatarOpacity').value) / 100; // Convert to 0-1 range
@@ -3514,6 +3909,8 @@ async function saveSettings() {
     localStorage.setItem('quiet_hours_start', quietHoursStart);
     localStorage.setItem('quiet_hours_end', quietHoursEnd);
     localStorage.setItem('enable_voice_input', enableVoiceInput);
+    localStorage.setItem('selected_avatar_id', selectedAvatarId);
+    localStorage.setItem('selected_voice_id', selectedVoiceId);
     localStorage.setItem('avatar_scale', avatarScale);
     localStorage.setItem('avatar_opacity', Math.round(avatarOpacity * 100));
     localStorage.setItem('avatar_color', avatarColor);
@@ -3584,12 +3981,15 @@ async function saveSettings() {
     if (token) {
         try {
             const preferences = {
+                avatar_id: selectedAvatarId,
+                voice_id: selectedVoiceId,
                 avatar_customization: {
                     scale: avatarScale,
                     opacity: avatarOpacity,
                     color: avatarColor
                 },
                 voice_preferences: {
+                    voice_id: selectedVoiceId,
                     speed: voiceSpeed,
                     pitch: voicePitch,
                     language: voiceLanguage,

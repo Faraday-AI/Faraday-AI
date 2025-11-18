@@ -10,7 +10,7 @@ from .organization_management import router as organization_management_router
 from .team_management import router as team_management_router
 from .user_analytics import router as user_analytics_router
 from .beta_testing import router as beta_testing_router
-from . import resource_management, beta_teacher_dashboard, beta_safety, beta_assessment, beta_security, beta_resource_management, dashboard_resource_management, dashboard_context_analytics, beta_context_analytics, dashboard_preferences, beta_dashboard_preferences
+from . import resource_management, beta_teacher_dashboard, beta_safety, beta_assessment, beta_security, beta_resource_management, dashboard_resource_management, dashboard_context_analytics, beta_context_analytics, dashboard_preferences, beta_dashboard_preferences, beta_avatars_voices
 from . import microsoft_auth, beta_microsoft_auth, microsoft_calendar, beta_microsoft_calendar, microsoft_health
 
 __all__ = [
@@ -37,6 +37,7 @@ __all__ = [
     'beta_context_analytics',
     'dashboard_preferences',
     'beta_dashboard_preferences',
+    'beta_avatars_voices',
     'microsoft_auth',
     'beta_microsoft_auth',
     'microsoft_calendar',

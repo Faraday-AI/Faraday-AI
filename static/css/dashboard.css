@@ -1055,7 +1055,8 @@ body {
     border-radius: var(--border-radius);
 }
 
-.setting-item select {
+.setting-item select,
+#selectedVoice {
     flex: 1;
     padding: 0.5rem;
     border: 1px solid var(--border-color);
@@ -1066,6 +1067,32 @@ body {
     cursor: pointer;
     outline: none;
     transition: var(--transition);
+}
+
+/* Specific styling for voice select with size attribute */
+#selectedVoice[size] {
+    display: block !important;
+    visibility: visible !important;
+    min-height: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+#selectedVoice[size] option {
+    padding: 0.5rem;
+    background: var(--bg-secondary);
+    color: var(--text-color);
+    border-bottom: 1px solid var(--border-color);
+}
+
+#selectedVoice[size] option:hover {
+    background: var(--card-hover);
+}
+
+#selectedVoice[size] option:checked {
+    background: var(--primary-color);
+    color: #ffffff;
 }
 
 .setting-item select:hover {

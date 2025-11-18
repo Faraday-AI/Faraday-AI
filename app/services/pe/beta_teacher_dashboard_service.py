@@ -291,18 +291,51 @@ class BetaTeacherDashboardService:
         
         avatars = query.all()
         
-        return [
-            {
+        # Generate user-friendly names based on type and index
+        avatar_names = {
+            'STATIC': ['Classic Avatar', 'Professional Avatar', 'Friendly Avatar', 'Modern Avatar'],
+            'ANIMATED': ['Animated Assistant', 'Dynamic Avatar', 'Interactive Avatar', 'Live Avatar'],
+            'THREE_D': ['3D Character', '3D Assistant', '3D Avatar', '3D Model']
+        }
+        
+        type_counts = {}
+        result = []
+        
+        for avatar in avatars:
+            avatar_type = getattr(avatar, 'type', 'STATIC')
+            type_key = avatar_type.upper() if isinstance(avatar_type, str) else str(avatar_type)
+            
+            # Count how many of this type we've seen
+            type_counts[type_key] = type_counts.get(type_key, 0) + 1
+            index = type_counts[type_key] - 1
+            
+            # Get name from predefined list or generate one
+            name_list = avatar_names.get(type_key, [f'{type_key} Avatar'])
+            if index < len(name_list):
+                avatar_name = name_list[index]
+            else:
+                avatar_name = f'{type_key} Avatar {index + 1}'
+            
+            # Generate description
+            descriptions = {
+                'STATIC': 'A static image avatar perfect for professional settings',
+                'ANIMATED': 'An animated avatar with smooth movements and expressions',
+                'THREE_D': 'A 3D model avatar with full rotation and interaction'
+            }
+            description = descriptions.get(type_key, f'A {type_key.lower()} avatar')
+            
+            result.append({
                 "id": str(avatar.id),
-                "avatar_name": getattr(avatar, 'avatar_name', getattr(avatar, 'name', getattr(avatar, 'type', 'Unknown Avatar'))),
-                "avatar_type": getattr(avatar, 'avatar_type', getattr(avatar, 'type', '')),
-                "description": getattr(avatar, 'description', ''),
+                "avatar_name": avatar_name,
+                "avatar_type": avatar_type,
+                "description": description,
                 "voice_enabled": getattr(avatar, 'voice_enabled', False),
+                "image_url": getattr(avatar, 'image_url', None),
                 "avatar_config": getattr(avatar, 'avatar_config', getattr(avatar, 'config', {})),
                 "created_at": avatar.created_at.isoformat() if avatar.created_at else None
-            }
-            for avatar in avatars
-        ]
+            })
+        
+        return result
     
     def get_beta_avatar(self, avatar_id: str) -> Optional[Dict[str, Any]]:
         """Get specific beta avatar"""
@@ -322,6 +355,155 @@ class BetaTeacherDashboardService:
             "avatar_config": getattr(avatar, 'avatar_config', getattr(avatar, 'config', {})),
             "created_at": avatar.created_at.isoformat() if avatar.created_at else None
         }
+    
+    def get_beta_voices(
+        self, 
+        avatar_id: Optional[str] = None,
+        language: Optional[str] = None,
+        provider: Optional[str] = None,
+        limit: int = 500,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """Get all available voices (320+ voices from voices and voice_templates tables)"""
+        from app.models.user_management.avatar.voice import Voice, VoiceTemplate
+        from sqlalchemy import text
+        
+        try:
+            # Get voices from the voices table
+            query = text("""
+                SELECT DISTINCT
+                    v.id,
+                    v.voice_type,
+                    v.voice_settings,
+                    v.voice_metadata,
+                    vt.id as template_id,
+                    vt.name as template_name,
+                    vt.description as template_description,
+                    vt.voice_settings as template_settings
+                FROM voices v
+                LEFT JOIN voice_templates vt ON v.template_id = vt.id
+                WHERE 1=1
+            """)
+            
+            params = {}
+            conditions = []
+            
+            if avatar_id:
+                conditions.append("v.avatar_id = :avatar_id")
+                params['avatar_id'] = avatar_id
+            
+            if language:
+                # Check if language is in voice_metadata or voice_settings
+                conditions.append("(v.voice_metadata::text LIKE :language OR v.voice_settings::text LIKE :language)")
+                params['language'] = f'%{language}%'
+            
+            if provider:
+                conditions.append("(v.voice_metadata::text LIKE :provider)")
+                params['provider'] = f'%{provider}%'
+            
+            if conditions:
+                query = text(str(query).replace("WHERE 1=1", "WHERE " + " AND ".join(conditions)))
+            
+            query = text(str(query) + f" ORDER BY vt.name, v.id LIMIT :limit OFFSET :offset")
+            params['limit'] = limit
+            params['offset'] = offset
+            
+            result = self.db.execute(query, params)
+            voices = []
+            
+            for row in result:
+                voice_data = {
+                    "id": str(row.id),
+                    "voice_id": str(row.id),
+                    "voice_type": row.voice_type,
+                    "name": row.template_name or f"Voice {row.id}",
+                    "description": row.template_description or f"{row.voice_type} voice",
+                    "settings": row.voice_settings or {},
+                    "metadata": row.voice_metadata or {},
+                    "template_id": str(row.template_id) if row.template_id else None,
+                    "template_settings": row.template_settings or {}
+                }
+                voices.append(voice_data)
+            
+            # If we got fewer than limit, also get from voice_templates for more options
+            if len(voices) < limit and offset == 0:
+                try:
+                    template_query = text("""
+                        SELECT id, name, description, voice_settings, template_metadata
+                        FROM voice_templates
+                        ORDER BY name
+                        LIMIT :limit
+                    """)
+                    template_result = self.db.execute(template_query, {'limit': limit - len(voices)})
+                    
+                    for row in template_result:
+                        if not any(v.get('template_id') == str(row.id) for v in voices):
+                            voice_data = {
+                                "id": f"template_{row.id}",
+                                "voice_id": str(row.id),
+                                "voice_type": "TTS",
+                                "name": row.name or f"Voice Template {row.id}",
+                                "description": row.description or "Voice template",
+                                "settings": row.voice_settings or {},
+                                "metadata": row.template_metadata or {},
+                                "template_id": str(row.id),
+                                "template_settings": row.voice_settings or {}
+                            }
+                            voices.append(voice_data)
+                except Exception as template_error:
+                    # If voice_templates query fails, continue with what we have
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Error fetching voice templates: {str(template_error)}")
+            
+            # If we still have no voices, return fallback voices
+            if len(voices) == 0:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info("No voices found in database, returning fallback voices.")
+                return self._get_fallback_voices(limit)
+            
+            return voices[:limit]
+            
+        except Exception as e:
+            # Fallback: return a list of common voices if database query fails
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Error fetching voices from database: {str(e)}. Returning default voices.")
+            return self._get_fallback_voices(limit)
+    
+    def _get_fallback_voices(self, limit: int = 500) -> List[Dict[str, Any]]:
+        """Generate fallback voices when database is empty or query fails."""
+        # Return common TTS voices as fallback
+        default_voices = []
+        languages = ['en-US', 'en-GB', 'es-ES', 'fr-FR', 'de-DE', 'it-IT', 'pt-BR', 'ja-JP', 'zh-CN', 'ko-KR']
+        providers = ['google', 'amazon', 'microsoft', 'elevenlabs']
+        voice_names = ['Neural', 'Standard', 'Wavenet', 'Premium']
+        
+        voice_id = 1
+        for provider in providers:
+            for language in languages:
+                for name in voice_names:
+                    if len(default_voices) >= limit:
+                        break
+                    default_voices.append({
+                        "id": f"default_{voice_id}",
+                        "voice_id": str(voice_id),
+                        "voice_type": "TTS",
+                        "name": f"{provider.title()} {name} ({language})",
+                        "description": f"{provider.title()} {name} voice for {language}",
+                        "settings": {"speed": 1.0, "pitch": 1.0, "volume": 0.8},
+                        "metadata": {"provider": provider, "language": language},
+                        "template_id": None,
+                        "template_settings": {}
+                    })
+                    voice_id += 1
+                if len(default_voices) >= limit:
+                    break
+            if len(default_voices) >= limit:
+                break
+        
+        return default_voices[:limit]
     
     def reset_dashboard(self, teacher_id: str) -> DashboardConfigResponse:
         """Reset dashboard to default"""

@@ -12,7 +12,8 @@ from app.dashboard.schemas.avatar import (
     AvatarBehaviorRequest,
     AvatarBehaviorResponse
 )
-from app.core.auth import get_current_user
+from app.dashboard.dependencies.auth import get_current_user
+from app.dashboard.models.tool_registry import Tool
 import os
 from pathlib import Path
 import shutil
@@ -33,7 +34,7 @@ async def get_tool_avatar(
     """Get avatar configuration for a tool."""
     try:
         avatar_service = AvatarService(db)
-        return avatar_service.get_tool_avatar(tool_id, current_user.id)
+        return avatar_service.get_tool_avatar(tool_id, current_user["id"])
     except Exception as e:
         logger.error(f"Error getting tool avatar: {str(e)}")
         raise HTTPException(
@@ -79,7 +80,7 @@ async def update_user_avatar_preferences(
     try:
         avatar_service = AvatarService(db)
         return avatar_service.update_user_avatar_preferences(
-            user_id=current_user.id,
+            user_id=current_user["id"],
             tool_id=tool_id,
             avatar_customization=preferences.avatar_customization,
             voice_preferences=preferences.voice_preferences
@@ -220,7 +221,7 @@ async def get_avatar_behavior(
         behavior_config = avatar_service.get_avatar_behavior(
             tool_id=tool_id,
             message=request.message,
-            user_id=current_user.id
+            user_id=current_user["id"]
         )
         
         if behavior_config:
@@ -228,7 +229,7 @@ async def get_avatar_behavior(
             updated_config = avatar_service.update_avatar_state(
                 tool_id=tool_id,
                 behavior_config=behavior_config,
-                user_id=current_user.id
+                user_id=current_user["id"]
             )
             
             return {
@@ -238,7 +239,7 @@ async def get_avatar_behavior(
         else:
             return {
                 'behavior_config': {},
-                'avatar_config': avatar_service.get_tool_avatar(tool_id, current_user.id)
+                'avatar_config': avatar_service.get_tool_avatar(tool_id, current_user["id"])
             }
             
     except HTTPException:

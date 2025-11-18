@@ -246,36 +246,6 @@ async def get_beta_widgets(
     return service.get_beta_widgets(widget_type, is_active, limit, offset)
 
 
-# ==================== BETA AVATARS ====================
-
-@router.get("/beta/avatars", response_model=List[Dict[str, Any]])
-async def get_beta_avatars(
-    voice_enabled: Optional[bool] = Query(None, description="Filter by voice enabled status"),
-    db: Session = Depends(get_db)
-):
-    """Get all available beta avatars"""
-    service = BetaTeacherDashboardService(db)
-    return service.get_beta_avatars(voice_enabled)
-
-
-@router.get("/beta/avatars/{avatar_id}", response_model=Dict[str, Any])
-async def get_beta_avatar(
-    avatar_id: str,
-    db: Session = Depends(get_db)
-):
-    """Get a specific beta avatar"""
-    service = BetaTeacherDashboardService(db)
-    avatar = service.get_beta_avatar(avatar_id)
-    
-    if not avatar:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Avatar not found"
-        )
-    
-    return avatar
-
-
 # ==================== DASHBOARD RESET ====================
 
 @router.post("/reset", response_model=DashboardConfigResponse)
