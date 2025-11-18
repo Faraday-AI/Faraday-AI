@@ -352,9 +352,11 @@ function setupEventListeners() {
         alert('Click on a widget from the sidebar to add it to your dashboard');
     });
     
-    document.getElementById('customizeLayoutBtn').addEventListener('click', () => {
-        alert('Layout customization coming soon!');
-    });
+    document.getElementById('customizeLayoutBtn').addEventListener('click', openLayoutCustomization);
+    document.getElementById('closeLayoutModal').addEventListener('click', closeLayoutCustomization);
+    document.getElementById('saveLayoutBtn').addEventListener('click', saveLayoutCustomization);
+    document.getElementById('cancelLayoutBtn').addEventListener('click', closeLayoutCustomization);
+    document.getElementById('resetLayoutBtn').addEventListener('click', resetLayoutToDefault);
     
     // Panel resize and collapse functionality
     initializePanelResize();
@@ -2309,14 +2311,8 @@ function initializeVoiceRecognition() {
                 console.warn('Safari version may not fully support Web Speech API. Version:', version);
             }
             
-            // Show a warning about Safari's limitations
+            // Safari Web Speech API initialization
             console.warn('⚠️ Safari Web Speech API has known limitations. Voice input may not work reliably. Consider using Chrome or Firefox for better voice input support.');
-            
-            // Add a user-visible warning (non-blocking)
-            setTimeout(() => {
-                const warningMsg = 'Voice input in Safari may not work reliably due to browser limitations. For best results, please use Chrome or Firefox.';
-                addMessageToChat('ai', warningMsg);
-            }, 2000);
         }
         
         recognition = new SpeechRecognition();
@@ -3285,9 +3281,125 @@ function clearChat() {
     }
 }
 
-// Open settings
-function openSettings() {
+// Open settings and load existing preferences
+async function openSettings() {
     document.getElementById('settingsModal').classList.add('active');
+    
+    // Load existing settings from localStorage
+    const theme = localStorage.getItem('dashboard_theme') || 'dark';
+    document.querySelector(`input[name="theme"][value="${theme}"]`).checked = true;
+    
+    // Theme & Display
+    document.getElementById('fontSize').value = localStorage.getItem('font_size') || 'medium';
+    document.getElementById('fontFamily').value = localStorage.getItem('font_family') || 'system';
+    document.getElementById('accentColor').value = localStorage.getItem('accent_color') || '#4a90e2';
+    document.getElementById('highContrast').checked = localStorage.getItem('high_contrast') === 'true';
+    
+    // Notifications
+    document.getElementById('enableNotifications').checked = localStorage.getItem('enable_notifications') !== 'false';
+    document.getElementById('pushNotifications').checked = localStorage.getItem('push_notifications') !== 'false';
+    document.getElementById('inAppNotifications').checked = localStorage.getItem('in_app_notifications') !== 'false';
+    document.getElementById('smsNotifications').checked = localStorage.getItem('sms_notifications') === 'true';
+    document.getElementById('enableSounds').checked = localStorage.getItem('enable_sounds') !== 'false';
+    document.getElementById('quietHoursStart').value = localStorage.getItem('quiet_hours_start') || '';
+    document.getElementById('quietHoursEnd').value = localStorage.getItem('quiet_hours_end') || '';
+    
+    // Voice Input
+    document.getElementById('enableVoiceInput').checked = localStorage.getItem('enable_voice_input') !== 'false';
+    
+    // Avatar preferences
+    const avatarScale = parseFloat(localStorage.getItem('avatar_scale') || '1.0');
+    const avatarOpacity = parseInt(localStorage.getItem('avatar_opacity') || '100');
+    const avatarColor = localStorage.getItem('avatar_color') || '#ffffff';
+    document.getElementById('avatarScale').value = avatarScale;
+    document.getElementById('avatarScaleValue').textContent = avatarScale.toFixed(1);
+    document.getElementById('avatarOpacity').value = avatarOpacity;
+    document.getElementById('avatarOpacityValue').textContent = avatarOpacity + '%';
+    document.getElementById('avatarColor').value = avatarColor;
+    
+    // AI voice preferences
+    document.getElementById('enableAIVoice').checked = localStorage.getItem('enable_ai_voice') !== 'false';
+    const voiceSpeed = parseInt(localStorage.getItem('voice_speed') || '100');
+    const voicePitch = parseInt(localStorage.getItem('voice_pitch') || '100');
+    const voiceLanguage = localStorage.getItem('voice_language') || 'en-US';
+    document.getElementById('voiceSpeed').value = voiceSpeed;
+    document.getElementById('voiceSpeedValue').textContent = voiceSpeed + '%';
+    document.getElementById('voicePitch').value = voicePitch;
+    document.getElementById('voicePitchValue').textContent = voicePitch + '%';
+    document.getElementById('voiceLanguage').value = voiceLanguage;
+    
+    // Language & Regional
+    document.getElementById('language').value = localStorage.getItem('language') || 'en';
+    document.getElementById('timezone').value = localStorage.getItem('timezone') || 'UTC';
+    document.getElementById('dateFormat').value = localStorage.getItem('date_format') || 'YYYY-MM-DD';
+    document.getElementById('timeFormat').value = localStorage.getItem('time_format') || '24h';
+    
+    // Accessibility
+    document.getElementById('reducedMotion').checked = localStorage.getItem('reduced_motion') === 'true';
+    document.getElementById('screenReader').checked = localStorage.getItem('screen_reader') === 'true';
+    
+    // Layout
+    document.getElementById('sidebarPosition').value = localStorage.getItem('sidebar_position') || 'left';
+    document.getElementById('gridView').checked = localStorage.getItem('grid_view') !== 'false';
+    
+    // Performance
+    document.getElementById('autoRefresh').checked = localStorage.getItem('auto_refresh') !== 'false';
+    document.getElementById('refreshInterval').value = parseInt(localStorage.getItem('refresh_interval') || '60');
+    
+    // Privacy
+    document.getElementById('analyticsOptIn').checked = localStorage.getItem('analytics_opt_in') !== 'false';
+    document.getElementById('dataSharing').checked = localStorage.getItem('data_sharing') === 'true';
+    
+    // Try to load from backend API (for authenticated users)
+    const token = localStorage.getItem('access_token');
+    if (token) {
+        try {
+            // Use 'ai-assistant' as the default tool_id for the AI assistant
+            const response = await fetch('/api/v1/dashboard/tools/ai-assistant/avatar', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const avatarData = await response.json();
+                if (avatarData.customization) {
+                    const custom = avatarData.customization;
+                    if (custom.scale !== undefined) {
+                        document.getElementById('avatarScale').value = custom.scale;
+                        document.getElementById('avatarScaleValue').textContent = custom.scale.toFixed(1);
+                    }
+                    if (custom.opacity !== undefined) {
+                        const opacityPercent = Math.round(custom.opacity * 100);
+                        document.getElementById('avatarOpacity').value = opacityPercent;
+                        document.getElementById('avatarOpacityValue').textContent = opacityPercent + '%';
+                    }
+                    if (custom.color) {
+                        document.getElementById('avatarColor').value = custom.color;
+                    }
+                }
+                if (avatarData.voice_preferences) {
+                    const voice = avatarData.voice_preferences;
+                    if (voice.speed !== undefined) {
+                        document.getElementById('voiceSpeed').value = voice.speed;
+                        document.getElementById('voiceSpeedValue').textContent = voice.speed + '%';
+                    }
+                    if (voice.pitch !== undefined) {
+                        document.getElementById('voicePitch').value = voice.pitch;
+                        document.getElementById('voicePitchValue').textContent = voice.pitch + '%';
+                    }
+                    if (voice.language) {
+                        document.getElementById('voiceLanguage').value = voice.language;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error loading avatar preferences from backend:', error);
+            // Continue with localStorage values if API fails
+        }
+    }
+    
+    // Setup slider value displays
+    setupSettingsSliders();
 }
 
 // Close settings
@@ -3295,24 +3407,212 @@ function closeSettings() {
     document.getElementById('settingsModal').classList.remove('active');
 }
 
+// Setup slider value displays
+function setupSettingsSliders() {
+    // Avatar scale slider
+    const avatarScaleSlider = document.getElementById('avatarScale');
+    const avatarScaleValue = document.getElementById('avatarScaleValue');
+    if (avatarScaleSlider && avatarScaleValue) {
+        avatarScaleSlider.addEventListener('input', (e) => {
+            avatarScaleValue.textContent = parseFloat(e.target.value).toFixed(1);
+        });
+    }
+    
+    // Avatar opacity slider
+    const avatarOpacitySlider = document.getElementById('avatarOpacity');
+    const avatarOpacityValue = document.getElementById('avatarOpacityValue');
+    if (avatarOpacitySlider && avatarOpacityValue) {
+        avatarOpacitySlider.addEventListener('input', (e) => {
+            avatarOpacityValue.textContent = e.target.value + '%';
+        });
+    }
+    
+    // Voice speed slider
+    const voiceSpeedSlider = document.getElementById('voiceSpeed');
+    const voiceSpeedValue = document.getElementById('voiceSpeedValue');
+    if (voiceSpeedSlider && voiceSpeedValue) {
+        voiceSpeedSlider.addEventListener('input', (e) => {
+            voiceSpeedValue.textContent = e.target.value + '%';
+        });
+    }
+    
+    // Voice pitch slider
+    const voicePitchSlider = document.getElementById('voicePitch');
+    const voicePitchValue = document.getElementById('voicePitchValue');
+    if (voicePitchSlider && voicePitchValue) {
+        voicePitchSlider.addEventListener('input', (e) => {
+            voicePitchValue.textContent = e.target.value + '%';
+        });
+    }
+}
+
 // Save settings
-function saveSettings() {
+async function saveSettings() {
+    // Theme & Display
     const theme = document.querySelector('input[name="theme"]:checked').value;
+    const fontSize = document.getElementById('fontSize').value;
+    const fontFamily = document.getElementById('fontFamily').value;
+    const accentColor = document.getElementById('accentColor').value;
+    const highContrast = document.getElementById('highContrast').checked;
+    
+    // Notifications
     const enableNotifications = document.getElementById('enableNotifications').checked;
+    const pushNotifications = document.getElementById('pushNotifications').checked;
+    const inAppNotifications = document.getElementById('inAppNotifications').checked;
+    const smsNotifications = document.getElementById('smsNotifications').checked;
     const enableSounds = document.getElementById('enableSounds').checked;
+    const quietHoursStart = document.getElementById('quietHoursStart').value;
+    const quietHoursEnd = document.getElementById('quietHoursEnd').value;
+    
+    // Voice Input
     const enableVoiceInput = document.getElementById('enableVoiceInput').checked;
+    
+    // Avatar preferences
+    const avatarScale = parseFloat(document.getElementById('avatarScale').value);
+    const avatarOpacity = parseInt(document.getElementById('avatarOpacity').value) / 100; // Convert to 0-1 range
+    const avatarColor = document.getElementById('avatarColor').value;
+    
+    // AI voice preferences
+    const enableAIVoice = document.getElementById('enableAIVoice').checked;
+    const voiceSpeed = parseInt(document.getElementById('voiceSpeed').value);
+    const voicePitch = parseInt(document.getElementById('voicePitch').value);
+    const voiceLanguage = document.getElementById('voiceLanguage').value;
+    
+    // Language & Regional
+    const language = document.getElementById('language').value;
+    const timezone = document.getElementById('timezone').value;
+    const dateFormat = document.getElementById('dateFormat').value;
+    const timeFormat = document.getElementById('timeFormat').value;
+    
+    // Accessibility
+    const reducedMotion = document.getElementById('reducedMotion').checked;
+    const screenReader = document.getElementById('screenReader').checked;
+    
+    // Layout
+    const sidebarPosition = document.getElementById('sidebarPosition').value;
+    const gridView = document.getElementById('gridView').checked;
+    
+    // Performance
+    const autoRefresh = document.getElementById('autoRefresh').checked;
+    const refreshInterval = parseInt(document.getElementById('refreshInterval').value);
+    
+    // Privacy
+    const analyticsOptIn = document.getElementById('analyticsOptIn').checked;
+    const dataSharing = document.getElementById('dataSharing').checked;
     
     // Save to localStorage
     localStorage.setItem('dashboard_theme', theme);
+    localStorage.setItem('font_size', fontSize);
+    localStorage.setItem('font_family', fontFamily);
+    localStorage.setItem('accent_color', accentColor);
+    localStorage.setItem('high_contrast', highContrast);
     localStorage.setItem('enable_notifications', enableNotifications);
+    localStorage.setItem('push_notifications', pushNotifications);
+    localStorage.setItem('in_app_notifications', inAppNotifications);
+    localStorage.setItem('sms_notifications', smsNotifications);
     localStorage.setItem('enable_sounds', enableSounds);
+    localStorage.setItem('quiet_hours_start', quietHoursStart);
+    localStorage.setItem('quiet_hours_end', quietHoursEnd);
     localStorage.setItem('enable_voice_input', enableVoiceInput);
+    localStorage.setItem('avatar_scale', avatarScale);
+    localStorage.setItem('avatar_opacity', Math.round(avatarOpacity * 100));
+    localStorage.setItem('avatar_color', avatarColor);
+    localStorage.setItem('enable_ai_voice', enableAIVoice);
+    localStorage.setItem('voice_speed', voiceSpeed);
+    localStorage.setItem('voice_pitch', voicePitch);
+    localStorage.setItem('voice_language', voiceLanguage);
+    localStorage.setItem('language', language);
+    localStorage.setItem('timezone', timezone);
+    localStorage.setItem('date_format', dateFormat);
+    localStorage.setItem('time_format', timeFormat);
+    localStorage.setItem('reduced_motion', reducedMotion);
+    localStorage.setItem('screen_reader', screenReader);
+    localStorage.setItem('sidebar_position', sidebarPosition);
+    localStorage.setItem('grid_view', gridView);
+    localStorage.setItem('auto_refresh', autoRefresh);
+    localStorage.setItem('refresh_interval', refreshInterval);
+    localStorage.setItem('analytics_opt_in', analyticsOptIn);
+    localStorage.setItem('data_sharing', dataSharing);
     
     // Apply theme
     if (theme === 'light') {
         document.body.classList.add('light-theme');
     } else {
         document.body.classList.remove('light-theme');
+    }
+    
+    // Apply font size
+    document.documentElement.style.setProperty('--base-font-size', 
+        fontSize === 'small' ? '14px' : fontSize === 'large' ? '18px' : '16px');
+    
+    // Apply font family
+    if (fontFamily !== 'system') {
+        document.body.style.fontFamily = fontFamily;
+    } else {
+        document.body.style.fontFamily = '';
+    }
+    
+    // Apply accent color
+    document.documentElement.style.setProperty('--primary-color', accentColor);
+    
+    // Apply high contrast
+    if (highContrast) {
+        document.body.classList.add('high-contrast');
+    } else {
+        document.body.classList.remove('high-contrast');
+    }
+    
+    // Apply reduced motion
+    if (reducedMotion) {
+        document.documentElement.style.setProperty('--transition', 'none');
+    } else {
+        document.documentElement.style.setProperty('--transition', 'all 0.3s ease');
+    }
+    
+    // Apply sidebar position
+    const sidebar = document.querySelector('.widgets-sidebar');
+    if (sidebar) {
+        if (sidebarPosition === 'right') {
+            sidebar.style.order = '2';
+        } else {
+            sidebar.style.order = '0';
+        }
+    }
+    
+    // Save to backend API (for authenticated users)
+    const token = localStorage.getItem('access_token');
+    if (token) {
+        try {
+            const preferences = {
+                avatar_customization: {
+                    scale: avatarScale,
+                    opacity: avatarOpacity,
+                    color: avatarColor
+                },
+                voice_preferences: {
+                    speed: voiceSpeed,
+                    pitch: voicePitch,
+                    language: voiceLanguage,
+                    enabled: enableAIVoice
+                }
+            };
+            
+            const response = await fetch('/api/v1/dashboard/tools/ai-assistant/avatar/preferences', {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(preferences)
+            });
+            
+            if (!response.ok) {
+                console.warn('Failed to save avatar preferences to backend, but saved to localStorage');
+            }
+        } catch (error) {
+            console.error('Error saving avatar preferences to backend:', error);
+            // Continue - at least localStorage is saved
+        }
     }
     
     closeSettings();
@@ -3512,6 +3812,299 @@ function initializePanelCollapse() {
             chatSection.classList.add('collapsed');
             collapseChatIcon.textContent = '▲';
         }
+    }
+}
+
+// Layout Customization Functions
+let originalWidgetOrder = [];
+
+// Open layout customization modal
+function openLayoutCustomization() {
+    console.log('🔧 Opening layout customization. Active widgets:', activeWidgets.length, activeWidgets);
+    
+    // Make sure we have the latest widgets from the DOM or localStorage
+    if (activeWidgets.length === 0) {
+        // Try to reload from localStorage
+        loadWidgetsFromLocalStorage();
+        console.log('🔧 Reloaded from localStorage. Active widgets:', activeWidgets.length);
+    }
+    
+    // Store original order
+    originalWidgetOrder = [...activeWidgets];
+    
+    // Show modal
+    document.getElementById('layoutModal').classList.add('active');
+    
+    // Populate widgets list
+    populateLayoutWidgetsList();
+    
+    // Initialize drag and drop
+    initializeLayoutDragAndDrop();
+}
+
+// Close layout customization modal
+function closeLayoutCustomization() {
+    document.getElementById('layoutModal').classList.remove('active');
+    // Restore original order if cancelled
+    if (originalWidgetOrder.length > 0) {
+        activeWidgets = [...originalWidgetOrder];
+    }
+}
+
+// Populate the layout widgets list
+function populateLayoutWidgetsList() {
+    const listContainer = document.getElementById('layoutWidgetsList');
+    if (!listContainer) {
+        console.error('❌ Layout widgets list container not found!');
+        return;
+    }
+    
+    listContainer.innerHTML = '';
+    
+    console.log('🔧 Populating layout list. Active widgets count:', activeWidgets.length);
+    console.log('🔧 Active widgets:', activeWidgets);
+    
+    if (activeWidgets.length === 0) {
+        listContainer.innerHTML = '<p class="no-widgets-message">No widgets on your dashboard yet. Add widgets from the sidebar.</p>';
+        return;
+    }
+    
+    // Also try to get widgets from the DOM as a fallback
+    const domWidgets = document.querySelectorAll('[data-widget-id]');
+    console.log('🔧 Found widgets in DOM:', domWidgets.length);
+    
+    // If we have widgets in DOM but not in activeWidgets, try to sync
+    if (domWidgets.length > activeWidgets.length) {
+        console.log('⚠️ More widgets in DOM than in activeWidgets. Syncing...');
+        const domWidgetIds = Array.from(domWidgets).map(el => el.dataset.widgetId);
+        const missingWidgets = activeWidgets.filter(w => !domWidgetIds.includes(w.id));
+        console.log('🔧 Missing widgets:', missingWidgets);
+    }
+    
+    activeWidgets.forEach((widget, index) => {
+        if (!widget || !widget.id) {
+            console.warn('⚠️ Invalid widget at index', index, widget);
+            return;
+        }
+        
+        const widgetItem = document.createElement('div');
+        widgetItem.className = 'layout-widget-item';
+        widgetItem.draggable = true;
+        widgetItem.dataset.widgetId = widget.id;
+        widgetItem.dataset.index = index;
+        
+        const widgetName = widget.name || getWidgetTitle(widget.type) || 'Unknown Widget';
+        const widgetType = getWidgetTitle(widget.type) || widget.type || 'Unknown';
+        const widgetSize = widget.size || 'medium';
+        
+        widgetItem.innerHTML = `
+            <div class="layout-widget-drag-handle">☰</div>
+            <div class="layout-widget-info">
+                <div class="layout-widget-name">${widgetName}</div>
+                <div class="layout-widget-type">${widgetType}</div>
+            </div>
+            <div class="layout-widget-size">
+                <span class="size-badge size-${widgetSize}">${widgetSize.toUpperCase()}</span>
+            </div>
+        `;
+        
+        // Add drag event listeners
+        widgetItem.addEventListener('dragstart', handleDragStart);
+        widgetItem.addEventListener('dragover', handleDragOver);
+        widgetItem.addEventListener('drop', handleDrop);
+        widgetItem.addEventListener('dragend', handleDragEnd);
+        widgetItem.addEventListener('dragenter', handleDragEnter);
+        
+        listContainer.appendChild(widgetItem);
+        console.log('✅ Added widget to layout list:', widgetName, widget.id);
+    });
+    
+    console.log('✅ Layout list populated. Total items:', listContainer.children.length);
+}
+
+// Initialize drag and drop
+function initializeLayoutDragAndDrop() {
+    const listContainer = document.getElementById('layoutWidgetsList');
+    if (!listContainer) return;
+    
+    // Add container-level drag events
+    listContainer.addEventListener('dragover', handleContainerDragOver);
+    listContainer.addEventListener('drop', handleContainerDrop);
+    
+    const items = document.querySelectorAll('.layout-widget-item');
+    items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+    });
+}
+
+// Drag and drop handlers
+let draggedElement = null;
+let draggedIndex = null;
+
+function handleDragStart(e) {
+    draggedElement = this;
+    draggedIndex = parseInt(this.dataset.index);
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', this.dataset.widgetId);
+    // Allow dragging
+    e.dataTransfer.dropEffect = 'move';
+}
+
+function handleDragEnter(e) {
+    e.preventDefault();
+    if (this !== draggedElement) {
+        this.classList.add('drag-over');
+    }
+}
+
+function handleContainerDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    
+    const listContainer = e.currentTarget;
+    const afterElement = getDragAfterElement(listContainer, e.clientY);
+    const dragging = document.querySelector('.dragging');
+    
+    if (!dragging) return;
+    
+    // Remove drag-over class from all items
+    listContainer.querySelectorAll('.layout-widget-item').forEach(item => {
+        item.classList.remove('drag-over');
+    });
+    
+    // Move the dragging element
+    if (afterElement == null) {
+        listContainer.appendChild(dragging);
+    } else {
+        listContainer.insertBefore(dragging, afterElement);
+    }
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    
+    if (this !== draggedElement) {
+        this.classList.add('drag-over');
+    }
+}
+
+function handleContainerDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const listContainer = e.currentTarget;
+    
+    // Remove drag-over classes
+    listContainer.querySelectorAll('.layout-widget-item').forEach(item => {
+        item.classList.remove('drag-over');
+    });
+    
+    // Update activeWidgets array based on new DOM order
+    const items = Array.from(listContainer.querySelectorAll('.layout-widget-item'));
+    const newOrder = items.map((item, index) => {
+        const widgetId = item.dataset.widgetId;
+        const widget = activeWidgets.find(w => w.id === widgetId);
+        if (widget) {
+            // Update the index in dataset
+            item.dataset.index = index;
+        }
+        return widget;
+    }).filter(w => w !== undefined);
+    
+    if (newOrder.length === activeWidgets.length) {
+        activeWidgets = newOrder;
+        console.log('✅ Widgets reordered:', activeWidgets.map(w => w.name || w.type));
+    }
+    
+    return false;
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    return false;
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    this.classList.remove('drag-over');
+    
+    // Remove drag-over from all items
+    const listContainer = document.getElementById('layoutWidgetsList');
+    if (listContainer) {
+        listContainer.querySelectorAll('.layout-widget-item').forEach(item => {
+            item.classList.remove('drag-over');
+        });
+    }
+    
+    draggedElement = null;
+    draggedIndex = null;
+}
+
+// Helper function to determine drop position
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.layout-widget-item:not(.dragging)')];
+    
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// Save layout customization
+function saveLayoutCustomization() {
+    // Save to localStorage
+    saveWidgetsToLocalStorage();
+    
+    // Re-render widgets with new order
+    renderWidgets();
+    
+    // Close modal
+    closeLayoutCustomization();
+    
+    // Show success message
+    showSuccess('Layout saved successfully!');
+    
+    // Save to backend if authenticated
+    const token = localStorage.getItem('access_token');
+    if (token) {
+        // TODO: Save layout to backend API
+        console.log('Layout saved to localStorage. Backend sync can be implemented here.');
+    }
+}
+
+// Reset layout to default
+function resetLayoutToDefault() {
+    if (confirm('Are you sure you want to reset the layout to default? This will restore the original widget order.')) {
+        // Reset to original order
+        if (originalWidgetOrder.length > 0) {
+            activeWidgets = [...originalWidgetOrder];
+        } else {
+            // If no original order, sort by creation date
+            activeWidgets.sort((a, b) => {
+                const dateA = new Date(a.created_at || 0);
+                const dateB = new Date(b.created_at || 0);
+                return dateA - dateB;
+            });
+        }
+        
+        // Save and re-render
+        saveWidgetsToLocalStorage();
+        renderWidgets();
+        populateLayoutWidgetsList();
+        
+        showSuccess('Layout reset to default!');
     }
 }
 
