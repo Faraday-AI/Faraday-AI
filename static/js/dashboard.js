@@ -868,6 +868,14 @@ function loadWidgetsFromLocalStorage() {
         const saved = localStorage.getItem('dashboard_widgets');
         if (saved) {
             activeWidgets = JSON.parse(saved);
+            // Normalize widget sizes: ensure all are valid string sizes
+            const validSizes = ['small', 'medium', 'large', 'extra-large'];
+            activeWidgets.forEach(widget => {
+                if (!widget.size || typeof widget.size !== 'string' || !validSizes.includes(widget.size)) {
+                    // Normalize invalid sizes (objects, invalid strings, missing) to 'medium'
+                    widget.size = 'medium';
+                }
+            });
             return true;
         }
     } catch (error) {
@@ -923,7 +931,7 @@ function renderWidgets() {
             <div class="widget-card-header">
                 <h3 class="widget-card-title">${getWidgetTitle(widget.type)}</h3>
                 <div class="widget-card-actions">
-                    <button class="widget-action-btn widget-resize-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();toggleWidgetSize('${widget.id}');})(event)" title="Expand/Collapse widget">⛶</button>
+                    <button class="widget-action-btn widget-resize-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();toggleWidgetSize('${widget.id}');})(event)" title="Resize widget">⛶</button>
                     ${hasPrintableData ? `<button class="widget-action-btn widget-print-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();printWidget('${widget.id}');})(event)" title="Print widget data">🖨️</button>` : ''}
                     ${hasPrintableData ? `<button class="widget-action-btn widget-email-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();emailWidget('${widget.id}');})(event)" title="Email widget data">📧</button>` : ''}
                     ${hasPrintableData ? `<button class="widget-action-btn widget-sms-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();smsWidget('${widget.id}');})(event)" title="Send widget data via SMS">💬</button>` : ''}
@@ -2167,7 +2175,7 @@ function formatValueForPrint(value, depth = 0) {
     return escapeHtml(String(value));
 }
 
-// Toggle widget size between default (medium) and expanded (large)
+// Toggle widget size (small -> medium -> large -> extra-large -> small)
 function toggleWidgetSize(widgetId) {
     console.log('🔧 toggleWidgetSize called with widgetId:', widgetId);
     try {
@@ -2180,11 +2188,21 @@ function toggleWidgetSize(widgetId) {
         
         console.log('✅ Widget found:', widget);
         
-        // Default size is 'medium', expanded size is 'large'
-        const currentSize = widget.size || 'medium';
-        const nextSize = currentSize === 'large' ? 'medium' : 'large';
+        const sizes = ['small', 'medium', 'large', 'extra-large'];
+        // Handle both string sizes and old object format ({ width, height })
+        let currentSize = widget.size || 'medium';
+        console.log('🔍 Raw widget.size:', widget.size, 'Type:', typeof widget.size);
+        if (typeof currentSize !== 'string' || !sizes.includes(currentSize)) {
+            // Normalize invalid sizes (objects, invalid strings) to 'medium'
+            console.log('⚠️ Normalizing invalid size to medium');
+            currentSize = 'medium';
+            widget.size = 'medium';
+        }
+        const currentIndex = sizes.indexOf(currentSize);
+        const nextIndex = (currentIndex + 1) % sizes.length;
+        const nextSize = sizes[nextIndex];
         
-        console.log(`📏 Current size: ${currentSize}, Next size: ${nextSize}`);
+        console.log(`📏 Current size: ${currentSize}, Current index: ${currentIndex}, Next index: ${nextIndex}, Next size: ${nextSize}`);
         
         // Update widget size
         widget.size = nextSize;
@@ -2205,8 +2223,10 @@ function toggleWidgetSize(widgetId) {
             
             // Map sizes to grid column spans
             const sizeToSpan = {
+                'small': 3,
                 'medium': 6,
-                'large': 9
+                'large': 9,
+                'extra-large': 12
             };
             const spanValue = sizeToSpan[nextSize];
             
@@ -2226,8 +2246,10 @@ function toggleWidgetSize(widgetId) {
         
         // Show feedback
         const sizeLabels = {
-            'medium': 'Default size (2 columns)',
-            'large': 'Expanded size (3 columns)'
+            'small': 'Small (1 column)',
+            'medium': 'Medium (2 columns)',
+            'large': 'Large (3 columns)',
+            'extra-large': 'Extra Large (4 columns)'
         };
         console.log(`✅ Widget resized to: ${sizeLabels[nextSize]}`);
         
