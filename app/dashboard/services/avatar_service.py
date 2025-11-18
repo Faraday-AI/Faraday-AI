@@ -131,13 +131,55 @@ class AvatarService:
         voice_preferences: Optional[Dict] = None
     ) -> Dict:
         """Update user-specific avatar preferences for a tool."""
+        # Convert user_id to int if it's a string
+        try:
+            user_id_int = int(user_id) if isinstance(user_id, str) else user_id
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail=f"Invalid user_id: {user_id}")
+        
+        # Look up tool by ID or name
+        tool = None
+        try:
+            # Try to parse as integer first
+            tool_id_int = int(tool_id)
+            tool = self.db.query(Tool).filter(Tool.id == tool_id_int).first()
+        except (ValueError, TypeError):
+            # If not an integer, try to find by name
+            tool = self.db.query(Tool).filter(Tool.name == tool_id).first()
+            if not tool:
+                # Special case: "ai-assistant" - create or find a default tool
+                if tool_id.lower() == "ai-assistant":
+                    tool = self.db.query(Tool).filter(
+                        Tool.name.ilike("%ai%assistant%") | Tool.name.ilike("%assistant%")
+                    ).first()
+                    if not tool:
+                        # Create a default tool entry if it doesn't exist
+                        tool = Tool(
+                            name="AI Assistant",
+                            description="AI Assistant Tool",
+                            category="ai",
+                            is_active=True
+                        )
+                        self.db.add(tool)
+                        self.db.commit()
+                        self.db.refresh(tool)
+        
+        if not tool:
+            raise HTTPException(status_code=404, detail=f"Tool not found: {tool_id}")
+        
+        # Get or create UserTool record
         user_tool = self.db.query(UserTool).filter(
-            UserTool.user_id == user_id,
-            UserTool.tool_id == tool_id
+            UserTool.user_id == user_id_int,
+            UserTool.tool_id == tool.id
         ).first()
 
         if not user_tool:
-            raise HTTPException(status_code=404, detail="User tool settings not found")
+            # Create UserTool record if it doesn't exist
+            user_tool = UserTool(
+                user_id=user_id_int,
+                tool_id=tool.id
+            )
+            self.db.add(user_tool)
 
         if avatar_customization is not None:
             self._validate_avatar_customization(avatar_customization)
