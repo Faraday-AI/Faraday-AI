@@ -97,12 +97,6 @@
                             </div>
                         </div>
                         <div class="chat-controls">
-                            <button class="control-btn" id="voiceToggle" aria-label="Toggle voice input">
-                                <span class="icon">🎤</span>
-                            </button>
-                            <button class="control-btn" id="clearChat" aria-label="Clear chat">
-                                <span class="icon">🗑️</span>
-                            </button>
                             <button class="control-btn" id="logViewerBtn" aria-label="View logs" title="View application logs">
                                 <span class="icon">📋</span>
                             </button>
@@ -158,10 +152,26 @@
                     </div>
                     <div class="chat-input-container">
                         <div class="input-wrapper">
+                            <div class="input-buttons-left">
+                                <button class="input-btn" id="voiceToggle" aria-label="Toggle voice input" title="Voice input">
+                                    <span class="icon">🎤</span>
+                                </button>
+                                <button class="input-btn" id="fileUploadBtn" aria-label="Upload file" title="Upload file">
+                                    <span class="icon">📎</span>
+                                    <input type="file" id="fileInput" style="display: none;" multiple>
+                                </button>
+                                <button class="input-btn" id="photoUploadBtn" aria-label="Upload photo" title="Upload photo">
+                                    <span class="icon">📷</span>
+                                    <input type="file" id="photoInput" style="display: none;" accept="image/*" multiple>
+                                </button>
+                                <button class="input-btn" id="clearChat" aria-label="Clear chat" title="Clear chat">
+                                    <span class="icon">🗑️</span>
+                                </button>
+                            </div>
                             <textarea 
                                 id="chatInput" 
                                 class="chat-input" 
-                                placeholder="Type your message or click the microphone to speak..."
+                                placeholder="Type your message..."
                                 rows="1"
                             ></textarea>
                             <button class="send-btn" id="sendBtn" aria-label="Send message">

@@ -426,11 +426,16 @@ def get_db() -> Generator[Session, None, None]:
             yield test_session
             return
         else:
-            # Test session not set - this shouldn't happen in test mode
-            # Log a warning but create a new session to prevent errors
+            # Test session not set - check if we're actually running tests
+            # Only warn if pytest is running (actual test environment)
+            # In production, TEST_MODE might be set but we're not in tests, so this is expected
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning("get_db() called in test mode but test session not set - creating new session")
+            is_pytest_running = os.getenv("PYTEST_CURRENT_TEST") is not None or "pytest" in os.getenv("_", "").lower()
+            if is_pytest_running:
+                # Only warn if we're actually in a test (pytest is running)
+                logger.warning("get_db() called in test mode but test session not set - creating new session")
+            # Otherwise, silently fall through to normal operation (production with TEST_MODE set)
     
     # Normal operation: create a new session
     db = SessionLocal()

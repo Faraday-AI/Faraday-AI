@@ -525,6 +525,22 @@ function setupEventListeners() {
     // Clear chat
     document.getElementById('clearChat').addEventListener('click', clearChat);
     
+    // File upload
+    const fileUploadBtn = document.getElementById('fileUploadBtn');
+    const fileInput = document.getElementById('fileInput');
+    if (fileUploadBtn && fileInput) {
+        fileUploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileUpload);
+    }
+    
+    // Photo upload
+    const photoUploadBtn = document.getElementById('photoUploadBtn');
+    const photoInput = document.getElementById('photoInput');
+    if (photoUploadBtn && photoInput) {
+        photoUploadBtn.addEventListener('click', () => photoInput.click());
+        photoInput.addEventListener('change', handlePhotoUpload);
+    }
+    
     // Settings
     document.getElementById('settingsBtn').addEventListener('click', openSettings);
     document.getElementById('closeSettingsModal').addEventListener('click', closeSettings);
@@ -1043,6 +1059,62 @@ function exportLogs() {
     URL.revokeObjectURL(url);
 }
 
+// Handle file upload
+function handleFileUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    const chatInput = document.getElementById('chatInput');
+    const fileNames = Array.from(files).map(file => file.name).join(', ');
+    
+    // Add file names to the input
+    if (chatInput.value.trim()) {
+        chatInput.value += `\n[Files: ${fileNames}]`;
+    } else {
+        chatInput.value = `[Files: ${fileNames}]`;
+    }
+    
+    // Auto-resize textarea
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    
+    // Store files for sending with message
+    chatInput._attachedFiles = files;
+    
+    // Reset input to allow selecting same file again
+    event.target.value = '';
+    
+    console.log('📎 Files selected:', fileNames);
+}
+
+// Handle photo upload
+function handlePhotoUpload(event) {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    
+    const chatInput = document.getElementById('chatInput');
+    const photoNames = Array.from(files).map(file => file.name).join(', ');
+    
+    // Add photo names to the input
+    if (chatInput.value.trim()) {
+        chatInput.value += `\n[Photos: ${photoNames}]`;
+    } else {
+        chatInput.value = `[Photos: ${photoNames}]`;
+    }
+    
+    // Auto-resize textarea
+    chatInput.style.height = 'auto';
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+    
+    // Store photos for sending with message
+    chatInput._attachedPhotos = files;
+    
+    // Reset input to allow selecting same file again
+    event.target.value = '';
+    
+    console.log('📷 Photos selected:', photoNames);
+}
+
 // Send message
 async function sendMessage() {
     const chatInput = document.getElementById('chatInput');
@@ -1454,8 +1526,16 @@ function addMessageToChat(role, content, autoSpeak = false, widgetData = null) {
                     // If autoplay is blocked, that's okay - user can click the button
                     if (error.name === 'NotAllowedError' || error.name === 'NotSupportedError') {
                         console.log('ℹ️ Autoplay blocked (expected on some browsers). User can click speaker button.');
-                    } else if (error.message && (error.message.includes('Load failed') || error.message.includes('network') || error.message.includes('fetch'))) {
-                        console.warn('⚠️ Network error during autoplay - connection may have been lost. User can click speaker button to retry.');
+                    } else if (error.message && (
+                        error.message.includes('Load failed') || 
+                        error.message.includes('network') || 
+                        error.message.includes('fetch') ||
+                        error.message.includes('502') ||
+                        error.message.includes('503') ||
+                        error.message.includes('504') ||
+                        error.message.includes('TTS request failed: 5')
+                    )) {
+                        console.warn('⚠️ Network/server error during autoplay (retries exhausted). User can click speaker button to retry.');
                     } else {
                         console.error('Error in auto-speak:', error);
                     }
@@ -5714,67 +5794,116 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
         
         // Use Azure TTS synthesize endpoint
         // If we have a voice_id, use the voice-sample endpoint which maps to the correct Azure voice
-        let response;
-        if (selectedVoiceId) {
-            // Use voice-sample endpoint which handles voice_id mapping
-            // Pass user's saved preferences to override database settings
-            // For autoplay, use shorter text to speed up fetch (preserve user interaction context)
-            // Use first 1000 chars for autoplay to make fetch very fast, full 10000 for manual playback or opening prompt
-            // Exception: if useFullText is true (e.g., for opening prompt or lesson plans), use more text (up to 5000 chars for autoplay, 10000 for manual)
-            const isAutoplay = autoplay === true;
-            // For autoplay: 1000 chars (fast), 5000 chars if useFullText (for lesson plans), 10000 for manual playback
-            const maxTextLength = (isAutoplay && !useFullText) ? 1000 : (isAutoplay && useFullText) ? 5000 : 10000;
-            const params = new URLSearchParams({
-                voice_id: selectedVoiceId,
-                text: text.substring(0, maxTextLength), // Shorter text for faster autoplay
-                rate: voiceSpeed.toString(), // User's saved speed preference
-                pitch: ((voicePitch - 1) * 50).toString() // Convert percentage to semitones (-50 to +50)
-            });
-            response = await fetch(`${API_BASE_URL}/text-to-speech/voice-sample?${params.toString()}`, {
-                method: 'POST',
-                headers: headers
-            });
-        } else {
-            // For autoplay, use shorter text to speed up fetch
-            // Exception: if useFullText is true (e.g., for opening prompt or lesson plans), use more text (up to 5000 chars for autoplay, 10000 for manual)
-            const isAutoplay = autoplay === true;
-            // For autoplay: 1000 chars (fast), 5000 chars if useFullText (for lesson plans), 10000 for manual playback
-            const maxTextLength = (isAutoplay && !useFullText) ? 1000 : (isAutoplay && useFullText) ? 5000 : 10000;
-            // Use synthesize endpoint with direct parameters
-            const params = new URLSearchParams({
-                text: text.substring(0, maxTextLength), // Shorter text for faster autoplay
-                rate: voiceSpeed.toString(),
-                pitch: ((voicePitch - 1) * 50).toString(), // Convert to semitones (-50 to +50)
-                language: voiceLanguage
-            });
-            response = await fetch(`${API_BASE_URL}/text-to-speech/synthesize?${params.toString()}`, {
-                method: 'POST',
-                headers: headers
-            });
-        }
+        // Add retry logic for 5xx errors (502, 503, 504, etc.) which are often temporary
+        const maxRetries = 2; // Retry up to 2 times (3 total attempts)
+        let lastError = null;
+        let response = null;
         
-        if (!response.ok) {
-            // Try to get error details from response
-            // CRITICAL: Clone the response before reading body to avoid "Body is disturbed or locked" error
-            let errorDetail = `TTS request failed: ${response.status}`;
+        for (let attempt = 0; attempt <= maxRetries; attempt++) {
             try {
-                // Clone response to read body without locking it
-                const clonedResponse = response.clone();
-                const errorData = await clonedResponse.json();
-                errorDetail = errorData.detail || errorData.message || errorDetail;
-                console.error('❌ TTS Error Response:', errorData);
-            } catch (e) {
-                // If JSON parsing fails, try text (but only if we haven't already read the body)
-                try {
-                    const errorText = await response.text();
-                    console.error('❌ TTS Error Response (text):', errorText);
-                    errorDetail = errorText || errorDetail;
-                } catch (textError) {
-                    // Body already read or other error
-                    console.error('❌ TTS Error (could not read response body):', textError);
+                if (selectedVoiceId) {
+                    // Use voice-sample endpoint which handles voice_id mapping
+                    // Pass user's saved preferences to override database settings
+                    // For autoplay, use shorter text to speed up fetch (preserve user interaction context)
+                    // Use first 1000 chars for autoplay to make fetch very fast, full 10000 for manual playback or opening prompt
+                    // Exception: if useFullText is true (e.g., for opening prompt or lesson plans), use more text (up to 5000 chars for autoplay, 10000 for manual)
+                    const isAutoplay = autoplay === true;
+                    // For autoplay: 1000 chars (fast), 5000 chars if useFullText (for lesson plans), 10000 for manual playback
+                    const maxTextLength = (isAutoplay && !useFullText) ? 1000 : (isAutoplay && useFullText) ? 5000 : 10000;
+                    const params = new URLSearchParams({
+                        voice_id: selectedVoiceId,
+                        text: text.substring(0, maxTextLength), // Shorter text for faster autoplay
+                        rate: voiceSpeed.toString(), // User's saved speed preference
+                        pitch: ((voicePitch - 1) * 50).toString() // Convert percentage to semitones (-50 to +50)
+                    });
+                    response = await fetch(`${API_BASE_URL}/text-to-speech/voice-sample?${params.toString()}`, {
+                        method: 'POST',
+                        headers: headers
+                    });
+                } else {
+                    // For autoplay, use shorter text to speed up fetch
+                    // Exception: if useFullText is true (e.g., for opening prompt or lesson plans), use more text (up to 5000 chars for autoplay, 10000 for manual)
+                    const isAutoplay = autoplay === true;
+                    // For autoplay: 1000 chars (fast), 5000 chars if useFullText (for lesson plans), 10000 for manual playback
+                    const maxTextLength = (isAutoplay && !useFullText) ? 1000 : (isAutoplay && useFullText) ? 5000 : 10000;
+                    // Use synthesize endpoint with direct parameters
+                    const params = new URLSearchParams({
+                        text: text.substring(0, maxTextLength), // Shorter text for faster autoplay
+                        rate: voiceSpeed.toString(),
+                        pitch: ((voicePitch - 1) * 50).toString(), // Convert to semitones (-50 to +50)
+                        language: voiceLanguage
+                    });
+                    response = await fetch(`${API_BASE_URL}/text-to-speech/synthesize?${params.toString()}`, {
+                        method: 'POST',
+                        headers: headers
+                    });
+                }
+                
+                if (!response.ok) {
+                    // Check if it's a retryable error (5xx server errors)
+                    const isRetryable = response.status >= 500 && response.status < 600;
+                    
+                    // Try to get error details from response
+                    // CRITICAL: Clone the response before reading body to avoid "Body is disturbed or locked" error
+                    let errorDetail = `TTS request failed: ${response.status}`;
+                    try {
+                        // Clone response to read body without locking it
+                        const clonedResponse = response.clone();
+                        const errorData = await clonedResponse.json();
+                        errorDetail = errorData.detail || errorData.message || errorDetail;
+                        console.error('❌ TTS Error Response:', errorData);
+                    } catch (e) {
+                        // If JSON parsing fails, try text (but only if we haven't already read the body)
+                        try {
+                            const errorText = await response.text();
+                            console.error('❌ TTS Error Response (text):', errorText);
+                            errorDetail = errorText || errorDetail;
+                        } catch (textError) {
+                            // Body already read or other error
+                            console.error('❌ TTS Error (could not read response body):', textError);
+                        }
+                    }
+                    
+                    // If it's a retryable error and we have retries left, retry
+                    if (isRetryable && attempt < maxRetries) {
+                        const delay = (attempt + 1) * 500; // Exponential backoff: 500ms, 1000ms
+                        console.warn(`⚠️ TTS server error ${response.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        lastError = new Error(errorDetail);
+                        continue; // Retry the fetch
+                    } else {
+                        // Not retryable or out of retries - throw error
+                        throw new Error(errorDetail);
+                    }
+                } else {
+                    // Success - break out of retry loop
+                    break;
+                }
+            } catch (error) {
+                // Network errors or other fetch failures
+                const isNetworkError = error.message && (
+                    error.message.includes('fetch') || 
+                    error.message.includes('network') || 
+                    error.message.includes('Failed to fetch') ||
+                    error.name === 'TypeError'
+                );
+                
+                if (isNetworkError && attempt < maxRetries) {
+                    const delay = (attempt + 1) * 500; // Exponential backoff: 500ms, 1000ms
+                    console.warn(`⚠️ TTS network error, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})...`);
+                    lastError = error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    continue; // Retry the fetch
+                } else {
+                    // Not a network error or out of retries - throw error
+                    throw error;
                 }
             }
-            throw new Error(errorDetail);
+        }
+        
+        // If we exhausted all retries, throw the last error
+        if (!response || !response.ok) {
+            throw lastError || new Error('TTS request failed after retries');
         }
         
         // Get audio blob
@@ -6037,8 +6166,21 @@ async function playVoiceSample(voice) {
             headers['Authorization'] = `Bearer ${token}`;
         }
         
-        // Call backend Azure TTS endpoint
-        const response = await fetch(`/api/v1/text-to-speech/voice-sample?voice_id=${encodeURIComponent(voiceId)}`, {
+        // Use same default speed as autoplay voice (from user's saved preference)
+        // Convert frontend speed (1-100%) to backend rate (0.2-2.0, which is 20%-200% in Azure TTS)
+        // Simple linear mapping: 1% → 0.2 rate (20%), 100% → 2.0 rate (200%)
+        // Formula: rate = 0.2 + (speed_percent - 1) * 1.8 / 99
+        const speedPercent = parseFloat(localStorage.getItem('voice_speed') || '1');
+        // Clamp speed to valid range (1-100)
+        const clampedSpeed = Math.max(1, Math.min(100, speedPercent));
+        const voiceSpeed = 0.2 + (clampedSpeed - 1) * 1.8 / 99; // Map 1-100% to 0.2-2.0 rate (20%-200%)
+        
+        // Call backend Azure TTS endpoint with user's saved speed preference
+        const params = new URLSearchParams({
+            voice_id: voiceId,
+            rate: voiceSpeed.toString()
+        });
+        const response = await fetch(`/api/v1/text-to-speech/voice-sample?${params.toString()}`, {
             method: 'POST',
             headers: headers
         });

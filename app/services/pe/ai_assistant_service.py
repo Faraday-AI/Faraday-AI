@@ -235,6 +235,18 @@ class AIAssistantService:
             
             line_lower = line.lower()
             
+            # CRITICAL: Skip placeholder text and general advice that's not workout content
+            placeholder_patterns = [
+                "the same structure can be followed", "repeat similar meal structures",
+                "repeat for following days", "you can follow a similar pattern",
+                "different food options like", "similar options", "follow a similar structure",
+                "remember that portion control", "regular exercise and drinking",
+                "it's always a good idea to consult", "consult with a healthcare provider",
+                "it's always important to consult", "always a good idea to consult"
+            ]
+            if any(pattern in line_lower for pattern in placeholder_patterns):
+                continue
+            
             # Detect section headers (Strength Training, Cardio, etc.)
             # Format 1: **Strength Training:** or **Strength Training**
             strength_match = re.search(r'\*\*Strength\s+Training\s*:?\s*\*\*', line, re.IGNORECASE)
@@ -715,35 +727,61 @@ class AIAssistantService:
                 current_meal = None  # Reset current meal when starting new day
                 continue
             
+            # Skip placeholder text that indicates incomplete meal plans
+            if any(placeholder in line_lower for placeholder in [
+                "the same structure can be followed", "repeat similar meal structures",
+                "repeat for following days", "you can follow a similar pattern",
+                "different food options like", "similar options", "follow a similar structure"
+            ]):
+                # This is placeholder text - stop parsing meal plan data from this point
+                # But continue to look for workout plans
+                in_meal_section = False
+                current_meal = None
+                continue
+            
             # Detect meal sections (Breakfast, Lunch, Dinner, Snack, Dessert as Snack) - multiple formats
             # Format 1: **Breakfast:** or **Breakfast:** (Approx. 600 calories) or **Breakfast (400 Cal):**
-            meal_match = re.search(r'\*\*(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*(?:\([^)]*\))?\s*:?\s*\*\*', line, re.IGNORECASE)
+            meal_match = re.search(r'\*\*(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Morning\s+Snack|Afternoon\s+Snack)\s*(?:\([^)]*\))?\s*:?\s*\*\*', line, re.IGNORECASE)
             # Format 1b: **Breakfast:** followed by text (e.g., "**Breakfast:** (Approx. 600 calories)")
             if not meal_match:
-                meal_match = re.search(r'\*\*(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*:?\s*\*\*\s*\(', line, re.IGNORECASE)
+                meal_match = re.search(r'\*\*(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Morning\s+Snack|Afternoon\s+Snack)\s*:?\s*\*\*\s*\(', line, re.IGNORECASE)
             # Format 2: Breakfast: or Breakfast (400 Cal) or Breakfast (400 Cal): (without bold)
             if not meal_match:
-                meal_match = re.search(r'^(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*(?:\([^)]*\))?\s*:?\s*$', line, re.IGNORECASE)
+                meal_match = re.search(r'^(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Morning\s+Snack|Afternoon\s+Snack)\s*(?:\([^)]*\))?\s*:?\s*$', line, re.IGNORECASE)
             # Format 3: *Breakfast* or *Breakfast (400 Cal):* (single asterisk)
             if not meal_match:
-                meal_match = re.search(r'^\*(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*(?:\([^)]*\))?\s*:?\s*\*', line, re.IGNORECASE)
+                meal_match = re.search(r'^\*(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Morning\s+Snack|Afternoon\s+Snack)\s*(?:\([^)]*\))?\s*:?\s*\*', line, re.IGNORECASE)
             # Format 4: - Breakfast: ... or • Breakfast: ... (bullet point with meal name)
             if not meal_match:
-                meal_match = re.search(r'^[-•]\s+(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*:\s*(.+)$', line, re.IGNORECASE)
+                meal_match = re.search(r'^[-•]\s+(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Morning\s+Snack|Afternoon\s+Snack)\s*:\s*(.+)$', line, re.IGNORECASE)
+            # Format 5: 1. Breakfast: ... or 2. Morning Snack: ... (numbered format)
+            if not meal_match:
+                meal_match = re.search(r'^\d+\.\s+(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Morning\s+Snack|Afternoon\s+Snack)\s*:\s*(.+)$', line, re.IGNORECASE)
             
             if meal_match:
                 meal_type = meal_match.group(1).strip()
-                # Normalize "Dessert" to "Snack" (it's the evening snack)
+                # Normalize snack names
                 if meal_type.lower() == "dessert":
-                    meal_type = "Snack"
+                    meal_type = "Evening Snack"
+                elif meal_type.lower() == "morning snack":
+                    meal_type = "Mid-Morning Snack"
+                elif meal_type.lower() in ["snack", "snacks"] and current_meal and current_meal.get("meal") == "Lunch":
+                    # If we just had lunch, this is likely afternoon snack
+                    meal_type = "Afternoon Snack"
+                elif meal_type.lower() in ["snack", "snacks"] and current_meal and current_meal.get("meal") == "Breakfast":
+                    # If we just had breakfast, this is likely mid-morning snack
+                    meal_type = "Mid-Morning Snack"
+                elif meal_type.lower() in ["snack", "snacks"] and current_meal and current_meal.get("meal") == "Dinner":
+                    # If we just had dinner, this is likely evening snack
+                    meal_type = "Evening Snack"
                 # Extract calories if present (e.g., "Breakfast (400-500 Cal)")
                 cal_match = re.search(r'\(([^)]*cal[^)]*)\)', line, re.IGNORECASE)
                 calories = cal_match.group(1).strip() if cal_match else ""
                 
-                # Check if Format 4 (bullet point with food on same line)
+                # Check if Format 4 or Format 5 (bullet/numbered point with food on same line)
                 food_items_on_line = None
                 if len(meal_match.groups()) > 1 and meal_match.group(2):
-                    # Format 4: meal and food items are on the same line
+                    # Format 4/5: meal and food items are on the same line
                     food_items_on_line = meal_match.group(2).strip()
                 
                 # Save previous meal
