@@ -15,6 +15,19 @@
     --transition: all 0.3s ease;
 }
 
+/* Light Theme */
+body.light-theme {
+    --background-color: #ffffff;
+    --card-background: #f5f5f5;
+    --card-hover: #e8e8e8;
+    --text-color: #000000;
+    --text-light: #4a4a4a;
+    --border-color: rgba(0, 0, 0, 0.1);
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.15);
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -63,6 +76,11 @@ body {
     margin: 0;
 }
 
+/* Light Theme - Blue text for logo */
+body.light-theme .logo {
+    color: #3498db; /* Blue instead of yellow */
+}
+
 .main-nav {
     display: flex;
     gap: 1.5rem;
@@ -95,6 +113,33 @@ body {
 .user-name {
     color: var(--text-light);
     font-weight: 500;
+}
+
+.theme-toggle-btn {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+}
+
+.theme-toggle-btn:hover {
+    background-color: var(--card-hover);
+    border-color: var(--primary-color);
+    transform: scale(1.05);
+}
+
+.theme-icon {
+    display: inline-block;
+    transition: transform 0.3s ease;
 }
 
 .logout-btn {
@@ -359,6 +404,71 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* Animated avatar styles */
+.ai-avatar.animated {
+    animation: avatarFloat 3s ease-in-out infinite;
+}
+
+.ai-avatar.animated .avatar-face {
+    animation: avatarPulse 2s ease-in-out infinite;
+}
+
+/* 3D avatar styles */
+.ai-avatar.three-d {
+    animation: avatarRotate 4s ease-in-out infinite;
+    transform-style: preserve-3d;
+}
+
+.ai-avatar.three-d .avatar-face {
+    animation: avatarGlow 2.5s ease-in-out infinite;
+}
+
+/* Keyframe animations */
+@keyframes avatarFloat {
+    0%, 100% {
+        transform: translateY(0px) scale(var(--avatar-scale, 1));
+    }
+    50% {
+        transform: translateY(-8px) scale(calc(var(--avatar-scale, 1) * 1.05));
+    }
+}
+
+@keyframes avatarPulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+@keyframes avatarRotate {
+    0%, 100% {
+        transform: rotateY(0deg) translateY(0px) scale(var(--avatar-scale, 1));
+    }
+    25% {
+        transform: rotateY(5deg) translateY(-5px) scale(var(--avatar-scale, 1));
+    }
+    50% {
+        transform: rotateY(0deg) translateY(-8px) scale(calc(var(--avatar-scale, 1) * 1.05));
+    }
+    75% {
+        transform: rotateY(-5deg) translateY(-5px) scale(var(--avatar-scale, 1));
+    }
+}
+
+@keyframes avatarGlow {
+    0%, 100% {
+        filter: brightness(1) drop-shadow(0 0 5px rgba(74, 144, 226, 0.5));
+    }
+    50% {
+        filter: brightness(1.2) drop-shadow(0 0 15px rgba(74, 144, 226, 0.8));
+    }
 }
 
 .avatar-status {
@@ -474,7 +584,42 @@ body {
 
 .user-message .message-content {
     background-color: rgba(41, 128, 185, 0.2);
+}
+
+.message-speaker-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    transition: var(--transition);
+    padding: 0;
+}
+
+.message-speaker-btn:hover {
+    background-color: rgba(74, 144, 226, 0.2);
     border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.message-speaker-btn.playing {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    animation: pulse 1.5s infinite;
+}
+
+.message-speaker-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .message-content p {
@@ -583,6 +728,11 @@ body {
     color: var(--secondary-color);
 }
 
+/* Light Theme - Blue text for dashboard header */
+body.light-theme .widgets-header h2 {
+    color: #3498db; /* Blue instead of yellow */
+}
+
 .widget-controls {
     display: flex;
     gap: 1rem;
@@ -621,7 +771,10 @@ body {
 .widgets-grid {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
+    grid-auto-rows: 200px; /* Fixed row height - each row is exactly 200px */
     gap: 1.5rem;
+    align-items: start; /* Prevent widgets in same row from stretching to match tallest */
+    align-content: start; /* Align grid content to start, preventing extra space */
 }
 
 .widget-placeholder {
@@ -654,6 +807,10 @@ body {
     transition: var(--transition);
     box-shadow: var(--shadow-sm);
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-self: start; /* Prevent stretching to match tallest widget in row */
+    overflow: hidden; /* Prevent content from overflowing */
 }
 
 .widget-card:hover {
@@ -664,45 +821,70 @@ body {
 /* Widget Size Classes */
 .widget-card.widget-size-small {
     grid-column: span 3 !important; /* 1 column (3/12) */
+    grid-row: span 1 !important; /* 1 row */
+    height: 100%; /* Fill exactly 1 row (200px) */
 }
 
 .widget-card.widget-size-medium {
     grid-column: span 6 !important; /* 2 columns (6/12) */
+    grid-row: span 2 !important; /* 2 rows */
+    height: 100%; /* Fill exactly 2 rows (400px = 200px * 2) */
 }
 
 .widget-card.widget-size-large {
     grid-column: span 9 !important; /* 3 columns (9/12) */
+    grid-row: span 3 !important; /* 3 rows */
+    height: 100%; /* Fill exactly 3 rows (600px = 200px * 3) */
 }
 
 .widget-card.widget-size-extra-large {
     grid-column: span 12 !important; /* 4 columns (12/12) */
+    grid-row: span 4 !important; /* 4 rows */
+    height: 100%; /* Fill exactly 4 rows (800px = 200px * 4) */
 }
 
 /* Responsive widget sizing */
 @media (max-width: 1200px) {
     .widget-card.widget-size-small {
         grid-column: span 4 !important; /* 1 column on medium screens */
+        grid-row: span 1 !important; /* 1 row */
     }
     
     .widget-card.widget-size-medium {
         grid-column: span 8 !important; /* 2 columns on medium screens */
+        grid-row: span 2 !important; /* 2 rows */
     }
     
     .widget-card.widget-size-large {
         grid-column: span 12 !important; /* Full width on medium screens */
+        grid-row: span 3 !important; /* 3 rows */
     }
     
     .widget-card.widget-size-extra-large {
         grid-column: span 12 !important; /* Full width on medium screens */
+        grid-row: span 4 !important; /* 4 rows */
     }
 }
 
 @media (max-width: 768px) {
-    .widget-card.widget-size-small,
-    .widget-card.widget-size-medium,
-    .widget-card.widget-size-large,
+    .widget-card.widget-size-small {
+        grid-column: span 12 !important; /* All widgets full width on mobile */
+        grid-row: span 1 !important; /* 1 row */
+    }
+    
+    .widget-card.widget-size-medium {
+        grid-column: span 12 !important; /* All widgets full width on mobile */
+        grid-row: span 2 !important; /* 2 rows */
+    }
+    
+    .widget-card.widget-size-large {
+        grid-column: span 12 !important; /* All widgets full width on mobile */
+        grid-row: span 3 !important; /* 3 rows */
+    }
+    
     .widget-card.widget-size-extra-large {
         grid-column: span 12 !important; /* All widgets full width on mobile */
+        grid-row: span 4 !important; /* 4 rows */
     }
 }
 
@@ -713,6 +895,7 @@ body {
     margin-bottom: 1rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0; /* Prevent header from shrinking */
 }
 
 .widget-card-title {
@@ -779,6 +962,11 @@ body {
 
 .widget-card-content {
     color: var(--text-light);
+    flex: 1; /* Expand to fill available vertical space */
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto; /* Allow scrolling if content exceeds available space */
+    min-height: 0; /* Important for flex children to allow shrinking */
 }
 
 .widget-instructions {
@@ -856,8 +1044,9 @@ body {
     border-radius: var(--border-radius);
     font-family: 'Courier New', monospace;
     font-size: 0.85rem;
-    max-height: 300px;
-    overflow-y: auto;
+    flex: 1; /* Expand to fill available space in widget-card-content */
+    min-height: 0; /* Important for flex children to allow shrinking */
+    overflow-y: auto; /* Allow scrolling if content exceeds available space */
 }
 
 /* Modal */
@@ -1073,26 +1262,74 @@ body {
 #selectedVoice[size] {
     display: block !important;
     visibility: visible !important;
-    min-height: 200px;
-    max-height: 300px;
-    overflow-y: auto;
-    overflow-x: hidden;
+    min-height: 200px !important;
+    max-height: 300px !important;
+    height: 200px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    padding: 0.5rem !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--border-radius) !important;
+    background: var(--bg-secondary) !important;
+    color: var(--text-color) !important;
+    font-size: 0.9rem !important;
+    font-family: inherit !important;
+    -webkit-appearance: listbox !important;
+    -moz-appearance: listbox !important;
+    appearance: listbox !important;
+    cursor: default !important;
 }
 
 #selectedVoice[size] option {
-    padding: 0.5rem;
-    background: var(--bg-secondary);
-    color: var(--text-color);
-    border-bottom: 1px solid var(--border-color);
+    display: block !important;
+    padding: 0.75rem 0.5rem !important;
+    background: var(--bg-secondary) !important;
+    color: var(--text-color) !important;
+    border-bottom: 1px solid var(--border-color) !important;
+    font-size: 0.9rem !important;
+    line-height: 1.4 !important;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    min-height: 2rem !important;
 }
 
-#selectedVoice[size] option:hover {
-    background: var(--card-hover);
+#selectedVoice[size] option:hover,
+#selectedVoice[size] option:focus {
+    background: var(--card-hover) !important;
+    color: var(--text-color) !important;
 }
 
-#selectedVoice[size] option:checked {
-    background: var(--primary-color);
-    color: #ffffff;
+#selectedVoice[size] option:checked,
+#selectedVoice[size] option:selected {
+    background: var(--primary-color) !important;
+    color: #ffffff !important;
+    font-weight: 500 !important;
+}
+
+/* Custom scrollbar for voice select */
+#selectedVoice[size]::-webkit-scrollbar {
+    width: 10px !important;
+}
+
+#selectedVoice[size]::-webkit-scrollbar-track {
+    background: var(--bg-secondary) !important;
+    border-radius: 5px !important;
+}
+
+#selectedVoice[size]::-webkit-scrollbar-thumb {
+    background: var(--border-color) !important;
+    border-radius: 5px !important;
+}
+
+#selectedVoice[size]::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color) !important;
+}
+
+/* Ensure voice select slider thumbs are hidden (prevent range slider styling) */
+#selectedVoice[size]::-webkit-slider-thumb,
+#selectedVoice[size]::-moz-range-thumb {
+    display: none !important;
 }
 
 .setting-item select:hover {
@@ -1197,6 +1434,7 @@ body {
     border-radius: var(--border-radius, 8px);
     cursor: move;
     transition: var(--transition, all 0.3s ease);
+    -webkit-user-select: none;
     user-select: none;
     width: 100%;
     box-sizing: border-box;
@@ -1223,6 +1461,7 @@ body {
     font-size: 1.5rem;
     color: var(--text-light, #999) !important;
     cursor: grab;
+    -webkit-user-select: none;
     user-select: none;
     display: flex;
     align-items: center;
@@ -1389,8 +1628,11 @@ body {
     }
 
     .widgets-sidebar.collapsed {
-        width: 100%;
-        max-height: 0;
+        width: 0 !important;
+        min-width: 0 !important;
+        max-width: 0 !important;
+        overflow: hidden;
+        border-right: none;
     }
 
     .chat-section {
@@ -1605,5 +1847,349 @@ body {
         height: 60vh;
         border-radius: 0;
     }
+}
+
+/* Lesson Plan Widget Styles */
+.lesson-plan {
+    padding: 1rem;
+}
+
+/* Preview/Teaser styling for guest users - Generic for all widget types */
+.widget-preview {
+    position: relative;
+}
+
+.widget-preview-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.lesson-plan-preview {
+    position: relative;
+}
+
+.workout-plan-preview {
+    position: relative;
+}
+
+.preview-banner-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.preview-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: fit-content;
+}
+
+.preview-message {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.preview-message strong {
+    font-weight: 600;
+}
+
+/* Preview content styling - applies to all preview widgets */
+.lesson-plan-preview .lesson-section,
+.workout-plan-preview .workout-exercise {
+    opacity: 0.7;
+    position: relative;
+}
+
+.lesson-plan-preview .lesson-section::after,
+.workout-plan-preview::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: repeating-linear-gradient(
+        45deg,
+        transparent,
+        transparent 10px,
+        rgba(0, 0, 0, 0.03) 10px,
+        rgba(0, 0, 0, 0.03) 20px
+    );
+    pointer-events: none;
+    border-radius: var(--border-radius);
+}
+
+.lesson-plan-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--primary-color);
+}
+
+.lesson-plan-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.lesson-subject,
+.lesson-grade {
+    font-size: 0.875rem;
+    color: var(--text-light);
+    padding: 0.25rem 0.5rem;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+}
+
+.lesson-section {
+    margin-bottom: 1.25rem;
+}
+
+.lesson-section h5 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.lesson-section p {
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+/* Worksheet-specific styling */
+.worksheet-section {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.worksheet-content {
+    color: var(--text-color);
+    line-height: 1.8;
+    white-space: pre-wrap; /* Preserve whitespace and line breaks */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.worksheet-content p {
+    margin: 0.75rem 0;
+    color: var(--text-color);
+}
+
+.worksheet-content strong,
+.worksheet-content b {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Rubric-specific styling */
+.rubric-section {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.rubric-content {
+    color: var(--text-color);
+    line-height: 1.8;
+    white-space: pre-wrap; /* Preserve whitespace and line breaks */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+.rubric-content p {
+    margin: 0.75rem 0;
+    color: var(--text-color);
+}
+
+.rubric-item {
+    margin: 0.5rem 0;
+    padding-left: 1rem;
+    border-left: 3px solid var(--primary-color);
+    background-color: rgba(74, 144, 226, 0.05);
+    padding: 0.75rem;
+    border-radius: 4px;
+}
+
+.rubric-content strong,
+.rubric-content b {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.lesson-objectives,
+.lesson-activities,
+.lesson-materials {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 0.5rem;
+}
+
+.lesson-objectives li,
+.lesson-activities li,
+.lesson-materials li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    color: var(--text-light);
+    line-height: 1.6;
+}
+
+.lesson-objectives li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+.lesson-activities li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--secondary-color);
+    font-size: 1.2rem;
+}
+
+.lesson-materials li::before {
+    content: "📋";
+    position: absolute;
+    left: 0;
+}
+
+/* Workout Plan Widget Styles */
+.workout-plan {
+    padding: 1rem;
+}
+
+.workout-plan-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--primary-color);
+}
+
+.workout-exercises {
+    list-style: none;
+    padding-left: 0;
+}
+
+.workout-section {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.workout-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.workout-exercise {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+    background-color: var(--card-background);
+    border-radius: var(--border-radius);
+    border-left: 3px solid var(--primary-color);
+}
+
+.exercise-name {
+    display: block;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.exercise-sets-reps {
+    display: inline-block;
+    font-size: 0.875rem;
+    color: var(--secondary-color);
+    margin-left: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(255, 215, 0, 0.1);
+    border-radius: var(--border-radius);
+}
+
+.exercise-description {
+    margin-top: 0.5rem;
+    color: var(--text-light);
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.workout-description {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-light);
+    font-size: 0.875rem;
+}
+
+/* Health & Nutrition Widget - Day-by-Day Meal Plans */
+.health-day-plan {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.health-day-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--secondary-color);
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.health-meal-item {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0;
+    line-height: 1.6;
+}
+
+.health-meal-item strong {
+    color: var(--secondary-color);
+    font-weight: 600;
+}
+
+.meal-calories {
+    color: var(--text-light);
+    font-size: 0.9em;
+    font-weight: normal;
+}
+
+.health-meals {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+}
+
+.health-meals li:last-child {
+    margin-bottom: 0;
 }
 

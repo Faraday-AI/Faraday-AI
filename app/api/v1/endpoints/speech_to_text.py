@@ -88,19 +88,40 @@ async def speech_to_text(
         
         # Prepare audio file for Whisper API
         audio_file = io.BytesIO(audio_data)
-        audio_file.name = audio.filename or "audio.webm"
         
-        logger.info(f"Transcribing audio file: {len(audio_data)} bytes, filename: {audio_file.name}")
+        # Determine file extension from content type or filename
+        filename = audio.filename or "audio.webm"
+        content_type = audio.content_type or ""
+        
+        # Ensure proper file extension for Whisper
+        # Whisper supports: mp3, mp4, mpeg, mpga, m4a, wav, webm
+        if filename.endswith(('.webm', '.mp3', '.wav', '.m4a', '.mp4', '.mpeg', '.mpga')):
+            audio_file.name = filename
+        elif 'webm' in content_type.lower() or 'webm' in filename.lower():
+            audio_file.name = "audio.webm"
+        elif 'mp3' in content_type.lower() or 'mp3' in filename.lower():
+            audio_file.name = "audio.mp3"
+        elif 'wav' in content_type.lower() or 'wav' in filename.lower():
+            audio_file.name = "audio.wav"
+        else:
+            # Default to webm for Safari MediaRecorder
+            audio_file.name = "audio.webm"
+        
+        logger.info(f"Transcribing audio file: {len(audio_data)} bytes, filename: {audio_file.name}, content_type: {content_type}, original_filename: {filename}")
         
         # Transcribe using Whisper
         try:
-            logger.info(f"Calling Whisper API with file size: {len(audio_data)} bytes")
+            logger.info(f"Calling Whisper API with file size: {len(audio_data)} bytes, format: {audio_file.name}")
             transcript = client.audio.transcriptions.create(
                 model="whisper-1",
                 file=audio_file,
                 language=language
             )
-            logger.info(f"Whisper API success: {len(transcript.text)} characters transcribed")
+            transcribed_text = transcript.text if hasattr(transcript, 'text') else str(transcript)
+            logger.info(f"Whisper API success: {len(transcribed_text)} characters transcribed: '{transcribed_text[:200]}...'")
+            
+            # Log first few bytes of audio for debugging
+            logger.debug(f"Audio file first 100 bytes (hex): {audio_data[:100].hex()}")
         except Exception as whisper_error:
             error_msg = str(whisper_error) if whisper_error else "Unknown error"
             error_type = type(whisper_error).__name__
@@ -127,8 +148,14 @@ async def speech_to_text(
                 detail=f"Whisper API error: {error_msg}"
             )
         
+        transcribed_text = transcript.text if hasattr(transcript, 'text') else str(transcript)
+        
+        # Log if transcription seems incomplete (very short for a longer recording)
+        if len(transcribed_text) < 10 and len(audio_data) > 10000:
+            logger.warning(f"⚠️ Transcription seems incomplete: only '{transcribed_text}' transcribed from {len(audio_data)} bytes of audio")
+        
         return JSONResponse({
-            "text": transcript.text,
+            "text": transcribed_text,
             "language": language,
             "status": "success"
         })

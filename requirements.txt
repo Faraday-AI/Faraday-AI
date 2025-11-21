@@ -23,6 +23,9 @@ semver==3.0.2
 google-cloud-texttospeech==2.14.1
 google-cloud-core==2.3.3
 
+# Azure Cognitive Services
+azure-cognitiveservices-speech==1.32.1
+
 # Database
 sqlalchemy==2.0.23
 alembic==1.12.1

@@ -68,7 +68,7 @@ def rate_limiter(limit: int, window: int):
             request = kwargs.get('request')
             if not request:
                 return await func(*args, **kwargs)
-            
+                
             # Skip rate limiting if Redis is not available
             if not redis_available or not redis_client:
                 return await func(*args, **kwargs)
@@ -97,12 +97,40 @@ def rate_limiter(limit: int, window: int):
         return wrapper
     return decorator
 
+# Known security scanner IPs - block immediately
+BLOCKED_IPS = {
+    "104.199.121.87",  # Security scanner from logs
+}
+
+# Suspicious path patterns that indicate scanning
+SUSPICIOUS_PATHS = [
+    "/blog", "/wordpress", "/wp", "/backup", "/old", "/new",
+    "/admin", "/phpmyadmin", "/.env", "/config", "/.git"
+]
+
 async def add_rate_limiting(request: Request, call_next):
-    """Middleware for rate limiting."""
+    """Middleware for rate limiting and security."""
     # Skip rate limiting in test mode to prevent event loop issues
     if get_test_mode():
         response = await call_next(request)
         return response
+    
+    client_ip = request.client.host
+    
+    # Block known security scanner IPs
+    if client_ip in BLOCKED_IPS:
+        logger.warning(f"Blocked request from known security scanner IP: {client_ip}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied"
+        )
+    
+    # Check for suspicious path patterns
+    path = request.url.path.lower()
+    if any(suspicious in path for suspicious in SUSPICIOUS_PATHS):
+        logger.warning(f"Suspicious path access attempt from {client_ip}: {path}")
+        # Log but don't block - might be legitimate in some cases
+        # Could add IP to watchlist here
     
     # Skip rate limiting if Redis is not available
     if not redis_available or not redis_client:
@@ -110,7 +138,6 @@ async def add_rate_limiting(request: Request, call_next):
         return response
     
     try:
-        client_ip = request.client.host
         key = f"rate_limit:{client_ip}"
         
         # Get current request count
@@ -120,6 +147,7 @@ async def add_rate_limiting(request: Request, call_next):
         else:
             current = int(current)
             if current >= RATE_LIMIT_REQUESTS:
+                logger.warning(f"Rate limit exceeded for IP: {client_ip}")
                 raise HTTPException(
                     status_code=status.HTTP_429_TOO_MANY_REQUESTS,
                     detail="Too many requests"

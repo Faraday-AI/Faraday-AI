@@ -2,17 +2,17 @@
 // Use global functions from auth.js
 // Check if showAuthForm is already defined (e.g., by index.html for embedded forms)
 if (typeof window.showAuthForm !== 'function') {
-    window.showAuthForm = function() {
+window.showAuthForm = function() {
         console.log('showAuthForm() called from services.js');
-        const authContainer = document.getElementById('auth-container');
-        if (!authContainer) {
-            // Create auth container if it doesn't exist
-            const container = document.createElement('div');
-            container.id = 'auth-container';
-            container.className = 'auth-container';
-            document.body.appendChild(container);
-        }
-        
+    const authContainer = document.getElementById('auth-container');
+    if (!authContainer) {
+        // Create auth container if it doesn't exist
+        const container = document.createElement('div');
+        container.id = 'auth-container';
+        container.className = 'auth-container';
+        document.body.appendChild(container);
+    }
+    
         // Check if form is already embedded (has .login-form inside)
         const hasEmbeddedForm = authContainer.querySelector('.login-form');
         
@@ -56,42 +56,42 @@ if (typeof window.showAuthForm !== 'function') {
             // Form not embedded, load it dynamically
             authContainer.style.setProperty('display', 'flex', 'important');
             authContainer.classList.add('active', 'show');
-            document.body.style.overflow = 'hidden';
-            
-            // Load auth form content
-            fetch('/static/auth-form.html')
-                .then(response => response.text())
-                .then(html => {
-                    authContainer.innerHTML = html;
-                    // Initialize the auth form
+    document.body.style.overflow = 'hidden';
+    
+    // Load auth form content
+    fetch('/static/auth-form.html')
+        .then(response => response.text())
+        .then(html => {
+            authContainer.innerHTML = html;
+            // Initialize the auth form
                     if (typeof window.initializeAuthForm === 'function') {
                         window.initializeAuthForm();
-                    }
-                    // Show login form by default
-                    const loginForm = document.querySelector('.login-form');
-                    const registerForm = document.querySelector('.register-form');
-                    const loginToggle = document.querySelector('.login-toggle');
-                    const registerToggle = document.querySelector('.register-toggle');
-                    
-                    if (loginForm && registerForm && loginToggle && registerToggle) {
-                        loginForm.classList.add('active');
-                        registerForm.classList.remove('active');
-                        loginToggle.classList.add('active');
-                        registerToggle.classList.remove('active');
-                    }
-                })
-                .catch(error => console.error('Error loading auth form:', error));
+            }
+            // Show login form by default
+            const loginForm = document.querySelector('.login-form');
+            const registerForm = document.querySelector('.register-form');
+            const loginToggle = document.querySelector('.login-toggle');
+            const registerToggle = document.querySelector('.register-toggle');
+            
+            if (loginForm && registerForm && loginToggle && registerToggle) {
+                loginForm.classList.add('active');
+                registerForm.classList.remove('active');
+                loginToggle.classList.add('active');
+                registerToggle.classList.remove('active');
+            }
+        })
+        .catch(error => console.error('Error loading auth form:', error));
         }
-    };
+};
 }
 
 // Check if closeAuthForm is already defined
 if (typeof window.closeAuthForm !== 'function') {
-    window.closeAuthForm = function() {
+window.closeAuthForm = function() {
         console.log('=== closeAuthForm() called from services.js ===');
         const authContainer = document.getElementById('auth-container') || document.querySelector('.auth-container');
         console.log('closeAuthForm - Container found:', !!authContainer);
-        if (authContainer) {
+    if (authContainer) {
             console.log('closeAuthForm - Current display:', window.getComputedStyle(authContainer).display);
             
             // Disconnect ALL observers if they exist
@@ -116,7 +116,7 @@ if (typeof window.closeAuthForm !== 'function') {
             console.log('closeAuthForm - Display set via setAttribute');
             
             // Restore body overflow
-            document.body.style.overflow = 'auto';
+        document.body.style.overflow = 'auto';
             console.log('closeAuthForm - Body overflow restored');
             
             // Verify it's hidden

@@ -4235,6 +4235,92 @@ def migrate_lesson_plans_to_beta(session: Session) -> None:
         print(f"❌ Error migrating lesson plans: {e}")
         raise
 
+def create_beta_avatars_with_dicebear(session: Session) -> None:
+    """Create beta avatars directly with DiceBear URLs if they don't exist."""
+    try:
+        # Check if beta_avatars already has data
+        result = session.execute(text("SELECT COUNT(*) FROM beta_avatars"))
+        if result.scalar() > 0:
+            print("  ✅ beta_avatars already has data, skipping creation")
+            return
+        
+        # DiceBear style mapping based on avatar type
+        style_map = {
+            'STATIC': 'avataaars',      # Professional, friendly avatars
+            'ANIMATED': 'lorelei',      # Animated-style avatars
+            'THREE_D': 'bottts'         # 3D robot-style avatars
+        }
+        
+        # Create 10 avatars with DiceBear URLs
+        avatar_types = [
+            {'type': 'STATIC'},
+            {'type': 'ANIMATED'},
+            {'type': 'THREE_D'},
+            {'type': 'STATIC'},
+            {'type': 'ANIMATED'},
+            {'type': 'THREE_D'},
+            {'type': 'STATIC'},
+            {'type': 'ANIMATED'},
+            {'type': 'THREE_D'},
+            {'type': 'STATIC'}
+        ]
+        
+        created_count = 0
+        for i, avatar_info in enumerate(avatar_types, 1):
+            # Generate DiceBear URL based on avatar type
+            avatar_type_upper = avatar_info['type'].upper()
+            style = style_map.get(avatar_type_upper, 'avataaars')
+            seed = f"faraday-beta-avatar-{i}"
+            # Using SVG format for crisp rendering at any size
+            dicebear_url = f"https://api.dicebear.com/7.x/{style}/svg?seed={seed}&size=200"
+            
+            # Insert into beta avatars table
+            session.execute(text("""
+                INSERT INTO beta_avatars (
+                    id, type, image_url, config, voice_enabled, voice_config,
+                    expression_config, gesture_config, created_at, updated_at
+                ) VALUES (
+                    :id, :type, :image_url, :config, :voice_enabled, :voice_config,
+                    :expression_config, :gesture_config, :created_at, :updated_at
+                ) ON CONFLICT (id) DO NOTHING
+            """), {
+                "id": str(uuid.uuid4()),
+                "type": avatar_type_upper,
+                "image_url": dicebear_url,
+                "config": json.dumps({
+                    'personality': random.choice(['friendly', 'energetic', 'calm', 'enthusiastic', 'professional', 'encouraging']),
+                    'specialties': random.choice(['sports', 'dance', 'fitness', 'education', 'wellness', 'leadership']),
+                    'accessibility': random.choice([True, False]),
+                    'interaction_style': random.choice(['formal', 'casual', 'playful', 'serious', 'motivational'])
+                }),
+                "voice_enabled": random.choice([True, False]),
+                "voice_config": json.dumps({
+                    'voice_type': random.choice(['male', 'female', 'neutral']),
+                    'speed': random.choice(['slow', 'normal', 'fast']),
+                    'pitch': random.uniform(0.8, 1.2),
+                    'language': random.choice(['en', 'es', 'fr'])
+                }) if random.choice([True, False]) else json.dumps({}),
+                "expression_config": json.dumps({
+                    'expressions': ['happy', 'encouraging', 'focused', 'celebratory'],
+                    'intensity': random.uniform(0.5, 1.0),
+                    'response_time': random.randint(100, 500)
+                }),
+                "gesture_config": json.dumps({
+                    'gestures': ['pointing', 'clapping', 'thumbs_up', 'wave'],
+                    'animation_speed': random.uniform(0.8, 1.2),
+                    'synchronization': random.choice([True, False])
+                }),
+                "created_at": datetime.utcnow() - timedelta(days=random.randint(0, 30)),
+                "updated_at": datetime.utcnow()
+            })
+            created_count += 1
+            print(f"  ✅ Created beta avatar {i} ({avatar_type_upper}) with DiceBear URL: {dicebear_url}")
+        
+        print(f"  ✅ Created {created_count} beta avatars with DiceBear URLs")
+        
+    except Exception as e:
+        print(f"  ⚠️  Error creating beta avatars: {e}")
+
 def migrate_avatars_to_beta(session: Session) -> None:
     """Migrate avatars from main system to beta"""
     try:
@@ -4262,6 +4348,10 @@ def migrate_avatars_to_beta(session: Session) -> None:
 
             if not avatars_result:
                 print("⚠️  No avatars found in main system")
+                # Create beta avatars directly with DiceBear URLs if main system has none
+                print("🔄 Creating beta avatars directly with DiceBear URLs...")
+                create_beta_avatars_with_dicebear(session)
+                session.flush()
                 print("✅ beta_avatars table is ready")
                 return
 

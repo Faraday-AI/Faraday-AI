@@ -8,6 +8,7 @@ from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
+import logging
 
 from app.core.database import get_db
 from app.core.auth import get_current_user
@@ -29,6 +30,65 @@ from app.schemas.user_profile import (
 )
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=UserProfileResponse)
+async def get_current_user_info(
+    current_user: User = Depends(get_current_user),
+    profile_service: UserProfileService = Depends(get_user_profile_service)
+):
+    """
+    Get current user information (alias for /profile).
+    This endpoint matches the frontend expectation of /api/v1/users/me
+    """
+    try:
+        # Get user profile if it exists
+        profile = await profile_service.get_user_profile(current_user.id)
+        if profile:
+            # Convert to response format
+            created_at = getattr(profile, 'created_at', current_user.created_at) or current_user.created_at
+            updated_at = getattr(profile, 'updated_at', current_user.updated_at) or current_user.updated_at
+            
+            return UserProfileResponse(
+                id=profile.id,
+                user_id=profile.user_id,
+                bio=getattr(profile, 'bio', None),
+                timezone=getattr(profile, 'timezone', 'UTC'),
+                language=getattr(profile, 'language', 'en'),
+                notification_preferences=getattr(profile, 'notification_preferences', None) or {},
+                custom_settings=getattr(profile, 'custom_settings', None) or {},
+                avatar_url=profile.custom_settings.get("avatar_url") if hasattr(profile, 'custom_settings') and profile.custom_settings else None,
+                created_at=created_at,
+                updated_at=updated_at
+            )
+        
+        # If no profile exists, return basic user info
+        return UserProfileResponse(
+            id=current_user.id,
+            user_id=current_user.id,
+            bio=None,
+            timezone='UTC',
+            language='en',
+            notification_preferences={},
+            custom_settings={},
+            created_at=current_user.created_at or datetime.utcnow(),
+            updated_at=current_user.updated_at or datetime.utcnow()
+        )
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Error getting user profile for /me endpoint: {e}, returning basic user info")
+        # If profile service fails, return basic user info
+        return UserProfileResponse(
+            id=current_user.id,
+            user_id=current_user.id,
+            bio=None,
+            timezone='UTC',
+            language='en',
+            notification_preferences={},
+            custom_settings={},
+            created_at=current_user.created_at or datetime.utcnow(),
+            updated_at=current_user.updated_at or datetime.utcnow()
+        )
 
 
 @router.get("/profile", response_model=UserProfileResponse)

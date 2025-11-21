@@ -158,6 +158,8 @@ class AIAssistantChatResponse(BaseModel):
     token_count: int
     processing_time_ms: int
     model_used: str
+    widget_data: Optional[Dict[str, Any]] = None  # Widget data for dashboard (lesson plans, etc.)
+    widgets: Optional[List[Dict[str, Any]]] = None  # List of widgets to add/update
 
 
 # ==================== USAGE SCHEMAS ====================

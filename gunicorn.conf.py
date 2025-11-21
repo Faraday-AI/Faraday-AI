@@ -10,7 +10,7 @@ workers = int(os.getenv('WORKERS', '2'))  # Use environment variable or default 
 threads = 2  # 2 threads per worker
 worker_class = "uvicorn.workers.UvicornWorker"
 worker_connections = 1000
-timeout = 120  # Increased timeout for long-running operations
+timeout = 300  # Increased timeout for long-running operations (lesson plans can take 3+ API calls)
 keepalive = 5
 
 # Logging
@@ -35,7 +35,7 @@ max_requests_jitter = 50  # Add jitter to prevent all workers from restarting at
 max_worker_lifetime = 3600  # Restart workers after 1 hour to prevent memory leaks
 
 # Worker timeout
-graceful_timeout = 120  # Give workers time to finish their requests
+graceful_timeout = 300  # Give workers time to finish their requests (especially for lesson plan generation)
 
 # SSL configuration (if needed)
 # keyfile = "/path/to/key.pem"

@@ -265,50 +265,50 @@ window.initializeAuthForm = function() {
     console.log('=== initializeAuthForm() called ===');
     try {
         
-        // Form Validation
-        function showError(element, message) {
+    // Form Validation
+    function showError(element, message) {
             if (!element) {
                 console.error('showError called with null element, message:', message);
                 return;
             }
-            element.textContent = message;
+        element.textContent = message;
             element.style.setProperty('display', 'block', 'important');
-        }
+    }
 
-        function hideError(element) {
+    function hideError(element) {
             if (!element) return;
-            element.textContent = '';
+        element.textContent = '';
             element.style.setProperty('display', 'none', 'important');
-        }
+    }
 
-        function showSuccess(element, message) {
+    function showSuccess(element, message) {
             if (!element) {
                 console.error('showSuccess called with null element, message:', message);
                 return;
             }
-            element.textContent = message;
+        element.textContent = message;
             element.style.setProperty('display', 'block', 'important');
-        }
+    }
 
-        function hideSuccess(element) {
+    function hideSuccess(element) {
             if (!element) return;
-            element.textContent = '';
+        element.textContent = '';
             element.style.setProperty('display', 'none', 'important');
-        }
+    }
 
-        function showLoading(element) {
-            element.classList.add('active');
-        }
+    function showLoading(element) {
+        element.classList.add('active');
+    }
 
-        function hideLoading(element) {
-            element.classList.remove('active');
-        }
+    function hideLoading(element) {
+        element.classList.remove('active');
+    }
 
-        // Login Form Handler
+    // Login Form Handler
         console.log('Looking for login form...');
-        const loginFormElement = document.querySelector('.login-form');
+    const loginFormElement = document.querySelector('.login-form');
         console.log('Login form element found:', loginFormElement);
-        if (loginFormElement) {
+    if (loginFormElement) {
             console.log('Found login form, attaching handler...');
             console.log('Form parent:', loginFormElement.parentNode);
             console.log('Form HTML:', loginFormElement.outerHTML.substring(0, 200));
@@ -322,34 +322,34 @@ window.initializeAuthForm = function() {
             
             // Add handler BEFORE any potential submission
             const submitHandler = async (e) => {
-                e.preventDefault();
+            e.preventDefault();
                 e.stopPropagation();
                 
                 console.log('Login form submitted - handler is working!');
                 
                 const email = document.getElementById('login-email')?.value;
                 const password = document.getElementById('login-password')?.value;
-                const loginButton = document.querySelector('.login-button');
-                const loginLoading = document.querySelector('.login-loading');
-                const loginSuccess = document.querySelector('.login-success');
-                const loginEmailError = document.querySelector('.login-email-error');
-                const loginPasswordError = document.querySelector('.login-password-error');
+            const loginButton = document.querySelector('.login-button');
+            const loginLoading = document.querySelector('.login-loading');
+            const loginSuccess = document.querySelector('.login-success');
+            const loginEmailError = document.querySelector('.login-email-error');
+            const loginPasswordError = document.querySelector('.login-password-error');
 
-                // Reset errors and success messages
-                hideError(loginEmailError);
-                hideError(loginPasswordError);
-                hideSuccess(loginSuccess);
+            // Reset errors and success messages
+            hideError(loginEmailError);
+            hideError(loginPasswordError);
+            hideSuccess(loginSuccess);
 
-                // Basic validation
-                if (!email || !password) {
-                    if (!email) showError(loginEmailError, 'Email is required');
-                    if (!password) showError(loginPasswordError, 'Password is required');
-                    return;
-                }
+            // Basic validation
+            if (!email || !password) {
+                if (!email) showError(loginEmailError, 'Email is required');
+                if (!password) showError(loginPasswordError, 'Password is required');
+                return;
+            }
 
-                // Show loading state
-                loginButton.disabled = true;
-                showLoading(loginLoading);
+            // Show loading state
+            loginButton.disabled = true;
+            showLoading(loginLoading);
 
                 // Login with API
                 try {
@@ -420,7 +420,7 @@ window.initializeAuthForm = function() {
                         
                         // Redirect to dashboard after a short delay
                         console.log('Scheduling redirect to dashboard...');
-                        setTimeout(() => {
+            setTimeout(() => {
                             console.log('Redirecting to dashboard now...');
                             closeAuthForm();
                             // Force redirect - use replace to prevent back button issues
@@ -456,8 +456,8 @@ window.initializeAuthForm = function() {
                         }
                     }
                 } catch (error) {
-                    hideLoading(loginLoading);
-                    loginButton.disabled = false;
+                hideLoading(loginLoading);
+                loginButton.disabled = false;
                     console.error('Login error:', error);
                     showError(loginEmailError, 'Network error. Please check your connection and try again.');
                 }
@@ -478,11 +478,11 @@ window.initializeAuthForm = function() {
             }
         } else {
             console.error('Login form element not found!');
-        }
+    }
 
-        // Registration Form Handler
-        const registerFormElement = document.querySelector('.register-form');
-        if (registerFormElement) {
+    // Registration Form Handler
+    const registerFormElement = document.querySelector('.register-form');
+    if (registerFormElement) {
             // Remove any existing event listeners by cloning the form
             const newRegisterForm = registerFormElement.cloneNode(true);
             // Ensure onsubmit prevents default submission
@@ -490,51 +490,51 @@ window.initializeAuthForm = function() {
             registerFormElement.parentNode.replaceChild(newRegisterForm, registerFormElement);
             
             newRegisterForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
+            e.preventDefault();
                 e.stopPropagation();
-                
-                const name = document.getElementById('register-name').value;
-                const email = document.getElementById('register-email').value;
-                const password = document.getElementById('register-password').value;
-                const confirmPassword = document.getElementById('register-confirm-password').value;
-                
-                const registerButton = document.querySelector('.register-button');
-                const registerLoading = document.querySelector('.register-loading');
-                const registerSuccess = document.querySelector('.register-success');
-                const registerNameError = document.querySelector('.register-name-error');
-                const registerEmailError = document.querySelector('.register-email-error');
-                const registerPasswordError = document.querySelector('.register-password-error');
-                const registerConfirmPasswordError = document.querySelector('.register-confirm-password-error');
+            
+            const name = document.getElementById('register-name').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+            const confirmPassword = document.getElementById('register-confirm-password').value;
+            
+            const registerButton = document.querySelector('.register-button');
+            const registerLoading = document.querySelector('.register-loading');
+            const registerSuccess = document.querySelector('.register-success');
+            const registerNameError = document.querySelector('.register-name-error');
+            const registerEmailError = document.querySelector('.register-email-error');
+            const registerPasswordError = document.querySelector('.register-password-error');
+            const registerConfirmPasswordError = document.querySelector('.register-confirm-password-error');
 
-                // Reset errors and success messages
-                hideError(registerNameError);
-                hideError(registerEmailError);
-                hideError(registerPasswordError);
-                hideError(registerConfirmPasswordError);
-                hideSuccess(registerSuccess);
+            // Reset errors and success messages
+            hideError(registerNameError);
+            hideError(registerEmailError);
+            hideError(registerPasswordError);
+            hideError(registerConfirmPasswordError);
+            hideSuccess(registerSuccess);
 
-                // Basic validation
-                if (!name || !email || !password || !confirmPassword) {
-                    if (!name) showError(registerNameError, 'Name is required');
-                    if (!email) showError(registerEmailError, 'Email is required');
-                    if (!password) showError(registerPasswordError, 'Password is required');
-                    if (!confirmPassword) showError(registerConfirmPasswordError, 'Please confirm your password');
-                    return;
-                }
+            // Basic validation
+            if (!name || !email || !password || !confirmPassword) {
+                if (!name) showError(registerNameError, 'Name is required');
+                if (!email) showError(registerEmailError, 'Email is required');
+                if (!password) showError(registerPasswordError, 'Password is required');
+                if (!confirmPassword) showError(registerConfirmPasswordError, 'Please confirm your password');
+                return;
+            }
 
-                if (password !== confirmPassword) {
-                    showError(registerConfirmPasswordError, 'Passwords do not match');
-                    return;
-                }
+            if (password !== confirmPassword) {
+                showError(registerConfirmPasswordError, 'Passwords do not match');
+                return;
+            }
 
                 // Parse name into first and last name
                 const nameParts = name.trim().split(/\s+/);
                 const firstName = nameParts[0] || '';
                 const lastName = nameParts.slice(1).join(' ') || '';
 
-                // Show loading state
-                registerButton.disabled = true;
-                showLoading(registerLoading);
+            // Show loading state
+            registerButton.disabled = true;
+            showLoading(registerLoading);
 
                 // Register with API
                 try {
@@ -563,7 +563,7 @@ window.initializeAuthForm = function() {
                         document.getElementById('register-confirm-password').value = '';
                         
                         // Switch to login form after a short delay
-                        setTimeout(() => {
+            setTimeout(() => {
                             // Switch to login tab
                             const loginToggle = document.querySelector('.login-toggle');
                             const registerToggle = document.querySelector('.register-toggle');
@@ -596,21 +596,21 @@ window.initializeAuthForm = function() {
                         }
                     }
                 } catch (error) {
-                    hideLoading(registerLoading);
-                    registerButton.disabled = false;
+                hideLoading(registerLoading);
+                registerButton.disabled = false;
                     showError(registerNameError, 'Network error. Please check your connection and try again.');
                     console.error('Registration error:', error);
                 }
-            });
-        }
-
-        // Add click outside to close
-        document.addEventListener('click', (e) => {
-            const authContainer = document.getElementById('auth-container');
-            if (e.target === authContainer) {
-                closeAuthForm();
-            }
         });
+    }
+
+    // Add click outside to close
+    document.addEventListener('click', (e) => {
+        const authContainer = document.getElementById('auth-container');
+        if (e.target === authContainer) {
+            closeAuthForm();
+        }
+    });
         
         // Ensure close button works (add event listener after form is cloned)
         // Use setTimeout to ensure this runs after all DOM manipulation
@@ -671,9 +671,9 @@ window.initializeAuthForm = function() {
 
 // Show auth form - only define if not already defined (e.g., by index.html)
 if (typeof window.showAuthForm !== 'function') {
-    window.showAuthForm = function() {
+window.showAuthForm = function() {
         console.log('showAuthForm() called from auth.js');
-        const authContainer = document.getElementById('auth-container');
+    const authContainer = document.getElementById('auth-container');
         if (authContainer) {
             // Check if form is already embedded
             const hasEmbeddedForm = authContainer.querySelector('.login-form');
@@ -714,21 +714,21 @@ if (typeof window.showAuthForm !== 'function') {
                 // Form not embedded, load it dynamically
                 authContainer.style.setProperty('display', 'flex', 'important');
                 authContainer.classList.add('active', 'show');
-                document.body.style.overflow = 'hidden';
-                
-                // Load auth form content
-                fetch('/static/auth-form.html')
-                    .then(response => response.text())
-                    .then(html => {
-                        authContainer.innerHTML = html;
+    document.body.style.overflow = 'hidden';
+    
+    // Load auth form content
+    fetch('/static/auth-form.html')
+        .then(response => response.text())
+        .then(html => {
+            authContainer.innerHTML = html;
                         if (typeof window.initializeAuthForm === 'function') {
                             window.initializeAuthForm();
                         }
-                    })
-                    .catch(error => console.error('Error loading auth form:', error));
+        })
+        .catch(error => console.error('Error loading auth form:', error));
             }
         }
-    };
+};
 }
 
 // Close auth form - only define if not already defined (e.g., by index.html)

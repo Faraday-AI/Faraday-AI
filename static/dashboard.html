@@ -18,10 +18,13 @@
                 <nav class="main-nav">
                     <a href="/" class="nav-link">Home</a>
                     <a href="/static/services/teacher-admin.html" class="nav-link">Services</a>
-                    <a href="/static/pricing.html" class="nav-link">Pricing</a>
+                    <a href="/static/pricing.html" class="nav-link">Upgrade To Full Access</a>
                 </nav>
             </div>
             <div class="header-right">
+                <button class="theme-toggle-btn" id="themeToggleBtn" aria-label="Toggle theme" title="Toggle light/dark theme">
+                    <span class="theme-icon" id="themeIcon">🌙</span>
+                </button>
                 <div class="user-info">
                     <span class="user-name" id="userName">Loading...</span>
                     <button class="logout-btn" id="logoutBtn">Logout</button>
@@ -89,7 +92,7 @@
                                 <div class="avatar-status" id="avatarStatus">●</div>
                             </div>
                             <div class="avatar-info">
-                                <h3>Your AI Assistant</h3>
+                                <h3>Jasper</h3>
                                 <p class="avatar-status-text" id="avatarStatusText">Ready to help</p>
                             </div>
                         </div>
@@ -111,8 +114,8 @@
                     <div class="chat-messages" id="chatMessages">
                         <div class="message ai-message">
                             <div class="message-avatar">👤</div>
-                            <div class="message-content">
-                                <p><strong>Hello! I'm your comprehensive AI assistant for Physical Education.</strong> I have access to an extensive suite of capabilities designed to help you manage every aspect of your PE program.</p>
+                            <div class="message-content" id="openingPromptContent">
+                                <p>Hello, I'm Jasper your comprehensive AI assistant for Physical Education. I have access to an extensive suite of capabilities designed to help you manage every aspect of your PE program.</p>
                                 
                                 <p style="margin-top: 0.75rem;"><strong>My Core Capabilities:</strong></p>
                                 <ul style="margin-top: 0.5rem; padding-left: 1.5rem; text-align: left;">
@@ -127,11 +130,11 @@
                                 
                                 <p style="margin-top: 0.75rem;"><strong>How it works:</strong></p>
                                 <ul style="margin-top: 0.5rem; padding-left: 1.5rem; text-align: left;">
-                                    <li>You can ask me to do <strong>anything</strong> - I handle all features whether widgets are on your dashboard or not</li>
-                                    <li>Widget cards on your dashboard are <strong>visual displays</strong> - they show data when I return results</li>
-                                    <li>If you ask for something and the widget isn't on your dashboard, I can <strong>add it automatically</strong> to show the results</li>
+                                    <li>You can ask me to do anything - I handle all features whether widgets are on your dashboard or not</li>
+                                    <li>Widget cards on your dashboard are visual displays - they show data when I return results</li>
+                                    <li>If you ask for something and the widget isn't on your dashboard, I can add it automatically to show the results</li>
                                     <li>I understand natural language - use phrases like "fourth period", "Period 4", or "4th period" and I'll find the right class</li>
-                                    <li>I can perform <strong>multi-step operations</strong> and remember context from our conversation</li>
+                                    <li>I can perform multi-step operations and remember context from our conversation</li>
                                 </ul>
                                 
                                 <p style="margin-top: 0.75rem;"><strong>Try these examples:</strong></p>
@@ -140,8 +143,15 @@
                                     <li>"Show me attendance patterns for my fourth period class"</li>
                                     <li>"Create balanced teams for Period 3"</li>
                                     <li>"Send a progress update to Sarah's parents - translate to Spanish"</li>
-                                    <li>"What can you do?" or <strong>"Give me a comprehensive list of all your capabilities"</strong></li>
+                                    <li>"What can you do?" or "Give me a comprehensive list of all your capabilities"</li>
                                 </ul>
+                                
+                                <p style="margin-top: 0.75rem;">The more comprehensive your request is, the more detailed my responses will be. All responses can be modified or enhanced further with more explicit details through our continued conversation.</p>
+                                
+                                <p style="margin-top: 0.5rem;"><strong>Try this comprehensive example:</strong></p>
+                                <p style="margin-top: 0.5rem; font-style: italic; padding-left: 1rem; border-left: 3px solid #4CAF50;">"Create a comprehensive lesson plan for a 6th grade basketball unit that includes detailed learning objectives aligned with state standards, step-by-step activities for a 45-minute class, assessment rubrics, differentiation strategies for students with varying skill levels, safety considerations, and homework assignments. Also include Costa's Levels of Questioning examples and Danielson Framework alignment."</p>
+                                
+                                <p style="margin-top: 0.75rem;">But first, lets start off with your name</p>
                                 <span class="message-time">Just now</span>
                             </div>
                         </div>
@@ -341,22 +351,28 @@
                 </div>
                 <div class="settings-section">
                     <h3>AI Voice Selection</h3>
-                    <div class="setting-item">
-                        <label for="selectedVoice">Choose Voice:</label>
-                        <div style="display: flex; gap: 0.5rem; width: 100%;">
-                            <input type="text" id="voiceSearch" placeholder="Search voices..." style="flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); background: var(--bg-secondary); color: var(--text-color);">
+                    <div class="setting-item" style="flex-direction: column; align-items: flex-start;">
+                        <label for="voiceSearch" style="width: 100%; margin-bottom: 0.5rem;">Search Voices (by name, language, or provider):</label>
+                        <div style="display: flex; gap: 0.5rem; width: 100%; margin-bottom: 0.5rem;">
+                            <input type="text" id="voiceSearch" placeholder="Search by voice name, language (e.g., en-US), or provider (e.g., google, microsoft)..." style="flex: 1; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); background: var(--bg-secondary); color: var(--text-color);">
                             <button type="button" id="clearVoiceSearch" style="padding: 0.5rem 1rem; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--border-radius); color: var(--text-color); cursor: pointer;">Clear</button>
                         </div>
-                        <select id="selectedVoice" size="8" style="width: 100%; margin-top: 0.5rem; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); background: var(--bg-secondary); color: var(--text-color);">
+                        <label for="selectedVoice" style="width: 100%; margin-bottom: 0.5rem;">Select Voice:</label>
+                        <select id="selectedVoice" size="8" style="width: 100%; margin-top: 0; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--border-radius); background: var(--bg-secondary); color: var(--text-color);">
                             <option value="">Loading voices...</option>
                         </select>
-                        <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.25rem;">Use search to filter 320+ available voices</p>
+                        <p style="font-size: 0.75rem; color: var(--text-light); margin-top: 0.5rem;">Browse and select from 320+ available voices. Use the search box above to filter by name, language, or provider.</p>
                     </div>
                     <div id="voicePreview" class="voice-preview" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: var(--border-radius);">
-                        <p style="font-size: 0.85rem; color: var(--text-light); margin: 0;">
-                            <strong id="voicePreviewName" style="color: var(--text-color);"></strong><br>
-                            <span id="voicePreviewDescription"></span>
-                        </p>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;">
+                            <div style="flex: 1;">
+                                <p style="font-size: 0.85rem; color: var(--text-light); margin: 0;">
+                                    <strong id="voicePreviewName" style="color: var(--text-color);"></strong><br>
+                                    <span id="voicePreviewDescription"></span>
+                                </p>
+                            </div>
+                            <button type="button" id="voicePreviewPlayButton" style="padding: 0.5rem 1rem; background: var(--primary-color); border: none; border-radius: var(--border-radius); color: #ffffff; cursor: pointer; font-size: 0.85rem; white-space: nowrap;" onclick="const voiceData = JSON.parse(this.dataset.voiceData || '{}'); playVoiceSample(voiceData);">▶ Play Sample</button>
+                        </div>
                     </div>
                 </div>
                 <div class="settings-section">
@@ -365,10 +381,14 @@
                         <input type="checkbox" id="enableAIVoice" checked>
                         <span>Enable AI voice responses</span>
                     </label>
+                    <label class="setting-item">
+                        <input type="checkbox" id="enableOpeningPromptAutoplay" checked>
+                        <span>Play opening prompt automatically on first click</span>
+                    </label>
                     <div class="setting-item">
                         <label for="voiceSpeed">Speed:</label>
-                        <input type="range" id="voiceSpeed" min="50" max="200" step="10" value="100">
-                        <span id="voiceSpeedValue">100%</span>
+                        <input type="range" id="voiceSpeed" min="1" max="100" step="1" value="1">
+                        <span id="voiceSpeedValue">1%</span>
                     </div>
                     <div class="setting-item">
                         <label for="voicePitch">Pitch:</label>

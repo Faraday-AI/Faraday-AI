@@ -35,11 +35,105 @@ window.addEventListener('beforeunload', () => {
     }
 });
 
-// Initialize dashboard
+// Apply theme from localStorage
+function applyTheme() {
+    const theme = localStorage.getItem('dashboard_theme') || 'dark';
+    if (theme === 'light') {
+        document.body.classList.add('light-theme');
+    } else {
+        document.body.classList.remove('light-theme');
+    }
+    // Update theme toggle button icon
+    updateThemeIcon();
+}
+
+// Update theme toggle button icon based on current theme
+function updateThemeIcon() {
+    const themeIcon = document.getElementById('themeIcon');
+    if (themeIcon) {
+        const theme = localStorage.getItem('dashboard_theme') || 'dark';
+        themeIcon.textContent = theme === 'light' ? '🌙' : '☀️';
+    }
+}
+
+// Toggle theme between light and dark
+function toggleTheme() {
+    const currentTheme = localStorage.getItem('dashboard_theme') || 'dark';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('dashboard_theme', newTheme);
+    applyTheme();
+    
+    // Also update the radio button in settings modal if it's open
+    const themeRadio = document.querySelector(`input[name="theme"][value="${newTheme}"]`);
+    if (themeRadio) {
+        themeRadio.checked = true;
+    }
+}
+
 async function initializeDashboard() {
     try {
-        // Check authentication
+        // Apply theme immediately on page load
+        applyTheme();
+        
+        // Check authentication first
         const token = localStorage.getItem('access_token');
+        
+        // Check for new session (both guest and authenticated users)
+        // Use a timestamp-based approach: if last session was more than 1 hour ago, clear widgets
+        // This handles both tab closes and long breaks
+        const lastSessionTime = localStorage.getItem('dashboard_last_session_time');
+        const currentTime = Date.now();
+        const oneHour = 60 * 60 * 1000; // 1 hour in milliseconds
+        
+        // Check if this is a completely new browser session (sessionStorage cleared)
+        const sessionId = sessionStorage.getItem('dashboard_session_id');
+        const isNewBrowserSession = !sessionId;
+        
+        // Check if user changed (different token means different user)
+        const lastUserId = localStorage.getItem('dashboard_last_user_id');
+        let currentUserId = 'guest';
+        if (token) {
+            // Try to extract user ID from token payload
+            try {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                currentUserId = payload.sub || payload.user_id || payload.teacher_id || payload.email || 'user';
+            } catch (e) {
+                // Fallback to localStorage values
+                currentUserId = localStorage.getItem('teacher_id') || localStorage.getItem('user_email') || 'user';
+            }
+        }
+        const userChanged = lastUserId && lastUserId !== currentUserId;
+        
+        // Clear widgets if:
+        // 1. New browser session (sessionStorage cleared)
+        // 2. User changed (different user logged in)
+        // 3. More than 1 hour since last session (for guest users only, authenticated users persist)
+        const shouldClearWidgets = isNewBrowserSession || userChanged || (!token && (!lastSessionTime || (currentTime - parseInt(lastSessionTime)) > oneHour));
+        
+        if (shouldClearWidgets) {
+            console.log('🔄 New session detected - clearing widgets', {
+                isNewBrowserSession,
+                userChanged,
+                isGuest: !token,
+                timeElapsed: lastSessionTime ? (currentTime - parseInt(lastSessionTime)) : 'N/A'
+            });
+            activeWidgets = [];
+            localStorage.removeItem('dashboard_widgets'); // Remove from localStorage
+            saveWidgetsToLocalStorage(); // Ensure it's cleared
+            // Set flag to prevent reloading from API
+            sessionStorage.setItem('widgets_cleared_for_session', 'true');
+            localStorage.setItem('dashboard_widgets_cleared', 'true');
+            // Clear opening prompt flag so it can play again for new session
+            sessionStorage.removeItem('opening_prompt_played');
+        }
+        
+        // Update last session time, session ID, and user ID
+        localStorage.setItem('dashboard_last_session_time', currentTime.toString());
+        localStorage.setItem('dashboard_last_user_id', currentUserId);
+        if (isNewBrowserSession) {
+            sessionStorage.setItem('dashboard_session_id', currentTime.toString());
+        }
+        
         if (!token) {
             showLoginOverlay();
             return;
@@ -66,11 +160,24 @@ async function initializeDashboard() {
         // Load dashboard state
         await loadDashboardState();
         
+        // Load and display avatar if one is selected
+        const selectedAvatarId = localStorage.getItem('selected_avatar_id');
+        if (selectedAvatarId) {
+            // First load avatars and voices (needed for avatar lookup)
+            await loadAvatarsAndVoices(selectedAvatarId, localStorage.getItem('selected_voice_id') || '7');
+            // Then display the avatar
+            await loadAndDisplayAvatar(selectedAvatarId);
+        }
+        
         // Setup event listeners
         setupEventListeners();
         
         // Initialize voice recognition if available
         initializeVoiceRecognition();
+        
+        // Setup opening prompt (plays on first click anywhere)
+        // Delay slightly to ensure DOM is fully ready
+        setTimeout(() => setupOpeningPrompt(), 100);
         
     } catch (error) {
         console.error('Error initializing dashboard:', error);
@@ -83,6 +190,38 @@ async function initializeDashboard() {
             showError('Failed to load dashboard. Please try refreshing the page.');
         }
     }
+}
+
+// Update opening prompt for authenticated users with their name
+function updateOpeningPromptForAuthenticatedUser(firstName) {
+    if (!firstName) {
+        return; // No name available, keep guest version
+    }
+    
+    const openingPromptContent = document.getElementById('openingPromptContent');
+    if (!openingPromptContent) {
+        return; // Opening prompt not found
+    }
+    
+    // Create personalized greeting
+    const personalizedGreeting = `<p>Hello ${firstName}, I'm Jasper, your comprehensive AI assistant for Physical Education, what can I do for you today?</p>
+                                
+                                <p style="margin-top: 0.75rem;"><strong>Try these examples:</strong></p>
+                                <ul style="margin-top: 0.5rem; padding-left: 1.5rem; text-align: left;">
+                                    <li>"Create a lesson plan on basketball fundamentals"</li>
+                                    <li>"Show me attendance patterns for my fourth period class"</li>
+                                    <li>"Create balanced teams for Period 3"</li>
+                                    <li>"Send a progress update to Sarah's parents - translate to Spanish"</li>
+                                </ul>
+                                
+                                <p style="margin-top: 0.75rem;">The more comprehensive your request is, the more detailed my responses will be. All responses can be modified or enhanced further with more explicit details through our continued conversation.</p>
+                                
+                                <p style="margin-top: 0.5rem;"><strong>Try this comprehensive example:</strong></p>
+                                <p style="margin-top: 0.5rem; font-style: italic; padding-left: 1rem; border-left: 3px solid #4CAF50;">"Create a comprehensive lesson plan for a 6th grade basketball unit that includes detailed learning objectives aligned with state standards, step-by-step activities for a 45-minute class, assessment rubrics, differentiation strategies for students with varying skill levels, safety considerations, and homework assignments. Also include Costa's Levels of Questioning examples and Danielson Framework alignment."</p>
+                                
+                                <span class="message-time">Just now</span>`;
+    
+    openingPromptContent.innerHTML = personalizedGreeting;
 }
 
 // Show login overlay
@@ -118,6 +257,10 @@ function hideLoginOverlay() {
     initializeVoiceRecognition();
     // Show a message that features are limited
     addMessageToChat('ai', 'Welcome! You\'re viewing the dashboard in guest mode. Some features may be limited. Please log in for full access.');
+    
+    // Setup opening prompt autoplay for guest users
+    // Delay slightly to ensure DOM is fully ready and the welcome message is rendered
+    setTimeout(() => setupOpeningPrompt(), 500);
 }
 
 // Load user information
@@ -183,6 +326,10 @@ async function loadUserInfo() {
         const email = currentUser.email || currentUser.user?.email;
         const name = currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : email;
         document.getElementById('userName').textContent = name || email || 'User';
+        
+        // Update opening prompt with personalized greeting if user has a name
+        const firstName = currentUser.first_name || (name ? name.split(' ')[0] : null);
+        updateOpeningPromptForAuthenticatedUser(firstName);
     } catch (error) {
         console.error('Error loading user info:', error);
         // Fallback to email from token if available
@@ -192,11 +339,16 @@ async function loadUserInfo() {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 const email = payload.email || 'User';
                 document.getElementById('userName').textContent = email;
+                // Try to extract first name from email (before @) or use email as fallback
+                const emailName = email.split('@')[0].split('.')[0]; // Get part before @ and before first dot
+                updateOpeningPromptForAuthenticatedUser(emailName || null);
             } catch (e) {
                 document.getElementById('userName').textContent = 'Guest';
+                // Keep guest version of opening prompt
             }
         } else {
             document.getElementById('userName').textContent = 'Guest';
+            // Keep guest version of opening prompt
         }
     }
 }
@@ -206,9 +358,21 @@ async function loadDashboardState() {
     try {
         const token = localStorage.getItem('access_token');
         
-        // Try to load from localStorage first (works for both guest and authenticated)
-        if (loadWidgetsFromLocalStorage() && activeWidgets.length > 0) {
-            renderWidgets();
+        // For authenticated users, try to load from localStorage first
+        // For guest users, only load if we have widgets (they were cleared on new session if needed)
+        if (token) {
+            // Authenticated user - load from localStorage
+            if (loadWidgetsFromLocalStorage() && activeWidgets.length > 0) {
+                renderWidgets();
+            }
+        } else {
+            // Guest user - widgets should have been cleared in initializeDashboard if needed
+            // Just load what's in localStorage (should be empty if it was a new session)
+            if (loadWidgetsFromLocalStorage() && activeWidgets.length > 0) {
+                renderWidgets();
+            } else if (activeWidgets.length === 0) {
+                renderWidgets();
+            }
         }
         
         if (!token) {
@@ -220,6 +384,20 @@ async function loadDashboardState() {
         }
         
         // For authenticated users, try to load from API
+        // BUT: If widgets were cleared for this session, don't load from API
+        const widgetsWereCleared = sessionStorage.getItem('widgets_cleared_for_session') === 'true' || 
+                                   localStorage.getItem('dashboard_widgets_cleared') === 'true';
+        
+        if (widgetsWereCleared) {
+            console.log('🔄 Widgets were cleared for this session - skipping API load');
+            // Clear the flag
+            sessionStorage.removeItem('widgets_cleared_for_session');
+            localStorage.removeItem('dashboard_widgets_cleared');
+            // Use empty widgets (already cleared)
+            renderWidgets();
+            return;
+        }
+        
         const response = await fetch(`${API_BASE_URL}/dashboard/state`, {
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -232,12 +410,18 @@ async function loadDashboardState() {
                 await initializeDashboardState();
                 return;
             }
-            // If API fails but we have local widgets, use those
+            // If API fails (401/500 for guest users is expected), use local widgets
             if (activeWidgets.length > 0) {
                 renderWidgets();
                 return;
             }
-            throw new Error('Failed to load dashboard state');
+            // Only throw error if we have no local widgets and it's not an auth error
+            if (response.status !== 401 && response.status !== 500) {
+                throw new Error('Failed to load dashboard state');
+            }
+            // For 401/500, just use empty dashboard (guest mode)
+            renderWidgets();
+            return;
         }
         
         const state = await response.json();
@@ -258,7 +442,10 @@ async function loadDashboardState() {
         }
         
     } catch (error) {
-        console.error('Error loading dashboard state:', error);
+        // Only log unexpected errors (not auth/network errors for guest users)
+        if (!error.message.includes('Failed to load') && !error.message.includes('401') && !error.message.includes('500')) {
+            console.error('Error loading dashboard state:', error);
+        }
         // If we have local widgets, use those
         if (activeWidgets.length > 0) {
             renderWidgets();
@@ -286,13 +473,20 @@ async function initializeDashboardState() {
         });
         
         if (!response.ok) {
+            // Don't throw for auth errors (expected for guest users)
+            if (response.status === 401 || response.status === 500) {
+                return; // Silently fail for guest users
+            }
             throw new Error('Failed to initialize dashboard');
         }
         
         const result = await response.json();
         console.log('Dashboard initialized:', result);
     } catch (error) {
-        console.error('Error initializing dashboard:', error);
+        // Only log unexpected errors (not auth/network errors for guest users)
+        if (!error.message.includes('Failed to initialize') && !error.message.includes('401') && !error.message.includes('500')) {
+            console.error('Error initializing dashboard:', error);
+        }
     }
 }
 
@@ -332,11 +526,43 @@ function setupEventListeners() {
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', logout);
     
+    // Theme toggle
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', toggleTheme);
+    }
+    
     // Sidebar toggle
-    document.getElementById('toggleSidebar').addEventListener('click', toggleSidebar);
+    const toggleSidebarBtn = document.getElementById('toggleSidebar');
+    if (toggleSidebarBtn) {
+        toggleSidebarBtn.addEventListener('click', toggleSidebar);
+    } else {
+        console.error('❌ toggleSidebar button not found');
+    }
     
     // Floating sidebar toggle (when sidebar is collapsed)
-    document.getElementById('floatingSidebarToggle').addEventListener('click', toggleSidebar);
+    const floatingSidebarToggle = document.getElementById('floatingSidebarToggle');
+    if (floatingSidebarToggle) {
+        floatingSidebarToggle.addEventListener('click', toggleSidebar);
+    }
+    
+    // Restore sidebar collapsed state
+    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (sidebarCollapsed) {
+        const sidebar = document.querySelector('.widgets-sidebar') || document.getElementById('widgetsSidebar');
+        if (sidebar) {
+            sidebar.classList.add('collapsed');
+            if (toggleSidebarBtn) {
+                const icon = toggleSidebarBtn.querySelector('.icon');
+                if (icon) {
+                    icon.textContent = '→';
+                }
+            }
+            if (floatingSidebarToggle) {
+                floatingSidebarToggle.style.display = 'flex';
+            }
+        }
+    }
     
     // Widget items
     document.querySelectorAll('.widget-item').forEach(item => {
@@ -364,6 +590,269 @@ function setupEventListeners() {
     
     // Log viewer
     initializeLogViewer();
+}
+
+// Setup opening prompt - plays welcome message on first click anywhere
+function setupOpeningPrompt() {
+    originalConsole.log('🎯 setupOpeningPrompt called');
+    
+    // Check if opening prompt autoplay is disabled in settings
+    const enableOpeningPromptAutoplay = localStorage.getItem('enable_opening_prompt_autoplay') !== 'false';
+    if (!enableOpeningPromptAutoplay) {
+        originalConsole.log('⏭️ Opening prompt autoplay is disabled in settings, skipping');
+        return; // Autoplay is disabled, don't set up
+    }
+    
+    // For guest users, always allow opening prompt to play (clear flag if it exists)
+    // For authenticated users, check if it was already played this session
+    const token = localStorage.getItem('access_token');
+    const isGuest = !token;
+    
+    if (isGuest) {
+        // Guest users: clear the flag so opening prompt can play on every page load
+        sessionStorage.removeItem('opening_prompt_played');
+        originalConsole.log('👤 Guest user detected - clearing opening prompt flag to allow playback');
+    } else {
+        // Authenticated users: check if opening prompt has already been played this session
+        const openingPromptPlayed = sessionStorage.getItem('opening_prompt_played');
+        if (openingPromptPlayed === 'true') {
+            originalConsole.log('⏭️ Opening prompt already played this session, skipping');
+            return; // Already played, don't set up again
+        }
+    }
+    
+    // Extract the opening prompt text from the dashboard
+    // Find the first AI message in the chat (the opening prompt)
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) {
+        originalConsole.warn('⚠️ Chat messages container not found, retrying in 500ms...');
+        // Retry after a short delay in case DOM isn't ready yet
+        setTimeout(() => setupOpeningPrompt(), 500);
+        return;
+    }
+    
+    const firstAIMessage = chatMessages.querySelector('.message.ai-message');
+    if (!firstAIMessage) {
+        originalConsole.warn('⚠️ Opening prompt message not found, retrying in 500ms...');
+        // Retry after a short delay in case DOM isn't ready yet
+        setTimeout(() => setupOpeningPrompt(), 500);
+        return;
+    }
+    
+    const messageContent = firstAIMessage.querySelector('.message-content');
+    if (!messageContent) {
+        originalConsole.warn('⚠️ Message content not found');
+        return;
+    }
+    
+    originalConsole.log('✅ Found opening prompt message, extracting text...');
+    
+    // Extract all text content, preserving structure but removing HTML tags
+    // Clone the element to avoid modifying the original
+    const contentClone = messageContent.cloneNode(true);
+    
+    // Remove the message-time span if it exists
+    const timeSpan = contentClone.querySelector('.message-time');
+    if (timeSpan) {
+        timeSpan.remove();
+    }
+    
+    // Convert to plain text, preserving line breaks
+    // Replace <p> tags with line breaks
+    contentClone.querySelectorAll('p').forEach(p => {
+        p.innerHTML = p.textContent + '\n\n';
+    });
+    
+    // Replace <li> tags with bullet points and line breaks
+    contentClone.querySelectorAll('li').forEach(li => {
+        li.innerHTML = '• ' + li.textContent + '\n';
+    });
+    
+    // Replace <strong> tags with emphasis markers
+    contentClone.querySelectorAll('strong').forEach(strong => {
+        strong.innerHTML = strong.textContent; // Keep text but remove bold formatting for TTS
+    });
+    
+    // Get the final text content
+    let welcomeMessage = contentClone.textContent || contentClone.innerText;
+    
+    // Clean up extra whitespace and normalize line breaks
+    welcomeMessage = welcomeMessage
+        .replace(/\n{3,}/g, '\n\n') // Replace 3+ newlines with 2
+        .replace(/[ \t]+/g, ' ') // Replace multiple spaces/tabs with single space
+        .trim();
+    
+    // If we couldn't extract text, use a fallback
+    if (!welcomeMessage || welcomeMessage.length < 50) {
+        welcomeMessage = "Hello! I'm your comprehensive AI assistant for Physical Education. I have access to an extensive suite of capabilities designed to help you manage every aspect of your PE program. You can ask me to do anything - I handle all features whether widgets are on your dashboard or not.";
+        originalConsole.warn('⚠️ Using fallback opening prompt');
+    }
+    
+    // Create a temporary button element for speakMessage (it needs a button parameter)
+    const tempButton = document.createElement('button');
+    tempButton.style.display = 'none';
+    document.body.appendChild(tempButton);
+    
+    // OPTIMIZATION: Pre-generate audio for opening prompt to make autoplay instant
+    // Fetch audio in the background so it's ready when user clicks
+    let preGeneratedAudio = null;
+    let preGeneratedAudioUrl = null;
+    
+    // For opening prompt, use the FULL text (up to 5000 chars) to ensure complete message
+    // Since this is pre-fetched in background, we can use more text without blocking
+    // The opening prompt is important and should be read completely
+    const openingPromptText = welcomeMessage.length > 5000 ? welcomeMessage.substring(0, 5000) : welcomeMessage;
+    originalConsole.log(`📝 Opening prompt text length: ${welcomeMessage.length} chars, using: ${openingPromptText.length} chars for pre-fetch`);
+    
+    // Pre-fetch audio in background (non-blocking)
+    const preFetchAudio = async () => {
+        try {
+            originalConsole.log('🎵 Pre-fetching opening prompt audio...');
+            const voiceSpeed = parseFloat(localStorage.getItem('voice_speed') || '1');
+            const voicePitch = parseFloat(localStorage.getItem('voice_pitch') || '1');
+            const voiceLanguage = localStorage.getItem('voice_language') || 'en-US';
+            const selectedVoiceId = localStorage.getItem('selected_voice_id') || '7';
+            
+            // Use voice-sample endpoint for faster response (it's optimized)
+            const token = localStorage.getItem('access_token');
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
+            const params = new URLSearchParams({
+                voice_id: selectedVoiceId,
+                text: openingPromptText,
+                rate: voiceSpeed.toString(),
+                pitch: ((voicePitch - 1) * 50).toString(),
+            });
+            
+            const response = await fetch(`${API_BASE_URL}/text-to-speech/voice-sample?${params.toString()}`, {
+                method: 'POST',
+                headers: headers
+            });
+            
+            if (response.ok) {
+                const audioBlob = await response.blob();
+                preGeneratedAudioUrl = URL.createObjectURL(audioBlob);
+                preGeneratedAudio = new Audio(preGeneratedAudioUrl);
+                preGeneratedAudio.preload = 'auto';
+                // Pre-load the audio
+                await new Promise((resolve, reject) => {
+                    preGeneratedAudio.addEventListener('canplaythrough', resolve, { once: true });
+                    preGeneratedAudio.addEventListener('error', reject, { once: true });
+                    preGeneratedAudio.load();
+                });
+                originalConsole.log('✅ Opening prompt audio pre-fetched and ready');
+            } else {
+                originalConsole.warn('⚠️ Failed to pre-fetch opening prompt audio, will generate on click');
+            }
+        } catch (error) {
+            originalConsole.warn('⚠️ Error pre-fetching opening prompt audio:', error);
+            // Fallback: will generate on click
+        }
+    };
+    
+    // Start pre-fetching immediately (non-blocking)
+    preFetchAudio();
+    
+    // One-time click listener for the entire document
+    const handleFirstClick = async (event) => {
+        // Remove the listener immediately so it only fires once
+        document.removeEventListener('click', handleFirstClick, true);
+        document.removeEventListener('touchstart', handleFirstClick, true);
+        
+        // Mark as played in sessionStorage
+        sessionStorage.setItem('opening_prompt_played', 'true');
+        
+        originalConsole.log('🎵 User clicked - playing opening prompt...');
+        
+        // If audio is pre-generated, play it immediately (FAST PATH)
+        if (preGeneratedAudio && preGeneratedAudioUrl) {
+            try {
+                originalConsole.log('⚡ Using pre-generated audio (instant playback)');
+                
+                // Stop any existing audio
+                if (window.audioManager && window.audioManager.currentAudio) {
+                    window.audioManager.currentAudio.pause();
+                }
+                
+                // Set up audio manager
+                window.audioManager.currentAudio = preGeneratedAudio;
+                window.audioManager.currentButton = tempButton;
+                window.audioManager.currentAudioUrl = preGeneratedAudioUrl;
+                
+                // Set up event handlers
+                const handleEnded = () => {
+                    tempButton.classList.remove('playing');
+                    tempButton.textContent = '🔊';
+                    tempButton.disabled = false;
+                    setTimeout(() => {
+                        if (window.audioManager.currentAudioUrl === preGeneratedAudioUrl) {
+                            URL.revokeObjectURL(preGeneratedAudioUrl);
+                            window.audioManager.currentAudioUrl = null;
+                        }
+                    }, 100);
+                    if (window.audioManager.currentAudio === preGeneratedAudio) {
+                        window.audioManager.currentAudio = null;
+                    }
+                };
+                
+                preGeneratedAudio.onended = handleEnded;
+                preGeneratedAudio.onerror = (e) => {
+                    console.error('Error playing pre-generated audio:', e);
+                    handleEnded();
+                };
+                
+                // Play immediately - audio is already loaded
+                const playPromise = preGeneratedAudio.play();
+                if (playPromise) {
+                    playPromise.then(() => {
+                        originalConsole.log('✅ Opening prompt playing (pre-generated)');
+                        tempButton.classList.add('playing');
+                        tempButton.textContent = '⏸️';
+                    }).catch((error) => {
+                        originalConsole.warn('⚠️ Autoplay blocked for pre-generated audio:', error);
+                        tempButton.textContent = '🔊';
+                    });
+                }
+                return; // Success - exit early
+            } catch (error) {
+                originalConsole.warn('⚠️ Error playing pre-generated audio, falling back to on-demand generation:', error);
+                // Fall through to on-demand generation
+            }
+        }
+        
+        // FALLBACK: Generate audio on-demand (slower but works if pre-fetch failed)
+        originalConsole.log('🔄 Generating opening prompt audio on-demand...');
+        try {
+            // Use the FULL welcome message (not truncated) to ensure complete message
+            // speakMessage will handle truncation based on useFullText parameter
+            await speakMessage(tempButton, welcomeMessage, true, true); // Use full text for opening prompt
+            originalConsole.log('✅ Opening prompt played successfully (on-demand)');
+        } catch (error) {
+            // If autoplay fails, that's okay - user can click speaker button later
+            originalConsole.log('⚠️ Opening prompt autoplay blocked, but audio is ready. Error:', error);
+        }
+        
+        // Clean up temp button after a delay
+        setTimeout(() => {
+            if (tempButton.parentNode) {
+                document.body.removeChild(tempButton);
+            }
+        }, 1000);
+    };
+    
+    // Add listeners for both click and touch (mobile support)
+    // Use capture phase to catch clicks anywhere
+    document.addEventListener('click', handleFirstClick, true);
+    document.addEventListener('touchstart', handleFirstClick, true);
+    
+    originalConsole.log('🎯 Opening prompt listener set up - will play on first click anywhere');
+    originalConsole.log('📝 Extracted opening prompt length:', welcomeMessage.length, 'characters');
+    originalConsole.log('📝 First 100 chars:', welcomeMessage.substring(0, 100));
 }
 
 // Initialize log viewer and intercept console
@@ -563,8 +1052,9 @@ async function sendMessage() {
     
     try {
         const token = localStorage.getItem('access_token');
+        const isAuthenticated = !!token;
         
-        // Prepare headers - include token if available, but don't require it
+        // Prepare headers
         const headers = {
             'Content-Type': 'application/json'
         };
@@ -572,58 +1062,219 @@ async function sendMessage() {
             headers['Authorization'] = `Bearer ${token}`;
         }
         
-        // Prepare context from chat history (limit to last 1 message to avoid token limits)
-        // The system prompt is already very comprehensive, so we only need the most recent context
-        const context = chatHistory.slice(-1).map(msg => ({
-            role: msg.role,
-            content: msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content
-        }));
-        
-        // Send message to AI assistant (works for both authenticated and guest users)
-        const response = await fetch(`${API_BASE_URL}/chat/message`, {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({
-                message: message,
-                context: context
-            })
-        });
+        // Route authenticated users to advanced AI Assistant endpoint
+        // Guest users use the simple guest chat endpoint
+        let response;
+        if (isAuthenticated) {
+            // Advanced endpoint for authenticated/paying users
+            // Uses conversation management, message history, analytics
+            response = await fetch(`${API_BASE_URL}/ai-assistant/chat`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    message: message,
+                    conversation_id: null, // Will create new or use existing
+                    conversation_type: 'general_chat',
+                    metadata: {
+                        context: chatHistory.slice(-1).map(msg => ({
+                            role: msg.role,
+                            content: msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content
+                        }))
+                    }
+                })
+            });
+        } else {
+            // Simple endpoint for guest/free trial users
+            const context = chatHistory.slice(-1).map(msg => ({
+                role: msg.role,
+                content: msg.content.length > 300 ? msg.content.substring(0, 300) + '...' : msg.content
+            }));
+            
+            // Try to extract user's name from the message if not already stored
+            let guestName = sessionStorage.getItem('guest_name');
+            if (!guestName) {
+                // Try to extract name from message (simple patterns)
+                // Updated patterns to handle lowercase names and be more flexible
+                const trimmedMessage = message.trim();
+                const namePatterns = [
+                    // Patterns with phrases before the name
+                    /(?:my name is|i'm|i am|call me|it's|it is|i go by|people call me)\s+([a-zA-Z]+(?:\s+[a-zA-Z]+)?)/i,
+                    /(?:name is|name's|name:)\s+([a-zA-Z]+)/i,
+                    /(?:i'm|i am)\s+([a-zA-Z]+)/i, // "i'm mike" or "i am mike"
+                    // Just a name by itself (must be a single word or two words, all letters)
+                    /^([a-zA-Z]{2,20})(?:\s+[a-zA-Z]{2,20})?$/ // Matches "mike" or "mike smith" but not "mike123"
+                ];
+                
+                for (const pattern of namePatterns) {
+                    const match = trimmedMessage.match(pattern);
+                    if (match && match[1]) {
+                        guestName = match[1].trim();
+                        // Extract first name only (first word)
+                        guestName = guestName.split(' ')[0];
+                        // Validate it's a reasonable name (2-20 chars, only letters, no numbers/special chars)
+                        if (guestName.length >= 2 && guestName.length <= 20 && /^[a-zA-Z]+$/.test(guestName)) {
+                            // Capitalize first letter, lowercase the rest
+                            guestName = guestName.charAt(0).toUpperCase() + guestName.slice(1).toLowerCase();
+                            sessionStorage.setItem('guest_name', guestName);
+                            console.log(`✅ Extracted and stored guest name: ${guestName} from message: "${message}"`);
+                            break;
+                        }
+                    }
+                }
+                
+                // If no pattern matched, check if the entire message is just a name (very simple case)
+                if (!guestName && trimmedMessage.length >= 2 && trimmedMessage.length <= 20) {
+                    // Check if message is just letters (no spaces, no special chars, no numbers)
+                    if (/^[a-zA-Z]+$/.test(trimmedMessage)) {
+                        guestName = trimmedMessage.charAt(0).toUpperCase() + trimmedMessage.slice(1).toLowerCase();
+                        sessionStorage.setItem('guest_name', guestName);
+                        console.log(`✅ Extracted and stored guest name (simple match): ${guestName} from message: "${message}"`);
+                    }
+                }
+            }
+            
+            // Add guest name to headers if available
+            if (guestName) {
+                headers['X-Guest-Name'] = guestName;
+            }
+            
+            response = await fetch(`${API_BASE_URL}/chat/message`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    message: message,
+                    context: context
+                })
+            });
+        }
         
         if (!response.ok) {
             let errorText = '';
+            let errorDetail = '';
             try {
                 errorText = await response.text();
                 console.error('❌ Server error response:', errorText);
+                // Try to parse JSON error detail
+                try {
+                    const errorJson = JSON.parse(errorText);
+                    errorDetail = errorJson.detail || errorText;
+                } catch {
+                    errorDetail = errorText;
+                }
             } catch (e) {
                 errorText = `Status: ${response.status} ${response.statusText}`;
+                errorDetail = errorText;
             }
-            throw new Error(`Failed to send message (${response.status}): ${errorText}`);
+            
+            // Check for quota/billing errors
+            if (response.status === 503 || errorDetail.toLowerCase().includes('quota') || 
+                errorDetail.toLowerCase().includes('billing') || 
+                errorDetail.toLowerCase().includes('insufficient_quota')) {
+                throw new Error('AI service quota exceeded. Please check your OpenAI account billing or try again later.');
+            }
+            
+            throw new Error(`Failed to send message (${response.status}): ${errorDetail}`);
         }
         
         const result = await response.json();
         console.log('✅ Chat response received:', result);
         console.log('📊 Widget data:', result.widget_data);
         
+        // For guest users, try to extract name from AI response if not already stored
+        if (!isAuthenticated && !sessionStorage.getItem('guest_name') && result.response) {
+            // Look for patterns where AI confirms or uses the name
+            const nameConfirmationPatterns = [
+                /(?:nice to meet you|hello|hi|great|thanks),?\s+([A-Z][a-z]+)/i,
+                /(?:hello|hi),?\s+([A-Z][a-z]+),/i,
+                /(?:call you|your name is|you're)\s+([A-Z][a-z]+)/i
+            ];
+            
+            for (const pattern of nameConfirmationPatterns) {
+                const match = result.response.match(pattern);
+                if (match && match[1]) {
+                    let extractedName = match[1].trim();
+                    // Extract first name only
+                    extractedName = extractedName.split(' ')[0];
+                    // Capitalize first letter
+                    extractedName = extractedName.charAt(0).toUpperCase() + extractedName.slice(1).toLowerCase();
+                    if (extractedName.length >= 2 && extractedName.length <= 20) {
+                        sessionStorage.setItem('guest_name', extractedName);
+                        console.log(`✅ Extracted guest name from AI response: ${extractedName}`);
+                        break;
+                    }
+                }
+            }
+        }
+        
         // Add AI response to chat
         if (result.response) {
-            addMessageToChat('ai', result.response);
+            // CRITICAL: Add message to chat and start autoplay FIRST
+            // This must happen immediately within the user interaction context
+            // Widget updates will happen AFTER autoplay starts
+            console.log('🔊 About to call addMessageToChat with autoplay=true');
+            addMessageToChat('ai', result.response, true); // Pass true to auto-speak
+            console.log('🔊 addMessageToChat called, checking if autoplay was triggered...');
             
             // Update chat history
             chatHistory.push({ role: 'user', content: message });
             chatHistory.push({ role: 'assistant', content: result.response });
             
-            // Check if AI wants to add/update widgets
-            if (result.widgets) {
-                handleWidgetUpdates(result.widgets);
-            }
+            // Store widget data temporarily - we'll update widgets AFTER autoplay starts
+            const pendingWidgetData = result.widget_data;
+            const pendingWidgets = result.widgets;
             
-            // Check if the response mentions widget data that should be displayed
-            // If the AI returns data for a specific widget type, update that widget
-            if (result.widget_data) {
-                console.log('🔄 Updating widget with data:', result.widget_data);
-                updateWidgetWithData(result.widget_data);
+            // Find the message div to get the audio play promise
+            const chatMessages = document.getElementById('chatMessages');
+            const lastMessage = chatMessages?.lastElementChild;
+            const audioPlayPromise = lastMessage?._audioPlayPromise;
+            
+            // CRITICAL: Wait for audio play() call to be initiated (not completed)
+            // Once play() is called, Safari has queued it and we can safely update widgets
+            // The play() call itself must happen synchronously within user interaction context
+            const updateWidgets = () => {
+                // Check if AI wants to add/update multiple widgets
+                if (pendingWidgets && Array.isArray(pendingWidgets) && pendingWidgets.length > 0) {
+                    console.log(`🔄 Processing ${pendingWidgets.length} widgets from widgets array`);
+                    // Process each widget in the array
+                    pendingWidgets.forEach((widget, index) => {
+                        if (widget && widget.type && widget.data) {
+                            console.log(`🔄 Updating widget ${index + 1}/${pendingWidgets.length}: ${widget.type}`);
+                            updateWidgetWithData(widget);
+                        }
+                    });
+                }
+                // Also check widget_data for backward compatibility (single widget)
+                else if (pendingWidgetData) {
+                    console.log('🔄 Updating widget with data:', pendingWidgetData);
+                    updateWidgetWithData(pendingWidgetData);
+                } else {
+                    console.log('⚠️ No widget_data or widgets in response');
+                }
+            };
+            
+            if (audioPlayPromise) {
+                // CRITICAL: Wait for audio blob to be received AND play() to be called
+                // Widget updates break Safari's interaction context, so we must wait
+                // The audio fetch is async and takes ~5-8 seconds, but we need to wait for it
+                console.log('🔊 Audio fetch started - deferring widget updates to preserve interaction context');
+                
+                // Wait for the audio blob to be received and play() to be called
+                // The promise resolves when play() is called (not when it completes)
+                audioPlayPromise.then(() => {
+                    console.log('✅ Audio play() called successfully - now safe to update widgets');
+                    // Now that play() has been called, we can safely update widgets
+                    // Use a small delay to ensure play() is fully queued by Safari
+                    setTimeout(updateWidgets, 100);
+                }).catch((error) => {
+                    console.log('⚠️ Audio play() blocked or failed:', error.name);
+                    // Even if autoplay failed, update widgets after a delay
+                    // The audio is still ready for manual play
+                    setTimeout(updateWidgets, 500);
+                });
             } else {
-                console.log('⚠️ No widget_data in response');
+                // No audio play promise (autoplay disabled or button not found)
+                // Update widgets immediately
+                setTimeout(updateWidgets, 50);
             }
         } else {
             throw new Error('Invalid response format: missing "response" field');
@@ -642,18 +1293,27 @@ async function sendMessage() {
         
         let errorMessage = 'I apologize, but I encountered an error. ';
         if (error.message) {
-            errorMessage += error.message;
+            // Check for specific error types and provide user-friendly messages
+            if (error.message.includes('quota') || error.message.includes('billing')) {
+                errorMessage = 'I\'m sorry, but the AI service is currently unavailable due to quota limits. Please check your OpenAI account billing settings or try again later. If you\'re the administrator, you may need to add credits to your OpenAI account.';
+            } else if (error.message.includes('timeout') || error.message.includes('Load failed') || error.message.includes('network') || error.message.includes('connection')) {
+                errorMessage = 'The request took too long to process or the connection was lost. This can happen with complex requests like lesson plans. Please try again - the system is working on your request.';
+            } else if (error.message.includes('authentication') || error.message.includes('API key')) {
+                errorMessage = 'There was an authentication error with the AI service. Please contact support.';
+            } else {
+                errorMessage += error.message;
+            }
         } else {
             errorMessage += 'Please try again or log in for full functionality.';
         }
         
-        addMessageToChat('ai', errorMessage);
+        addMessageToChat('ai', errorMessage, true); // Enable autoplay for error messages too
         updateAvatarStatus('ready', 'Ready to help');
     }
 }
 
 // Add message to chat
-function addMessageToChat(role, content) {
+function addMessageToChat(role, content, autoSpeak = false, widgetData = null) {
     const chatMessages = document.getElementById('chatMessages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}-message`;
@@ -661,16 +1321,205 @@ function addMessageToChat(role, content) {
     const avatar = role === 'user' ? '👤' : '🤖';
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
+    // Add speaker button for AI messages
+    let speakerButton = '';
+    if (role === 'ai') {
+        // Store message content in a data attribute to avoid escaping issues
+        const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        messageDiv.setAttribute('data-message-id', messageId);
+        window[`msg_${messageId}`] = content; // Store content globally temporarily
+        
+        speakerButton = `
+        <button class="message-speaker-btn" onclick="speakMessageFromId('${messageId}')" 
+                aria-label="Speak message" title="Play audio">
+            🔊
+        </button>
+    `;
+    }
+    
     messageDiv.innerHTML = `
         <div class="message-avatar">${avatar}</div>
         <div class="message-content">
-            <p>${escapeHtml(content)}</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+                <p style="flex: 1; margin: 0;">${escapeHtml(content)}</p>
+                ${speakerButton}
+            </div>
             <span class="message-time">${time}</span>
         </div>
     `;
     
     chatMessages.appendChild(messageDiv);
     chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Auto-speak AI messages if enabled
+    console.log('🔊 addMessageToChat autoplay check:', { role, autoSpeak, isAI: role === 'ai', willAttemptAutoplay: role === 'ai' && autoSpeak });
+    if (role === 'ai' && autoSpeak) {
+        const enableAIVoice = localStorage.getItem('enable_ai_voice') !== 'false'; // Default to true
+        console.log('🔊 Auto-speak check:', { enableAIVoice, autoSpeak, role });
+        if (enableAIVoice) {
+            // Start fetching audio IMMEDIATELY and SYNCHRONOUSLY to preserve user interaction context
+            // The user just sent a message, so we're still in their interaction context
+            // DO NOT use requestAnimationFrame or setTimeout - they break the interaction chain
+            // Use a small synchronous delay to ensure DOM is ready, then find button
+            let speakerBtn = null;
+            // Try to find button immediately
+            speakerBtn = messageDiv.querySelector('.message-speaker-btn');
+            // If not found, try again synchronously (DOM might not be ready yet)
+            if (!speakerBtn) {
+                // Force a synchronous DOM update by accessing offsetHeight
+                messageDiv.offsetHeight; // Force reflow
+                speakerBtn = messageDiv.querySelector('.message-speaker-btn');
+            }
+            console.log('🔊 Auto-speak: speaker button found?', !!speakerBtn, 'messageDiv:', messageDiv, 'innerHTML length:', messageDiv.innerHTML.length);
+            if (speakerBtn) {
+                // Stop any existing audio before auto-speaking
+                // But don't clear everything - just pause to preserve context
+                if (window.audioManager && window.audioManager.currentAudio) {
+                    try {
+                        const audio = window.audioManager.currentAudio;
+                        audio.pause();
+                        audio.currentTime = 0;
+                        // Don't clear src immediately - wait until new audio is ready
+                    } catch (e) {
+                        console.warn('Error pausing audio:', e);
+                    }
+                }
+                // Start fetching audio immediately - call directly, no delays
+                console.log('🔊 Auto-speak: Starting audio fetch immediately (synchronous call)...');
+                // CRITICAL: Call speakMessage IMMEDIATELY and synchronously to preserve user interaction context
+                // Do NOT await it - let it run in the background
+                // The play() call inside speakMessage must happen synchronously when blob is received
+                // For longer responses (like lesson plans), use more text for autoplay
+                // Check if response is long or contains lesson plan keywords
+                // Lower threshold (1500) to catch guest responses that might be shorter
+                const isLongResponse = content.length > 1500;
+                const contentLower = content.toLowerCase();
+                // More comprehensive lesson plan detection - check for multiple indicators
+                const hasLessonKeywords = contentLower.includes('lesson plan') || 
+                                        contentLower.includes('learning objectives') ||
+                                        contentLower.includes('curriculum standards') ||
+                                        contentLower.includes('danielson framework') ||
+                                        contentLower.includes("costa's levels") ||
+                                        contentLower.includes('exit ticket') ||
+                                        contentLower.includes('worksheet') ||
+                                        contentLower.includes('rubric');
+                const hasEducationKeywords = (contentLower.includes('grade level') || contentLower.includes('grade')) && 
+                                           (contentLower.includes('subject') || contentLower.includes('students will') || contentLower.includes('objectives'));
+                const isLessonPlan = hasLessonKeywords || hasEducationKeywords;
+                // For any response over 2000 chars OR containing lesson plan keywords, use more text
+                const useFullTextForAutoplay = isLongResponse || isLessonPlan;
+                console.log('🔊 Autoplay text length decision:', { 
+                    contentLength: content.length, 
+                    isLongResponse, 
+                    hasLessonKeywords,
+                    hasEducationKeywords,
+                    isLessonPlan, 
+                    useFullTextForAutoplay,
+                    maxChars: useFullTextForAutoplay ? 5000 : 1000,
+                    preview: content.substring(0, 100) + '...'
+                });
+                const audioPlayPromise = speakMessage(speakerBtn, content, true, useFullTextForAutoplay);
+                
+                // Store promise on message div so widget updates can wait for play() to be called
+                messageDiv._audioPlayPromise = audioPlayPromise;
+                
+                // Handle the promise asynchronously (don't block)
+                audioPlayPromise.then(() => {
+                    console.log('✅ Auto-speak: play() called successfully');
+                    // Now that new audio is ready, clean up old audio
+                    if (window.audioManager && window.audioManager.currentAudioUrl) {
+                        const oldUrl = window.audioManager.currentAudioUrl;
+                        // Check if this is the old URL (not the new one)
+                        const newBtn = messageDiv.querySelector('.message-speaker-btn');
+                        const newUrl = newBtn?.getAttribute('data-audio-url');
+                        if (oldUrl !== newUrl) {
+                            // Old URL - revoke it
+                            try {
+                                URL.revokeObjectURL(oldUrl);
+                            } catch (e) {
+                                console.warn('Error revoking old URL:', e);
+                            }
+                        }
+                    }
+                }).catch(error => {
+                    console.log('⚠️ Auto-speak error:', error.name, error.message);
+                    // If autoplay is blocked, that's okay - user can click the button
+                    if (error.name === 'NotAllowedError' || error.name === 'NotSupportedError') {
+                        console.log('ℹ️ Autoplay blocked (expected on some browsers). User can click speaker button.');
+                    } else if (error.message && (error.message.includes('Load failed') || error.message.includes('network') || error.message.includes('fetch'))) {
+                        console.warn('⚠️ Network error during autoplay - connection may have been lost. User can click speaker button to retry.');
+                    } else {
+                        console.error('Error in auto-speak:', error);
+                    }
+                });
+            } else {
+                // If button not found yet, try multiple times synchronously
+                // Force DOM reflow to ensure button is available
+                messageDiv.offsetHeight; // Force reflow
+                let btn = messageDiv.querySelector('.message-speaker-btn');
+                
+                // Try one more time after a micro-delay (using Promise.resolve to queue it)
+                if (!btn) {
+                    // Use a synchronous microtask to check again
+                    Promise.resolve().then(() => {
+                        btn = messageDiv.querySelector('.message-speaker-btn');
+                        if (btn) {
+                            if (window.audioManager && window.audioManager.currentAudio) {
+                                try {
+                                    const audio = window.audioManager.currentAudio;
+                                    audio.pause();
+                                    audio.currentTime = 0;
+                                } catch (e) {
+                                    console.warn('Error pausing audio:', e);
+                                }
+                            }
+                            console.log('🔊 Auto-speak: Starting audio fetch (button found on retry)...');
+                            speakMessage(btn, content, true).catch(error => {
+                                if (error.name !== 'NotAllowedError' && error.name !== 'NotSupportedError') {
+                                    console.error('Error in auto-speak:', error);
+                                }
+                            });
+                        } else {
+                            console.warn('⚠️ Auto-speak: Speaker button not found in message after retries');
+                            console.warn('⚠️ Message div HTML:', messageDiv.innerHTML.substring(0, 200));
+                        }
+                    });
+                } else {
+                    // Button found on retry - proceed with autoplay
+                    if (window.audioManager && window.audioManager.currentAudio) {
+                        try {
+                            const audio = window.audioManager.currentAudio;
+                            audio.pause();
+                            audio.currentTime = 0;
+                        } catch (e) {
+                            console.warn('Error pausing audio:', e);
+                        }
+                    }
+                    console.log('🔊 Auto-speak: Starting audio fetch (button found on retry)...');
+                    speakMessage(btn, content, true).catch(error => {
+                        if (error.name !== 'NotAllowedError' && error.name !== 'NotSupportedError') {
+                            console.error('Error in auto-speak:', error);
+                        }
+                    });
+                }
+            }
+        } else {
+            console.log('🔇 Auto-speak disabled in settings');
+        }
+    }
+    
+    // Clean up stored message after a delay (to allow auto-speak to work)
+    if (role === 'ai' && messageDiv.getAttribute('data-message-id')) {
+        const messageId = messageDiv.getAttribute('data-message-id');
+        setTimeout(() => {
+            // Keep message in memory for 5 minutes, then clean up
+            setTimeout(() => {
+                if (window[`msg_${messageId}`]) {
+                    delete window[`msg_${messageId}`];
+                }
+            }, 5 * 60 * 1000);
+        }, 1000);
+    }
 }
 
 // Render chat history
@@ -696,6 +1545,22 @@ function updateAvatarStatus(status, text) {
 function handleWidgetUpdates(widgets) {
     if (!widgets || !Array.isArray(widgets)) return;
     
+    // CRITICAL: Don't update widgets if voice recording is active
+    // This prevents DOM manipulation from breaking Safari's interaction context
+    if (isVoiceActive) {
+        console.log('⚠️ Voice recording active - deferring widget updates');
+        // Defer widget updates until voice recording is done
+        setTimeout(() => {
+            if (!isVoiceActive) {
+                handleWidgetUpdates(widgets);
+            } else {
+                // Still recording - try again later
+                setTimeout(() => handleWidgetUpdates(widgets), 1000);
+            }
+        }, 500);
+        return;
+    }
+    
     widgets.forEach(widget => {
         const existingWidget = activeWidgets.find(w => w.id === widget.id);
         if (existingWidget) {
@@ -712,34 +1577,74 @@ function handleWidgetUpdates(widgets) {
 
 // Update widget with data from AI response
 function updateWidgetWithData(widgetData) {
-    if (!widgetData || !widgetData.type) return;
-    
-    // Find existing widget of this type
-    let widget = activeWidgets.find(w => (w.type || w.widget_type) === widgetData.type);
-    
-    if (!widget) {
-        // Widget doesn't exist - add it automatically
-        const newWidget = {
-            id: `widget-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            type: widgetData.type,
-            name: getWidgetTitle(widgetData.type),
-            configuration: {},
-            position: null,
-            size: { width: 2, height: 2 },
-            created_at: new Date().toISOString(),
-            is_active: true,
-            is_visible: true,
-            data: widgetData.data || {}
-        };
-        addWidgetToDashboard(newWidget);
-        saveWidgetsToLocalStorage();
-    } else {
-        // Update existing widget with new data
-        widget.data = widgetData.data || widget.data || {};
-        saveWidgetsToLocalStorage();
+    if (!widgetData || !widgetData.type) {
+        console.warn('⚠️ Invalid widget data:', widgetData);
+        return;
     }
     
-    renderWidgets();
+    // CRITICAL: Don't update widgets if voice recording is active
+    // This prevents DOM manipulation from breaking Safari's interaction context
+    if (isVoiceActive) {
+        console.log('⚠️ Voice recording active - deferring widget update');
+        // Defer widget update until voice recording is done
+        setTimeout(() => {
+            if (!isVoiceActive) {
+                updateWidgetWithData(widgetData);
+            } else {
+                // Still recording - try again later
+                setTimeout(() => updateWidgetWithData(widgetData), 1000);
+            }
+        }, 500);
+        return;
+    }
+    
+    try {
+        // Find existing widget of this type
+        let widget = activeWidgets.find(w => (w.type || w.widget_type) === widgetData.type);
+        
+        if (!widget) {
+            // Widget doesn't exist - add it automatically
+            // Ensure is_preview is NOT set for authenticated users
+            const widgetDataCopy = { ...widgetData };
+            if (widgetDataCopy.data) {
+                widgetDataCopy.data = { ...widgetDataCopy.data };
+                // Remove any preview flags for authenticated users
+                delete widgetDataCopy.data.is_preview;
+                delete widgetDataCopy.data.preview_message;
+            }
+            
+            const newWidget = {
+                id: `widget-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                type: widgetDataCopy.type,
+                name: getWidgetTitle(widgetDataCopy.type),
+                configuration: {},
+                position: null,
+                size: { width: 2, height: 2 },
+                created_at: new Date().toISOString(),
+                is_active: true,
+                is_visible: true,
+                data: widgetDataCopy.data || {}
+            };
+            addWidgetToDashboard(newWidget);
+            saveWidgetsToLocalStorage();
+        } else {
+            // Update existing widget with new data
+            // Ensure is_preview is NOT set for authenticated users
+            const updatedData = { ...(widgetData.data || widget.data || {}) };
+            delete updatedData.is_preview;
+            delete updatedData.preview_message;
+            widget.data = updatedData;
+            saveWidgetsToLocalStorage();
+        }
+        
+        renderWidgets();
+    } catch (error) {
+        console.error('❌ Error updating widget with data:', error);
+        console.error('Widget data:', widgetData);
+        if (typeof showError === 'function') {
+            showError('Failed to load widget. Please try again.');
+        }
+    }
 }
 
 // Add widget
@@ -903,6 +1808,11 @@ function updateWidget(widgetId, widgetData) {
 function renderWidgets() {
     const widgetsGrid = document.getElementById('widgetsGrid');
     
+    if (!widgetsGrid) {
+        console.error('❌ Widgets grid not found');
+        return;
+    }
+    
     if (activeWidgets.length === 0) {
         widgetsGrid.innerHTML = `
             <div class="widget-placeholder">
@@ -913,7 +1823,8 @@ function renderWidgets() {
         return;
     }
     
-    widgetsGrid.innerHTML = activeWidgets.map(widget => {
+    try {
+        widgetsGrid.innerHTML = activeWidgets.map(widget => {
         // Check if widget has actual data to print (not just instructions)
         const hasData = widget.data && Object.keys(widget.data).length > 0;
         const dataString = hasData ? JSON.stringify(widget.data) : '';
@@ -945,7 +1856,16 @@ function renderWidgets() {
             </div>
         </div>
     `;
-    }).join('');
+        }).join('');
+    } catch (error) {
+        console.error('❌ Error rendering widgets:', error);
+        console.error('Active widgets:', activeWidgets);
+        widgetsGrid.innerHTML = `
+            <div class="widget-placeholder">
+                <p>⚠️ Error loading widgets. Please refresh the page.</p>
+            </div>
+        `;
+    }
 }
 
 // Get widget title
@@ -977,35 +1897,347 @@ function getWidgetTitle(widgetType) {
 
 // Format widget data for display
 function formatWidgetData(data, widgetType) {
-    if (!data || typeof data !== 'object') {
-        return '<div class="widget-data-display"><p>No data available</p></div>';
+    try {
+        if (!data || typeof data !== 'object') {
+            return '<div class="widget-data-display"><p>No data available</p></div>';
+        }
+        
+        // Check if this is a preview/teaser widget for guest users (applies to ALL widget types)
+        // For authenticated users, NEVER show preview (even if flag is set)
+        const isAuthenticated = !!localStorage.getItem('access_token');
+        const isPreview = !isAuthenticated && data.is_preview === true;
+        
+        // Format based on widget type and data structure
+        let html = '<div class="widget-data-display' + (isPreview ? ' widget-preview' : '') + '">';
+        
+        // Show preview banner for guest users (generic, works for all widget types)
+        if (isPreview) {
+            html += '<div class="widget-preview-banner">';
+            html += '<div class="preview-banner-content">';
+            html += '<span class="preview-badge">👁️ PREVIEW</span>';
+            html += '<p class="preview-message">' + (data.preview_message || 'This is a preview of what a complete widget would include. <strong>Sign up for a premium account</strong> to generate full, professional-grade content with advanced features.') + '</p>';
+            html += '</div>';
+            html += '</div>';
+        }
+    
+    // Special handling for lesson plan widget
+    // Check for lesson plan data - be more lenient to catch all lesson plan widgets
+    if (widgetType === 'lesson-planning' && data && (data.title || data.description || data.objectives || data.introduction || data.activities || data.materials || data.danielson_framework || data.costas_questioning || data.curriculum_standards || data.exit_ticket || data.worksheets || data.assessments || data.rubrics)) {
+        console.log('📋 Rendering lesson-planning widget with data:', {
+            hasTitle: !!data.title,
+            hasDescription: !!data.description,
+            hasObjectives: !!data.objectives,
+            objectivesLength: Array.isArray(data.objectives) ? data.objectives.length : 'not array',
+            hasActivities: !!data.activities,
+            activitiesLength: Array.isArray(data.activities) ? data.activities.length : 'not array',
+            dataKeys: Object.keys(data)
+        });
+        
+        // Check if this is a preview/teaser widget for guest users
+        // For authenticated users, NEVER show preview (even if flag is set)
+        const isAuthenticated = !!localStorage.getItem('access_token');
+        const isPreview = !isAuthenticated && data.is_preview === true;
+        
+        html += '<div class="lesson-plan' + (isPreview ? ' lesson-plan-preview' : '') + '">';
+        
+        // Preview banner is now shown at the top level for all widgets
+        
+        if (data.title) {
+            html += `<h4 class="lesson-plan-title">${escapeHtml(data.title)}</h4>`;
+        }
+        if (data.description) {
+            html += `<div class="lesson-section"><h5>📋 Lesson Description</h5><p>${escapeHtml(data.description)}</p></div>`;
+        }
+        if (data.subject || data.grade_level) {
+            html += '<div class="lesson-plan-meta">';
+            if (data.subject) {
+                html += `<span class="lesson-subject">${escapeHtml(data.subject)}</span>`;
+            }
+            if (data.grade_level) {
+                html += `<span class="lesson-grade">Grade ${escapeHtml(data.grade_level)}</span>`;
+            }
+            html += '</div>';
+        }
+        if (data.introduction) {
+            html += `<div class="lesson-section"><h5>Introduction</h5><p>${escapeHtml(data.introduction)}</p></div>`;
+        }
+        if (data.objectives && Array.isArray(data.objectives) && data.objectives.length > 0) {
+            html += '<div class="lesson-section"><h5>Learning Objectives</h5><ul class="lesson-objectives">';
+            data.objectives.forEach((objective, index) => {
+                html += `<li>${escapeHtml(objective)}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        if (data.activities && Array.isArray(data.activities) && data.activities.length > 0) {
+            html += '<div class="lesson-section"><h5>Activities</h5><ul class="lesson-activities">';
+            data.activities.forEach((activity, index) => {
+                html += `<li>${escapeHtml(activity)}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        if (data.curriculum_standards) {
+            html += `<div class="lesson-section"><h5>Curriculum Standards</h5><p>${escapeHtml(data.curriculum_standards)}</p></div>`;
+        }
+        if (data.materials && Array.isArray(data.materials) && data.materials.length > 0) {
+            html += '<div class="lesson-section"><h5>Materials Needed</h5><ul class="lesson-materials">';
+            data.materials.forEach((material, index) => {
+                html += `<li>${escapeHtml(material)}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        if (data.danielson_framework) {
+            html += `<div class="lesson-section"><h5>Danielson Framework Alignment</h5><p>${escapeHtml(data.danielson_framework)}</p></div>`;
+        }
+        if (data.costas_questioning) {
+            html += `<div class="lesson-section"><h5>Costa's Levels of Questioning</h5><p>${escapeHtml(data.costas_questioning)}</p></div>`;
+        }
+        if (data.worksheets) {
+            // Format worksheets with better structure - preserve line breaks and formatting
+            let worksheetsHtml = escapeHtml(data.worksheets);
+            // Convert double newlines to paragraph breaks
+            const paragraphs = worksheetsHtml.split('\n\n').filter(p => p.trim());
+            if (paragraphs.length > 1) {
+                worksheetsHtml = paragraphs.map(para => {
+                    // Check if paragraph starts with a number or letter (numbered list or question)
+                    if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/)) {
+                        return `<p class="worksheet-item">${para.replace(/\n/g, '<br>')}</p>`;
+                    }
+                    return `<p>${para.replace(/\n/g, '<br>')}</p>`;
+                }).join('');
+            } else {
+                // If no double newlines, just preserve single newlines
+                worksheetsHtml = worksheetsHtml.replace(/\n/g, '<br>');
+            }
+            html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+        }
+        if (data.rubrics) {
+            // Format rubrics with better structure - preserve line breaks and formatting
+            let rubricsHtml = escapeHtml(data.rubrics);
+            // Convert double newlines to paragraph breaks
+            const paragraphs = rubricsHtml.split('\n\n').filter(p => p.trim());
+            if (paragraphs.length > 1) {
+                rubricsHtml = paragraphs.map(para => {
+                    // Check if paragraph starts with a number, letter, or performance level (numbered list, criteria, or level)
+                    if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/) || para.match(/^(excellent|proficient|developing|beginning|advanced|novice|criteria)/i)) {
+                        return `<p class="rubric-item">${para.replace(/\n/g, '<br>')}</p>`;
+                    }
+                    return `<p>${para.replace(/\n/g, '<br>')}</p>`;
+                }).join('');
+            } else {
+                // If no double newlines, just preserve single newlines
+                rubricsHtml = rubricsHtml.replace(/\n/g, '<br>');
+            }
+            html += `<div class="lesson-section rubric-section"><h5>📋 Rubrics</h5><div class="rubric-content">${rubricsHtml}</div></div>`;
+        }
+        if (data.assessments) {
+            html += `<div class="lesson-section"><h5>Assessments</h5><p>${escapeHtml(data.assessments)}</p></div>`;
+        }
+        if (data.assessment) {
+            html += `<div class="lesson-section"><h5>Assessment</h5><p>${escapeHtml(data.assessment)}</p></div>`;
+        }
+        if (data.exit_ticket) {
+            html += `<div class="lesson-section"><h5>Exit Ticket</h5><p>${escapeHtml(data.exit_ticket)}</p></div>`;
+        }
+        html += '</div>'; // Close lesson-plan div
+        html += '</div>'; // Close widget-data-display div
+        console.log('✅ Lesson plan HTML generated, length:', html.length);
+        return html;
     }
-    
-    // Format based on widget type and data structure
-    let html = '<div class="widget-data-display">';
-    
-    // Special handling for fitness widget with workout data
-    if (widgetType === 'fitness' && data.exercises && Array.isArray(data.exercises)) {
-        html += '<div class="workout-plan">';
+    // Special handling for fitness widget FIRST (before health) to avoid misclassification
+    // Check fitness widget BEFORE health to prevent fitness widgets with meal data from being misclassified
+    if (widgetType === 'fitness' && (data.exercises || data.strength_training || data.cardio)) {
+        console.log('💪 Rendering fitness/workout widget with data:', {
+            hasExercises: !!data.exercises,
+            hasStrengthTraining: !!data.strength_training,
+            hasCardio: !!data.cardio,
+            exercisesCount: data.exercises ? data.exercises.length : 0,
+            dataKeys: Object.keys(data)
+        });
+        // Check if this is a preview/teaser widget for guest users
+        // For authenticated users, NEVER show preview (even if flag is set)
+        const isAuthenticated = !!localStorage.getItem('access_token');
+        const isPreview = !isAuthenticated && data.is_preview === true;
+        
+        html += '<div class="workout-plan' + (isPreview ? ' workout-plan-preview' : '') + '">';
+        
+        // Preview banner is now shown at the top level for all widgets
+        
         if (data.plan_name) {
             html += `<h4 class="workout-plan-title">${escapeHtml(data.plan_name)}</h4>`;
         }
-        html += '<ul class="workout-exercises">';
-        data.exercises.forEach((exercise, index) => {
-            html += '<li class="workout-exercise">';
-            html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
-            if (exercise.sets && exercise.reps) {
-                html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
-            }
-            if (exercise.description) {
-                html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
-            }
-            html += '</li>';
-        });
-        html += '</ul>';
+        
+        // Render Strength Training section if available
+        if (data.strength_training && Array.isArray(data.strength_training) && data.strength_training.length > 0) {
+            html += '<div class="workout-section"><h5 class="workout-section-title">💪 Strength Training</h5><ul class="workout-exercises">';
+            data.strength_training.forEach((exercise, index) => {
+                html += '<li class="workout-exercise">';
+                html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
+                if (exercise.sets && exercise.reps) {
+                    html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
+                }
+                if (exercise.duration) {
+                    html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
+                }
+                if (exercise.calories_burned) {
+                    html += `<span class="exercise-calories">Burns ${escapeHtml(exercise.calories_burned)} calories</span>`;
+                }
+                if (exercise.description) {
+                    html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+                }
+                html += '</li>';
+            });
+            html += '</ul></div>';
+        }
+        
+        // Render Cardio section if available
+        if (data.cardio && Array.isArray(data.cardio) && data.cardio.length > 0) {
+            html += '<div class="workout-section"><h5 class="workout-section-title">🏃 Cardio</h5><ul class="workout-exercises">';
+            data.cardio.forEach((exercise, index) => {
+                html += '<li class="workout-exercise">';
+                html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
+                if (exercise.sets && exercise.reps) {
+                    html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
+                }
+                if (exercise.duration) {
+                    html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
+                }
+                if (exercise.calories_burned) {
+                    html += `<span class="exercise-calories">Burns ${escapeHtml(exercise.calories_burned)} calories</span>`;
+                }
+                if (exercise.description) {
+                    html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+                }
+                html += '</li>';
+            });
+            html += '</ul></div>';
+        }
+        
+        // Fallback to general exercises list if no sections (backward compatibility)
+        if ((!data.strength_training || data.strength_training.length === 0) && 
+            (!data.cardio || data.cardio.length === 0) && 
+            data.exercises && Array.isArray(data.exercises) && data.exercises.length > 0) {
+            html += '<ul class="workout-exercises">';
+            data.exercises.forEach((exercise, index) => {
+                html += '<li class="workout-exercise">';
+                html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
+                if (exercise.exercise_type) {
+                    html += `<span class="exercise-type">${escapeHtml(exercise.exercise_type)}</span>`;
+                }
+                if (exercise.sets && exercise.reps) {
+                    html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
+                }
+                if (exercise.duration) {
+                    html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
+                }
+                if (exercise.calories_burned) {
+                    html += `<span class="exercise-calories">Burns ${escapeHtml(exercise.calories_burned)} calories</span>`;
+                }
+                if (exercise.description) {
+                    html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+                }
+                html += '</li>';
+            });
+            html += '</ul>';
+        }
+        
         if (data.description) {
             html += `<p class="workout-description">${escapeHtml(data.description)}</p>`;
         }
+        html += '</div>';
+    }
+    // Special handling for health/nutrition widget with meal plan data
+    else if (widgetType === 'health' && (data.meals || data.daily_calories || data.macros || data.days)) {
+        console.log('🍎 Rendering health/nutrition widget with data:', {
+            hasMeals: !!data.meals,
+            hasCalories: !!data.daily_calories,
+            hasMacros: !!data.macros,
+            hasDays: !!data.days,
+            dataKeys: Object.keys(data)
+        });
+        
+        html += '<div class="health-plan' + (isPreview ? ' health-plan-preview' : '') + '">';
+        
+        if (data.title) {
+            html += `<h4 class="health-plan-title">${escapeHtml(data.title)}</h4>`;
+        }
+        if (data.description) {
+            html += `<div class="health-section"><h5>📋 Description</h5><p>${escapeHtml(data.description)}</p></div>`;
+        }
+        if (data.daily_calories) {
+            html += `<div class="health-section"><h5>🔥 Daily Calories</h5><p class="health-calories">${escapeHtml(data.daily_calories)}</p></div>`;
+        }
+        if (data.macros && typeof data.macros === 'object') {
+            html += '<div class="health-section"><h5>📊 Macronutrients</h5><ul class="health-macros">';
+            if (data.macros.protein) {
+                html += `<li><strong>Protein:</strong> ${escapeHtml(data.macros.protein)}</li>`;
+            }
+            if (data.macros.carbs) {
+                html += `<li><strong>Carbs:</strong> ${escapeHtml(data.macros.carbs)}</li>`;
+            }
+            if (data.macros.fat) {
+                html += `<li><strong>Fat:</strong> ${escapeHtml(data.macros.fat)}</li>`;
+            }
+            html += '</ul></div>';
+        }
+        // Check for multi-day meal plan first
+        if (data.days && Array.isArray(data.days) && data.days.length > 0) {
+            html += '<div class="health-section"><h5>🍽️ Meal Plan</h5>';
+            data.days.forEach((dayData, dayIndex) => {
+                html += `<div class="health-day-plan">`;
+                html += `<h6 class="health-day-title">📅 ${escapeHtml(dayData.day)}</h6>`;
+                html += '<ul class="health-meals">';
+                if (dayData.meals && Array.isArray(dayData.meals)) {
+                    dayData.meals.forEach((meal, mealIndex) => {
+                        if (typeof meal === 'object' && meal.meal && meal.foods) {
+                            const caloriesText = meal.calories ? ` <span class="meal-calories">(${escapeHtml(meal.calories)})</span>` : '';
+                            html += `<li class="health-meal-item"><strong>${escapeHtml(meal.meal)}${caloriesText}:</strong> ${escapeHtml(meal.foods)}</li>`;
+                        } else if (typeof meal === 'string') {
+                            html += `<li class="health-meal-item">${escapeHtml(meal)}</li>`;
+                        }
+                    });
+                }
+                html += '</ul>';
+                html += '</div>';
+            });
+            html += '</div>';
+        } else if (data.meals && Array.isArray(data.meals) && data.meals.length > 0) {
+            // Single day format (backward compatibility)
+            html += '<div class="health-section"><h5>🍽️ Meals</h5><ul class="health-meals">';
+            data.meals.forEach((meal, index) => {
+                if (typeof meal === 'object' && meal.meal && meal.foods) {
+                    const caloriesText = meal.calories ? ` <span class="meal-calories">(${escapeHtml(meal.calories)})</span>` : '';
+                    html += `<li class="health-meal-item"><strong>${escapeHtml(meal.meal)}${caloriesText}:</strong> ${escapeHtml(meal.foods)}</li>`;
+                } else if (typeof meal === 'string') {
+                    html += `<li class="health-meal-item">${escapeHtml(meal)}</li>`;
+                }
+            });
+            html += '</ul></div>';
+        }
+        if (data.exercise_calories) {
+            html += `<div class="health-section"><h5>🔥 Exercise Calories</h5><p class="health-exercise-calories">Aim to burn ${escapeHtml(data.exercise_calories)} calories per day through exercise</p></div>`;
+        }
+        if (data.exercise_plan && data.exercise_plan.exercises && Array.isArray(data.exercise_plan.exercises) && data.exercise_plan.exercises.length > 0) {
+            html += '<div class="health-section"><h5>💪 Exercise Plan</h5><ul class="health-exercises">';
+            data.exercise_plan.exercises.forEach((exercise, index) => {
+                html += '<li class="health-exercise-item">';
+                html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
+                if (exercise.sets && exercise.reps) {
+                    html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
+                }
+                if (exercise.calories_burned) {
+                    html += `<span class="exercise-calories">Burns ${escapeHtml(exercise.calories_burned)} calories</span>`;
+                }
+                if (exercise.duration) {
+                    html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
+                }
+                if (exercise.description) {
+                    html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+                }
+                html += '</li>';
+            });
+            html += '</ul></div>';
+        }
+        
         html += '</div>';
     }
     // Handle arrays
@@ -1037,8 +2269,14 @@ function formatWidgetData(data, widgetType) {
         html += formatDataObject(data);
     }
     
-    html += '</div>';
-    return html;
+        html += '</div>';
+        return html;
+    } catch (error) {
+        console.error('❌ Error formatting widget data:', error);
+        console.error('Widget type:', widgetType);
+        console.error('Data:', data);
+        return '<div class="widget-data-display"><p class="widget-error">⚠️ Error displaying widget data. Please try again.</p></div>';
+    }
 }
 
 // Format a data object into HTML
@@ -2736,18 +3974,29 @@ async function toggleVoiceInput() {
             // Check recording state
             if (mediaRecorder.state === 'recording') {
                 console.log('Stopping MediaRecorder...');
-                // Request any remaining data before stopping
+                // CRITICAL for Safari: Request data multiple times before stopping
+                // Safari sometimes doesn't fire ondataavailable events properly
                 try {
-                    mediaRecorder.requestData();
+                    mediaRecorder.requestData(); // Request current data
                 } catch (e) {
                     console.warn('Could not request data:', e);
                 }
-                // Small delay to ensure data is collected
+                // Request data again after a short delay to ensure we get all chunks
+                setTimeout(() => {
+                    try {
+                        if (mediaRecorder.state === 'recording') {
+                            mediaRecorder.requestData();
+                        }
+                    } catch (e) {
+                        console.warn('Could not request data (second attempt):', e);
+                    }
+                }, 50);
+                // Small delay to ensure data is collected before stopping
                 setTimeout(() => {
                     if (mediaRecorder.state === 'recording') {
                         mediaRecorder.stop(); // This will trigger onstop handler
                     }
-                }, 100);
+                }, 150);
                 // Don't clean up here - let onstop handler do it after transcription
             } else if (mediaRecorder.state === 'inactive') {
                 console.log('MediaRecorder already stopped');
@@ -2812,7 +4061,7 @@ async function toggleVoiceInput() {
             
             // Use getUserMedia to capture audio, then send to backend for transcription
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
+                const originalStream = await navigator.mediaDevices.getUserMedia({ 
                     audio: {
                         echoCancellation: true,
                         noiseSuppression: true,
@@ -2822,10 +4071,10 @@ async function toggleVoiceInput() {
                 
                 console.log('Safari: Got microphone stream, starting audio capture');
                 console.log('Stream details:', {
-                    id: stream.id,
-                    active: stream.active,
-                    tracks: stream.getTracks().length,
-                    trackDetails: stream.getTracks().map(t => ({
+                    id: originalStream.id,
+                    active: originalStream.active,
+                    tracks: originalStream.getTracks().length,
+                    trackDetails: originalStream.getTracks().map(t => ({
                         id: t.id,
                         kind: t.kind,
                         label: t.label,
@@ -2835,57 +4084,18 @@ async function toggleVoiceInput() {
                     }))
                 });
                 
-                // Safari workaround: Create AudioContext and connect stream to activate audio pipeline
-                // This ensures Safari actually processes the audio
+                // Store original stream for cleanup
+                microphoneStream = originalStream;
+                
+                // CRITICAL for Safari: Use the original stream directly - don't process through AudioContext
+                // Safari's MediaRecorder has issues with processed streams and can cause tracks to end
+                // The error "A MediaStreamTrack ended due to a capture failure" happens when we use processed streams
                 let audioContext = null;
                 let audioSource = null;
                 let audioDestination = null;
+                const streamToRecord = originalStream; // Always use original stream for Safari
                 
-                // Store original stream for cleanup
-                microphoneStream = stream;
-                
-                try {
-                    console.log('🔧 Attempting to create AudioContext for Safari audio processing...');
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                    console.log('✅ AudioContext created, state:', audioContext.state);
-                    
-                    // Resume AudioContext if suspended (Safari sometimes starts suspended)
-                    if (audioContext.state === 'suspended') {
-                        console.log('⏸️ AudioContext suspended, resuming...');
-                        await audioContext.resume();
-                        console.log('✅ AudioContext resumed, state:', audioContext.state);
-                    }
-                    
-                    audioSource = audioContext.createMediaStreamSource(stream);
-                    audioDestination = audioContext.createMediaStreamDestination();
-                    
-                    // Connect source to destination to keep audio pipeline active
-                    audioSource.connect(audioDestination);
-                    console.log('✅ Audio nodes connected');
-                    
-                    // Use the destination stream for MediaRecorder (this ensures audio is processed)
-                    const processedStream = audioDestination.stream;
-                    console.log('✅ AudioContext created and stream connected');
-                    console.log('Processed stream details:', {
-                        id: processedStream.id,
-                        active: processedStream.active,
-                        tracks: processedStream.getTracks().length,
-                        trackStates: processedStream.getTracks().map(t => ({
-                            kind: t.kind,
-                            enabled: t.enabled,
-                            muted: t.muted,
-                            readyState: t.readyState
-                        }))
-                    });
-                    
-                    // Use the processed stream for recording
-                    stream = processedStream;
-                    console.log('✅ Using processed stream from AudioContext for MediaRecorder');
-                } catch (audioContextError) {
-                    console.error('❌ Could not create AudioContext, using original stream:', audioContextError);
-                    // Keep using original stream - AudioContext failed
-                    audioContext = null; // Make sure it's null if creation failed
-                }
+                console.log('ℹ️ Using original stream directly for Safari MediaRecorder compatibility');
                 
                 isVoiceActive = true;
                 updateVoiceButton();
@@ -2917,8 +4127,7 @@ async function toggleVoiceInput() {
                 }
                 
                 // Use the stream (either processed from AudioContext or original)
-                const streamToRecord = stream;
-                
+                // streamToRecord is already set above
                 const recorderOptions = mimeType ? { mimeType: mimeType } : {};
                 mediaRecorder = new MediaRecorder(streamToRecord, recorderOptions);
                 
@@ -2941,8 +4150,8 @@ async function toggleVoiceInput() {
                         size: event.data?.size || 0,
                         type: event.data?.type || 'unknown',
                         state: mediaRecorder.state,
-                        streamActive: stream.active,
-                        tracksActive: stream.getTracks().filter(t => t.readyState === 'live').length
+                        streamActive: streamToRecord.active,
+                        tracksActive: streamToRecord.getTracks().filter(t => t.readyState === 'live').length
                     });
                     
                     if (event.data && event.data.size > 0) {
@@ -2951,8 +4160,8 @@ async function toggleVoiceInput() {
                     } else {
                         console.warn('⚠️ Empty or invalid audio chunk received');
                         console.warn('Stream state:', {
-                            active: stream.active,
-                            tracks: stream.getTracks().map(t => ({
+                            active: streamToRecord.active,
+                            tracks: streamToRecord.getTracks().map(t => ({
                                 kind: t.kind,
                                 enabled: t.enabled,
                                 muted: t.muted,
@@ -3036,16 +4245,32 @@ async function toggleVoiceInput() {
                         return;
                     }
                     
-                    // Log warning if file is very small but still try to send it
+                    // Check if file is too small - Safari sometimes produces empty files
                     if (audioBlob.size < 100) {
-                        console.warn(`⚠️ Audio blob is very small (${audioBlob.size} bytes) - may not contain actual audio, but sending anyway`);
+                        console.warn(`⚠️ Audio blob is very small (${audioBlob.size} bytes) - Safari MediaRecorder may not be capturing audio properly`);
+                        updateAvatarStatus('ready', 'Audio capture failed. Safari voice input may not work. Please type your message instead.');
+                        if (microphoneStream) {
+                            microphoneStream.getTracks().forEach(track => track.stop());
+                        }
+                        microphoneStream = null;
+                        mediaRecorder = null;
+                        isVoiceActive = false;
+                        updateVoiceButton();
+                        alert('Safari voice input is not working properly. The audio file is too small (likely empty). Please type your message instead, or try using Chrome or Firefox for voice input.');
+                        return;
                     }
                     
                     // Send to backend for transcription
                     try {
                         const formData = new FormData();
-                        formData.append('audio', audioBlob, `recording.${mimeType.split('/')[1].split(';')[0]}`);
+                        // Ensure proper file extension for Whisper API
+                        // Extract format from mimeType (e.g., "audio/webm;codecs=opus" -> "webm")
+                        const format = mimeType.split('/')[1].split(';')[0];
+                        const filename = `recording.${format}`;
+                        formData.append('audio', audioBlob, filename);
                         formData.append('language', 'en');
+                        
+                        console.log(`📤 Sending audio for transcription: ${audioBlob.size} bytes, format: ${format}, filename: ${filename}`);
                         
                         const token = localStorage.getItem('access_token');
                         const headers = {};
@@ -3135,11 +4360,11 @@ async function toggleVoiceInput() {
                     await new Promise(resolve => setTimeout(resolve, 100));
                     
                     // Check stream state before starting
-                    const activeTracks = stream.getTracks().filter(t => t.readyState === 'live');
+                    const activeTracks = streamToRecord.getTracks().filter(t => t.readyState === 'live');
                     console.log('Stream state before recording:', {
-                        active: stream.active,
+                        active: streamToRecord.active,
                         activeTracks: activeTracks.length,
-                        trackStates: stream.getTracks().map(t => ({
+                        trackStates: streamToRecord.getTracks().map(t => ({
                             kind: t.kind,
                             enabled: t.enabled,
                             muted: t.muted,
@@ -3151,9 +4376,25 @@ async function toggleVoiceInput() {
                         throw new Error('No active audio tracks in stream');
                     }
                     
-                    // Start with timeslice - Safari needs this to fire ondataavailable
-                    mediaRecorder.start(250); // Fire every 250ms
-                    console.log('✅ MediaRecorder started with 250ms timeslice');
+                    // CRITICAL: Safari MediaRecorder needs timeslice to fire ondataavailable events
+                    // Without timeslice, Safari may not fire any events until stop() is called
+                    // Use a small timeslice (100ms) to ensure we get chunks frequently
+                    try {
+                        // Start with timeslice - Safari needs this to fire ondataavailable
+                        mediaRecorder.start(100); // Fire every 100ms for better Safari compatibility
+                        console.log('✅ MediaRecorder started with 100ms timeslice');
+                    } catch (timesliceError) {
+                        console.warn('⚠️ Timeslice not supported, trying without timeslice:', timesliceError);
+                        try {
+                            // Fallback: start without timeslice (may not work well in Safari)
+                            mediaRecorder.start();
+                            console.log('✅ MediaRecorder started without timeslice (may not get chunks in Safari)');
+                        } catch (noTimesliceError) {
+                            console.error('❌ Failed to start MediaRecorder with or without timeslice:', noTimesliceError);
+                            throw new Error(`MediaRecorder failed to start: ${noTimesliceError.message || noTimesliceError}`);
+                        }
+                    }
+                    
                     console.log('💡 Speak now, then click the microphone button again when you finish');
                     
                     // Show a visual indicator that recording is active
@@ -3161,7 +4402,7 @@ async function toggleVoiceInput() {
                     chatInput.placeholder = '🎤 Recording... Click microphone again to stop';
                     
                     // Monitor stream health
-                    stream.getTracks().forEach(track => {
+                    streamToRecord.getTracks().forEach(track => {
                         track.onended = () => {
                             console.error('❌ Audio track ended unexpectedly!');
                             updateAvatarStatus('ready', 'Microphone disconnected. Please try again.');
@@ -3177,11 +4418,25 @@ async function toggleVoiceInput() {
                     });
                 } catch (startError) {
                     console.error('Error starting MediaRecorder:', startError);
+                    // Clean up on error
+                    if (microphoneStream) {
+                        microphoneStream.getTracks().forEach(track => track.stop());
+                        microphoneStream = null;
+                    }
+                    if (mediaRecorder) {
+                        mediaRecorder = null;
+                    }
                     throw startError;
                 }
                 
             } catch (error) {
                 console.error('Safari microphone access error:', error);
+                console.error('Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack,
+                    toString: error.toString()
+                });
                 isVoiceActive = false;
                 updateVoiceButton();
                 updateAvatarStatus('ready', 'Microphone access denied');
@@ -3206,7 +4461,9 @@ async function toggleVoiceInput() {
                 } else if (error.name === 'NotFoundError') {
                     alert('No microphone found. Please check your microphone settings.');
                 } else {
-                    alert('Failed to access microphone. Please try again.');
+                    // Provide more specific error message
+                    const errorMessage = error.message || error.toString() || 'Unknown error';
+                    alert(`Failed to access microphone: ${errorMessage}\n\nSafari voice input may not be fully supported. Please try typing your message instead, or use Chrome or Firefox for voice input.`);
                 }
             }
         } else {
@@ -3283,7 +4540,14 @@ function clearChat() {
 
 // Open settings and load existing preferences
 async function openSettings() {
-    document.getElementById('settingsModal').classList.add('active');
+    const settingsModal = document.getElementById('settingsModal');
+    settingsModal.classList.add('active');
+    
+    // Scroll to top of modal content when opening
+    const modalBody = settingsModal.querySelector('.modal-body');
+    if (modalBody) {
+        modalBody.scrollTop = 0;
+    }
     
     // Load existing settings from localStorage
     const theme = localStorage.getItem('dashboard_theme') || 'dark';
@@ -3319,7 +4583,8 @@ async function openSettings() {
     
     // AI voice preferences
     document.getElementById('enableAIVoice').checked = localStorage.getItem('enable_ai_voice') !== 'false';
-    const voiceSpeed = parseInt(localStorage.getItem('voice_speed') || '100');
+    document.getElementById('enableOpeningPromptAutoplay').checked = localStorage.getItem('enable_opening_prompt_autoplay') !== 'false';
+    const voiceSpeed = parseInt(localStorage.getItem('voice_speed') || '1');
     const voicePitch = parseInt(localStorage.getItem('voice_pitch') || '100');
     const voiceLanguage = localStorage.getItem('voice_language') || 'en-US';
     document.getElementById('voiceSpeed').value = voiceSpeed;
@@ -3352,10 +4617,15 @@ async function openSettings() {
     
     // Load selected avatar and voice
     const selectedAvatarId = localStorage.getItem('selected_avatar_id') || '';
-    const selectedVoiceId = localStorage.getItem('selected_voice_id') || '';
+    const selectedVoiceId = localStorage.getItem('selected_voice_id') || '7';
     
     // Load avatars and voices from API
     await loadAvatarsAndVoices(selectedAvatarId, selectedVoiceId);
+    
+    // Load and display the selected avatar in the chat interface
+    if (selectedAvatarId) {
+        await loadAndDisplayAvatar(selectedAvatarId);
+    }
     
     // Try to load from backend API (for authenticated users)
     const token = localStorage.getItem('access_token');
@@ -3428,41 +4698,80 @@ async function loadAvatarsAndVoices(selectedAvatarId = '', selectedVoiceId = '')
     
     // Load avatars
     try {
+        console.log('🖼️ Fetching avatars from /api/v1/beta/avatars');
         const avatarsResponse = await fetch('/api/v1/beta/avatars', { headers });
+        console.log('🖼️ Avatars response status:', avatarsResponse.status, avatarsResponse.statusText);
+        
         if (avatarsResponse.ok) {
             availableAvatars = await avatarsResponse.json();
+            console.log('✅ Loaded avatars:', availableAvatars.length, 'avatars');
             populateAvatarSelect(selectedAvatarId);
         } else {
-            console.error('Failed to load avatars:', avatarsResponse.status);
-            document.getElementById('selectedAvatar').innerHTML = '<option value="">Failed to load avatars</option>';
+            const errorText = await avatarsResponse.text();
+            console.error('❌ Failed to load avatars:', avatarsResponse.status, errorText);
+            const select = document.getElementById('selectedAvatar');
+            if (select) {
+                select.innerHTML = `<option value="">Failed to load avatars (${avatarsResponse.status}). Check console.</option>`;
+            }
         }
     } catch (error) {
-        console.error('Error loading avatars:', error);
-        document.getElementById('selectedAvatar').innerHTML = '<option value="">Error loading avatars</option>';
+        console.error('❌ Error loading avatars:', error);
+        console.error('❌ Error details:', error.message, error.stack);
+        const select = document.getElementById('selectedAvatar');
+        if (select) {
+            select.innerHTML = '<option value="">Error loading avatars. Check console for details.</option>';
+        }
     }
     
     // Load voices
     try {
+        console.log('🔊 Fetching voices from /api/v1/beta/voices?limit=500');
         const voicesResponse = await fetch('/api/v1/beta/voices?limit=500', { headers });
+        console.log('🔊 Voices response status:', voicesResponse.status, voicesResponse.statusText);
+        
         if (voicesResponse.ok) {
             availableVoices = await voicesResponse.json();
-            console.log('Loaded voices:', availableVoices.length, availableVoices);
+            console.log('✅ Loaded voices:', availableVoices.length, 'voices');
+            console.log('🔊 First 3 voices:', availableVoices.slice(0, 3));
+            // Log detailed info about first few voices for debugging
+            if (availableVoices.length > 0) {
+                console.log('🔊 First voice details:', JSON.stringify(availableVoices[0], null, 2));
+                if (availableVoices.length > 1) {
+                    console.log('🔊 Second voice details:', JSON.stringify(availableVoices[1], null, 2));
+                }
+                // Log the last two voices (teacher/student)
+                if (availableVoices.length >= 2) {
+                    console.log('🔊 Second to last voice:', JSON.stringify(availableVoices[availableVoices.length - 2], null, 2));
+                    console.log('🔊 Last voice:', JSON.stringify(availableVoices[availableVoices.length - 1], null, 2));
+                }
+            }
             filteredVoices = [...availableVoices];
+            
             if (availableVoices.length === 0) {
-                console.warn('No voices returned from API');
-                document.getElementById('selectedVoice').innerHTML = '<option value="">No voices available. Using fallback voices...</option>';
-                // The backend should return fallback voices, but if not, we'll show a message
+                console.warn('⚠️ No voices returned from API');
+                const select = document.getElementById('selectedVoice');
+                if (select) {
+                    select.innerHTML = '<option value="">No voices available. Using fallback voices...</option>';
+                }
             } else {
+                console.log('🔊 Calling populateVoiceSelect with', selectedVoiceId);
                 populateVoiceSelect(selectedVoiceId);
             }
         } else {
             const errorText = await voicesResponse.text();
-            console.error('Failed to load voices:', voicesResponse.status, errorText);
-            document.getElementById('selectedVoice').innerHTML = `<option value="">Failed to load voices (${voicesResponse.status})</option>`;
+            console.error('❌ Failed to load voices:', voicesResponse.status, errorText);
+            const select = document.getElementById('selectedVoice');
+            if (select) {
+                select.innerHTML = `<option value="">Failed to load voices (${voicesResponse.status}). Check console.</option>`;
+            }
         }
     } catch (error) {
-        console.error('Error loading voices:', error);
-        document.getElementById('selectedVoice').innerHTML = '<option value="">Error loading voices. Check console for details.</option>';
+        console.error('❌ Error loading voices:', error);
+        console.error('❌ Error details:', error.message, error.stack);
+        const select = document.getElementById('selectedVoice');
+        if (select) {
+            select.innerHTML = '<option value="">Error loading voices. Check console for details.</option>';
+        }
     }
 }
 
@@ -3538,24 +4847,288 @@ function hideAvatarPreview() {
     document.getElementById('avatarPreview').style.display = 'none';
 }
 
-function populateVoiceSelect(selectedId = '') {
-    const select = document.getElementById('selectedVoice');
-    if (!select) {
-        console.error('Voice select element not found');
+// Load and display the selected avatar in the chat interface
+async function loadAndDisplayAvatar(avatarId) {
+    console.log('🖼️ loadAndDisplayAvatar called with avatarId:', avatarId);
+    const aiAvatar = document.getElementById('aiAvatar');
+    if (!aiAvatar) {
+        console.warn('⚠️ aiAvatar element not found');
         return;
     }
+    
+    console.log('✅ aiAvatar element found, availableAvatars count:', availableAvatars?.length || 0);
+    
+    // Find the avatar in available avatars
+    const avatar = availableAvatars.find(a => a.id === avatarId || a.id === String(avatarId));
+    console.log('🔍 Found avatar:', avatar ? 'Yes' : 'No', avatar);
+    
+    if (!avatar) {
+        console.warn('Avatar not found in available avatars, trying to fetch...');
+        // Try to fetch avatar details from API
+        const token = localStorage.getItem('access_token');
+        const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+        
+        try {
+            const response = await fetch(`/api/v1/beta/avatars`, { headers });
+            if (response.ok) {
+                const avatars = await response.json();
+                const foundAvatar = avatars.find(a => a.id === avatarId || a.id === String(avatarId));
+                if (foundAvatar) {
+                    renderAvatarInChat(foundAvatar);
+                    return;
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching avatar:', error);
+        }
+        
+        // Fallback to default
+        renderAvatarInChat(null);
+        return;
+    }
+    
+    renderAvatarInChat(avatar);
+}
+
+function renderAvatarInChat(avatar) {
+    const aiAvatar = document.getElementById('aiAvatar');
+    const avatarFace = aiAvatar?.querySelector('.avatar-face');
+    
+    console.log('🎨 renderAvatarInChat called with avatar:', avatar);
+    
+    if (!aiAvatar || !avatarFace) {
+        console.warn('⚠️ aiAvatar or avatarFace not found');
+        return;
+    }
+    
+    // Get avatar customization settings from localStorage
+    const avatarScale = parseFloat(localStorage.getItem('avatar_scale') || '1.0');
+    const avatarOpacity = parseInt(localStorage.getItem('avatar_opacity') || '100');
+    const avatarColor = localStorage.getItem('avatar_color') || '#ffffff';
+    
+    // Apply opacity (scale is handled by CSS animation for animated avatars)
+    aiAvatar.style.opacity = avatarOpacity / 100;
+    
+    if (!avatar) {
+        // Default placeholder
+        avatarFace.textContent = '👤';
+        avatarFace.style.backgroundImage = '';
+        avatarFace.style.backgroundSize = '';
+        avatarFace.style.backgroundPosition = '';
+        return;
+    }
+    
+    // Handle different avatar types
+    const avatarType = avatar.avatar_type || avatar.type || 'STATIC';
+    
+    // Only apply scale transform for static avatars (animated ones use CSS animations)
+    if (avatarType === 'STATIC') {
+        aiAvatar.style.transform = `scale(${avatarScale})`;
+    } else {
+        // For animated/3D avatars, store scale in CSS variable so animation can use it
+        aiAvatar.style.setProperty('--avatar-scale', avatarScale);
+        // Remove inline transform to let CSS animation handle it
+        aiAvatar.style.transform = '';
+    }
+    
+    // Add animation classes based on avatar type
+    aiAvatar.classList.remove('animated', 'three-d');
+    if (avatarType === 'ANIMATED') {
+        aiAvatar.classList.add('animated');
+    } else if (avatarType === 'THREE_D') {
+        aiAvatar.classList.add('three-d');
+    }
+    
+    // Try multiple sources for image URL
+    let imageUrl = avatar.image_url || 
+                   avatar.avatar_config?.url || 
+                   avatar.avatar_config?.image_url ||
+                   avatar.avatar_config?.preview_url ||
+                   avatar.avatar_config?.preview_image ||
+                   avatar.url ||
+                   avatar.preview_url ||
+                   avatar.preview_image;
+    
+    // If avatar_config is a string, try to parse it
+    if (!imageUrl && avatar.avatar_config) {
+        try {
+            const config = typeof avatar.avatar_config === 'string' 
+                ? JSON.parse(avatar.avatar_config) 
+                : avatar.avatar_config;
+            imageUrl = config?.url || config?.image_url || config?.preview_url || config?.preview_image;
+        } catch (e) {
+            console.warn('Could not parse avatar_config:', e);
+        }
+    }
+    
+    console.log('🖼️ Avatar rendering:', {
+        type: avatarType,
+        hasImageUrl: !!imageUrl,
+        imageUrl: imageUrl,
+        avatarConfig: avatar.avatar_config,
+        avatarName: avatar.avatar_name || avatar.name
+    });
+    
+    // Helper function to handle image load errors
+    const handleImageError = (imgUrl, avatarName, avatarType) => {
+        console.warn(`⚠️ Failed to load avatar image: ${imgUrl}`);
+        avatarFace.style.backgroundImage = '';
+        const fallbackEmoji = avatarType === 'THREE_D' ? '🎭' : 
+                             avatarType === 'ANIMATED' ? '🎬' : 
+                             getAvatarEmoji(avatarName) || '👤';
+        avatarFace.textContent = fallbackEmoji;
+    };
+    
+    if (avatarType === 'ANIMATED' || avatarType === 'THREE_D') {
+        // For animated/3D avatars, try to show preview image or use animated emoji
+        if (imageUrl) {
+            // Create an image element to test if the URL is valid
+            const testImg = new Image();
+            let imageLoaded = false;
+            
+            // Set a timeout to handle cases where the image never loads
+            const loadTimeout = setTimeout(() => {
+                if (!imageLoaded) {
+                    console.warn(`⏱️ Image load timeout for: ${imageUrl}`);
+                    const avatarName = avatar.avatar_name || avatar.name || '';
+                    handleImageError(imageUrl, avatarName, avatarType);
+                }
+            }, 3000); // 3 second timeout
+            
+            testImg.onload = () => {
+                imageLoaded = true;
+                clearTimeout(loadTimeout);
+                // Verify the image actually loaded by checking its dimensions
+                if (testImg.width === 0 && testImg.height === 0) {
+                    console.warn(`⚠️ Image loaded but has 0 dimensions: ${imageUrl}`);
+                    const avatarName = avatar.avatar_name || avatar.name || '';
+                    handleImageError(imageUrl, avatarName, avatarType);
+                    return;
+                }
+                // Image loaded successfully
+                avatarFace.textContent = '';
+                avatarFace.style.backgroundImage = `url(${imageUrl})`;
+                avatarFace.style.backgroundSize = 'cover';
+                avatarFace.style.backgroundPosition = 'center';
+                avatarFace.style.width = '100%';
+                avatarFace.style.height = '100%';
+                console.log('✅ Set animated avatar image:', imageUrl, `(${testImg.width}x${testImg.height})`);
+            };
+            testImg.onerror = (e) => {
+                imageLoaded = true; // Mark as handled
+                clearTimeout(loadTimeout);
+                // Image failed to load, use fallback
+                const avatarName = avatar.avatar_name || avatar.name || '';
+                console.error('❌ Image load error:', e, imageUrl);
+                handleImageError(imageUrl, avatarName, avatarType);
+            };
+            // Set src last to trigger load
+            testImg.src = imageUrl;
+        } else {
+            // For animated avatars without image, use a more prominent animated indicator
+            const avatarName = avatar.avatar_name || avatar.name || '';
+            if (avatarType === 'THREE_D') {
+                avatarFace.textContent = '🎭';
+            } else if (avatarName.toLowerCase().includes('animated')) {
+                avatarFace.textContent = '🎬';
+            } else {
+                avatarFace.textContent = getAvatarEmoji(avatarName) || '🎬';
+            }
+            avatarFace.style.backgroundImage = '';
+            console.warn('⚠️ Animated avatar has no image_url, using emoji fallback');
+        }
+    } else {
+        // STATIC avatar - use image
+        if (imageUrl) {
+            // Create an image element to test if the URL is valid
+            const testImg = new Image();
+            let imageLoaded = false;
+            
+            // Set a timeout to handle cases where the image never loads
+            const loadTimeout = setTimeout(() => {
+                if (!imageLoaded) {
+                    console.warn(`⏱️ Image load timeout for: ${imageUrl}`);
+                    const avatarName = avatar.avatar_name || avatar.name || 'Avatar';
+                    handleImageError(imageUrl, avatarName, 'STATIC');
+                }
+            }, 3000); // 3 second timeout
+            
+            testImg.onload = () => {
+                imageLoaded = true;
+                clearTimeout(loadTimeout);
+                // Verify the image actually loaded by checking its dimensions
+                if (testImg.width === 0 && testImg.height === 0) {
+                    console.warn(`⚠️ Image loaded but has 0 dimensions: ${imageUrl}`);
+                    const avatarName = avatar.avatar_name || avatar.name || 'Avatar';
+                    handleImageError(imageUrl, avatarName, 'STATIC');
+                    return;
+                }
+                // Image loaded successfully
+                avatarFace.textContent = '';
+                avatarFace.style.backgroundImage = `url(${imageUrl})`;
+                avatarFace.style.backgroundSize = 'cover';
+                avatarFace.style.backgroundPosition = 'center';
+                avatarFace.style.width = '100%';
+                avatarFace.style.height = '100%';
+                console.log('✅ Set static avatar image:', imageUrl, `(${testImg.width}x${testImg.height})`);
+            };
+            testImg.onerror = (e) => {
+                imageLoaded = true; // Mark as handled
+                clearTimeout(loadTimeout);
+                // Image failed to load, use fallback
+                const avatarName = avatar.avatar_name || avatar.name || 'Avatar';
+                console.error('❌ Image load error:', e, imageUrl);
+                handleImageError(imageUrl, avatarName, 'STATIC');
+            };
+            // Set src last to trigger load
+            testImg.src = imageUrl;
+        } else {
+            // Fallback to emoji or avatar name
+            const avatarName = avatar.avatar_name || avatar.name || 'Avatar';
+            avatarFace.textContent = getAvatarEmoji(avatarName);
+            avatarFace.style.backgroundImage = '';
+            console.warn('⚠️ Static avatar has no image_url, using emoji fallback:', avatarName);
+        }
+    }
+}
+
+function getAvatarEmoji(name) {
+    // Map avatar names to emojis
+    const nameLower = name.toLowerCase();
+    if (nameLower.includes('teacher') || nameLower.includes('educator')) return '👨‍🏫';
+    if (nameLower.includes('student') || nameLower.includes('learner')) return '👨‍🎓';
+    if (nameLower.includes('robot') || nameLower.includes('ai')) return '🤖';
+    if (nameLower.includes('assistant')) return '👤';
+    if (nameLower.includes('animated')) return '🎬';
+    if (nameLower.includes('3d') || nameLower.includes('three')) return '🎭';
+    return '👤';
+}
+
+function populateVoiceSelect(selectedId = '7') {
+    const select = document.getElementById('selectedVoice');
+    if (!select) {
+        console.error('❌ Voice select element not found');
+        return;
+    }
+    
+    console.log('🔊 populateVoiceSelect called with selectedId:', selectedId);
+    console.log('🔊 filteredVoices length:', filteredVoices?.length || 0);
     
     // Clear existing options
     select.innerHTML = '';
     
     if (!filteredVoices || filteredVoices.length === 0) {
-        console.warn('No voices to populate');
+        console.warn('⚠️ No voices to populate');
         select.innerHTML = '<option value="">No voices available</option>';
         return;
     }
     
-    console.log('Populating voice select with', filteredVoices.length, 'voices');
+    console.log('🔊 Populating voice select with', filteredVoices.length, 'voices');
     
+    // Remove any existing change listeners by cloning (simpler approach)
+    const hasExistingListener = select.hasAttribute('data-listener-attached');
+    
+    // Add all options
     filteredVoices.forEach((voice, index) => {
         const option = document.createElement('option');
         const voiceId = voice.id || voice.voice_id || `voice_${index}`;
@@ -3563,23 +5136,136 @@ function populateVoiceSelect(selectedId = '') {
         
         // Create a display name - build it step by step
         let displayName = '';
-        if (voice.name) {
-            displayName = voice.name;
-        } else if (voice.template_name) {
-            displayName = voice.template_name;
+        
+        // Check if name exists and is not generic
+        const name = voice.name || voice.template_name || '';
+        const isGenericName = name.toLowerCase().includes('default') || 
+                             name.toLowerCase() === 'default voice' ||
+                             (name.toLowerCase().includes('voice') && name.toLowerCase().trim() === 'voice') ||
+                             (name.toLowerCase().startsWith('voice ') && /^voice \d+$/.test(name.toLowerCase())) ||
+                             name.toLowerCase().includes('system voice');
+        
+        // Extract metadata and settings
+        const metadata = voice.metadata || {};
+        const settings = voice.settings || voice.template_settings || {};
+        const provider = metadata.provider || metadata.service || settings.provider || '';
+        const language = metadata.language || metadata.locale || settings.language || '';
+        const voiceName = metadata.name || metadata.voice_name || settings.name || '';
+        const role = metadata.role || settings.role || '';
+        const category = metadata.category || settings.category || '';
+        const gender = metadata.gender || settings.gender || '';
+        const accent = metadata.accent || settings.accent || '';
+        const style = metadata.style || settings.style || '';
+        
+        // Skip "system" as a provider name - it's too generic
+        const validProvider = provider && provider.toLowerCase() !== 'system' ? provider : '';
+        
+        if (name && !isGenericName) {
+            displayName = name;
+            // Only add provider if it's not "system" and not already in the name
+            if (validProvider && !name.toLowerCase().includes(validProvider.toLowerCase())) {
+                displayName += ` (${validProvider})`;
+            }
+            // Add language if available and not already in name
+            if (language && !name.toLowerCase().includes(language.toLowerCase())) {
+                displayName += ` - ${language}`;
+            }
         } else {
-            displayName = voice.voice_type ? `${voice.voice_type} Voice` : 'Voice';
-            if (voice.metadata?.provider) {
-                displayName += ` (${voice.metadata.provider})`;
+            // Build name from metadata
+            const nameParts = [];
+            
+            // Try to get name from metadata (skip if it's generic)
+            if (voiceName && !voiceName.toLowerCase().includes('default') && !voiceName.toLowerCase().includes('system')) {
+                nameParts.push(voiceName);
             }
-            if (voice.metadata?.language) {
-                displayName += ` - ${voice.metadata.language}`;
+            // Try role (e.g., "teacher", "student")
+            else if (role) {
+                nameParts.push(`${role.charAt(0).toUpperCase() + role.slice(1)} Voice`);
             }
+            // Try category
+            else if (category) {
+                nameParts.push(`${category.charAt(0).toUpperCase() + category.slice(1)} Voice`);
+            }
+            
+            // Add provider (skip "system")
+            if (validProvider) {
+                if (nameParts.length > 0) {
+                    nameParts.push(`(${validProvider})`);
+                } else {
+                    // Capitalize first letter
+                    const providerName = validProvider.charAt(0).toUpperCase() + validProvider.slice(1);
+                    nameParts.push(`${providerName} Voice`);
+                }
+            }
+            
+            // Add language
+            if (language) {
+                if (nameParts.length > 0) {
+                    nameParts.push(`- ${language}`);
+                } else {
+                    nameParts.push(`Voice (${language})`);
+                }
+            }
+            
+            // Try to extract more info from settings or metadata
+            if (nameParts.length === 0) {
+                // Try gender or accent
+                if (gender) {
+                    nameParts.push(`${gender.charAt(0).toUpperCase() + gender.slice(1)} Voice`);
+                } else if (accent) {
+                    nameParts.push(`${accent.charAt(0).toUpperCase() + accent.slice(1)} Voice`);
+                } else if (style) {
+                    nameParts.push(`${style.charAt(0).toUpperCase() + style.slice(1)} Voice`);
+                }
+                // Check if there's a voice type that's meaningful
+                else {
+                    const voiceType = voice.voice_type || '';
+                    if (voiceType && voiceType.toLowerCase() !== 'tts' && voiceType.toLowerCase() !== 'system' && voiceType.toLowerCase() !== 'default') {
+                        nameParts.push(`${voiceType} Voice`);
+                    } else if (voice.description && !voice.description.toLowerCase().includes('default') && !voice.description.toLowerCase().includes('default voice')) {
+                        // Use description if available and not generic
+                        nameParts.push(voice.description);
+                    } else {
+                        // Try to create a unique name based on available info
+                        const parts = [];
+                        if (language) parts.push(language);
+                        if (validProvider) parts.push(validProvider);
+                        // Check metadata quality or other fields
+                        if (metadata.quality && metadata.quality !== 'high') {
+                            parts.push(metadata.quality);
+                        }
+                        if (parts.length > 0) {
+                            nameParts.push(`${parts.join(' ')} Voice`);
+                        } else {
+                            // For voices with no distinguishing features, use a more descriptive name
+                            // Try to use template_id or voice_id to create unique names
+                            const voiceNum = voice.template_id || voice.voice_id || voice.id || index + 1;
+                            // Use a format like "Voice #1" or "Standard Voice 1"
+                            if (metadata.quality === 'high') {
+                                nameParts.push(`Standard Voice ${voiceNum}`);
+                            } else {
+                                nameParts.push(`Voice ${voiceNum}`);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            displayName = nameParts.join(' ');
         }
         
-        // Fallback if still empty
-        if (!displayName) {
+        // Final fallback if still empty
+        if (!displayName || displayName.trim() === '') {
             displayName = `Voice ${index + 1}`;
+        }
+        
+        // Log for first few voices to debug
+        if (index < 3) {
+            console.log(`🔊 Voice ${index} name generation:`, {
+                originalName: name,
+                metadata: metadata,
+                finalName: displayName
+            });
         }
         
         option.textContent = displayName;
@@ -3587,106 +5273,86 @@ function populateVoiceSelect(selectedId = '') {
         if ((voice.id === selectedId || voice.voice_id === selectedId || voiceId === selectedId) && selectedId) {
             option.selected = true;
             showVoicePreview(voice);
+            // Reset scroll to top immediately after selecting (prevents auto-scroll to selected item)
+            select.scrollTop = 0;
         }
         select.appendChild(option);
     });
     
-    // Ensure the select is visible and properly sized BEFORE cloning
+    // Ensure the select is visible and properly sized
     select.style.display = 'block';
     select.style.visibility = 'visible';
     select.style.height = '200px';
     select.style.minHeight = '200px';
     select.style.maxHeight = '300px';
     select.style.overflowY = 'auto';
+    select.style.width = '100%';
     
-    // Verify options are in the select before cloning
-    console.log('Options in select before clone:', select.options.length);
-    if (select.options.length === 0) {
-        console.error('No options in select! Cannot clone empty select.');
-        return;
+    // Only add change listener if not already attached
+    if (!hasExistingListener) {
+        select.setAttribute('data-listener-attached', 'true');
+        select.addEventListener('change', (e) => {
+            const voiceId = e.target.value;
+            console.log('🔊 Voice selected:', voiceId);
+            const voice = filteredVoices.find(v => {
+                const vId = v.id || v.voice_id;
+                return vId === voiceId || v.id === voiceId || v.voice_id === voiceId;
+            });
+            if (voice) {
+                console.log('🔊 Showing preview for voice:', voice.name || voice.id);
+                showVoicePreview(voice);
+            } else {
+                console.warn('⚠️ Voice not found for ID:', voiceId);
+                hideVoicePreview();
+            }
+        });
     }
     
-    // Remove existing change listener to avoid duplicates by cloning
-    // Clone AFTER adding all options
-    const newSelect = select.cloneNode(true);
-    
-    // Preserve all attributes including size
-    newSelect.setAttribute('size', select.getAttribute('size') || '8');
-    newSelect.setAttribute('id', select.id);
-    
-    // Preserve inline styles and add explicit height
-    newSelect.style.cssText = select.style.cssText;
-    newSelect.style.height = '200px';
-    newSelect.style.minHeight = '200px';
-    newSelect.style.maxHeight = '300px';
-    newSelect.style.overflowY = 'auto';
-    newSelect.style.display = 'block';
-    newSelect.style.visibility = 'visible';
-    
-    // Verify cloned select has options
-    console.log('Options in cloned select:', newSelect.options.length);
-    
-    // Replace the original with the cloned one
-    select.parentNode.replaceChild(newSelect, select);
-    
-    // Verify the new select is in the DOM
-    const verifySelect = document.getElementById('selectedVoice');
-    console.log('Verification - select in DOM:', !!verifySelect);
-    console.log('Verification - options count:', verifySelect?.options.length);
-    
-    // Add change listener to the new select
-    newSelect.addEventListener('change', (e) => {
-        const voiceId = e.target.value;
-        const voice = filteredVoices.find(v => {
-            const vId = v.id || v.voice_id;
-            return vId === voiceId || v.id === voiceId || v.voice_id === voiceId;
+    // Reset scroll position to top (after selected option might have scrolled it)
+    // Use multiple methods to ensure this happens after browser's auto-scroll
+    setTimeout(() => {
+        select.scrollTop = 0;
+        // Also use requestAnimationFrame as a backup
+        requestAnimationFrame(() => {
+            select.scrollTop = 0;
         });
-        if (voice) {
-            showVoicePreview(voice);
-        } else {
-            hideVoicePreview();
-        }
-    });
+    }, 0);
     
     // Log for debugging
-    console.log('Voice select populated with', newSelect.options.length, 'options');
-    console.log('First few options:', Array.from(newSelect.options).slice(0, 5).map(opt => opt.textContent));
+    console.log('✅ Voice select populated with', select.options.length, 'options');
+    console.log('🔊 First 5 options:', Array.from(select.options).slice(0, 5).map(opt => ({ value: opt.value, text: opt.textContent })));
+    console.log('🔊 Select element visible:', select.offsetHeight > 0, 'Height:', select.offsetHeight);
     
     // Force a reflow to ensure the select is visible
-    newSelect.offsetHeight;
-    
-    // Scroll to top if needed
-    if (newSelect.scrollTop !== undefined) {
-        newSelect.scrollTop = 0;
-    }
+    void select.offsetHeight;
     
     // Verify the select is in the DOM and visible
-    const computedStyle = window.getComputedStyle(newSelect);
+    const computedStyle = window.getComputedStyle(select);
     const selectInfo = {
-        inDOM: document.body.contains(newSelect),
+        inDOM: document.body.contains(select),
         display: computedStyle.display,
         visibility: computedStyle.visibility,
         height: computedStyle.height,
         width: computedStyle.width,
         opacity: computedStyle.opacity,
         zIndex: computedStyle.zIndex,
-        optionsCount: newSelect.options.length,
-        size: newSelect.getAttribute('size'),
-        clientHeight: newSelect.clientHeight,
-        offsetHeight: newSelect.offsetHeight,
-        scrollHeight: newSelect.scrollHeight
+        optionsCount: select.options.length,
+        size: select.getAttribute('size'),
+        clientHeight: select.clientHeight,
+        offsetHeight: select.offsetHeight,
+        scrollHeight: select.scrollHeight
     };
-    console.log('Select element details:', selectInfo);
+    console.log('🔊 Select element details:', selectInfo);
     
     // If the select has no height, force it
     if (parseInt(computedStyle.height) === 0 || computedStyle.height === 'auto') {
-        console.warn('Select has no height, setting explicit height');
-        newSelect.style.height = '200px';
-        newSelect.style.minHeight = '200px';
+        console.warn('⚠️ Select has no height, setting explicit height');
+        select.style.height = '200px';
+        select.style.minHeight = '200px';
     }
     
     // Ensure parent is visible
-    const parent = newSelect.parentElement;
+    const parent = select.parentElement;
     if (parent) {
         const parentStyle = window.getComputedStyle(parent);
         const parentInfo = {
@@ -3712,13 +5378,13 @@ function populateVoiceSelect(selectedId = '') {
     }
     
     // Add a visible border to help debug visibility
-    newSelect.style.border = '2px solid #4a90e2';
-    newSelect.style.backgroundColor = 'var(--bg-secondary)';
+    select.style.border = '2px solid #4a90e2';
+    select.style.backgroundColor = 'var(--bg-secondary)';
     
     // Log the actual rendered dimensions
     setTimeout(() => {
-        const rect = newSelect.getBoundingClientRect();
-        console.log('Select bounding rect:', {
+        const rect = select.getBoundingClientRect();
+        console.log('🔊 Select bounding rect:', {
             top: rect.top,
             left: rect.left,
             width: rect.width,
@@ -3728,18 +5394,15 @@ function populateVoiceSelect(selectedId = '') {
         
         // If height is 0, there's a rendering issue
         if (rect.height === 0) {
-            console.error('Select has 0 height! This is a rendering issue.');
+            console.error('⚠️ Select has 0 height! This is a rendering issue.');
             // Try forcing a different display mode
-            newSelect.style.display = 'block';
-            newSelect.style.position = 'relative';
-            newSelect.style.height = '200px';
+            select.style.display = 'block';
+            select.style.position = 'relative';
+            select.style.height = '200px';
         }
         
-        // Try to scroll the select into view if it's in a modal
-        newSelect.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        // Also try focusing it briefly to ensure it's visible
-        newSelect.focus();
-        setTimeout(() => newSelect.blur(), 100);
+        // Don't scroll into view or focus on initial load - this causes the modal to jump to the voice section
+        // Only focus/scroll when user actively interacts with the voice select
     }, 100);
 }
 
@@ -3747,10 +5410,675 @@ function showVoicePreview(voice) {
     const preview = document.getElementById('voicePreview');
     const previewName = document.getElementById('voicePreviewName');
     const previewDescription = document.getElementById('voicePreviewDescription');
+    const previewPlayButton = document.getElementById('voicePreviewPlayButton');
     
     previewName.textContent = voice.name || `Voice ${voice.id}`;
     previewDescription.textContent = voice.description || `${voice.voice_type} voice${voice.metadata?.provider ? ` (${voice.metadata.provider})` : ''}${voice.metadata?.language ? ` - ${voice.metadata.language}` : ''}`;
     preview.style.display = 'block';
+    
+    // Store the voice for playback
+    if (previewPlayButton) {
+        previewPlayButton.dataset.voiceId = voice.id || voice.voice_id;
+        previewPlayButton.dataset.voiceData = JSON.stringify(voice);
+    }
+}
+
+// Helper function to get message text from stored ID
+function speakMessageFromId(messageId) {
+    const text = window[`msg_${messageId}`];
+    if (!text) {
+        console.error('Message not found:', messageId);
+        return;
+    }
+    // Find the button that was clicked
+    const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
+    const button = messageDiv?.querySelector('.message-speaker-btn');
+    if (button) {
+        speakMessage(button, text);
+    }
+}
+
+// Global audio manager to prevent overlapping audio
+if (!window.audioManager) {
+    window.audioManager = {
+        currentAudio: null,
+        currentButton: null,
+        currentUtterance: null,
+        currentAudioUrl: null,
+        stopAll: function() {
+            // Stop any playing audio
+            if (this.currentAudio) {
+                try {
+                    // Remove all event listeners to prevent restart
+                    const audio = this.currentAudio;
+                    // Remove handlers
+                    if (audio._handleEnded) {
+                        audio.onended = null;
+                        audio._handleEnded = null;
+                    }
+                    if (audio._handleError) {
+                        audio.onerror = null;
+                        audio._handleError = null;
+                    }
+                    audio.onplay = null;
+                    audio.onpause = null;
+                    // Pause and reset
+                    audio.pause();
+                    audio.currentTime = 0;
+                    // Load empty source to fully stop and prevent any events
+                    audio.src = '';
+                    audio.load(); // Force reload with empty source
+                } catch (e) {
+                    console.warn('Error stopping audio:', e);
+                }
+                this.currentAudio = null;
+            }
+            // Revoke audio URL if exists
+            if (this.currentAudioUrl) {
+                try {
+                    URL.revokeObjectURL(this.currentAudioUrl);
+                } catch (e) {
+                    console.warn('Error revoking audio URL:', e);
+                }
+                this.currentAudioUrl = null;
+            }
+            // Stop browser TTS
+            if ('speechSynthesis' in window) {
+                try {
+                    window.speechSynthesis.cancel();
+                } catch (e) {
+                    console.warn('Error canceling speech synthesis:', e);
+                }
+            }
+            if (this.currentUtterance) {
+                this.currentUtterance = null;
+            }
+            // Reset button states
+            if (this.currentButton) {
+                const originalText = this.currentButton.getAttribute('data-original-text') || '🔊';
+                this.currentButton.classList.remove('playing');
+                this.currentButton.textContent = originalText;
+                // Clear stored audio URL from button
+                this.currentButton.removeAttribute('data-audio-url');
+                this.currentButton = null;
+            }
+            // Reset all playing buttons
+            document.querySelectorAll('.message-speaker-btn.playing').forEach(btn => {
+                const originalText = btn.getAttribute('data-original-text') || '🔊';
+                btn.classList.remove('playing');
+                btn.textContent = originalText;
+                btn.removeAttribute('data-audio-url');
+            });
+        }
+    };
+}
+
+// Speak an AI message using Azure TTS
+// Clean markdown formatting from text before TTS (remove **, *, _, etc.)
+function cleanTextForTTS(text) {
+    if (!text) return text;
+    // Remove markdown bold markers (**text** or *text*)
+    let cleaned = text.replace(/\*\*([^*]+)\*\*/g, '$1'); // Remove **bold**
+    cleaned = cleaned.replace(/\*([^*]+)\*/g, '$1'); // Remove *italic* (but not **bold** which was already removed)
+    // Remove markdown italic markers (_text_)
+    cleaned = cleaned.replace(/_([^_]+)_/g, '$1'); // Remove _italic_
+    // Remove markdown headers (# ## ###)
+    cleaned = cleaned.replace(/^#{1,6}\s+/gm, ''); // Remove # headers at start of line
+    // Remove markdown links [text](url) but keep the text
+    cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1'); // Keep link text, remove URL
+    // Remove markdown code blocks ```code``` but keep the code
+    cleaned = cleaned.replace(/```[\s\S]*?```/g, ''); // Remove code blocks
+    cleaned = cleaned.replace(/`([^`]+)`/g, '$1'); // Remove inline code markers
+    // Remove any remaining standalone markdown markers
+    cleaned = cleaned.replace(/\*\*/g, ''); // Remove any remaining **
+    cleaned = cleaned.replace(/\*/g, ''); // Remove any remaining *
+    cleaned = cleaned.replace(/__/g, ''); // Remove any remaining __
+    cleaned = cleaned.replace(/_/g, ''); // Remove any remaining _
+    // Clean up extra whitespace
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    return cleaned;
+}
+
+async function speakMessage(button, text, autoplay = false, useFullText = false) {
+    if (!text || !text.trim()) {
+        console.warn('No text to speak');
+        return;
+    }
+    
+    // Clean markdown formatting from text before sending to TTS
+    text = cleanTextForTTS(text);
+    
+    // Stop any currently playing audio first
+    window.audioManager.stopAll();
+    
+    // Update button state
+    const originalText = button.textContent.trim();
+    button.setAttribute('data-original-text', originalText);
+    const isPlaying = button.classList.contains('playing');
+    
+    // If this button is already playing, pause/stop it
+    if (isPlaying && window.audioManager.currentButton === button) {
+        // Fully stop the audio
+        if (window.audioManager.currentAudio) {
+            try {
+                const audio = window.audioManager.currentAudio;
+                // Remove event listeners to prevent auto-restart
+                if (audio._handleEnded) {
+                    audio.onended = null;
+                    audio._handleEnded = null;
+                }
+                if (audio._handleError) {
+                    audio.onerror = null;
+                    audio._handleError = null;
+                }
+                audio.onplay = null;
+                audio.pause();
+                audio.currentTime = 0;
+                // Clear source to fully stop
+                audio.src = '';
+                audio.load(); // Force reload with empty source
+            } catch (e) {
+                console.warn('Error pausing audio:', e);
+            }
+        }
+        window.audioManager.stopAll();
+        return;
+    }
+    
+    // Check if there's a stored audio for this button (from a previous autoplay failure)
+    const storedAudioUrl = button.getAttribute('data-audio-url');
+    if (storedAudioUrl && window.audioManager.currentAudio) {
+        // Check if this is the same button that had autoplay blocked
+        const storedButton = window.audioManager.currentButton;
+        if (storedButton === button || (storedButton && storedButton.getAttribute('data-audio-url') === storedAudioUrl)) {
+            // Try to play the stored audio (user clicked after autoplay was blocked)
+            const audio = window.audioManager.currentAudio;
+            if (audio && (audio.readyState >= 2 || audio.readyState === 0)) { // HAVE_CURRENT_DATA or HAVE_NOTHING
+                // Mark this button as the current one
+                window.audioManager.currentButton = button;
+                button.classList.add('playing');
+                button.textContent = '⏸️';
+                button.disabled = false;
+                
+                audio.play().then(() => {
+                    // Success - audio is playing
+                    console.log('✅ Playing stored audio after user click');
+                }).catch(err => {
+                    console.error('Error playing stored audio:', err);
+                    // Clear stored audio and continue with normal flow to fetch new
+                    button.removeAttribute('data-audio-url');
+                    if (window.audioManager.currentAudio === audio) {
+                        window.audioManager.currentAudio = null;
+                    }
+                    if (window.audioManager.currentButton === button) {
+                        window.audioManager.currentButton = null;
+                    }
+                    // Continue with normal flow below to fetch new audio
+                    // Reset button state first
+                    const originalText = button.getAttribute('data-original-text') || '🔊';
+                    button.classList.remove('playing');
+                    button.textContent = originalText;
+                });
+                // If audio is ready, try to play it and return
+                if (audio.readyState >= 2 || audio.readyState === 0) {
+                    return;
+                }
+            } else {
+                // Audio not ready, clear it and fetch new
+                button.removeAttribute('data-audio-url');
+                if (window.audioManager.currentAudio === audio) {
+                    window.audioManager.currentAudio = null;
+                }
+            }
+        }
+    }
+    
+    // Mark this button as the current one
+    window.audioManager.currentButton = button;
+    button.classList.add('playing');
+    button.textContent = '⏸️';
+    button.disabled = true;
+    
+    // CRITICAL: Create audio element IMMEDIATELY (synchronously) to preserve user interaction context
+    // This must happen before any async operations
+    const audio = new Audio();
+    window.audioManager.currentAudio = audio;
+    
+    try {
+        // Get voice settings from localStorage
+        const selectedVoiceId = localStorage.getItem('selected_voice_id') || '7';
+        // Convert frontend speed (1-100%) to backend rate (0.2-2.0, which is 20%-200% in Azure TTS)
+        // Simple linear mapping: 1% → 0.2 rate (20%), 100% → 2.0 rate (200%)
+        // Formula: rate = 0.2 + (speed_percent - 1) * 1.8 / 99
+        const speedPercent = parseFloat(localStorage.getItem('voice_speed') || '1');
+        // Clamp speed to valid range (1-100)
+        const clampedSpeed = Math.max(1, Math.min(100, speedPercent));
+        const voiceSpeed = 0.2 + (clampedSpeed - 1) * 1.8 / 99; // Map 1-100% to 0.2-2.0 rate (20%-200%)
+        const voicePitch = parseFloat(localStorage.getItem('voice_pitch') || '100') / 100; // Convert percentage to pitch
+        const voiceLanguage = localStorage.getItem('voice_language') || 'en-US';
+        
+        console.log('🔊 Speaking message with voice settings:', {
+            voice_id: selectedVoiceId,
+            speed: voiceSpeed,
+            pitch: voicePitch,
+            language: voiceLanguage
+        });
+        
+        // Audio element already created above - configure it now
+        audio.preload = 'auto';
+        // Try to "prime" the audio element by calling load() within interaction context
+        // This might help Safari preserve the interaction context for later play()
+        try {
+            audio.load(); // Prime the audio element
+        } catch (e) {
+            // Ignore errors - load() might fail if no src is set yet
+        }
+        
+        // Get token for authentication
+        const token = localStorage.getItem('access_token');
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        // Use Azure TTS synthesize endpoint
+        // If we have a voice_id, use the voice-sample endpoint which maps to the correct Azure voice
+        let response;
+        if (selectedVoiceId) {
+            // Use voice-sample endpoint which handles voice_id mapping
+            // Pass user's saved preferences to override database settings
+            // For autoplay, use shorter text to speed up fetch (preserve user interaction context)
+            // Use first 1000 chars for autoplay to make fetch very fast, full 10000 for manual playback or opening prompt
+            // Exception: if useFullText is true (e.g., for opening prompt or lesson plans), use more text (up to 5000 chars for autoplay, 10000 for manual)
+            const isAutoplay = autoplay === true;
+            // For autoplay: 1000 chars (fast), 5000 chars if useFullText (for lesson plans), 10000 for manual playback
+            const maxTextLength = (isAutoplay && !useFullText) ? 1000 : (isAutoplay && useFullText) ? 5000 : 10000;
+            const params = new URLSearchParams({
+                voice_id: selectedVoiceId,
+                text: text.substring(0, maxTextLength), // Shorter text for faster autoplay
+                rate: voiceSpeed.toString(), // User's saved speed preference
+                pitch: ((voicePitch - 1) * 50).toString() // Convert percentage to semitones (-50 to +50)
+            });
+            response = await fetch(`${API_BASE_URL}/text-to-speech/voice-sample?${params.toString()}`, {
+                method: 'POST',
+                headers: headers
+            });
+        } else {
+            // For autoplay, use shorter text to speed up fetch
+            // Exception: if useFullText is true (e.g., for opening prompt or lesson plans), use more text (up to 5000 chars for autoplay, 10000 for manual)
+            const isAutoplay = autoplay === true;
+            // For autoplay: 1000 chars (fast), 5000 chars if useFullText (for lesson plans), 10000 for manual playback
+            const maxTextLength = (isAutoplay && !useFullText) ? 1000 : (isAutoplay && useFullText) ? 5000 : 10000;
+            // Use synthesize endpoint with direct parameters
+            const params = new URLSearchParams({
+                text: text.substring(0, maxTextLength), // Shorter text for faster autoplay
+                rate: voiceSpeed.toString(),
+                pitch: ((voicePitch - 1) * 50).toString(), // Convert to semitones (-50 to +50)
+                language: voiceLanguage
+            });
+            response = await fetch(`${API_BASE_URL}/text-to-speech/synthesize?${params.toString()}`, {
+                method: 'POST',
+                headers: headers
+            });
+        }
+        
+        if (!response.ok) {
+            // Try to get error details from response
+            let errorDetail = `TTS request failed: ${response.status}`;
+            try {
+                const errorData = await response.json();
+                errorDetail = errorData.detail || errorData.message || errorDetail;
+                console.error('❌ TTS Error Response:', errorData);
+            } catch (e) {
+                const errorText = await response.text();
+                console.error('❌ TTS Error Response (text):', errorText);
+                errorDetail = errorText || errorDetail;
+            }
+            throw new Error(errorDetail);
+        }
+        
+        // Get audio blob
+        const audioBlob = await response.blob();
+        const blobSize = audioBlob.size;
+        const blobSizeKB = (blobSize / 1024).toFixed(2);
+        console.log(`🔊 Audio blob received: ${blobSizeKB} KB (${blobSize} bytes) for ${text.substring(0, 50)}...`);
+        
+        // Check if blob seems too small (might be truncated)
+        // MP3 audio at 16kHz 64kbps: ~8 KB per second of audio
+        // For 5000 chars at slow rate (0.2x), expect ~60-90 seconds = ~480-720 KB
+        // For 5000 chars at normal rate (1.0x), expect ~12-15 seconds = ~96-120 KB
+        const expectedMinSize = Math.max(10, (text.length / 100) * 8); // Rough estimate: 8 KB per 100 chars
+        if (blobSize < expectedMinSize) {
+            console.warn(`⚠️ Audio blob seems small (${blobSizeKB} KB) for ${text.length} characters. Expected at least ~${(expectedMinSize/1024).toFixed(2)} KB. May be truncated.`);
+        }
+        
+        const audioUrl = URL.createObjectURL(audioBlob);
+        window.audioManager.currentAudioUrl = audioUrl; // Store URL to revoke later
+        
+        // CRITICAL: Set audio source and call play() IMMEDIATELY in the same synchronous operation
+        // Safari requires play() to be called synchronously within user interaction context
+        // We must do this in one synchronous block - no async operations, no load(), no delays
+        // Set up event handlers FIRST (before setting src) to preserve context
+        const handleEnded = () => {
+            // Check if audio was manually stopped (src cleared)
+            if (!audio.src || audio.src === '' || audio.src === window.location.href) {
+                return; // Audio was stopped, don't process ended event
+            }
+            
+            // Log audio completion info
+            const duration = audio.duration || 0;
+            const currentTime = audio.currentTime || 0;
+            console.log(`✅ Audio playback completed: duration=${duration.toFixed(2)}s, currentTime=${currentTime.toFixed(2)}s`);
+            
+            // Check if audio ended prematurely (duration is much longer than currentTime)
+            if (duration > 0 && currentTime > 0 && (duration - currentTime) > 1) {
+                console.warn(`⚠️ Audio may have ended prematurely: duration=${duration.toFixed(2)}s but stopped at ${currentTime.toFixed(2)}s`);
+            }
+            
+            const originalText = button.getAttribute('data-original-text') || '🔊';
+            button.classList.remove('playing');
+            button.textContent = originalText;
+            button.disabled = false;
+            // Revoke URL after a delay to ensure audio is fully done
+            setTimeout(() => {
+                if (window.audioManager.currentAudioUrl === audioUrl) {
+                    URL.revokeObjectURL(audioUrl);
+                    window.audioManager.currentAudioUrl = null;
+                }
+            }, 100);
+            // Clear manager state
+            if (window.audioManager.currentAudio === audio) {
+                window.audioManager.currentAudio = null;
+            }
+            if (window.audioManager.currentButton === button) {
+                window.audioManager.currentButton = null;
+            }
+        };
+        
+        const handleError = (e) => {
+            // Check if audio was manually stopped
+            if (!audio.src || audio.src === '' || audio.src === window.location.href) {
+                return; // Audio was stopped, don't process error
+            }
+            console.error('Error playing audio:', e);
+            const originalText = button.getAttribute('data-original-text') || '🔊';
+            button.classList.remove('playing');
+            button.textContent = originalText;
+            button.disabled = false;
+            // Revoke URL after a delay
+            setTimeout(() => {
+                if (window.audioManager.currentAudioUrl === audioUrl) {
+                    URL.revokeObjectURL(audioUrl);
+                    window.audioManager.currentAudioUrl = null;
+                }
+            }, 100);
+            // Clear manager state
+            if (window.audioManager.currentAudio === audio) {
+                window.audioManager.currentAudio = null;
+            }
+            if (window.audioManager.currentButton === button) {
+                window.audioManager.currentButton = null;
+            }
+            // Only show alert for actual errors, not autoplay restrictions
+            if (e.error && e.error.code !== 20) { // 20 is MEDIA_ERR_ABORTED
+                console.error('Audio playback error:', e.error);
+            }
+        };
+        
+        // Store handlers BEFORE setting src to preserve interaction context
+        audio.onended = handleEnded;
+        audio.onerror = handleError;
+        audio._handleEnded = handleEnded;
+        audio._handleError = handleError;
+        
+        button.disabled = false;
+        
+        // CRITICAL: Set src and call play() IMMEDIATELY in one synchronous block
+        // NO delays, NO load(), NO async operations between these two lines
+        // Safari requires play() to be called synchronously within user interaction context
+        audio.src = audioUrl;
+        
+        console.log('🔊 Attempting to play audio immediately (within user interaction context)...', {
+            audioReadyState: audio.readyState,
+            audioSrc: audio.src.substring(0, 50) + '...',
+            hasUserInteraction: true
+        });
+        
+        // CRITICAL: Call play() IMMEDIATELY after setting src - no delays whatsoever
+        // Safari will queue the play() call and execute it when the audio is ready
+        // This MUST happen synchronously - even though blob fetch was async, we call play() NOW
+        let playPromise;
+        try {
+            // Call play() immediately - Safari will queue this if audio isn't ready yet
+            // This MUST happen synchronously - no await, no setTimeout, no delays
+            playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                // Handle the promise asynchronously - don't await it
+                // Safari will resolve it when audio is ready, or reject if autoplay is blocked
+                playPromise.then(() => {
+                    console.log('✅ Audio playback started successfully');
+                    // Success - store audio URL in button
+                    button.setAttribute('data-audio-url', audioUrl);
+                }).catch((playError) => {
+                    console.error('❌ Audio play error:', {
+                        name: playError.name,
+                        message: playError.message
+                    });
+                    
+                    // Check if it's an autoplay restriction
+                    if (playError.name === 'NotAllowedError' || playError.name === 'NotSupportedError') {
+                        console.log('⚠️ Autoplay blocked - user interaction may have expired. Audio ready for manual play.');
+                        // Don't show error - just reset button state but keep audio ready
+                        const originalText = button.getAttribute('data-original-text') || '🔊';
+                        button.classList.remove('playing');
+                        button.textContent = originalText;
+                        button.disabled = false;
+                        // Store audio URL in button so user can click to play
+                        button.setAttribute('data-audio-url', audioUrl);
+                        // Keep audio and URL in manager for when user clicks
+                        // Don't revoke URL yet - user might click to play
+                    } else {
+                        // Other errors - log and reset
+                        console.error('Error playing audio:', playError);
+                        const originalText = button.getAttribute('data-original-text') || '🔊';
+                        button.classList.remove('playing');
+                        button.textContent = originalText;
+                        button.disabled = false;
+                        if (window.audioManager.currentAudio === audio) {
+                            window.audioManager.currentAudio = null;
+                        }
+                        if (window.audioManager.currentButton === button) {
+                            window.audioManager.currentButton = null;
+                        }
+                        setTimeout(() => {
+                            if (window.audioManager.currentAudioUrl === audioUrl) {
+                                URL.revokeObjectURL(audioUrl);
+                                window.audioManager.currentAudioUrl = null;
+                            }
+                        }, 100);
+                    }
+                });
+            } else {
+                // Play promise is undefined (older browser), audio should be playing
+                console.log('✅ Audio playback started (no promise)');
+                button.setAttribute('data-audio-url', audioUrl);
+                // Create a resolved promise for consistency
+                playPromise = Promise.resolve();
+            }
+        } catch (playError) {
+            // Synchronous error (shouldn't happen with modern browsers, but handle it)
+            console.error('❌ Synchronous audio play error:', {
+                name: playError.name,
+                message: playError.message
+            });
+            
+            // Check if it's an autoplay restriction
+            if (playError.name === 'NotAllowedError' || playError.name === 'NotSupportedError') {
+                console.log('⚠️ Autoplay blocked - user interaction may have expired. Audio ready for manual play.');
+                const originalText = button.getAttribute('data-original-text') || '🔊';
+                button.classList.remove('playing');
+                button.textContent = originalText;
+                button.disabled = false;
+                button.setAttribute('data-audio-url', audioUrl);
+                // Create a rejected promise so widget updates can proceed
+                playPromise = Promise.reject(playError);
+            } else {
+                // Other errors - log and reset
+                const originalText = button.getAttribute('data-original-text') || '🔊';
+                button.classList.remove('playing');
+                button.textContent = originalText;
+                button.disabled = false;
+                if (window.audioManager.currentAudio === audio) {
+                    window.audioManager.currentAudio = null;
+                }
+                if (window.audioManager.currentButton === button) {
+                    window.audioManager.currentButton = null;
+                }
+                setTimeout(() => {
+                    if (window.audioManager.currentAudioUrl === audioUrl) {
+                        URL.revokeObjectURL(audioUrl);
+                        window.audioManager.currentAudioUrl = null;
+                    }
+                }, 100);
+                // Create a rejected promise so widget updates can proceed
+                playPromise = Promise.reject(playError);
+            }
+        }
+        
+        // CRITICAL: Return the play promise immediately
+        // This allows widget updates to wait for the play() call to complete
+        // The promise resolves/rejects when play() is called, not when audio finishes loading
+        // Ensure playPromise is always defined before returning
+        if (!playPromise) {
+            playPromise = Promise.resolve(); // Fallback if somehow undefined
+        }
+        return playPromise;
+        
+    } catch (error) {
+        console.error('Error speaking message:', error);
+        const originalText = button.getAttribute('data-original-text') || '🔊';
+        button.classList.remove('playing');
+        button.textContent = originalText;
+        button.disabled = false;
+        // Clear manager state
+        if (window.audioManager.currentButton === button) {
+            window.audioManager.currentButton = null;
+        }
+        
+        // Return a rejected promise so widget updates can proceed
+        // Note: Fallback to browser TTS removed - widget updates need to proceed immediately
+        return Promise.reject(error);
+    }
+}
+
+async function playVoiceSample(voice) {
+    const playButton = document.getElementById('voicePreviewPlayButton');
+    
+    // Update button state
+    if (playButton) {
+        playButton.disabled = true;
+        playButton.textContent = 'Loading...';
+    }
+    
+    try {
+        // Get voice ID
+        const voiceId = voice.id || voice.voice_id || '';
+        if (!voiceId) {
+            throw new Error('Voice ID is required');
+        }
+        
+        // Get token for authentication
+        const token = localStorage.getItem('access_token');
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        // Call backend Azure TTS endpoint
+        const response = await fetch(`/api/v1/text-to-speech/voice-sample?voice_id=${encodeURIComponent(voiceId)}`, {
+            method: 'POST',
+            headers: headers
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to generate voice sample: ${response.status} ${errorText}`);
+        }
+        
+        // Get audio blob
+        const audioBlob = await response.blob();
+        
+        // Create audio element and play
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        
+        if (playButton) {
+            playButton.textContent = 'Playing...';
+        }
+        
+        audio.onended = () => {
+            URL.revokeObjectURL(audioUrl);
+            if (playButton) {
+                playButton.disabled = false;
+                playButton.textContent = '▶ Play Sample';
+            }
+        };
+        
+        audio.onerror = (event) => {
+            console.error('Audio playback error:', event);
+            URL.revokeObjectURL(audioUrl);
+            if (playButton) {
+                playButton.disabled = false;
+                playButton.textContent = '▶ Play Sample';
+            }
+            alert('Error playing voice sample. Please try again.');
+        };
+        
+        // Play audio
+        await audio.play();
+        
+    } catch (error) {
+        console.error('Error playing voice sample:', error);
+        if (playButton) {
+            playButton.disabled = false;
+            playButton.textContent = '▶ Play Sample';
+        }
+        
+        // Fallback to browser TTS if Azure TTS fails
+        console.log('Falling back to browser TTS...');
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance();
+            utterance.text = "Hello, this is a sample of my voice. I can help you with your questions.";
+            utterance.volume = voice.settings?.volume || voice.template_settings?.volume || 0.8;
+            utterance.rate = voice.settings?.speed || voice.template_settings?.speed || 1.0;
+            utterance.pitch = voice.settings?.pitch || voice.template_settings?.pitch || 1.0;
+            
+            utterance.onend = () => {
+                if (playButton) {
+                    playButton.disabled = false;
+                    playButton.textContent = '▶ Play Sample';
+                }
+            };
+            
+            utterance.onerror = () => {
+                if (playButton) {
+                    playButton.disabled = false;
+                    playButton.textContent = '▶ Play Sample';
+                }
+                alert('Error playing voice sample. Please check your Azure TTS configuration.');
+            };
+            
+            window.speechSynthesis.speak(utterance);
+        } else {
+            alert('Text-to-speech is not supported in your browser, and Azure TTS is not available.');
+        }
+    }
 }
 
 function hideVoicePreview() {
@@ -3869,6 +6197,7 @@ async function saveSettings() {
     
     // AI voice preferences
     const enableAIVoice = document.getElementById('enableAIVoice').checked;
+    const enableOpeningPromptAutoplay = document.getElementById('enableOpeningPromptAutoplay').checked;
     const voiceSpeed = parseInt(document.getElementById('voiceSpeed').value);
     const voicePitch = parseInt(document.getElementById('voicePitch').value);
     const voiceLanguage = document.getElementById('voiceLanguage').value;
@@ -3915,6 +6244,7 @@ async function saveSettings() {
     localStorage.setItem('avatar_opacity', Math.round(avatarOpacity * 100));
     localStorage.setItem('avatar_color', avatarColor);
     localStorage.setItem('enable_ai_voice', enableAIVoice);
+    localStorage.setItem('enable_opening_prompt_autoplay', enableOpeningPromptAutoplay);
     localStorage.setItem('voice_speed', voiceSpeed);
     localStorage.setItem('voice_pitch', voicePitch);
     localStorage.setItem('voice_language', voiceLanguage);
@@ -3932,11 +6262,7 @@ async function saveSettings() {
     localStorage.setItem('data_sharing', dataSharing);
     
     // Apply theme
-    if (theme === 'light') {
-        document.body.classList.add('light-theme');
-    } else {
-        document.body.classList.remove('light-theme');
-    }
+    applyTheme();
     
     // Apply font size
     document.documentElement.style.setProperty('--base-font-size', 
@@ -4017,27 +6343,85 @@ async function saveSettings() {
     
     closeSettings();
     showSuccess('Settings saved successfully!');
+    
+    // Update the avatar display in the chat interface
+    if (selectedAvatarId) {
+        await loadAndDisplayAvatar(selectedAvatarId);
+    }
 }
 
 // Toggle sidebar
-function toggleSidebar() {
-    const sidebar = document.querySelector('.widgets-sidebar');
+function toggleSidebar(event) {
+    // Prevent event propagation if event is provided
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    console.log('🔧 toggleSidebar called');
+    
+    // Try multiple selectors to find the sidebar
+    let sidebar = document.querySelector('.widgets-sidebar');
+    if (!sidebar) {
+        sidebar = document.getElementById('widgetsSidebar');
+    }
+    if (!sidebar) {
+        console.error('❌ Could not find sidebar element');
+        return;
+    }
+    
     const floatingToggle = document.getElementById('floatingSidebarToggle');
-    
-    sidebar.classList.toggle('collapsed');
-    
     const toggleBtn = document.getElementById('toggleSidebar');
-    const icon = toggleBtn.querySelector('.icon');
-    const isCollapsed = sidebar.classList.contains('collapsed');
     
-    icon.textContent = isCollapsed ? '→' : '←';
+    if (!toggleBtn) {
+        console.error('❌ Could not find toggleSidebar button');
+        return;
+    }
+    
+    const isCurrentlyCollapsed = sidebar.classList.contains('collapsed');
+    console.log('🔧 Sidebar currently collapsed:', isCurrentlyCollapsed);
+    
+    // Toggle the collapsed class
+    sidebar.classList.toggle('collapsed');
+    const isCollapsed = sidebar.classList.contains('collapsed');
+    console.log('🔧 Sidebar now collapsed:', isCollapsed);
+    
+    // When collapsing, clear inline width style to let CSS take over
+    // When expanding, restore saved width or use default
+    if (isCollapsed) {
+        sidebar.style.width = '';
+        sidebar.style.minWidth = '';
+        sidebar.style.maxWidth = '';
+    } else {
+        // Restore saved width or use default
+        const savedWidth = localStorage.getItem('sidebarWidth');
+        if (savedWidth) {
+            sidebar.style.width = savedWidth + 'px';
+        } else {
+            sidebar.style.width = '';
+        }
+        sidebar.style.minWidth = '';
+        sidebar.style.maxWidth = '';
+    }
+    
+    const icon = toggleBtn.querySelector('.icon');
+    if (icon) {
+        icon.textContent = isCollapsed ? '→' : '←';
+        console.log('🔧 Icon updated to:', icon.textContent);
+    }
     
     // Show/hide floating toggle button
-    if (isCollapsed) {
-        floatingToggle.style.display = 'flex';
-    } else {
-        floatingToggle.style.display = 'none';
+    if (floatingToggle) {
+        if (isCollapsed) {
+            floatingToggle.style.display = 'flex';
+        } else {
+            floatingToggle.style.display = 'none';
+        }
     }
+    
+    // Save sidebar state
+    localStorage.setItem('sidebarCollapsed', isCollapsed);
+    console.log('✅ Sidebar state saved:', isCollapsed);
 }
 
 // Logout
@@ -4048,6 +6432,15 @@ function logout() {
         localStorage.removeItem('refresh_token');
         localStorage.removeItem('teacher_id');
         localStorage.removeItem('user_email');
+        
+        // Clear widgets and dashboard state
+        activeWidgets = [];
+        localStorage.removeItem('dashboard_widgets');
+        localStorage.removeItem('dashboard_last_session_time');
+        sessionStorage.removeItem('dashboard_session_id');
+        sessionStorage.removeItem('widgets_cleared_for_session');
+        sessionStorage.removeItem('guest_name'); // Clear guest name on logout
+        
         window.location.href = '/';
     }
 }
@@ -4087,7 +6480,16 @@ function initializePanelResize() {
         return;
     }
     
-    if (savedSidebarWidth && !sidebar.classList.contains('collapsed')) {
+    // Check if sidebar should be collapsed
+    const sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (sidebarCollapsed) {
+        // Sidebar should be collapsed, ensure it is
+        sidebar.classList.add('collapsed');
+        sidebar.style.width = '';
+        sidebar.style.minWidth = '';
+        sidebar.style.maxWidth = '';
+    } else if (savedSidebarWidth) {
+        // Restore saved width if not collapsed
         sidebar.style.width = savedSidebarWidth + 'px';
         console.log('✅ Restored sidebar width:', savedSidebarWidth);
     }

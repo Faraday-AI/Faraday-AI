@@ -167,6 +167,10 @@ services:
         sync: false
       - key: FROM_NAME
         sync: false
+      - key: AZURE_SPEECH_KEY
+        sync: false
+      - key: AZURE_SPEECH_REGION
+        sync: false
       - key: ENABLE_METRICS
         value: "true"
       - key: DEBUG

@@ -68,17 +68,17 @@ class TwilioService:
             message = await loop.run_in_executor(
                 None,
                 lambda: self.client.messages.create(
-                    body=message,
-                    from_=self.settings.TWILIO_FROM_NUMBER,
-                    to=to_number
-                )
+                body=message,
+                from_=self.settings.TWILIO_FROM_NUMBER,
+                to=to_number
+            )
             )
 
             # Twilio message.status can be: queued, sending, sent, failed, etc.
             # If status is queued/sending/sent, we consider it successful
             twilio_status = message.status
             is_success = twilio_status in ["queued", "sending", "sent", "delivered"]
-            
+
             return {
                 "status": "success" if is_success else "pending",
                 "message_sid": message.sid,
@@ -155,9 +155,9 @@ class TwilioService:
             call = await loop.run_in_executor(
                 None,
                 lambda: self.client.calls.create(
-                    twiml=twiml,
-                    to=to_number,
-                    from_=self.settings.TWILIO_FROM_NUMBER
+                twiml=twiml,
+                to=to_number,
+                from_=self.settings.TWILIO_FROM_NUMBER
                 )
             )
 

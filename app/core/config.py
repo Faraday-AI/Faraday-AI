@@ -185,6 +185,10 @@ class Settings(BaseSettings):
     TENANT_ID: str = os.getenv("MSTENANTID", "")
     REDIRECT_URI: str = os.getenv("REDIRECT_URI", "http://localhost:8000/auth/callback")
     SCOPE: str = "User.Read Mail.Read Files.ReadWrite.All"
+    
+    # Azure Speech Services (Text-to-Speech)
+    AZURE_SPEECH_KEY: Optional[str] = os.getenv("AZURE_SPEECH_KEY", "")
+    AZURE_SPEECH_REGION: Optional[str] = os.getenv("AZURE_SPEECH_REGION", "")
 
     # ML Model Settings
     MODEL_PATH: str = "/app/models"  # Default path for ML models

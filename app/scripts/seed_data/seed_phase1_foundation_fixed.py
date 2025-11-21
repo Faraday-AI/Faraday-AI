@@ -2659,21 +2659,35 @@ def seed_avatar_system(session):
             # Create AI-powered avatars
             avatar_data = []
             
-            # AI avatar types using correct enum values
+            # AI avatar types using DiceBear Avatars service
+            # DiceBear style mapping based on avatar type
+            style_map = {
+                'STATIC': 'avataaars',      # Professional, friendly avatars
+                'ANIMATED': 'lorelei',      # Animated-style avatars
+                'THREE_D': 'bottts'         # 3D robot-style avatars
+            }
+            
             avatar_types = [
-                {'type': 'STATIC', 'url': '/static/avatars/static_01.png'},
-                {'type': 'ANIMATED', 'url': '/static/avatars/animated_01.png'},
-                {'type': 'THREE_D', 'url': '/static/avatars/3d_01.png'},
-                {'type': 'STATIC', 'url': '/static/avatars/static_02.png'},
-                {'type': 'ANIMATED', 'url': '/static/avatars/animated_02.png'},
-                {'type': 'THREE_D', 'url': '/static/avatars/3d_02.png'},
-                {'type': 'STATIC', 'url': '/static/avatars/static_03.png'},
-                {'type': 'ANIMATED', 'url': '/static/avatars/animated_03.png'},
-                {'type': 'THREE_D', 'url': '/static/avatars/3d_03.png'},
-                {'type': 'STATIC', 'url': '/static/avatars/static_04.png'}
+                {'type': 'STATIC'},
+                {'type': 'ANIMATED'},
+                {'type': 'THREE_D'},
+                {'type': 'STATIC'},
+                {'type': 'ANIMATED'},
+                {'type': 'THREE_D'},
+                {'type': 'STATIC'},
+                {'type': 'ANIMATED'},
+                {'type': 'THREE_D'},
+                {'type': 'STATIC'}
             ]
             
             for i, avatar_info in enumerate(avatar_types, 1):
+                # Generate DiceBear URL based on avatar type
+                avatar_type_upper = avatar_info['type'].upper()
+                style = style_map.get(avatar_type_upper, 'avataaars')
+                seed = f"faraday-avatar-{i}"
+                # Using SVG format for crisp rendering at any size
+                dicebear_url = f"https://api.dicebear.com/7.x/{style}/svg?seed={seed}&size=200"
+                avatar_info['url'] = dicebear_url
                 avatar_data.append({
                     'id': i,
                     'type': avatar_info['type'],

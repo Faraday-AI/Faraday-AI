@@ -283,59 +283,85 @@ class BetaTeacherDashboardService:
     def get_beta_avatars(self, voice_enabled: Optional[bool]) -> List[Dict[str, Any]]:
         """Get all beta avatars (10 avatars from beta_avatars table)"""
         from app.models.beta_avatars import BetaAvatar
+        import logging
+        logger = logging.getLogger(__name__)
         
-        query = self.db.query(BetaAvatar)
-        
-        if voice_enabled is not None:
-            query = query.filter(BetaAvatar.voice_enabled == voice_enabled)
-        
-        avatars = query.all()
-        
-        # Generate user-friendly names based on type and index
-        avatar_names = {
-            'STATIC': ['Classic Avatar', 'Professional Avatar', 'Friendly Avatar', 'Modern Avatar'],
-            'ANIMATED': ['Animated Assistant', 'Dynamic Avatar', 'Interactive Avatar', 'Live Avatar'],
-            'THREE_D': ['3D Character', '3D Assistant', '3D Avatar', '3D Model']
-        }
-        
-        type_counts = {}
-        result = []
-        
-        for avatar in avatars:
-            avatar_type = getattr(avatar, 'type', 'STATIC')
-            type_key = avatar_type.upper() if isinstance(avatar_type, str) else str(avatar_type)
+        try:
+            # First, check if beta_avatars table exists and has data
+            try:
+                from sqlalchemy import text
+                count_query = text("SELECT COUNT(*) FROM beta_avatars")
+                count_result = self.db.execute(count_query)
+                total_avatars = count_result.scalar()
+                logger.info(f"Total avatars in database: {total_avatars}")
+            except Exception as count_error:
+                logger.warning(f"Could not count avatars: {str(count_error)}")
+                total_avatars = 0
             
-            # Count how many of this type we've seen
-            type_counts[type_key] = type_counts.get(type_key, 0) + 1
-            index = type_counts[type_key] - 1
+            # Query using SQLAlchemy ORM (automatically uses Azure database connection)
+            query = self.db.query(BetaAvatar)
             
-            # Get name from predefined list or generate one
-            name_list = avatar_names.get(type_key, [f'{type_key} Avatar'])
-            if index < len(name_list):
-                avatar_name = name_list[index]
-            else:
-                avatar_name = f'{type_key} Avatar {index + 1}'
+            if voice_enabled is not None:
+                query = query.filter(BetaAvatar.voice_enabled == voice_enabled)
             
-            # Generate description
-            descriptions = {
-                'STATIC': 'A static image avatar perfect for professional settings',
-                'ANIMATED': 'An animated avatar with smooth movements and expressions',
-                'THREE_D': 'A 3D model avatar with full rotation and interaction'
+            avatars = query.all()
+            logger.info(f"Found {len(avatars)} avatars from database query (total in DB: {total_avatars})")
+            
+            # Generate user-friendly names based on type and index
+            avatar_names = {
+                'STATIC': ['Classic Avatar', 'Professional Avatar', 'Friendly Avatar', 'Modern Avatar'],
+                'ANIMATED': ['Animated Assistant', 'Dynamic Avatar', 'Interactive Avatar', 'Live Avatar'],
+                'THREE_D': ['3D Character', '3D Assistant', '3D Avatar', '3D Model']
             }
-            description = descriptions.get(type_key, f'A {type_key.lower()} avatar')
             
-            result.append({
-                "id": str(avatar.id),
-                "avatar_name": avatar_name,
-                "avatar_type": avatar_type,
-                "description": description,
-                "voice_enabled": getattr(avatar, 'voice_enabled', False),
-                "image_url": getattr(avatar, 'image_url', None),
-                "avatar_config": getattr(avatar, 'avatar_config', getattr(avatar, 'config', {})),
-                "created_at": avatar.created_at.isoformat() if avatar.created_at else None
-            })
-        
-        return result
+            type_counts = {}
+            result = []
+            
+            for avatar in avatars:
+                avatar_type = getattr(avatar, 'type', 'STATIC')
+                type_key = avatar_type.upper() if isinstance(avatar_type, str) else str(avatar_type)
+                
+                # Count how many of this type we've seen
+                type_counts[type_key] = type_counts.get(type_key, 0) + 1
+                index = type_counts[type_key] - 1
+                
+                # Get name from predefined list or generate one
+                name_list = avatar_names.get(type_key, [f'{type_key} Avatar'])
+                if index < len(name_list):
+                    avatar_name = name_list[index]
+                else:
+                    avatar_name = f'{type_key} Avatar {index + 1}'
+                
+                # Generate description
+                descriptions = {
+                    'STATIC': 'A static image avatar perfect for professional settings',
+                    'ANIMATED': 'An animated avatar with smooth movements and expressions',
+                    'THREE_D': 'A 3D model avatar with full rotation and interaction'
+                }
+                description = descriptions.get(type_key, f'A {type_key.lower()} avatar')
+                
+                result.append({
+                    "id": str(avatar.id),
+                    "avatar_name": avatar_name,
+                    "avatar_type": avatar_type,
+                    "description": description,
+                    "voice_enabled": getattr(avatar, 'voice_enabled', False),
+                    "image_url": getattr(avatar, 'image_url', None),
+                    "avatar_config": getattr(avatar, 'avatar_config', getattr(avatar, 'config', {})),
+                    "created_at": avatar.created_at.isoformat() if avatar.created_at else None
+                })
+            
+            if len(result) == 0 and total_avatars > 0:
+                logger.warning(f"⚠️ Query returned 0 avatars, but database has {total_avatars} avatars")
+            elif len(result) > 0:
+                logger.info(f"✅ Successfully retrieved {len(result)} avatars from Azure database")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ Error fetching avatars from database: {str(e)}", exc_info=True)
+            # Return empty list instead of raising - let frontend handle empty state
+            return []
     
     def get_beta_avatar(self, avatar_id: str) -> Optional[Dict[str, Any]]:
         """Get specific beta avatar"""
@@ -356,6 +382,188 @@ class BetaTeacherDashboardService:
             "created_at": avatar.created_at.isoformat() if avatar.created_at else None
         }
     
+    def _get_voice_display_name(self, voice_id: int, metadata: Dict[str, Any] = None) -> str:
+        """
+        Generate a descriptive display name for a voice based on its ID and metadata.
+        Uses the same mapping logic as the TTS endpoint to ensure consistency.
+        """
+        if metadata is None:
+            metadata = {}
+        
+        # First, try to use existing metadata/name if it's meaningful
+        if metadata.get('name') and 'default' not in metadata.get('name', '').lower() and 'standard' not in metadata.get('name', '').lower():
+            return metadata.get('name')
+        
+        if metadata.get('voice_name') and 'default' not in metadata.get('voice_name', '').lower():
+            return metadata.get('voice_name')
+        
+        # Map voice_id to Azure voice name (same logic as text_to_speech.py)
+        voice_id_num = int(voice_id) if voice_id else hash(str(voice_id)) % 1000
+        
+        # Comprehensive mapping of voice IDs to descriptive names
+        # This matches the premium_voices list in text_to_speech.py
+        voice_descriptions = {
+            # US English voices
+            "en-US-AriaNeural": "Aria - Warm Professional (US)",
+            "en-US-JennyNeural": "Jenny - Friendly Conversational (US)",
+            "en-US-MichelleNeural": "Michelle - Clear Articulate (US)",
+            "en-US-AshleyNeural": "Ashley - Expressive (US)",
+            "en-US-AmberNeural": "Amber - Warm (US)",
+            "en-US-AnaNeural": "Ana - Young (US)",
+            "en-US-AriaMultilingualNeural": "Aria - Multilingual (US)",
+            "en-US-ChristopherNeural": "Christopher - Professional (US)",
+            "en-US-EricNeural": "Eric - Friendly (US)",
+            "en-US-GuyNeural": "Guy - Confident (US)",
+            "en-US-RogerNeural": "Roger - Warm (US)",
+            "en-US-DavisNeural": "Davis - Expressive (US)",
+            "en-US-JasonNeural": "Jason - Conversational (US)",
+            "en-US-BrandonNeural": "Brandon - Professional (US)",
+            "en-US-TonyNeural": "Tony - Friendly (US)",
+            
+            # British English
+            "en-GB-SoniaNeural": "Sonia - British RP Accent",
+            "en-GB-LibbyNeural": "Libby - Warm British",
+            "en-GB-MaisieNeural": "Maisie - Young British",
+            "en-GB-RyanNeural": "Ryan - British RP Accent",
+            "en-GB-ThomasNeural": "Thomas - Clear British",
+            
+            # Australian
+            "en-AU-NatashaNeural": "Natasha - Australian Accent",
+            "en-AU-WilliamNeural": "William - Australian Accent",
+            
+            # Canadian
+            "en-CA-ClaraNeural": "Clara - Canadian Accent",
+            "en-CA-LiamNeural": "Liam - Canadian Accent",
+            
+            # Indian
+            "en-IN-NeerjaNeural": "Neerja - Indian Accent",
+            "en-IN-PrabhatNeural": "Prabhat - Indian Accent",
+            
+            # Irish
+            "en-IE-EmilyNeural": "Emily - Irish Accent",
+            "en-IE-ConnorNeural": "Connor - Irish Accent",
+            
+            # New Zealand
+            "en-NZ-MollyNeural": "Molly - New Zealand Accent",
+            "en-NZ-MitchellNeural": "Mitchell - New Zealand Accent",
+            
+            # South African
+            "en-ZA-LeahNeural": "Leah - South African Accent",
+            "en-ZA-LukeNeural": "Luke - South African Accent",
+            
+            # Spanish
+            "es-ES-ElviraNeural": "Elvira - Spanish (Spain)",
+            "es-ES-AlvaroNeural": "Alvaro - Spanish (Spain)",
+            "es-MX-DaliaNeural": "Dalia - Spanish (Mexico)",
+            "es-MX-JorgeNeural": "Jorge - Spanish (Mexico)",
+            "es-AR-ElenaNeural": "Elena - Spanish (Argentina)",
+            "es-AR-TomasNeural": "Tomas - Spanish (Argentina)",
+            
+            # French
+            "fr-FR-DeniseNeural": "Denise - French",
+            "fr-FR-HenriNeural": "Henri - French",
+            "fr-CA-SylvieNeural": "Sylvie - French (Canada)",
+            "fr-CA-JeanNeural": "Jean - French (Canada)",
+            
+            # German
+            "de-DE-KatjaNeural": "Katja - German",
+            "de-DE-ConradNeural": "Conrad - German",
+            "de-AT-IngridNeural": "Ingrid - German (Austria)",
+            "de-CH-JanNeural": "Jan - German (Switzerland)",
+            
+            # Italian
+            "it-IT-ElsaNeural": "Elsa - Italian",
+            "it-IT-IsabellaNeural": "Isabella - Expressive Italian",
+            "it-IT-DiegoNeural": "Diego - Italian",
+            
+            # Portuguese
+            "pt-BR-FranciscaNeural": "Francisca - Portuguese (Brazil)",
+            "pt-BR-AntonioNeural": "Antonio - Portuguese (Brazil)",
+            "pt-PT-RaquelNeural": "Raquel - Portuguese (Portugal)",
+            "pt-PT-DuarteNeural": "Duarte - Portuguese (Portugal)",
+            
+            # Japanese
+            "ja-JP-NanamiNeural": "Nanami - Japanese",
+            "ja-JP-KeitaNeural": "Keita - Japanese",
+            
+            # Chinese
+            "zh-CN-XiaoxiaoNeural": "Xiaoxiao - Chinese (Mandarin)",
+            "zh-CN-YunxiNeural": "Yunxi - Chinese (Mandarin)",
+            "zh-CN-XiaoyiNeural": "Xiaoyi - Young Chinese (Mandarin)",
+            "zh-HK-HiuGaaiNeural": "HiuGaai - Chinese (Cantonese)",
+            "zh-TW-HsiaoYuNeural": "HsiaoYu - Chinese (Taiwan)",
+            
+            # Korean
+            "ko-KR-SunHiNeural": "SunHi - Korean",
+            "ko-KR-InJoonNeural": "InJoon - Korean",
+            
+            # Other languages
+            "nl-NL-FennaNeural": "Fenna - Dutch",
+            "nl-NL-MaartenNeural": "Maarten - Dutch",
+            "ru-RU-SvetlanaNeural": "Svetlana - Russian",
+            "ru-RU-DmitryNeural": "Dmitry - Russian",
+            "ar-SA-ZariyahNeural": "Zariyah - Arabic",
+            "ar-SA-HamedNeural": "Hamed - Arabic",
+            "hi-IN-SwaraNeural": "Swara - Hindi",
+            "hi-IN-MadhurNeural": "Madhur - Hindi",
+        }
+        
+        # List of premium voices (same as in text_to_speech.py)
+        premium_voices = [
+            "en-US-AriaNeural", "en-US-JennyNeural", "en-US-MichelleNeural", "en-US-AshleyNeural",
+            "en-US-AmberNeural", "en-US-AnaNeural", "en-US-AriaMultilingualNeural",
+            "en-US-ChristopherNeural", "en-US-EricNeural", "en-US-GuyNeural", "en-US-RogerNeural",
+            "en-US-DavisNeural", "en-US-JasonNeural", "en-US-BrandonNeural", "en-US-TonyNeural",
+            "en-GB-SoniaNeural", "en-GB-LibbyNeural", "en-GB-MaisieNeural", "en-GB-RyanNeural",
+            "en-GB-ThomasNeural", "en-AU-NatashaNeural", "en-AU-WilliamNeural",
+            "en-CA-ClaraNeural", "en-CA-LiamNeural", "en-IN-NeerjaNeural", "en-IN-PrabhatNeural",
+            "en-IE-EmilyNeural", "en-IE-ConnorNeural", "en-NZ-MollyNeural", "en-NZ-MitchellNeural",
+            "en-ZA-LeahNeural", "en-ZA-LukeNeural",
+            # Add more voices from the full list...
+            "es-ES-ElviraNeural", "es-ES-AlvaroNeural", "es-MX-DaliaNeural", "es-MX-JorgeNeural",
+            "es-AR-ElenaNeural", "es-AR-TomasNeural", "fr-FR-DeniseNeural", "fr-FR-HenriNeural",
+            "fr-CA-SylvieNeural", "fr-CA-JeanNeural", "de-DE-KatjaNeural", "de-DE-ConradNeural",
+            "de-AT-IngridNeural", "de-CH-JanNeural", "it-IT-ElsaNeural", "it-IT-IsabellaNeural",
+            "it-IT-DiegoNeural", "pt-BR-FranciscaNeural", "pt-BR-AntonioNeural",
+            "pt-PT-RaquelNeural", "pt-PT-DuarteNeural", "ja-JP-NanamiNeural", "ja-JP-KeitaNeural",
+            "zh-CN-XiaoxiaoNeural", "zh-CN-YunxiNeural", "zh-CN-XiaoyiNeural",
+            "zh-HK-HiuGaaiNeural", "zh-TW-HsiaoYuNeural", "ko-KR-SunHiNeural", "ko-KR-InJoonNeural",
+            "nl-NL-FennaNeural", "nl-NL-MaartenNeural", "ru-RU-SvetlanaNeural", "ru-RU-DmitryNeural",
+            "ar-SA-ZariyahNeural", "ar-SA-HamedNeural", "hi-IN-SwaraNeural", "hi-IN-MadhurNeural",
+        ]
+        
+        # Select voice from list
+        selected_voice = premium_voices[voice_id_num % len(premium_voices)]
+        
+        # Get description if available
+        if selected_voice in voice_descriptions:
+            return voice_descriptions[selected_voice]
+        
+        # Generate description from voice name
+        parts = selected_voice.split('-')
+        if len(parts) >= 3:
+            locale = parts[0] + '-' + parts[1]  # e.g., "en-US"
+            name = parts[2].replace('Neural', '')  # e.g., "Aria"
+            
+            # Map locales to readable names
+            locale_names = {
+                "en-US": "US English", "en-GB": "British", "en-AU": "Australian",
+                "en-CA": "Canadian", "en-IN": "Indian", "en-IE": "Irish",
+                "en-NZ": "New Zealand", "en-ZA": "South African",
+                "es-ES": "Spanish (Spain)", "es-MX": "Spanish (Mexico)", "es-AR": "Spanish (Argentina)",
+                "fr-FR": "French", "fr-CA": "French (Canada)", "de-DE": "German",
+                "de-AT": "German (Austria)", "de-CH": "German (Switzerland)",
+                "it-IT": "Italian", "pt-BR": "Portuguese (Brazil)", "pt-PT": "Portuguese (Portugal)",
+                "ja-JP": "Japanese", "zh-CN": "Chinese (Mandarin)", "zh-HK": "Chinese (Cantonese)",
+                "zh-TW": "Chinese (Taiwan)", "ko-KR": "Korean", "nl-NL": "Dutch",
+                "ru-RU": "Russian", "ar-SA": "Arabic", "hi-IN": "Hindi"
+            }
+            
+            locale_display = locale_names.get(locale, locale)
+            return f"{name} - {locale_display}"
+        
+        return f"Voice {voice_id}"
+    
     def get_beta_voices(
         self, 
         avatar_id: Optional[str] = None,
@@ -369,9 +577,22 @@ class BetaTeacherDashboardService:
         from sqlalchemy import text
         
         try:
-            # Get voices from the voices table
-            query = text("""
-                SELECT DISTINCT
+            import logging
+            logger = logging.getLogger(__name__)
+            
+            # First, check if voices table exists and has data
+            try:
+                count_query = text("SELECT COUNT(*) FROM voices")
+                count_result = self.db.execute(count_query)
+                total_voices = count_result.scalar()
+                logger.info(f"Total voices in database: {total_voices}")
+            except Exception as count_error:
+                logger.warning(f"Could not count voices: {str(count_error)}")
+                total_voices = 0
+            
+            # Build query dynamically based on filters
+            base_query = """
+                SELECT 
                     v.id,
                     v.voice_type,
                     v.voice_settings,
@@ -382,8 +603,7 @@ class BetaTeacherDashboardService:
                     vt.voice_settings as template_settings
                 FROM voices v
                 LEFT JOIN voice_templates vt ON v.template_id = vt.id
-                WHERE 1=1
-            """)
+            """
             
             params = {}
             conditions = []
@@ -393,7 +613,6 @@ class BetaTeacherDashboardService:
                 params['avatar_id'] = avatar_id
             
             if language:
-                # Check if language is in voice_metadata or voice_settings
                 conditions.append("(v.voice_metadata::text LIKE :language OR v.voice_settings::text LIKE :language)")
                 params['language'] = f'%{language}%'
             
@@ -401,29 +620,132 @@ class BetaTeacherDashboardService:
                 conditions.append("(v.voice_metadata::text LIKE :provider)")
                 params['provider'] = f'%{provider}%'
             
+            # Build final query
             if conditions:
-                query = text(str(query).replace("WHERE 1=1", "WHERE " + " AND ".join(conditions)))
+                where_clause = " WHERE " + " AND ".join(conditions)
+            else:
+                where_clause = ""
             
-            query = text(str(query) + f" ORDER BY vt.name, v.id LIMIT :limit OFFSET :offset")
+            query_str = base_query + where_clause + " ORDER BY COALESCE(vt.name, '') NULLS LAST, v.id LIMIT :limit OFFSET :offset"
             params['limit'] = limit
             params['offset'] = offset
             
+            logger.info(f"Executing voice query with limit={limit}, offset={offset}, filters={len(conditions)}")
+            
+            query = text(query_str)
             result = self.db.execute(query, params)
             voices = []
             
             for row in result:
+                # Extract metadata for better name generation
+                metadata = row.voice_metadata or {}
+                if isinstance(metadata, str):
+                    try:
+                        import json
+                        metadata = json.loads(metadata)
+                    except:
+                        metadata = {}
+                
+                # Build a better name from available data
+                name_parts = []
+                
+                # Check if template name is generic
+                template_name = row.template_name or ''
+                is_generic_template = template_name.lower() in ['default voice', 'default', 'voice'] or 'default' in template_name.lower()
+                
+                # Try template name first (if not generic)
+                if template_name and not is_generic_template:
+                    name_parts.append(template_name)
+                # Try metadata name fields
+                elif metadata.get('name') and 'default' not in metadata.get('name', '').lower():
+                    name_parts.append(metadata.get('name'))
+                elif metadata.get('voice_name') and 'default' not in metadata.get('voice_name', '').lower():
+                    name_parts.append(metadata.get('voice_name'))
+                # Try role or category from metadata
+                elif metadata.get('role'):
+                    role = metadata.get('role')
+                    name_parts.append(f"{role.title()} Voice")
+                elif metadata.get('category'):
+                    category = metadata.get('category')
+                    name_parts.append(f"{category.title()} Voice")
+                
+                # Add provider if available (skip "system" as it's too generic)
+                provider = metadata.get('provider') or metadata.get('service')
+                validProvider = provider if provider and provider.lower() != 'system' else ''
+                if validProvider:
+                    if name_parts:
+                        name_parts.append(f"({validProvider})")
+                    else:
+                        name_parts.append(f"{validProvider.title()} Voice")
+                
+                # Add language if available
+                language = metadata.get('language') or metadata.get('locale')
+                if language:
+                    if name_parts:
+                        name_parts.append(f"- {language}")
+                    else:
+                        name_parts.append(f"Voice ({language})")
+                
+                # Try to extract more from settings
+                if not name_parts:
+                    voice_settings = row.voice_settings or {}
+                    if isinstance(voice_settings, str):
+                        try:
+                            import json
+                            voice_settings = json.loads(voice_settings)
+                        except:
+                            voice_settings = {}
+                    
+                    # Try gender, accent, or style from settings
+                    if voice_settings.get('gender'):
+                        name_parts.append(f"{voice_settings.get('gender').title()} Voice")
+                    elif voice_settings.get('accent'):
+                        name_parts.append(f"{voice_settings.get('accent').title()} Voice")
+                    elif voice_settings.get('style'):
+                        name_parts.append(f"{voice_settings.get('style').title()} Voice")
+                    elif voice_settings.get('name'):
+                        name_parts.append(voice_settings.get('name'))
+                
+                # Fallback to voice type or ID
+                if not name_parts:
+                    voice_type = row.voice_type or "TTS"
+                    # Only use voice type if it's meaningful (not just "TTS" or "system")
+                    if voice_type.lower() not in ['tts', 'system', 'default']:
+                        name_parts.append(f"{voice_type} Voice")
+                    else:
+                        # Try to create a name from language/provider if available
+                        parts = []
+                        if language:
+                            parts.append(language)
+                        if validProvider:
+                            parts.append(validProvider)
+                        # Check metadata quality
+                        quality = metadata.get('quality', '')
+                        if quality and quality != 'high':
+                            parts.append(quality)
+                        if parts:
+                            name_parts.append(f"{' '.join(parts)} Voice")
+                        else:
+                            # Use the helper function to generate a descriptive name from voice ID
+                            descriptive_name = self._get_voice_display_name(row.id, metadata)
+                            name_parts.append(descriptive_name)
+                
+                voice_name = " ".join(name_parts)
+                
                 voice_data = {
                     "id": str(row.id),
                     "voice_id": str(row.id),
-                    "voice_type": row.voice_type,
-                    "name": row.template_name or f"Voice {row.id}",
-                    "description": row.template_description or f"{row.voice_type} voice",
+                    "voice_type": row.voice_type or "TTS",
+                    "name": voice_name,
+                    "description": row.template_description or f"{row.voice_type or 'TTS'} voice",
                     "settings": row.voice_settings or {},
-                    "metadata": row.voice_metadata or {},
+                    "metadata": metadata,
                     "template_id": str(row.template_id) if row.template_id else None,
                     "template_settings": row.template_settings or {}
                 }
                 voices.append(voice_data)
+            
+            logger.info(f"Found {len(voices)} voices from database query (total in DB: {total_voices})")
             
             # If we got fewer than limit, also get from voice_templates for more options
             if len(voices) < limit and offset == 0:
@@ -456,13 +778,150 @@ class BetaTeacherDashboardService:
                     logger = logging.getLogger(__name__)
                     logger.warning(f"Error fetching voice templates: {str(template_error)}")
             
-            # If we still have no voices, return fallback voices
+            # If we still have no voices, try a simpler query
             if len(voices) == 0:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.info("No voices found in database, returning fallback voices.")
-                return self._get_fallback_voices(limit)
+                logger.warning("No voices found with filtered query, trying simple query without filters")
+                try:
+                    # Try querying without any filters - just get all voices
+                    simple_query = text("""
+                        SELECT 
+                            v.id,
+                            v.voice_type,
+                            v.voice_settings,
+                            v.voice_metadata,
+                            vt.id as template_id,
+                            vt.name as template_name,
+                            vt.description as template_description,
+                            vt.voice_settings as template_settings
+                        FROM voices v
+                        LEFT JOIN voice_templates vt ON v.template_id = vt.id
+                        ORDER BY COALESCE(vt.name, '') NULLS LAST, v.id
+                        LIMIT :limit
+                    """)
+                    simple_result = self.db.execute(simple_query, {'limit': limit})
+                    voices = []
+                    for row in simple_result:
+                        # Extract metadata for better name generation
+                        metadata = row.voice_metadata or {}
+                        if isinstance(metadata, str):
+                            try:
+                                import json
+                                metadata = json.loads(metadata)
+                            except:
+                                metadata = {}
+                        
+                        # Build a better name from available data
+                        name_parts = []
+                        
+                        # Check if template name is generic
+                        template_name = row.template_name or ''
+                        is_generic_template = template_name.lower() in ['default voice', 'default', 'voice'] or 'default' in template_name.lower()
+                        
+                        # Try template name first (if not generic)
+                        if template_name and not is_generic_template:
+                            name_parts.append(template_name)
+                        # Try metadata name fields
+                        elif metadata.get('name') and 'default' not in metadata.get('name', '').lower():
+                            name_parts.append(metadata.get('name'))
+                        elif metadata.get('voice_name') and 'default' not in metadata.get('voice_name', '').lower():
+                            name_parts.append(metadata.get('voice_name'))
+                        # Try role or category from metadata
+                        elif metadata.get('role'):
+                            role = metadata.get('role')
+                            name_parts.append(f"{role.title()} Voice")
+                        elif metadata.get('category'):
+                            category = metadata.get('category')
+                            name_parts.append(f"{category.title()} Voice")
+                        
+                        # Add provider if available (skip "system" as it's too generic)
+                        provider = metadata.get('provider') or metadata.get('service')
+                        validProvider = provider if provider and provider.lower() != 'system' else ''
+                        if validProvider:
+                            if name_parts:
+                                name_parts.append(f"({validProvider})")
+                            else:
+                                name_parts.append(f"{validProvider.title()} Voice")
+                        
+                        # Add language if available
+                        language = metadata.get('language') or metadata.get('locale')
+                        if language:
+                            if name_parts:
+                                name_parts.append(f"- {language}")
+                            else:
+                                name_parts.append(f"Voice ({language})")
+                        
+                        # Try to extract more from settings
+                        if not name_parts:
+                            voice_settings = row.voice_settings or {}
+                            if isinstance(voice_settings, str):
+                                try:
+                                    import json
+                                    voice_settings = json.loads(voice_settings)
+                                except:
+                                    voice_settings = {}
+                            
+                            # Try gender, accent, or style from settings
+                            if voice_settings.get('gender'):
+                                name_parts.append(f"{voice_settings.get('gender').title()} Voice")
+                            elif voice_settings.get('accent'):
+                                name_parts.append(f"{voice_settings.get('accent').title()} Voice")
+                            elif voice_settings.get('style'):
+                                name_parts.append(f"{voice_settings.get('style').title()} Voice")
+                            elif voice_settings.get('name'):
+                                name_parts.append(voice_settings.get('name'))
+                        
+                        # Fallback to voice type or ID
+                        if not name_parts:
+                            voice_type = row.voice_type or "TTS"
+                            # Only use voice type if it's meaningful (not just "TTS" or "system")
+                            if voice_type.lower() not in ['tts', 'system', 'default']:
+                                name_parts.append(f"{voice_type} Voice")
+                            else:
+                                # Try to create a name from language/provider if available
+                                parts = []
+                                if language:
+                                    parts.append(language)
+                                if validProvider:
+                                    parts.append(validProvider)
+                                # Check metadata quality
+                                quality = metadata.get('quality', '')
+                                if quality and quality != 'high':
+                                    parts.append(quality)
+                                if parts:
+                                    name_parts.append(f"{' '.join(parts)} Voice")
+                                else:
+                                    # Use the helper function to generate a descriptive name from voice ID
+                                    descriptive_name = self._get_voice_display_name(row.id, metadata)
+                                    name_parts.append(descriptive_name)
+                        
+                        voice_name = " ".join(name_parts)
+                        
+                        voice_data = {
+                            "id": str(row.id),
+                            "voice_id": str(row.id),
+                            "voice_type": row.voice_type or "TTS",
+                            "name": voice_name,
+                            "description": row.template_description or f"{row.voice_type or 'TTS'} voice",
+                            "settings": row.voice_settings or {},
+                            "metadata": metadata,
+                            "template_id": str(row.template_id) if row.template_id else None,
+                            "template_settings": row.template_settings or {}
+                        }
+                        voices.append(voice_data)
+                    
+                    if len(voices) > 0:
+                        logger.info(f"✅ Successfully retrieved {len(voices)} voices with simple query (total in DB: {total_voices})")
+                        return voices[:limit]
+                    else:
+                        logger.warning(f"⚠️ Simple query returned 0 voices, but database has {total_voices} voices. Returning fallback.")
+                        return self._get_fallback_voices(limit)
+                except Exception as simple_error:
+                    logger.error(f"❌ Error with simple query: {str(simple_error)}", exc_info=True)
+                    logger.warning(f"⚠️ Database has {total_voices} voices but query failed. Returning fallback.")
+                    return self._get_fallback_voices(limit)
             
+            # Return all voices we found (up to limit)
+            logger.info(f"✅ Returning {len(voices)} voices from database")
             return voices[:limit]
             
         except Exception as e:

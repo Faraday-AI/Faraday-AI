@@ -104,7 +104,10 @@ RUN apt-get update && \
         g++ \
         postgresql-client \
         netcat-traditional \
-        locales && \
+        locales \
+        libssl3 \
+        ca-certificates \
+        libcurl4 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
     locale-gen C.UTF-8 && \
