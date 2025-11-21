@@ -1619,7 +1619,7 @@ function updateWidgetWithData(widgetData) {
                 name: getWidgetTitle(widgetDataCopy.type),
                 configuration: {},
                 position: null,
-                size: { width: 2, height: 2 },
+                size: 'medium', // String, not object: 'small', 'medium', 'large', 'extra-large'
                 created_at: new Date().toISOString(),
                 is_active: true,
                 is_visible: true,
@@ -1666,7 +1666,7 @@ async function addWidget(widgetType) {
             name: getWidgetTitle(widgetType),
             configuration: {},
             position: null,
-            size: { width: 2, height: 2 },
+            size: 'medium', // String, not object: 'small', 'medium', 'large', 'extra-large'
             created_at: new Date().toISOString(),
             is_active: true,
             is_visible: true
@@ -1836,7 +1836,16 @@ function renderWidgets() {
                                 !dataString.includes('Try asking') && !dataString.includes('example');
         
         // Get widget size (default to 'medium' if not set)
-        const widgetSize = widget.size || 'medium';
+        // Normalize size: if it's an object, convert to 'medium'; if invalid string, default to 'medium'
+        let widgetSize = widget.size || 'medium';
+        if (typeof widgetSize !== 'string') {
+            // If size is an object (old format like {width: 2, height: 2}), convert to 'medium'
+            widgetSize = 'medium';
+        }
+        const validSizes = ['small', 'medium', 'large', 'extra-large'];
+        if (!validSizes.includes(widgetSize)) {
+            widgetSize = 'medium';
+        }
         const sizeClass = `widget-size-${widgetSize}`;
         
         return `
@@ -5726,15 +5735,24 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
         
         if (!response.ok) {
             // Try to get error details from response
+            // CRITICAL: Clone the response before reading body to avoid "Body is disturbed or locked" error
             let errorDetail = `TTS request failed: ${response.status}`;
             try {
-                const errorData = await response.json();
+                // Clone response to read body without locking it
+                const clonedResponse = response.clone();
+                const errorData = await clonedResponse.json();
                 errorDetail = errorData.detail || errorData.message || errorDetail;
                 console.error('❌ TTS Error Response:', errorData);
             } catch (e) {
-                const errorText = await response.text();
-                console.error('❌ TTS Error Response (text):', errorText);
-                errorDetail = errorText || errorDetail;
+                // If JSON parsing fails, try text (but only if we haven't already read the body)
+                try {
+                    const errorText = await response.text();
+                    console.error('❌ TTS Error Response (text):', errorText);
+                    errorDetail = errorText || errorDetail;
+                } catch (textError) {
+                    // Body already read or other error
+                    console.error('❌ TTS Error (could not read response body):', textError);
+                }
             }
             throw new Error(errorDetail);
         }
