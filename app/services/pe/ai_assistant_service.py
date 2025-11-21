@@ -715,24 +715,27 @@ class AIAssistantService:
                 current_meal = None  # Reset current meal when starting new day
                 continue
             
-            # Detect meal sections (Breakfast, Lunch, Dinner, Snack) - multiple formats
+            # Detect meal sections (Breakfast, Lunch, Dinner, Snack, Dessert as Snack) - multiple formats
             # Format 1: **Breakfast:** or **Breakfast:** (Approx. 600 calories) or **Breakfast (400 Cal):**
-            meal_match = re.search(r'\*\*(Breakfast|Lunch|Dinner|Snack|Snacks)\s*(?:\([^)]*\))?\s*:?\s*\*\*', line, re.IGNORECASE)
+            meal_match = re.search(r'\*\*(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*(?:\([^)]*\))?\s*:?\s*\*\*', line, re.IGNORECASE)
             # Format 1b: **Breakfast:** followed by text (e.g., "**Breakfast:** (Approx. 600 calories)")
             if not meal_match:
-                meal_match = re.search(r'\*\*(Breakfast|Lunch|Dinner|Snack|Snacks)\s*:?\s*\*\*\s*\(', line, re.IGNORECASE)
+                meal_match = re.search(r'\*\*(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*:?\s*\*\*\s*\(', line, re.IGNORECASE)
             # Format 2: Breakfast: or Breakfast (400 Cal) or Breakfast (400 Cal): (without bold)
             if not meal_match:
-                meal_match = re.search(r'^(Breakfast|Lunch|Dinner|Snack|Snacks)\s*(?:\([^)]*\))?\s*:?\s*$', line, re.IGNORECASE)
+                meal_match = re.search(r'^(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*(?:\([^)]*\))?\s*:?\s*$', line, re.IGNORECASE)
             # Format 3: *Breakfast* or *Breakfast (400 Cal):* (single asterisk)
             if not meal_match:
-                meal_match = re.search(r'^\*(Breakfast|Lunch|Dinner|Snack|Snacks)\s*(?:\([^)]*\))?\s*:?\s*\*', line, re.IGNORECASE)
+                meal_match = re.search(r'^\*(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*(?:\([^)]*\))?\s*:?\s*\*', line, re.IGNORECASE)
             # Format 4: - Breakfast: ... or • Breakfast: ... (bullet point with meal name)
             if not meal_match:
-                meal_match = re.search(r'^[-•]\s+(Breakfast|Lunch|Dinner|Snack|Snacks)\s*:\s*(.+)$', line, re.IGNORECASE)
+                meal_match = re.search(r'^[-•]\s+(Breakfast|Lunch|Dinner|Snack|Snacks|Dessert|Evening\s+Snack|After-Dinner\s+Snack|Mid-Morning\s+Snack|Afternoon\s+Snack)\s*:\s*(.+)$', line, re.IGNORECASE)
             
             if meal_match:
                 meal_type = meal_match.group(1).strip()
+                # Normalize "Dessert" to "Snack" (it's the evening snack)
+                if meal_type.lower() == "dessert":
+                    meal_type = "Snack"
                 # Extract calories if present (e.g., "Breakfast (400-500 Cal)")
                 cal_match = re.search(r'\(([^)]*cal[^)]*)\)', line, re.IGNORECASE)
                 calories = cal_match.group(1).strip() if cal_match else ""
