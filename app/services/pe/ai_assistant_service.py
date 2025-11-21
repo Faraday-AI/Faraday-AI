@@ -727,12 +727,21 @@ class AIAssistantService:
             # Format 3: *Breakfast* or *Breakfast (400 Cal):* (single asterisk)
             if not meal_match:
                 meal_match = re.search(r'^\*(Breakfast|Lunch|Dinner|Snack|Snacks)\s*(?:\([^)]*\))?\s*:?\s*\*', line, re.IGNORECASE)
+            # Format 4: - Breakfast: ... or • Breakfast: ... (bullet point with meal name)
+            if not meal_match:
+                meal_match = re.search(r'^[-•]\s+(Breakfast|Lunch|Dinner|Snack|Snacks)\s*:\s*(.+)$', line, re.IGNORECASE)
             
             if meal_match:
                 meal_type = meal_match.group(1).strip()
                 # Extract calories if present (e.g., "Breakfast (400-500 Cal)")
                 cal_match = re.search(r'\(([^)]*cal[^)]*)\)', line, re.IGNORECASE)
                 calories = cal_match.group(1).strip() if cal_match else ""
+                
+                # Check if Format 4 (bullet point with food on same line)
+                food_items_on_line = None
+                if len(meal_match.groups()) > 1 and meal_match.group(2):
+                    # Format 4: meal and food items are on the same line
+                    food_items_on_line = meal_match.group(2).strip()
                 
                 # Save previous meal
                 if current_meal:
@@ -748,6 +757,16 @@ class AIAssistantService:
                     "calories": calories,
                     "foods": []
                 }
+                
+                # If food items are on the same line (Format 4), add them immediately
+                if food_items_on_line:
+                    # Split by comma or period to get individual food items
+                    food_items = re.split(r'[,.]\s+(?=[A-Z])|\.\s*$', food_items_on_line)
+                    for food_item in food_items:
+                        food_item = food_item.strip()
+                        if food_item and not any(exercise_keyword in food_item.lower() for exercise_keyword in ['minutes', 'cardio', 'running', 'cycling', 'wrestling', 'exercise', 'workout', 'burn']):
+                            current_meal["foods"].append(food_item)
+                
                 in_meal_section = True
                 continue
             
@@ -1851,13 +1870,17 @@ Generate a comprehensive rubric now:"""
                     # Try to extract meal plan data from the response
                     meal_plan_data = self._extract_meal_plan_data(ai_response or "", chat_request.message)
                     logger.info(f"Extracted meal plan data: {meal_plan_data}")
-                    if meal_plan_data and (meal_plan_data.get("meals") or meal_plan_data.get("daily_calories")):
+                    # Check for single-day format (meals), multi-day format (days), or daily calories
+                    has_meals = meal_plan_data and (meal_plan_data.get("meals") and len(meal_plan_data.get("meals", [])) > 0)
+                    has_days = meal_plan_data and (meal_plan_data.get("days") and len(meal_plan_data.get("days", [])) > 0)
+                    has_calories = meal_plan_data and meal_plan_data.get("daily_calories")
+                    if meal_plan_data and (has_meals or has_days or has_calories):
                         health_widget = {
                             "type": "health",
                             "data": meal_plan_data
                         }
                         widgets_list.append(health_widget)
-                        logger.info(f"✅ Created health widget_data with meal plan")
+                        logger.info(f"✅ Created health widget_data with meal plan (meals: {has_meals}, days: {has_days}, calories: {has_calories})")
                     
                     # If request also includes exercise/workout, extract and create separate fitness widget
                     if has_exercise_keywords:
