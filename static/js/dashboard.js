@@ -5924,6 +5924,11 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
         const audioUrl = URL.createObjectURL(audioBlob);
         window.audioManager.currentAudioUrl = audioUrl; // Store URL to revoke later
         
+        // CRITICAL: Explicitly set playbackRate to 1.0 to ensure consistent playback speed across ALL browsers
+        // Different browsers (Chrome, Safari, Firefox, Edge) may have different default playback rates
+        // The rate is already set in the Azure TTS generation, so we want 1.0x playback (no browser adjustment)
+        audio.playbackRate = 1.0;
+        
         // CRITICAL: Set audio source and call play() IMMEDIATELY in the same synchronous operation
         // Safari requires play() to be called synchronously within user interaction context
         // We must do this in one synchronous block - no async operations, no load(), no delays
@@ -6196,6 +6201,11 @@ async function playVoiceSample(voice) {
         // Create audio element and play
         const audioUrl = URL.createObjectURL(audioBlob);
         const audio = new Audio(audioUrl);
+        
+        // CRITICAL: Explicitly set playbackRate to 1.0 to ensure consistent playback speed across ALL browsers
+        // Different browsers (Chrome, Safari, Firefox, Edge) may have different default playback rates
+        // The rate is already set in the Azure TTS generation, so we want 1.0x playback (no browser adjustment)
+        audio.playbackRate = 1.0;
         
         if (playButton) {
             playButton.textContent = 'Playing...';
