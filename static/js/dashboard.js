@@ -429,6 +429,14 @@ async function loadDashboardState() {
         // Load widgets from API (merge with local if needed)
         if (state.widgets && state.widgets.length > 0) {
             activeWidgets = state.widgets;
+            // Normalize widget sizes: ensure all are valid string sizes
+            const validSizes = ['small', 'medium', 'large', 'extra-large'];
+            activeWidgets.forEach(widget => {
+                if (!widget.size || typeof widget.size !== 'string' || !validSizes.includes(widget.size)) {
+                    // Normalize invalid sizes (objects, invalid strings, missing) to 'medium'
+                    widget.size = 'medium';
+                }
+            });
             saveWidgetsToLocalStorage();
             renderWidgets();
         } else if (activeWidgets.length === 0) {
@@ -1763,7 +1771,19 @@ async function getOrCreateDashboardId() {
 // Save widgets to localStorage
 function saveWidgetsToLocalStorage() {
     try {
-        localStorage.setItem('dashboard_widgets', JSON.stringify(activeWidgets));
+        // Normalize widget sizes before saving to ensure consistency
+        const validSizes = ['small', 'medium', 'large', 'extra-large'];
+        const normalizedWidgets = activeWidgets.map(widget => {
+            const normalizedWidget = { ...widget };
+            if (!normalizedWidget.size || typeof normalizedWidget.size !== 'string' || !validSizes.includes(normalizedWidget.size)) {
+                // Normalize invalid sizes (objects, invalid strings, missing) to 'medium'
+                normalizedWidget.size = 'medium';
+            }
+            return normalizedWidget;
+        });
+        localStorage.setItem('dashboard_widgets', JSON.stringify(normalizedWidgets));
+        // Update activeWidgets with normalized sizes to keep them in sync
+        activeWidgets = normalizedWidgets;
     } catch (error) {
         console.error('Error saving widgets to localStorage:', error);
     }
