@@ -285,9 +285,10 @@ class TeacherRegistrationService:
         """
         try:
             # Get teacher data
-            # Use SQLAlchemy model to query
+            # Use case-insensitive email matching (database may have different case)
+            from sqlalchemy import func
             teacher = self.db.query(TeacherRegistration).filter(
-                TeacherRegistration.email == email.lower().strip(),
+                func.lower(TeacherRegistration.email) == email.lower().strip(),
                 TeacherRegistration.is_active == True
             ).first()
             
