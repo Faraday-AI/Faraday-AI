@@ -119,7 +119,9 @@ def get_db_user_from_pydantic_user(pydantic_user: PydanticUser, db: Session, tok
                     except Exception:
                         pass
                     try:
-                        db_user = db.query(User).filter(User.email == email).first()
+                        # Use case-insensitive email matching (like we do elsewhere)
+                        from sqlalchemy import func
+                        db_user = db.query(User).filter(func.lower(User.email) == func.lower(email)).first()
                         if db_user:
                             logger.info(f"✅ Found user by email from token: {db_user.id} ({db_user.email})")
                             return db_user
@@ -173,7 +175,9 @@ def get_db_user_from_pydantic_user(pydantic_user: PydanticUser, db: Session, tok
         except Exception:
             pass
         try:
-            db_user = db.query(User).filter(User.email == pydantic_user.email).first()
+            # Use case-insensitive email matching (like we do elsewhere)
+            from sqlalchemy import func
+            db_user = db.query(User).filter(func.lower(User.email) == func.lower(pydantic_user.email)).first()
             if db_user:
                 logger.info(f"✅ Found user by email from Pydantic User: {db_user.id} ({db_user.email})")
                 return db_user
@@ -209,8 +213,9 @@ def get_db_user_from_pydantic_user(pydantic_user: PydanticUser, db: Session, tok
     except Exception as e:
         logger.error(f"❌ Could not query users for debugging: {e}")
     
+    # Return 401 Unauthorized instead of 404 Not Found - this is an authentication issue
     raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
+        status_code=status.HTTP_401_UNAUTHORIZED,
         detail=f"User not found in database. Email: {pydantic_user.email if pydantic_user.email else 'None'}. Please ensure you are logged in with a valid account."
     )
 
@@ -477,6 +482,7 @@ async def send_chat_message(
     request: Request = None
 ):
     """Send a message to the AI assistant and get a response"""
+    logger.info(f"📥 CHAT REQUEST RECEIVED: message='{chat_request.message[:100] if chat_request.message else 'None'}...', conversation_id={chat_request.conversation_id}")
     try:
         # Extract token from Authorization header directly (bypasses test mode issues)
         token = None

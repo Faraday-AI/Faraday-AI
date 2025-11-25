@@ -2351,54 +2351,74 @@ def seed_database():
                 
                 # Set admin user (if email exists in database)
                 print("\n" + "="*50)
-                print("SETTING ADMIN USER")
+                print("SETTING ADMIN USERS")
+                print("="*50)
+                print("⚠️  IMPORTANT: Creating admin users in ORDER (Martucci first, then Polito)")
                 print("="*50)
                 try:
-                    admin_email = "jmartucci@faraday-ai.com"
-                    result = session.execute(text("""
-                        UPDATE users 
-                        SET role = 'admin', 
-                            is_superuser = true, 
-                            is_active = true,
-                            disabled = false
-                        WHERE email = :email
-                    """), {"email": admin_email})
+                    from app.core.security import get_password_hash
                     
-                    if result.rowcount > 0:
-                        print(f"✅ Updated user {admin_email} to admin with full access!")
-                    else:
-                        print(f"⚠️  User {admin_email} not found in users table.")
-                        # Try to create admin user from teacher_registrations if it exists there
-                        teacher_check = session.execute(text("""
-                            SELECT email, password_hash, first_name, last_name 
-                            FROM teacher_registrations 
-                            WHERE email = :email
-                        """), {"email": admin_email}).fetchone()
+                    # CRITICAL: Order matters! Martucci must be created FIRST, then Polito
+                    # This ensures Martucci gets the lower ID (e.g., 33) and Polito gets the next (e.g., 34)
+                    admin_users = [
+                        {
+                            "email": "jmartucci@faraday-ai.com",
+                            "first_name": "Joe",
+                            "last_name": "Martucci",
+                            "password": "Moebe@r31"
+                        },
+                        {
+                            "email": "Mpolito@eifis.com",
+                            "first_name": "Michael",
+                            "last_name": "Polito",
+                            "password": "Faraday_@dmin_45"
+                        }
+                    ]
+                    
+                    # Since seed script drops all tables, we always INSERT (no need to check for existing)
+                    for idx, admin_user in enumerate(admin_users, 1):
+                        admin_email = admin_user["email"]
+                        password_hash = get_password_hash(admin_user["password"])
                         
-                        if teacher_check:
-                            # User exists in teacher_registrations, create in users table
-                            session.execute(text("""
-                                INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, created_at, updated_at)
-                                VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, NOW(), NOW())
-                                ON CONFLICT (email) DO UPDATE 
-                                SET role = 'admin',
-                                    is_superuser = true,
-                                    is_active = true,
-                                    disabled = false
-                            """), {
-                                "email": teacher_check[0],
-                                "password_hash": teacher_check[1],
-                                "first_name": teacher_check[2],
-                                "last_name": teacher_check[3]
-                            })
-                            session.commit()
-                            print(f"✅ Created admin user {admin_email} from teacher_registrations!")
-                        else:
-                            print(f"ℹ️  User {admin_email} not found. Register first, then this will update you to admin on next deployment.")
+                        print(f"\n📝 Creating admin user {idx}/{len(admin_users)}: {admin_email}")
+                        
+                        # 1. Create user in users table (INSERT only - tables were dropped)
+                        result = session.execute(text("""
+                            INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, created_at, updated_at)
+                            VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, NOW(), NOW())
+                            RETURNING id
+                        """), {
+                            "email": admin_email,
+                            "password_hash": password_hash,
+                            "first_name": admin_user["first_name"],
+                            "last_name": admin_user["last_name"]
+                        })
+                        user_id = result.scalar()
+                        print(f"   ✅ Created user {admin_email} in users table (ID: {user_id})")
+                        
+                        # 2. Create teacher_registration (required for login)
+                        session.execute(text("""
+                            INSERT INTO teacher_registrations (id, email, password_hash, first_name, last_name, is_verified, is_active, created_at, updated_at)
+                            VALUES (gen_random_uuid(), :email, :password_hash, :first_name, :last_name, true, true, NOW(), NOW())
+                        """), {
+                            "email": admin_email,
+                            "password_hash": password_hash,
+                            "first_name": admin_user["first_name"],
+                            "last_name": admin_user["last_name"]
+                        })
+                        print(f"   ✅ Created teacher_registration for {admin_email}")
+                        
+                        # Commit after each user to ensure order is preserved
+                        session.commit()
+                        print(f"   ✅ Committed admin user {idx}/{len(admin_users)}: {admin_email} (ID: {user_id})")
                     
-                    session.commit()
+                    print(f"\n✅ All {len(admin_users)} admin users created successfully in order!")
+                    print(f"   User 1: jmartucci@faraday-ai.com (created first)")
+                    print(f"   User 2: Mpolito@eifis.com (created second)")
                 except Exception as e:
-                    print(f"⚠️  Could not set admin user: {e}")
+                    print(f"⚠️  Could not set admin users: {e}")
+                    import traceback
+                    traceback.print_exc()
                     session.rollback()
                     # Don't fail the entire seeding process if admin setup fails
                 

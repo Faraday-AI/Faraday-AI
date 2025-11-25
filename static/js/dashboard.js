@@ -20,6 +20,73 @@ let originalConsole = {
     debug: console.debug
 };
 
+// Initialize Sentry Error Tracking
+if (typeof Sentry !== 'undefined') {
+    Sentry.init({
+        dsn: 'https://86afff47130b94433bedcd2e8c98eb62@o4510408975187968.ingest.us.sentry.io/4510408989081600',
+        environment: window.ENVIRONMENT || 'production',
+        tracesSampleRate: 0.1, // 10% of transactions for performance monitoring
+        // Setting this option to true will send default PII data to Sentry
+        sendDefaultPii: true,
+        // Capture unhandled errors and unhandled promise rejections
+        captureUnhandledRejections: true,
+        beforeSend(event, hint) {
+            // Respect user's analytics opt-in preference
+            const analyticsOptIn = localStorage.getItem('analytics_opt_in') !== 'false';
+            if (!analyticsOptIn) {
+                console.log('🚫 Sentry: Event blocked - analytics opt-in disabled');
+                return null; // Don't send if user opted out
+            }
+            const errorType = event.exception?.values?.[0]?.type || event.message || 'Unknown';
+            console.log('📤 Sentry: Sending event', errorType, event);
+            return event;
+        },
+        ignoreErrors: [
+            // Ignore common browser extension errors
+            'ResizeObserver loop limit exceeded',
+            'Non-Error promise rejection captured',
+            // Ignore network errors that are handled
+            'Failed to fetch',
+            'NetworkError',
+        ]
+    });
+    
+    // Set user context if available
+    const userId = localStorage.getItem('user_id');
+    if (userId) {
+        Sentry.setUser({ id: userId });
+    }
+    
+    // Log Sentry initialization for debugging
+    console.log('✅ Sentry initialized successfully');
+    console.log('📊 Analytics opt-in status:', localStorage.getItem('analytics_opt_in'));
+    
+    // Test that Sentry is working
+    try {
+        Sentry.captureMessage('Sentry test message - initialization complete', 'info');
+    } catch (e) {
+        console.warn('⚠️ Failed to send Sentry test message:', e);
+    }
+    
+    // Add global error handler to ensure errors are captured
+    window.addEventListener('error', (event) => {
+        console.log('🔍 Global error handler caught:', event.error);
+        if (event.error) {
+            Sentry.captureException(event.error);
+        } else {
+            Sentry.captureException(new Error(event.message));
+        }
+    });
+    
+    // Add unhandled promise rejection handler
+    window.addEventListener('unhandledrejection', (event) => {
+        console.log('🔍 Unhandled rejection caught:', event.reason);
+        Sentry.captureException(event.reason);
+    });
+} else {
+    console.warn('⚠️ Sentry script not loaded');
+}
+
 // Initialize dashboard on page load
 document.addEventListener('DOMContentLoaded', () => {
     initializeDashboard();
@@ -203,7 +270,7 @@ function updateOpeningPromptForAuthenticatedUser(firstName) {
         return; // Opening prompt not found
     }
     
-    // Create personalized greeting
+    // Create personalized greeting - FULL VERSION (visual display stays the same)
     const personalizedGreeting = `<p>Hello ${firstName}, I'm Jasper, your comprehensive AI assistant for Physical Education, what can I do for you today?</p>
                                 
                                 <p style="margin-top: 0.75rem;"><strong>Try these examples:</strong></p>
@@ -500,6 +567,17 @@ async function initializeDashboardState() {
 
 // Setup event listeners
 function setupEventListeners() {
+    // Track user interaction for autoplay (required after browser refresh)
+    // Set flag on any user interaction (click, keypress, etc.)
+    const markUserInteraction = () => {
+        sessionStorage.setItem('user_interaction_detected', 'true');
+    };
+    
+    // Track various user interactions
+    document.addEventListener('click', markUserInteraction, { once: false, passive: true });
+    document.addEventListener('keydown', markUserInteraction, { once: false, passive: true });
+    document.addEventListener('touchstart', markUserInteraction, { once: false, passive: true });
+    
     // Chat input
     const chatInput = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendBtn');
@@ -671,44 +749,21 @@ function setupOpeningPrompt() {
     
     originalConsole.log('✅ Found opening prompt message, extracting text...');
     
-    // Extract all text content, preserving structure but removing HTML tags
-    // Clone the element to avoid modifying the original
-    const contentClone = messageContent.cloneNode(true);
+    // For TTS autoplay, ONLY use the first greeting sentence
+    // Extract just the first paragraph (the greeting) for autoplay
+    const firstParagraph = messageContent.querySelector('p');
+    let welcomeMessage = '';
     
-    // Remove the message-time span if it exists
-    const timeSpan = contentClone.querySelector('.message-time');
-    if (timeSpan) {
-        timeSpan.remove();
+    if (firstParagraph) {
+        // Get just the first paragraph text (the greeting)
+        welcomeMessage = firstParagraph.textContent || firstParagraph.innerText || '';
+        welcomeMessage = welcomeMessage.trim();
+        originalConsole.log('📝 Extracted first paragraph for TTS autoplay:', welcomeMessage.substring(0, 100));
     }
     
-    // Convert to plain text, preserving line breaks
-    // Replace <p> tags with line breaks
-    contentClone.querySelectorAll('p').forEach(p => {
-        p.innerHTML = p.textContent + '\n\n';
-    });
-    
-    // Replace <li> tags with bullet points and line breaks
-    contentClone.querySelectorAll('li').forEach(li => {
-        li.innerHTML = '• ' + li.textContent + '\n';
-    });
-    
-    // Replace <strong> tags with emphasis markers
-    contentClone.querySelectorAll('strong').forEach(strong => {
-        strong.innerHTML = strong.textContent; // Keep text but remove bold formatting for TTS
-    });
-    
-    // Get the final text content
-    let welcomeMessage = contentClone.textContent || contentClone.innerText;
-    
-    // Clean up extra whitespace and normalize line breaks
-    welcomeMessage = welcomeMessage
-        .replace(/\n{3,}/g, '\n\n') // Replace 3+ newlines with 2
-        .replace(/[ \t]+/g, ' ') // Replace multiple spaces/tabs with single space
-        .trim();
-    
-    // If we couldn't extract text, use a fallback
+    // If we couldn't extract the first paragraph, use a fallback
     if (!welcomeMessage || welcomeMessage.length < 50) {
-        welcomeMessage = "Hello! I'm your comprehensive AI assistant for Physical Education. I have access to an extensive suite of capabilities designed to help you manage every aspect of your PE program. You can ask me to do anything - I handle all features whether widgets are on your dashboard or not.";
+        welcomeMessage = "Hello, I'm Jasper, your comprehensive AI assistant for Physical Education, what can I do for you today?";
         originalConsole.warn('⚠️ Using fallback opening prompt');
     }
     
@@ -912,6 +967,7 @@ function initializeLogViewer() {
     const closeLogViewerBtn = document.getElementById('closeLogViewerBtn');
     const clearLogsBtn = document.getElementById('clearLogsBtn');
     const exportLogsBtn = document.getElementById('exportLogsBtn');
+    const copyLogsBtn = document.getElementById('copyLogsBtn');
     
     if (logViewerBtn) {
         logViewerBtn.addEventListener('click', toggleLogViewer);
@@ -927,6 +983,10 @@ function initializeLogViewer() {
     
     if (exportLogsBtn) {
         exportLogsBtn.addEventListener('click', exportLogs);
+    }
+    
+    if (copyLogsBtn) {
+        copyLogsBtn.addEventListener('click', copyLogs);
     }
     
     // Filter checkboxes
@@ -1042,6 +1102,101 @@ function clearLogs() {
     }
 }
 
+// Copy logs to clipboard
+function copyLogs() {
+    try {
+        // Get filter states to match what's currently displayed
+        const showError = document.getElementById('filterError')?.checked ?? true;
+        const showWarn = document.getElementById('filterWarn')?.checked ?? true;
+        const showInfo = document.getElementById('filterInfo')?.checked ?? true;
+        const showDebug = document.getElementById('filterDebug')?.checked ?? false;
+        
+        // Filter logs based on current filter settings
+        const filteredLogs = logEntries.filter(entry => {
+            switch (entry.level) {
+                case 'error': return showError;
+                case 'warn': return showWarn;
+                case 'info': return showInfo;
+                case 'debug': return showDebug;
+                default: return true;
+            }
+        });
+        
+        if (filteredLogs.length === 0) {
+            alert('No logs to copy.');
+            return;
+        }
+        
+        // Format logs as text
+        const logText = filteredLogs.map(entry => {
+            return `[${entry.timestamp}] [${entry.level.toUpperCase()}] ${entry.message}`;
+        }).join('\n');
+        
+        // Add header
+        const copyText = `Application Logs\n${'='.repeat(50)}\n${logText}`;
+        
+        // Copy to clipboard
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(copyText).then(() => {
+                showCopyLogsFeedback();
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                fallbackCopyLogsToClipboard(copyText);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopyLogsToClipboard(copyText);
+        }
+    } catch (error) {
+        console.error('Error copying logs:', error);
+        alert('Failed to copy logs. Please try again.');
+    }
+}
+
+// Fallback copy method for logs
+function fallbackCopyLogsToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopyLogsFeedback();
+        } else {
+            alert('Failed to copy. Please select and copy manually.');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('Failed to copy. Please select and copy manually.');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+// Show visual feedback when logs are copied
+function showCopyLogsFeedback() {
+    const copyBtn = document.getElementById('copyLogsBtn');
+    if (copyBtn) {
+        const originalText = copyBtn.textContent;
+        const originalTitle = copyBtn.getAttribute('title');
+        copyBtn.textContent = '✓ Copied!';
+        copyBtn.setAttribute('title', 'Copied!');
+        copyBtn.style.color = '#4CAF50'; // Green color
+        
+        setTimeout(() => {
+            copyBtn.textContent = originalText;
+            copyBtn.setAttribute('title', originalTitle);
+            copyBtn.style.color = '';
+        }, 2000);
+    }
+}
+
 // Export logs
 function exportLogs() {
     const logText = logEntries.map(entry => {
@@ -1122,6 +1277,9 @@ async function sendMessage() {
     
     if (!message) return;
     
+    // Mark user interaction for autoplay (required after browser refresh)
+    sessionStorage.setItem('user_interaction_detected', 'true');
+    
     // Add user message to chat
     addMessageToChat('user', message);
     chatInput.value = '';
@@ -1142,6 +1300,10 @@ async function sendMessage() {
             headers['Authorization'] = `Bearer ${token}`;
         }
         
+        // CRITICAL: Get or restore conversation_id from sessionStorage for multi-step workflows
+        // This ensures meal plan requests with allergy answers stay in the same conversation
+        let currentConversationId = sessionStorage.getItem('jasper_conversation_id') || null;
+        
         // Route authenticated users to advanced AI Assistant endpoint
         // Guest users use the simple guest chat endpoint
         let response;
@@ -1153,7 +1315,7 @@ async function sendMessage() {
                 headers: headers,
                 body: JSON.stringify({
                     message: message,
-                    conversation_id: null, // Will create new or use existing
+                    conversation_id: currentConversationId, // Use persisted conversation ID
                     conversation_type: 'general_chat',
                     metadata: {
                         context: chatHistory.slice(-1).map(msg => ({
@@ -1259,6 +1421,15 @@ async function sendMessage() {
         const result = await response.json();
         console.log('✅ Chat response received:', result);
         console.log('📊 Widget data:', result.widget_data);
+        if (result.widget_data) {
+            console.log('📊 Widget data structure check:', {
+                hasType: !!result.widget_data.type,
+                type: result.widget_data.type,
+                hasData: !!result.widget_data.data,
+                dataKeys: result.widget_data.data ? Object.keys(result.widget_data.data) : [],
+                fullKeys: Object.keys(result.widget_data)
+            });
+        }
         
         // For guest users, try to extract name from AI response if not already stored
         if (!isAuthenticated && !sessionStorage.getItem('guest_name') && result.response) {
@@ -1283,6 +1454,16 @@ async function sendMessage() {
                         break;
                     }
                 }
+            }
+        }
+        
+        // CRITICAL: Save conversation_id from response for subsequent messages
+        // This enables multi-step workflows (e.g., meal plan + allergy answer)
+        if (result.conversation_id) {
+            const storedConversationId = sessionStorage.getItem('jasper_conversation_id');
+            if (!storedConversationId || storedConversationId !== result.conversation_id) {
+                sessionStorage.setItem('jasper_conversation_id', result.conversation_id);
+                console.log('✅ Conversation ID stored in sessionStorage:', result.conversation_id);
             }
         }
         
@@ -1326,6 +1507,21 @@ async function sendMessage() {
                 // Also check widget_data for backward compatibility (single widget)
                 else if (pendingWidgetData) {
                     console.log('🔄 Updating widget with data:', pendingWidgetData);
+                    console.log('🔍 Widget data structure:', {
+                        hasType: !!pendingWidgetData.type,
+                        type: pendingWidgetData.type,
+                        hasData: !!pendingWidgetData.data,
+                        dataKeys: pendingWidgetData.data ? Object.keys(pendingWidgetData.data) : [],
+                        dataType: typeof pendingWidgetData.data,
+                        isObject: pendingWidgetData.data && typeof pendingWidgetData.data === 'object',
+                        fullKeys: Object.keys(pendingWidgetData)
+                    });
+                    // Log the actual data content for debugging
+                    if (pendingWidgetData.data) {
+                        console.log('📦 Widget data content:', JSON.stringify(pendingWidgetData.data).substring(0, 500));
+                    } else {
+                        console.warn('⚠️ pendingWidgetData.data is missing! Full pendingWidgetData:', pendingWidgetData);
+                    }
                     updateWidgetWithData(pendingWidgetData);
                 } else {
                     console.log('⚠️ No widget_data or widgets in response');
@@ -1435,8 +1631,12 @@ function addMessageToChat(role, content, autoSpeak = false, widgetData = null) {
     console.log('🔊 addMessageToChat autoplay check:', { role, autoSpeak, isAI: role === 'ai', willAttemptAutoplay: role === 'ai' && autoSpeak });
     if (role === 'ai' && autoSpeak) {
         const enableAIVoice = localStorage.getItem('enable_ai_voice') !== 'false'; // Default to true
-        console.log('🔊 Auto-speak check:', { enableAIVoice, autoSpeak, role });
-        if (enableAIVoice) {
+        // Check if user has interacted in this session (required for autoplay after page refresh)
+        const hasUserInteraction = sessionStorage.getItem('user_interaction_detected') === 'true';
+        const wasManuallyPaused = sessionStorage.getItem('audio_manually_paused') === 'true';
+        console.log('🔊 Auto-speak check:', { enableAIVoice, autoSpeak, role, hasUserInteraction, wasManuallyPaused });
+        // Don't autoplay if audio was manually paused - user must click speaker button to resume
+        if (enableAIVoice && hasUserInteraction && !wasManuallyPaused) {
             // Start fetching audio IMMEDIATELY and SYNCHRONOUSLY to preserve user interaction context
             // The user just sent a message, so we're still in their interaction context
             // DO NOT use requestAnimationFrame or setTimeout - they break the interaction chain
@@ -1665,6 +1865,15 @@ function handleWidgetUpdates(widgets) {
 
 // Update widget with data from AI response
 function updateWidgetWithData(widgetData) {
+    console.log('🔍 updateWidgetWithData called with:', {
+        hasWidgetData: !!widgetData,
+        hasType: widgetData ? !!widgetData.type : false,
+        type: widgetData ? widgetData.type : undefined,
+        hasData: widgetData ? !!widgetData.data : false,
+        dataKeys: widgetData && widgetData.data ? Object.keys(widgetData.data) : [],
+        fullKeys: widgetData ? Object.keys(widgetData) : []
+    });
+    
     if (!widgetData || !widgetData.type) {
         console.warn('⚠️ Invalid widget data:', widgetData);
         return;
@@ -1687,41 +1896,97 @@ function updateWidgetWithData(widgetData) {
     }
     
     try {
-        // Find existing widget of this type
-        let widget = activeWidgets.find(w => (w.type || w.widget_type) === widgetData.type);
+        // Normalize widget type: 'lesson_plan' from backend should work with 'lesson-planning' widgets
+        // But keep original type for data matching - formatWidgetData handles both
+        const normalizedType = (widgetData.type === 'lesson_plan') ? 'lesson-planning' : widgetData.type;
+        
+        // Find existing widget of this type (check both normalized and original type)
+        let widget = activeWidgets.find(w => {
+            const wType = w.type || w.widget_type;
+            return wType === normalizedType || wType === widgetData.type;
+        });
         
         if (!widget) {
             // Widget doesn't exist - add it automatically
             // Ensure is_preview is NOT set for authenticated users
             const widgetDataCopy = { ...widgetData };
-            if (widgetDataCopy.data) {
-                widgetDataCopy.data = { ...widgetDataCopy.data };
+            
+            // Extract data - handle both {type: "...", data: {...}} and direct data object
+            let widgetDataContent = widgetDataCopy.data;
+            if (!widgetDataContent && widgetDataCopy.type) {
+                // If no .data property, the whole widgetDataCopy might be the data (backward compatibility)
+                // But we should have .data, so this is a fallback
+                console.warn('⚠️ Widget data missing .data property, using widgetDataCopy as data');
+                widgetDataContent = widgetDataCopy;
+            }
+            
+            if (widgetDataContent) {
+                widgetDataContent = { ...widgetDataContent };
                 // Remove any preview flags for authenticated users
-                delete widgetDataCopy.data.is_preview;
-                delete widgetDataCopy.data.preview_message;
+                delete widgetDataContent.is_preview;
+                delete widgetDataContent.preview_message;
             }
             
             const newWidget = {
                 id: `widget-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                type: widgetDataCopy.type,
-                name: getWidgetTitle(widgetDataCopy.type),
+                type: normalizedType,  // Use normalized type for consistency with frontend
+                name: getWidgetTitle(normalizedType),
                 configuration: {},
                 position: null,
                 size: 'medium', // String, not object: 'small', 'medium', 'large', 'extra-large'
                 created_at: new Date().toISOString(),
                 is_active: true,
                 is_visible: true,
-                data: widgetDataCopy.data || {}
+                data: widgetDataContent || {}
             };
+            console.log('✅ Creating new widget:', { 
+                type: normalizedType, 
+                originalType: widgetData.type, 
+                hasData: !!newWidget.data, 
+                dataKeys: Object.keys(newWidget.data || {}), 
+                dataSize: JSON.stringify(newWidget.data || {}).length,
+                dataPreview: JSON.stringify(newWidget.data || {}).substring(0, 200),
+                widgetDataContentKeys: widgetDataContent ? Object.keys(widgetDataContent) : [],
+                widgetDataContentSize: widgetDataContent ? JSON.stringify(widgetDataContent).length : 0
+            });
+            
+            // CRITICAL: Ensure widget.data is properly set with the lesson plan data
+            if (newWidget.data && Object.keys(newWidget.data).length > 0) {
+                console.log('✅ Widget data successfully assigned:', {
+                    hasTitle: !!newWidget.data.title,
+                    hasLearningObjectives: !!newWidget.data.learning_objectives,
+                    hasActivities: !!newWidget.data.activities,
+                    firstDataKey: Object.keys(newWidget.data)[0]
+                });
+            } else {
+                console.error('❌ Widget data is EMPTY after assignment!', {
+                    widgetDataContent: widgetDataContent,
+                    widgetDataCopy: widgetDataCopy
+                });
+            }
             addWidgetToDashboard(newWidget);
             saveWidgetsToLocalStorage();
         } else {
             // Update existing widget with new data
             // Ensure is_preview is NOT set for authenticated users
-            const updatedData = { ...(widgetData.data || widget.data || {}) };
+            let updatedData = widgetData.data;
+            if (!updatedData && widgetData.type) {
+                // Fallback: if no .data, use widgetData itself (shouldn't happen but handle gracefully)
+                console.warn('⚠️ Widget data missing .data property when updating, using widgetData as data');
+                updatedData = { ...widgetData };
+            } else {
+                updatedData = { ...(updatedData || widget.data || {}) };
+            }
             delete updatedData.is_preview;
             delete updatedData.preview_message;
             widget.data = updatedData;
+            console.log('✅ Updating existing widget:', { 
+                type: widget.type, 
+                hasData: !!widget.data, 
+                dataKeys: Object.keys(widget.data || {}), 
+                dataSize: JSON.stringify(widget.data || {}).length,
+                dataPreview: JSON.stringify(widget.data || {}).substring(0, 200)
+            });
             saveWidgetsToLocalStorage();
         }
         
@@ -1932,8 +2197,37 @@ function renderWidgets() {
                             (typeof widget.data === 'object' && 
                              Object.keys(widget.data).length === 1 && 
                              (widget.data.message || widget.data.text || widget.data.prompt || widget.data.description)));
-        const hasPrintableData = hasData && !isTextPrompt && dataString.length >= 50 && 
-                                !dataString.includes('Try asking') && !dataString.includes('example');
+        
+        // Check if this is a lesson plan widget - always allow printing for structured lesson plans
+        const isLessonPlanWidget = widget.type === 'lesson-planning' || widget.type === 'lesson_plan' || widget.type === 'lesson-plan' ||
+                                  (widget.data && typeof widget.data === 'object' && !Array.isArray(widget.data) && 
+                                   (widget.data.title || widget.data.learning_objectives || widget.data.objectives || 
+                                    widget.data.activities || widget.data.standards || widget.data.materials_list));
+        
+        // More specific check for instruction prompts - look for "Try asking" or "example" in instruction context
+        // Don't reject data just because it contains the word "example" - check for instruction patterns
+        const looksLikeInstruction = dataString.includes('"Try asking') || 
+                                    dataString.includes('Try asking your AI') ||
+                                    (dataString.length < 100 && dataString.includes('example') && dataString.includes('Try'));
+        
+        // Lesson plan widgets always have printable data (structured content)
+        // For other widgets, check if it's actual data vs instructions
+        const hasPrintableData = isLessonPlanWidget || 
+                                (hasData && !isTextPrompt && dataString.length >= 50 && !looksLikeInstruction);
+        
+        // Debug logging for button visibility
+        console.log('🔍 Widget printable data check:', {
+            widgetId: widget.id,
+            widgetType: widget.type,
+            hasData: hasData,
+            isTextPrompt: isTextPrompt,
+            isLessonPlanWidget: isLessonPlanWidget,
+            looksLikeInstruction: looksLikeInstruction,
+            dataStringLength: dataString.length,
+            hasPrintableData: hasPrintableData,
+            dataKeys: widget.data ? Object.keys(widget.data) : [],
+            dataPreview: dataString.substring(0, 100)
+        });
         
         // Get widget size (default to 'medium' if not set)
         // Normalize size: if it's an object, convert to 'medium'; if invalid string, default to 'medium'
@@ -1957,6 +2251,7 @@ function renderWidgets() {
                     ${hasPrintableData ? `<button class="widget-action-btn widget-print-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();printWidget('${widget.id}');})(event)" title="Print widget data">🖨️</button>` : ''}
                     ${hasPrintableData ? `<button class="widget-action-btn widget-email-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();emailWidget('${widget.id}');})(event)" title="Email widget data">📧</button>` : ''}
                     ${hasPrintableData ? `<button class="widget-action-btn widget-sms-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();smsWidget('${widget.id}');})(event)" title="Send widget data via SMS">💬</button>` : ''}
+                    ${hasPrintableData ? `<button class="widget-action-btn widget-copy-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();copyWidget('${widget.id}');})(event)" title="Copy widget data">📋</button>` : ''}
                     <button class="widget-action-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();removeWidget('${widget.id}');})(event)" title="Remove widget from dashboard">×</button>
                 </div>
             </div>
@@ -1988,6 +2283,7 @@ function getWidgetTitle(widgetType) {
         'insights': 'Class Insights',
         'fitness': 'Exercise & Fitness',
         'lesson-planning': 'Lesson Planning',
+        'lesson_plan': 'Lesson Planning',  // Support both formats
         'video': 'Video & Movement',
         'activities': 'Activity Management',
         'assessment': 'Assessment & Skills',
@@ -2006,15 +2302,58 @@ function getWidgetTitle(widgetType) {
 
 // Format widget data for display
 function formatWidgetData(data, widgetType) {
+    console.log('🎨 formatWidgetData called:', {
+        widgetType: widgetType,
+        hasData: !!data,
+        dataType: typeof data,
+        dataKeys: data && typeof data === 'object' ? Object.keys(data) : [],
+        isLessonPlanType: widgetType === 'lesson-planning' || widgetType === 'lesson_plan' || widgetType === 'lesson-plan',
+        hasLessonPlanFields: data && typeof data === 'object' && !Array.isArray(data) && (
+            data.title || data.learning_objectives || data.objectives || data.activities
+        )
+    });
     try {
         if (!data || typeof data !== 'object') {
             return '<div class="widget-data-display"><p>No data available</p></div>';
+        }
+        
+        // EARLY EXIT: If this is clearly a lesson plan widget type, format it immediately
+        // This prevents any possibility of falling through to formatDataObject
+        if (widgetType === 'lesson-planning' || widgetType === 'lesson_plan' || widgetType === 'lesson-plan' ||
+            (widgetType && widgetType.toLowerCase().includes('lesson'))) {
+            console.log('🚨 EARLY DETECTION: Widget type is lesson plan, formatting immediately');
+            // Will be handled by the main lesson plan block below, but this ensures we know it's a lesson plan
         }
         
         // Check if this is a preview/teaser widget for guest users (applies to ALL widget types)
         // For authenticated users, NEVER show preview (even if flag is set)
         const isAuthenticated = !!localStorage.getItem('access_token');
         const isPreview = !isAuthenticated && data.is_preview === true;
+        
+        // CRITICAL: Check for lesson plan FIRST, before any other processing
+        // This must happen at the very beginning to prevent falling through to formatDataObject
+        const isLessonPlanTypeEarly = widgetType === 'lesson-planning' || 
+                                      widgetType === 'lesson_plan' || 
+                                      widgetType === 'lesson-plan' ||
+                                      (widgetType && widgetType.toLowerCase().includes('lesson'));
+        
+        const hasLessonPlanDataEarly = data && typeof data === 'object' && !Array.isArray(data) && (
+            data.title || data.description || 
+            data.objectives || data.learning_objectives ||
+            data.introduction || 
+            data.activities || 
+            data.materials || data.materials_list ||
+            data.standards || data.curriculum_standards ||
+            data.danielson_framework || data.danielson_framework_alignment ||
+            data.costas_questioning || data.costas_levels_of_questioning ||
+            data.exit_ticket ||
+            data.worksheets || data.assessments || data.rubrics ||
+            data.homework || data.safety_considerations || data.extensions ||
+            data.assessment || data.grade_level || data.subject
+        );
+        
+        // If this is lesson plan, we'll format it below, but set flag now
+        const isLessonPlan = isLessonPlanTypeEarly || hasLessonPlanDataEarly;
         
         // Format based on widget type and data structure
         let html = '<div class="widget-data-display' + (isPreview ? ' widget-preview' : '') + '">';
@@ -2029,17 +2368,75 @@ function formatWidgetData(data, widgetType) {
             html += '</div>';
         }
     
-    // Special handling for lesson plan widget
-    // Check for lesson plan data - be more lenient to catch all lesson plan widgets
-    if (widgetType === 'lesson-planning' && data && (data.title || data.description || data.objectives || data.introduction || data.activities || data.materials || data.danielson_framework || data.costas_questioning || data.curriculum_standards || data.exit_ticket || data.worksheets || data.assessments || data.rubrics)) {
+    // CRITICAL: Check for lesson plan FIRST, before any other processing
+    // This must happen at the very beginning to prevent falling through to formatDataObject
+    
+    // Check widget type - support both 'lesson-planning' and 'lesson_plan' widget types
+    const isLessonPlanType = widgetType === 'lesson-planning' || 
+                              widgetType === 'lesson_plan' || 
+                              widgetType === 'lesson-plan' ||
+                              (widgetType && widgetType.toLowerCase().includes('lesson'));
+    
+    // More comprehensive check for lesson plan data structure
+    // Check for ANY lesson plan indicators - be very permissive
+    const hasLessonPlanData = data && typeof data === 'object' && !Array.isArray(data) && (
+        data.title || data.description || 
+        data.objectives || data.learning_objectives ||
+        data.introduction || 
+        data.activities || 
+        data.materials || data.materials_list ||
+        data.standards || data.curriculum_standards ||
+        data.danielson_framework || data.danielson_framework_alignment ||
+        data.costas_questioning || data.costas_levels_of_questioning ||
+        data.exit_ticket ||
+        data.worksheets || data.assessments || data.rubrics ||
+        data.homework || data.safety_considerations || data.extensions ||
+        data.assessment || data.grade_level || data.subject
+    );
+    
+    // CRITICAL: If widget type is lesson plan OR data has lesson plan structure, ALWAYS format as lesson plan
+    // This prevents any fallthrough to formatDataObject which shows raw JSON
+    // FORCE lesson plan formatting if type matches, regardless of data structure
+    const shouldFormatAsLessonPlan = isLessonPlanType || hasLessonPlanData;
+    
+    console.log('🔍 formatWidgetData lesson plan check:', {
+        widgetType: widgetType,
+        isLessonPlanType: isLessonPlanType,
+        hasLessonPlanData: hasLessonPlanData,
+        shouldFormatAsLessonPlan: shouldFormatAsLessonPlan,
+        dataKeys: data ? Object.keys(data) : [],
+        hasTitle: data ? !!data.title : false,
+        hasDescription: data ? !!data.description : false,
+        hasObjectives: data ? !!(data.objectives || data.learning_objectives) : false,
+        hasActivities: data ? !!data.activities : false,
+        hasStandards: data ? !!data.standards : false,
+        hasMaterials: data ? !!(data.materials || data.materials_list) : false,
+        dataType: typeof data,
+        isArray: Array.isArray(data),
+        dataPreview: data ? JSON.stringify(data).substring(0, 200) : 'no data'
+    });
+    
+    // FORCE lesson plan formatting if widget type is lesson_plan or lesson-planning
+    // This is a safety net to ensure lesson plans are NEVER displayed as raw JSON
+    // CRITICAL: Check widget type FIRST before any other processing
+    if (shouldFormatAsLessonPlan || widgetType === 'lesson_plan' || widgetType === 'lesson-planning' || widgetType === 'lesson-plan') {
+        console.log('✅ Formatting as lesson plan (forced check)', {
+            widgetType: widgetType,
+            shouldFormatAsLessonPlan: shouldFormatAsLessonPlan,
+            isLessonPlanType: isLessonPlanType,
+            hasLessonPlanData: hasLessonPlanData
+        });
         console.log('📋 Rendering lesson-planning widget with data:', {
             hasTitle: !!data.title,
             hasDescription: !!data.description,
             hasObjectives: !!data.objectives,
-            objectivesLength: Array.isArray(data.objectives) ? data.objectives.length : 'not array',
+            hasLearningObjectives: !!data.learning_objectives,
+            objectivesLength: Array.isArray(data.objectives || data.learning_objectives) ? (data.objectives || data.learning_objectives).length : 'not array',
             hasActivities: !!data.activities,
             activitiesLength: Array.isArray(data.activities) ? data.activities.length : 'not array',
-            dataKeys: Object.keys(data)
+            dataKeys: Object.keys(data),
+            dataType: typeof data,
+            isArray: Array.isArray(data)
         });
         
         // Check if this is a preview/teaser widget for guest users
@@ -2070,73 +2467,199 @@ function formatWidgetData(data, widgetType) {
         if (data.introduction) {
             html += `<div class="lesson-section"><h5>Introduction</h5><p>${escapeHtml(data.introduction)}</p></div>`;
         }
-        if (data.objectives && Array.isArray(data.objectives) && data.objectives.length > 0) {
+        // Learning Objectives - support both 'objectives' and 'learning_objectives'
+        const objectives = data.learning_objectives || data.objectives;
+        if (objectives && Array.isArray(objectives) && objectives.length > 0) {
             html += '<div class="lesson-section"><h5>Learning Objectives</h5><ul class="lesson-objectives">';
-            data.objectives.forEach((objective, index) => {
+            objectives.forEach((objective, index) => {
                 html += `<li>${escapeHtml(objective)}</li>`;
             });
             html += '</ul></div>';
         }
-        if (data.activities && Array.isArray(data.activities) && data.activities.length > 0) {
-            html += '<div class="lesson-section"><h5>Activities</h5><ul class="lesson-activities">';
-            data.activities.forEach((activity, index) => {
-                html += `<li>${escapeHtml(activity)}</li>`;
+        
+        // Standards - support both 'standards' (array of objects) and 'curriculum_standards' (string)
+        if (data.standards && Array.isArray(data.standards) && data.standards.length > 0) {
+            html += '<div class="lesson-section"><h5>Standards</h5><ul class="lesson-standards">';
+            data.standards.forEach((standard, index) => {
+                if (typeof standard === 'object' && standard.code && standard.description) {
+                    html += `<li><strong>${escapeHtml(standard.code)}:</strong> ${escapeHtml(standard.description)}</li>`;
+                } else {
+                    html += `<li>${escapeHtml(String(standard))}</li>`;
+                }
             });
             html += '</ul></div>';
-        }
-        if (data.curriculum_standards) {
+        } else if (data.curriculum_standards) {
             html += `<div class="lesson-section"><h5>Curriculum Standards</h5><p>${escapeHtml(data.curriculum_standards)}</p></div>`;
         }
-        if (data.materials && Array.isArray(data.materials) && data.materials.length > 0) {
+        
+        // Materials - support both 'materials' and 'materials_list'
+        const materials = data.materials_list || data.materials;
+        if (materials && Array.isArray(materials) && materials.length > 0) {
             html += '<div class="lesson-section"><h5>Materials Needed</h5><ul class="lesson-materials">';
-            data.materials.forEach((material, index) => {
+            materials.forEach((material, index) => {
                 html += `<li>${escapeHtml(material)}</li>`;
             });
             html += '</ul></div>';
         }
-        if (data.danielson_framework) {
+        
+        // Activities - support both array of strings and array of objects with name/description
+        if (data.activities && Array.isArray(data.activities) && data.activities.length > 0) {
+            html += '<div class="lesson-section"><h5>Activities</h5><ul class="lesson-activities">';
+            data.activities.forEach((activity, index) => {
+                if (typeof activity === 'object' && activity.name) {
+                    const timeText = activity.time_allocation ? ` <span class="activity-time">(${escapeHtml(activity.time_allocation)})</span>` : '';
+                    html += `<li><strong>${escapeHtml(activity.name)}${timeText}</strong>`;
+                    if (activity.description) {
+                        html += `<br>${escapeHtml(activity.description)}`;
+                    }
+                    html += '</li>';
+                } else {
+                    html += `<li>${escapeHtml(String(activity))}</li>`;
+                }
+            });
+            html += '</ul></div>';
+        }
+        
+        // Assessment - support both 'assessment' (string or object) and 'assessments' (string)
+        if (data.assessment) {
+            if (typeof data.assessment === 'object') {
+                html += '<div class="lesson-section"><h5>Assessment</h5>';
+                if (data.assessment.formative) {
+                    html += `<p><strong>Formative:</strong> ${escapeHtml(data.assessment.formative)}</p>`;
+                }
+                if (data.assessment.summative) {
+                    html += `<p><strong>Summative:</strong> ${escapeHtml(data.assessment.summative)}</p>`;
+                }
+                html += '</div>';
+            } else {
+                html += `<div class="lesson-section"><h5>Assessment</h5><p>${escapeHtml(data.assessment)}</p></div>`;
+            }
+        } else if (data.assessments) {
+            html += `<div class="lesson-section"><h5>Assessments</h5><p>${escapeHtml(data.assessments)}</p></div>`;
+        }
+        
+        // Extensions
+        if (data.extensions && Array.isArray(data.extensions) && data.extensions.length > 0) {
+            html += '<div class="lesson-section"><h5>Extensions</h5><ul class="lesson-extensions">';
+            data.extensions.forEach((extension, index) => {
+                html += `<li>${escapeHtml(extension)}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        
+        // Safety Considerations
+        if (data.safety_considerations && Array.isArray(data.safety_considerations) && data.safety_considerations.length > 0) {
+            html += '<div class="lesson-section"><h5>Safety Considerations</h5><ul class="lesson-safety">';
+            data.safety_considerations.forEach((safety, index) => {
+                html += `<li>${escapeHtml(safety)}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        
+        // Homework
+        if (data.homework) {
+            html += `<div class="lesson-section"><h5>Homework</h5><p>${escapeHtml(data.homework)}</p></div>`;
+        }
+        
+        // Danielson Framework - support both 'danielson_framework' (string) and 'danielson_framework_alignment' (object)
+        if (data.danielson_framework_alignment && typeof data.danielson_framework_alignment === 'object') {
+            html += '<div class="lesson-section"><h5>Danielson Framework Alignment</h5>';
+            if (data.danielson_framework_alignment.domain_1) {
+                html += `<p><strong>Domain 1:</strong> ${escapeHtml(data.danielson_framework_alignment.domain_1)}</p>`;
+            }
+            if (data.danielson_framework_alignment.domain_2) {
+                html += `<p><strong>Domain 2:</strong> ${escapeHtml(data.danielson_framework_alignment.domain_2)}</p>`;
+            }
+            if (data.danielson_framework_alignment.domain_3) {
+                html += `<p><strong>Domain 3:</strong> ${escapeHtml(data.danielson_framework_alignment.domain_3)}</p>`;
+            }
+            if (data.danielson_framework_alignment.domain_4) {
+                html += `<p><strong>Domain 4:</strong> ${escapeHtml(data.danielson_framework_alignment.domain_4)}</p>`;
+            }
+            html += '</div>';
+        } else if (data.danielson_framework) {
             html += `<div class="lesson-section"><h5>Danielson Framework Alignment</h5><p>${escapeHtml(data.danielson_framework)}</p></div>`;
         }
-        if (data.costas_questioning) {
+        
+        // Costa's Levels - support both 'costas_questioning' (string) and 'costas_levels_of_questioning' (object)
+        if (data.costas_levels_of_questioning && typeof data.costas_levels_of_questioning === 'object') {
+            html += '<div class="lesson-section"><h5>Costa\'s Levels of Questioning</h5>';
+            if (data.costas_levels_of_questioning.level_1) {
+                html += `<p><strong>Level 1:</strong> ${escapeHtml(data.costas_levels_of_questioning.level_1)}</p>`;
+            }
+            if (data.costas_levels_of_questioning.level_2) {
+                html += `<p><strong>Level 2:</strong> ${escapeHtml(data.costas_levels_of_questioning.level_2)}</p>`;
+            }
+            if (data.costas_levels_of_questioning.level_3) {
+                html += `<p><strong>Level 3:</strong> ${escapeHtml(data.costas_levels_of_questioning.level_3)}</p>`;
+            }
+            html += '</div>';
+        } else if (data.costas_questioning) {
             html += `<div class="lesson-section"><h5>Costa's Levels of Questioning</h5><p>${escapeHtml(data.costas_questioning)}</p></div>`;
         }
         if (data.worksheets) {
             // Format worksheets with better structure - preserve line breaks and formatting
-            let worksheetsHtml = escapeHtml(data.worksheets);
-            // Convert double newlines to paragraph breaks
-            const paragraphs = worksheetsHtml.split('\n\n').filter(p => p.trim());
-            if (paragraphs.length > 1) {
-                worksheetsHtml = paragraphs.map(para => {
-                    // Check if paragraph starts with a number or letter (numbered list or question)
-                    if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/)) {
-                        return `<p class="worksheet-item">${para.replace(/\n/g, '<br>')}</p>`;
-                    }
-                    return `<p>${para.replace(/\n/g, '<br>')}</p>`;
-                }).join('');
-            } else {
-                // If no double newlines, just preserve single newlines
-                worksheetsHtml = worksheetsHtml.replace(/\n/g, '<br>');
+            // Handle different formats: string, array, or object
+            let worksheetsText = '';
+            if (typeof data.worksheets === 'string') {
+                worksheetsText = data.worksheets;
+            } else if (Array.isArray(data.worksheets)) {
+                worksheetsText = data.worksheets.join('\n\n');
+            } else if (typeof data.worksheets === 'object') {
+                // If it's an object, try to extract content
+                worksheetsText = data.worksheets.content || data.worksheets.worksheet || JSON.stringify(data.worksheets, null, 2);
             }
-            html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+            
+            if (worksheetsText) {
+                let worksheetsHtml = escapeHtml(worksheetsText);
+                // Convert double newlines to paragraph breaks
+                const paragraphs = worksheetsHtml.split('\n\n').filter(p => p.trim());
+                if (paragraphs.length > 1) {
+                    worksheetsHtml = paragraphs.map(para => {
+                        // Check if paragraph starts with a number or letter (numbered list or question)
+                        if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/) || para.match(/^(worksheet|answer\s+key|student\s+worksheet)/i)) {
+                            return `<p class="worksheet-item">${para.replace(/\n/g, '<br>')}</p>`;
+                        }
+                        return `<p>${para.replace(/\n/g, '<br>')}</p>`;
+                    }).join('');
+                } else {
+                    // If no double newlines, just preserve single newlines
+                    worksheetsHtml = worksheetsHtml.replace(/\n/g, '<br>');
+                }
+                html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+            }
         }
         if (data.rubrics) {
             // Format rubrics with better structure - preserve line breaks and formatting
-            let rubricsHtml = escapeHtml(data.rubrics);
-            // Convert double newlines to paragraph breaks
-            const paragraphs = rubricsHtml.split('\n\n').filter(p => p.trim());
-            if (paragraphs.length > 1) {
-                rubricsHtml = paragraphs.map(para => {
-                    // Check if paragraph starts with a number, letter, or performance level (numbered list, criteria, or level)
-                    if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/) || para.match(/^(excellent|proficient|developing|beginning|advanced|novice|criteria)/i)) {
-                        return `<p class="rubric-item">${para.replace(/\n/g, '<br>')}</p>`;
-                    }
-                    return `<p>${para.replace(/\n/g, '<br>')}</p>`;
-                }).join('');
-            } else {
-                // If no double newlines, just preserve single newlines
-                rubricsHtml = rubricsHtml.replace(/\n/g, '<br>');
+            // Handle different formats: string, array, or object
+            let rubricsText = '';
+            if (typeof data.rubrics === 'string') {
+                rubricsText = data.rubrics;
+            } else if (Array.isArray(data.rubrics)) {
+                rubricsText = data.rubrics.join('\n\n');
+            } else if (typeof data.rubrics === 'object') {
+                // If it's an object, try to extract content
+                rubricsText = data.rubrics.content || data.rubrics.rubric || JSON.stringify(data.rubrics, null, 2);
             }
-            html += `<div class="lesson-section rubric-section"><h5>📋 Rubrics</h5><div class="rubric-content">${rubricsHtml}</div></div>`;
+            
+            if (rubricsText) {
+                let rubricsHtml = escapeHtml(rubricsText);
+                // Convert double newlines to paragraph breaks
+                const paragraphs = rubricsHtml.split('\n\n').filter(p => p.trim());
+                if (paragraphs.length > 1) {
+                    rubricsHtml = paragraphs.map(para => {
+                        // Check if paragraph starts with a number, letter, or performance level (numbered list, criteria, or level)
+                        if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/) || para.match(/^(excellent|proficient|developing|beginning|advanced|novice|criteria|performance\s+level|scoring)/i)) {
+                            return `<p class="rubric-item">${para.replace(/\n/g, '<br>')}</p>`;
+                        }
+                        return `<p>${para.replace(/\n/g, '<br>')}</p>`;
+                    }).join('');
+                } else {
+                    // If no double newlines, just preserve single newlines
+                    rubricsHtml = rubricsHtml.replace(/\n/g, '<br>');
+                }
+                html += `<div class="lesson-section rubric-section"><h5>📋 Grading Rubric</h5><div class="rubric-content">${rubricsHtml}</div></div>`;
+            }
         }
         if (data.assessments) {
             html += `<div class="lesson-section"><h5>Assessments</h5><p>${escapeHtml(data.assessments)}</p></div>`;
@@ -2373,7 +2896,147 @@ function formatWidgetData(data, widgetType) {
     else if (data.students || data.attendance || data.teams || data.performance || data.insights) {
         html += formatDataObject(data);
     }
-    // Handle simple key-value pairs
+    // FINAL CHECK: If data looks like lesson plan but wasn't caught earlier, format it as lesson plan
+    // This prevents lesson plan data from falling through to formatDataObject (which shows JSON)
+    // CRITICAL: This must check BEFORE formatDataObject to prevent raw JSON display
+    else if (data && typeof data === 'object' && !Array.isArray(data) && (
+        data.title || data.learning_objectives || data.objectives || 
+        data.activities || data.standards || data.materials_list || data.materials ||
+        data.danielson_framework || data.danielson_framework_alignment || 
+        data.costas_questioning || data.costas_levels_of_questioning || 
+        data.worksheets || data.rubrics || data.assessments || data.assessment ||
+        data.introduction || data.exit_ticket || data.homework || data.safety_considerations ||
+        data.extensions || data.description || data.grade_level || data.subject
+    )) {
+        // Re-run lesson plan formatting with this data
+        // This is a safety net to catch lesson plans that weren't detected earlier
+        console.log('🔄 Fallback: Detected lesson plan data structure, formatting as lesson plan', {
+            widgetType: widgetType,
+            dataKeys: Object.keys(data),
+            hasTitle: !!data.title,
+            hasLearningObjectives: !!data.learning_objectives,
+            hasObjectives: !!data.objectives,
+            hasActivities: !!data.activities
+        });
+        // Reconstruct the lesson plan HTML - reset html to start fresh
+        html = '<div class="widget-data-display"><div class="lesson-plan">';
+        if (data.title) {
+            html += `<h4 class="lesson-plan-title">${escapeHtml(data.title)}</h4>`;
+        }
+        if (data.description) {
+            html += `<div class="lesson-section"><h5>📋 Lesson Description</h5><p>${escapeHtml(data.description)}</p></div>`;
+        }
+        const objectives = data.learning_objectives || data.objectives;
+        if (objectives && Array.isArray(objectives) && objectives.length > 0) {
+            html += '<div class="lesson-section"><h5>Learning Objectives</h5><ul class="lesson-objectives">';
+            objectives.forEach((objective) => {
+                html += `<li>${escapeHtml(objective)}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        if (data.activities && Array.isArray(data.activities) && data.activities.length > 0) {
+            html += '<div class="lesson-section"><h5>Activities</h5><ul class="lesson-activities">';
+            data.activities.forEach((activity) => {
+                if (typeof activity === 'object' && activity.name) {
+                    html += `<li><strong>${escapeHtml(activity.name)}</strong>`;
+                    if (activity.description) {
+                        html += `<br>${escapeHtml(activity.description)}`;
+                    }
+                    html += '</li>';
+                } else {
+                    html += `<li>${escapeHtml(String(activity))}</li>`;
+                }
+            });
+            html += '</ul></div>';
+        }
+        // Add other lesson plan sections if present
+        if (data.materials_list || data.materials) {
+            const materials = data.materials_list || data.materials;
+            if (Array.isArray(materials) && materials.length > 0) {
+                html += '<div class="lesson-section"><h5>Materials Needed</h5><ul class="lesson-materials">';
+                materials.forEach((material) => {
+                    html += `<li>${escapeHtml(material)}</li>`;
+                });
+                html += '</ul></div>';
+            }
+        }
+        if (data.homework) {
+            html += `<div class="lesson-section"><h5>Homework</h5><p>${escapeHtml(data.homework)}</p></div>`;
+        }
+        if (data.exit_ticket) {
+            html += `<div class="lesson-section"><h5>Exit Ticket</h5><p>${escapeHtml(data.exit_ticket)}</p></div>`;
+        }
+        // Add worksheets with answer key
+        if (data.worksheets) {
+            let worksheetsText = '';
+            if (typeof data.worksheets === 'string') {
+                worksheetsText = data.worksheets;
+            } else if (Array.isArray(data.worksheets)) {
+                worksheetsText = data.worksheets.join('\n\n');
+            } else if (typeof data.worksheets === 'object') {
+                worksheetsText = data.worksheets.content || data.worksheets.worksheet || JSON.stringify(data.worksheets, null, 2);
+            }
+            if (worksheetsText) {
+                let worksheetsHtml = escapeHtml(worksheetsText).replace(/\n/g, '<br>');
+                html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+            }
+        }
+        // Add grading rubric
+        if (data.rubrics) {
+            let rubricsText = '';
+            if (typeof data.rubrics === 'string') {
+                rubricsText = data.rubrics;
+            } else if (Array.isArray(data.rubrics)) {
+                rubricsText = data.rubrics.join('\n\n');
+            } else if (typeof data.rubrics === 'object') {
+                rubricsText = data.rubrics.content || data.rubrics.rubric || JSON.stringify(data.rubrics, null, 2);
+            }
+            if (rubricsText) {
+                let rubricsHtml = escapeHtml(rubricsText).replace(/\n/g, '<br>');
+                html += `<div class="lesson-section rubric-section"><h5>📋 Grading Rubric</h5><div class="rubric-content">${rubricsHtml}</div></div>`;
+            }
+        }
+        // Add all other lesson plan sections that might be present
+        if (data.standards && Array.isArray(data.standards) && data.standards.length > 0) {
+            html += '<div class="lesson-section"><h5>Standards</h5><ul class="lesson-standards">';
+            data.standards.forEach((standard) => {
+                if (typeof standard === 'object' && standard.code && standard.description) {
+                    html += `<li><strong>${escapeHtml(standard.code)}:</strong> ${escapeHtml(standard.description)}</li>`;
+                } else {
+                    html += `<li>${escapeHtml(String(standard))}</li>`;
+                }
+            });
+            html += '</ul></div>';
+        }
+        if (data.danielson_framework_alignment || data.danielson_framework) {
+            const framework = data.danielson_framework_alignment || data.danielson_framework;
+            if (typeof framework === 'object') {
+                html += '<div class="lesson-section"><h5>Danielson Framework Alignment</h5>';
+                Object.keys(framework).forEach(key => {
+                    html += `<p><strong>${escapeHtml(key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(framework[key])}</p>`;
+                });
+                html += '</div>';
+            } else {
+                html += `<div class="lesson-section"><h5>Danielson Framework Alignment</h5><p>${escapeHtml(String(framework))}</p></div>`;
+            }
+        }
+        if (data.costas_levels_of_questioning || data.costas_questioning) {
+            const costas = data.costas_levels_of_questioning || data.costas_questioning;
+            if (typeof costas === 'object') {
+                html += '<div class="lesson-section"><h5>Costa\'s Levels of Questioning</h5>';
+                Object.keys(costas).forEach(key => {
+                    html += `<p><strong>${escapeHtml(key.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(costas[key])}</p>`;
+                });
+                html += '</div>';
+            } else {
+                html += `<div class="lesson-section"><h5>Costa's Levels of Questioning</h5><p>${escapeHtml(String(costas))}</p></div>`;
+            }
+        }
+        html += '</div></div>';
+        console.log('✅ Fallback lesson plan HTML generated, length:', html.length);
+        return html;  // CRITICAL: Return here to prevent falling through to formatDataObject
+    }
+    // Handle simple key-value pairs (only if not lesson plan)
     else {
         html += formatDataObject(data);
     }
@@ -2475,7 +3138,13 @@ function escapeHtml(text) {
 // Render widget content
 function renderWidgetContent(widget) {
     // Customize content based on widget type
-    const widgetType = widget.type || widget.widget_type;
+    // Preserve original type for formatWidgetData (it handles both 'lesson-planning' and 'lesson_plan')
+    const originalWidgetType = widget.type || widget.widget_type;
+    // Normalize widget type: map 'lesson_plan' to 'lesson-planning' for widgetInfo lookup
+    let widgetType = originalWidgetType;
+    if (widgetType === 'lesson_plan') {
+        widgetType = 'lesson-planning';  // Normalize to match frontend expectations
+    }
     
     const widgetInfo = {
         // 1. Attendance Management
@@ -2723,6 +3392,14 @@ function renderWidgetContent(widget) {
     // Check if widget has data to display
     const hasData = widget.data && Object.keys(widget.data).length > 0;
     
+    console.log('🔍 renderWidgetContent check:', {
+        widgetType: originalWidgetType,
+        normalizedType: widgetType,
+        hasData: hasData,
+        dataKeys: hasData ? Object.keys(widget.data) : [],
+        dataSize: hasData ? JSON.stringify(widget.data).length : 0
+    });
+    
     if (hasData) {
         // Check if data is actually structured data (not just text/prompts)
         const dataString = JSON.stringify(widget.data);
@@ -2731,8 +3408,29 @@ function renderWidgetContent(widget) {
                              Object.keys(widget.data).length === 1 && 
                              (widget.data.message || widget.data.text || widget.data.prompt || widget.data.description));
         
+        // Check if this is a lesson plan widget - always show lesson plan data
+        const isLessonPlanWidget = originalWidgetType === 'lesson-planning' || originalWidgetType === 'lesson_plan' || originalWidgetType === 'lesson-plan' ||
+                                  (widget.data && typeof widget.data === 'object' && !Array.isArray(widget.data) && 
+                                   (widget.data.title || widget.data.learning_objectives || widget.data.objectives || 
+                                    widget.data.activities || widget.data.standards || widget.data.materials_list));
+        
+        // More specific check for instruction prompts - look for "Try asking" in instruction context
+        // Don't reject data just because it contains the word "example" - check for instruction patterns
+        const looksLikeInstruction = dataString.includes('"Try asking') || 
+                                    dataString.includes('Try asking your AI') ||
+                                    (dataString.length < 100 && dataString.includes('example') && dataString.includes('Try'));
+        
+        console.log('🔍 Data validation:', {
+            isTextPrompt,
+            dataStringLength: dataString.length,
+            isLessonPlanWidget: isLessonPlanWidget,
+            looksLikeInstruction: looksLikeInstruction,
+            willShowData: !(isTextPrompt || dataString.length < 50 || looksLikeInstruction) || isLessonPlanWidget
+        });
+        
         // If it looks like a prompt/instruction text, don't show it as data
-        if (isTextPrompt || dataString.length < 50 || dataString.includes('Try asking') || dataString.includes('example')) {
+        // BUT always show lesson plan widgets since they have structured data
+        if (!isLessonPlanWidget && (isTextPrompt || dataString.length < 50 || looksLikeInstruction)) {
             // This looks like instructions/prompts, show the default instructions instead
             return `
                 <div class="widget-instructions">
@@ -2750,7 +3448,14 @@ function renderWidgetContent(widget) {
         }
         
         // Widget has structured data - display it nicely
-        return formatWidgetData(widget.data, widgetType);
+        // Use original widget type for formatWidgetData (it handles both 'lesson-planning' and 'lesson_plan')
+        console.log('📋 Calling formatWidgetData with:', {
+            widgetType: originalWidgetType,
+            hasData: !!widget.data,
+            dataKeys: widget.data ? Object.keys(widget.data) : [],
+            dataPreview: widget.data ? JSON.stringify(widget.data).substring(0, 300) : 'no data'
+        });
+        return formatWidgetData(widget.data, originalWidgetType);
     } else {
         // Widget is empty - show instructions
         return `
@@ -5660,6 +6365,10 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
     // Stop any currently playing audio first
     window.audioManager.stopAll();
     
+    // User explicitly clicked speaker button - clear manually paused flag
+    window.audioManager.manuallyPaused = false;
+    sessionStorage.removeItem('audio_manually_paused');
+    
     // Update button state
     const originalText = button.textContent.trim();
     button.setAttribute('data-original-text', originalText);
@@ -5667,6 +6376,10 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
     
     // If this button is already playing, pause/stop it
     if (isPlaying && window.audioManager.currentButton === button) {
+        // Mark that audio was manually paused - prevent autoplay from restarting
+        window.audioManager.manuallyPaused = true;
+        sessionStorage.setItem('audio_manually_paused', 'true');
+        
         // Fully stop the audio
         if (window.audioManager.currentAudio) {
             try {
@@ -6032,6 +6745,9 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
                 // Safari will resolve it when audio is ready, or reject if autoplay is blocked
                 playPromise.then(() => {
                     console.log('✅ Audio playback started successfully');
+                    // Success - clear manually paused flag since user explicitly started playback
+                    window.audioManager.manuallyPaused = false;
+                    sessionStorage.removeItem('audio_manually_paused');
                     // Success - store audio URL in button
                     button.setAttribute('data-audio-url', audioUrl);
                 }).catch((playError) => {
@@ -7103,9 +7819,152 @@ function resetLayoutToDefault() {
 // Make functions available globally for onclick handlers
 window.removeWidget = removeWidget;
 window.toggleWidgetSize = toggleWidgetSize;
+// Copy widget data to clipboard
+function copyWidget(widgetId) {
+    try {
+        const widget = activeWidgets.find(w => w.id === widgetId);
+        if (!widget) {
+            console.error('Widget not found:', widgetId);
+            return;
+        }
+        
+        // Get widget title
+        const widgetTitle = getWidgetTitle(widget.type);
+        
+        // Format widget data for copying
+        let copyText = '';
+        
+        if (widget.data && Object.keys(widget.data).length > 0) {
+            // Format data similar to print format but as plain text
+            copyText = formatWidgetDataForCopy(widget.data, widget.type, widgetTitle);
+        } else {
+            copyText = `${widgetTitle}\n\nNo data available.`;
+        }
+        
+        // Copy to clipboard
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(copyText).then(() => {
+                // Show success feedback
+                showCopyFeedback(widgetId);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                // Fallback: use the old method
+                fallbackCopyTextToClipboard(copyText, widgetId);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopyTextToClipboard(copyText, widgetId);
+        }
+    } catch (error) {
+        console.error('Error copying widget data:', error);
+        alert('Failed to copy widget data. Please try again.');
+    }
+}
+
+// Fallback copy method for older browsers
+function fallbackCopyTextToClipboard(text, widgetId) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopyFeedback(widgetId);
+        } else {
+            alert('Failed to copy. Please select and copy manually.');
+        }
+    } catch (err) {
+        console.error('Fallback copy failed:', err);
+        alert('Failed to copy. Please select and copy manually.');
+    }
+    
+    document.body.removeChild(textArea);
+}
+
+// Show visual feedback when copy is successful
+function showCopyFeedback(widgetId) {
+    const copyBtn = document.querySelector(`[data-widget-id="${widgetId}"] .widget-copy-btn`);
+    if (copyBtn) {
+        const originalTitle = copyBtn.getAttribute('title');
+        copyBtn.setAttribute('title', 'Copied!');
+        copyBtn.style.color = '#4CAF50'; // Green color
+        
+        setTimeout(() => {
+            copyBtn.setAttribute('title', originalTitle);
+            copyBtn.style.color = '';
+        }, 2000);
+    }
+}
+
+// Format widget data for copying (plain text format)
+function formatWidgetDataForCopy(data, widgetType, widgetTitle) {
+    let copyText = `${widgetTitle}\n\n`;
+    
+    if (typeof data === 'string') {
+        copyText += data;
+    } else if (Array.isArray(data)) {
+        data.forEach((item, index) => {
+            if (typeof item === 'object') {
+                copyText += `Item ${index + 1}:\n${formatObjectForCopy(item)}\n\n`;
+            } else {
+                copyText += `${item}\n`;
+            }
+        });
+    } else if (typeof data === 'object' && data !== null) {
+        copyText += formatObjectForCopy(data);
+    } else {
+        copyText += String(data);
+    }
+    
+    return copyText;
+}
+
+// Format object for copy (recursive)
+function formatObjectForCopy(obj, indent = 0) {
+    let text = '';
+    const indentStr = '  '.repeat(indent);
+    
+    for (const [key, value] of Object.entries(obj)) {
+        if (value === null || value === undefined) {
+            text += `${indentStr}${key}: (empty)\n`;
+        } else if (Array.isArray(value)) {
+            text += `${indentStr}${key}:\n`;
+            value.forEach((item, index) => {
+                if (typeof item === 'object' && item !== null) {
+                    text += `${indentStr}  [${index}]:\n${formatObjectForCopy(item, indent + 2)}`;
+                } else {
+                    text += `${indentStr}  [${index}]: ${item}\n`;
+                }
+            });
+        } else if (typeof value === 'object') {
+            text += `${indentStr}${key}:\n${formatObjectForCopy(value, indent + 1)}`;
+        } else {
+            text += `${indentStr}${key}: ${value}\n`;
+        }
+    }
+    
+    return text;
+}
+
 window.printWidget = printWidget;
 window.emailWidget = emailWidget;
 window.smsWidget = smsWidget;
+window.copyWidget = copyWidget;
+window.hideLoginOverlay = hideLoginOverlay;
+window.tryWidgetExample = tryWidgetExample;
+
+
+
+window.printWidget = printWidget;
+window.emailWidget = emailWidget;
+window.smsWidget = smsWidget;
+window.copyWidget = copyWidget;
 window.hideLoginOverlay = hideLoginOverlay;
 window.tryWidgetExample = tryWidgetExample;
 

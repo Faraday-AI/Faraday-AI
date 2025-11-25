@@ -20,13 +20,17 @@ class WidgetFunctionSchemas:
             # Attendance Tracker Widget
             {
                 "name": "get_attendance_patterns",
-                "description": "Get attendance patterns and predictions for a PE class. Can identify at-risk students and predict future attendance.",
+                "description": "Get attendance patterns and predictions for a PE class. Can identify at-risk students and predict future attendance. Admin users can query any teacher's classes by providing teacher_id, teacher_name, or teacher_email.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "class_id": {
                             "type": "integer",
                             "description": "Physical education class ID"
+                        },
+                        "period": {
+                            "type": "string",
+                            "description": "Optional class period (e.g., 'Period 2', 'fourth period'). Admin users can query any teacher's period."
                         },
                         "student_id": {
                             "type": "integer",
@@ -36,20 +40,36 @@ class WidgetFunctionSchemas:
                             "type": "integer",
                             "description": "Number of days to predict ahead (default: 7)",
                             "default": 7
+                        },
+                        "teacher_id": {
+                            "type": "integer",
+                            "description": "Optional teacher ID (admin only - allows querying any teacher's classes)"
+                        },
+                        "teacher_name": {
+                            "type": "string",
+                            "description": "Optional teacher name (admin only - allows querying any teacher's classes by name)"
+                        },
+                        "teacher_email": {
+                            "type": "string",
+                            "description": "Optional teacher email (admin only - allows querying any teacher's classes by email)"
                         }
                     },
-                    "required": ["class_id"]
+                    "required": []
                 }
             },
             {
                 "name": "mark_attendance",
-                "description": "Mark attendance for students in a PE class on a specific date.",
+                "description": "Mark attendance for students in a PE class on a specific date. Admin users can mark attendance for any teacher's classes.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "class_id": {
                             "type": "integer",
                             "description": "Physical education class ID"
+                        },
+                        "period": {
+                            "type": "string",
+                            "description": "Optional class period (e.g., 'Period 2', 'fourth period'). Admin users can query any teacher's period."
                         },
                         "date": {
                             "type": "string",
@@ -75,9 +95,21 @@ class WidgetFunctionSchemas:
                                 },
                                 "required": ["student_id", "status"]
                             }
+                        },
+                        "teacher_id": {
+                            "type": "integer",
+                            "description": "Optional teacher ID (admin only - allows marking attendance for any teacher's classes)"
+                        },
+                        "teacher_name": {
+                            "type": "string",
+                            "description": "Optional teacher name (admin only - allows marking attendance for any teacher's classes by name)"
+                        },
+                        "teacher_email": {
+                            "type": "string",
+                            "description": "Optional teacher email (admin only - allows marking attendance for any teacher's classes by email)"
                         }
                     },
-                    "required": ["class_id", "attendance_records"]
+                    "required": ["attendance_records"]
                 }
             },
             
@@ -138,24 +170,32 @@ class WidgetFunctionSchemas:
             },
             {
                 "name": "get_class_roster",
-                "description": "Get the roster of students for a specific class period (e.g., 'fourth period class').",
+                "description": "Get the roster of students for a specific class period (e.g., 'fourth period class'). Admin users can query any teacher's classes by providing teacher_id, teacher_name, or teacher_email.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "class_id": {
                             "type": "integer",
-                            "description": "Physical education class ID"
+                            "description": "Physical education class ID (optional if period provided)"
                         },
                         "period": {
                             "type": "string",
-                            "description": "Class period (e.g., 'fourth period', 'Period 4', '4th period')"
+                            "description": "Class period (e.g., 'fourth period', 'Period 4', '4th period'). Admin users can query any teacher's period."
                         },
                         "teacher_id": {
                             "type": "integer",
-                            "description": "Optional teacher ID to filter classes"
+                            "description": "Optional teacher ID (admin only - allows querying any teacher's classes)"
+                        },
+                        "teacher_name": {
+                            "type": "string",
+                            "description": "Optional teacher name (admin only - allows querying any teacher's classes by name)"
+                        },
+                        "teacher_email": {
+                            "type": "string",
+                            "description": "Optional teacher email (admin only - allows querying any teacher's classes by email)"
                         }
                     },
-                    "required": ["class_id"]
+                    "required": []
                 }
             },
             

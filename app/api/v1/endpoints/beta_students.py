@@ -208,15 +208,30 @@ async def get_teacher_students(
     db: Session = Depends(get_db)
 ):
     """
-    Get all students created/managed by the beta teacher
+    Get all students created/managed by the beta teacher.
     
-    Only returns students that belong to the authenticated teacher.
+    For admin users: Returns ALL students from all teachers.
+    For regular teachers: Returns only students created by the authenticated teacher.
     """
     try:
-        # Get all beta students created by this teacher
-        students = db.query(BetaStudent).filter(
-            BetaStudent.created_by_teacher_id == current_teacher.id
-        ).offset(skip).limit(limit).all()
+        from app.utils.admin_check import build_filtered_query
+        from app.models.core.user import User
+        
+        # Get User model to check admin status
+        db_user = db.query(User).filter(User.email == current_teacher.email).first()
+        
+        # Build query - automatically handles admin filtering
+        # Admin users get all students, regular teachers get only their own
+        base_query = db.query(BetaStudent)
+        query = build_filtered_query(
+            base_query,
+            BetaStudent.created_by_teacher_id,
+            current_teacher.id,
+            db_user=db_user,
+            teacher_registration=current_teacher,
+            db=db
+        )
+        students = query.offset(skip).limit(limit).all()
         
         return [
             StudentResponse(

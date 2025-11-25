@@ -7,16 +7,41 @@ from app.dashboard.services.tool_registry_service import ToolRegistryService
 from app.dashboard.services.gpt_coordination_service import GPTCoordinationService
 from app.dashboard.services.ai_widget_service import AIWidgetService
 from app.dashboard.services.widget_function_schemas import WidgetFunctionSchemas
+from app.models.core.user import User
+from app.models.teacher_registration import TeacherRegistration
 
 logger = logging.getLogger(__name__)
 
 class GPTFunctionService:
-    def __init__(self, db: Session, user_id: Optional[str] = None):
+    def __init__(
+        self, 
+        db: Session, 
+        user_id: Optional[str] = None,
+        current_user: Optional[User] = None,
+        current_teacher: Optional[TeacherRegistration] = None
+    ):
         self.db = db
         self.user_id = user_id
+        self.current_user = current_user
+        self.current_teacher = current_teacher
         self.tool_registry = ToolRegistryService(db)
         self.gpt_coordinator = GPTCoordinationService(db)
-        self.ai_widget_service = AIWidgetService(db, user_id=int(user_id) if user_id and isinstance(user_id, str) and user_id.isdigit() else user_id)
+        
+        # Convert user_id to int if needed
+        user_id_int = None
+        if user_id:
+            if isinstance(user_id, str) and user_id.isdigit():
+                user_id_int = int(user_id)
+            elif isinstance(user_id, int):
+                user_id_int = user_id
+        
+        # Initialize AIWidgetService with admin context
+        self.ai_widget_service = AIWidgetService(
+            db, 
+            user_id=user_id_int,
+            current_user=current_user,
+            current_teacher=current_teacher
+        )
 
     async def process_user_command(self, user_id: str, command: str) -> Dict[str, Any]:
         # Get available tool schemas for the user
@@ -93,8 +118,12 @@ class GPTFunctionService:
             if function_name == "get_attendance_patterns":
                 return await self.ai_widget_service.predict_attendance_patterns(
                     class_id=arguments.get("class_id"),
+                    period=arguments.get("period"),
                     student_id=arguments.get("student_id"),
-                    days_ahead=arguments.get("days_ahead", 7)
+                    days_ahead=arguments.get("days_ahead", 7),
+                    teacher_id=arguments.get("teacher_id"),
+                    teacher_name=arguments.get("teacher_name"),
+                    teacher_email=arguments.get("teacher_email")
                 )
             
             elif function_name == "create_teams":
@@ -206,25 +235,20 @@ class GPTFunctionService:
             elif function_name == "mark_attendance":
                 return await self.ai_widget_service.mark_attendance(
                     class_id=arguments.get("class_id"),
+                    period=arguments.get("period"),
                     attendance_records=arguments.get("attendance_records"),
-                    date=arguments.get("date")
+                    date=arguments.get("date"),
+                    teacher_id=arguments.get("teacher_id"),
+                    teacher_name=arguments.get("teacher_name"),
+                    teacher_email=arguments.get("teacher_email")
                 )
             elif function_name == "get_class_roster":
-                # Support period-based lookup if class_id not provided
-                class_id = arguments.get("class_id")
-                period = arguments.get("period")
-                teacher_id = arguments.get("teacher_id")
-                
-                # If period provided but no class_id, find class by period
-                if period and not class_id:
-                    pe_class = self.ai_widget_service._find_class_by_period(period, teacher_id)
-                    if pe_class:
-                        class_id = pe_class.id
-                
                 return await self.ai_widget_service.get_class_roster(
-                    class_id=class_id,
-                    period=period,
-                    teacher_id=teacher_id
+                    class_id=arguments.get("class_id"),
+                    period=arguments.get("period"),
+                    teacher_id=arguments.get("teacher_id"),
+                    teacher_name=arguments.get("teacher_name"),
+                    teacher_email=arguments.get("teacher_email")
                 )
             elif function_name == "create_adaptive_activity":
                 return await self.ai_widget_service.create_adaptive_activity(

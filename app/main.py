@@ -914,55 +914,113 @@ async def startup_event():
         except Exception as e:
             logger.warning(f"Rate limiter initialization failed (Redis may not be available): {e}")
         
-        # Set admin user on startup (runs every time app starts, only if database is available)
+        # Set admin users on startup (runs every time app starts, only if database is available)
         if db_init_success:
             try:
                 from sqlalchemy import text
-                admin_email = "jmartucci@faraday-ai.com"
+                from app.core.security import get_password_hash
+                
+                # List of admin users to ensure are set up (hardcoded for automatic creation)
+                admin_users = [
+                    {
+                        "email": "jmartucci@faraday-ai.com",
+                        "first_name": "Joe",
+                        "last_name": "Martucci",
+                        "password": "Moebe@r31"
+                    },
+                    {
+                        "email": "Mpolito@eifis.com",
+                        "first_name": "Michael",
+                        "last_name": "Polito",
+                        "password": "Faraday_@dmin_45"
+                    }
+                ]
+                
                 db_session = next(get_db())
                 
-                # Try to update existing user to admin
-                result = db_session.execute(text("""
-                    UPDATE users 
-                    SET role = 'admin', 
-                        is_superuser = true, 
-                        is_active = true,
-                        disabled = false
-                    WHERE email = :email
-                """), {"email": admin_email})
-                
-                if result.rowcount > 0:
-                    db_session.commit()
-                    logger.info(f"✅ Updated user {admin_email} to admin with full access!")
-                else:
-                    # User not in users table, check teacher_registrations
-                    teacher_check = db_session.execute(text("""
-                        SELECT email, password_hash, first_name, last_name 
-                        FROM teacher_registrations 
-                        WHERE email = :email
+                for admin_user in admin_users:
+                    admin_email = admin_user["email"]
+                    password_hash = get_password_hash(admin_user["password"]) if admin_user["password"] else None
+                    
+                    # First, check if user exists to avoid creating duplicates
+                    # Use case-insensitive matching but preserve original email case
+                    existing_user = db_session.execute(text("""
+                        SELECT id, email FROM users WHERE LOWER(email) = LOWER(:email)
                     """), {"email": admin_email}).fetchone()
                     
-                    if teacher_check:
-                        # Create admin user from teacher_registrations
+                    if existing_user:
+                        # User exists - UPDATE it using the EXACT email from DB (preserves ID)
+                        existing_email = existing_user[1]  # Use the exact email case from database
                         db_session.execute(text("""
-                            INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, status, created_at, updated_at)
-                            VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, 'ACTIVE', NOW(), NOW())
-                            ON CONFLICT (email) DO UPDATE 
-                            SET role = 'admin',
-                                is_superuser = true,
+                            UPDATE users 
+                            SET role = 'admin', 
+                                is_superuser = true, 
                                 is_active = true,
                                 disabled = false,
-                                status = 'ACTIVE'
+                                status = 'ACTIVE',
+                                password_hash = COALESCE(:password_hash, password_hash),
+                                first_name = COALESCE(:first_name, first_name),
+                                last_name = COALESCE(:last_name, last_name),
+                                updated_at = NOW()
+                            WHERE id = :user_id
                         """), {
-                            "email": teacher_check[0],
-                            "password_hash": teacher_check[1],
-                            "first_name": teacher_check[2],
-                            "last_name": teacher_check[3]
+                            "user_id": existing_user[0],  # Use ID for exact match (preserves user ID)
+                            "password_hash": password_hash,
+                            "first_name": admin_user["first_name"] or "Admin",
+                            "last_name": admin_user["last_name"] or "User"
                         })
                         db_session.commit()
-                        logger.info(f"✅ Created admin user {admin_email} from teacher_registrations!")
+                        logger.info(f"✅ Updated existing user {existing_email} (ID: {existing_user[0]}) to admin with full access!")
                     else:
-                        logger.info(f"ℹ️  Admin user {admin_email} not found. Register first, then restart app.")
+                        # User doesn't exist - INSERT with ON CONFLICT as safety net
+                        # Use original email case (not LOWER) to match unique constraint
+                        if password_hash:
+                            db_session.execute(text("""
+                                INSERT INTO users (email, password_hash, first_name, last_name, role, is_superuser, is_active, disabled, status, created_at, updated_at)
+                                VALUES (:email, :password_hash, :first_name, :last_name, 'admin', true, true, false, 'ACTIVE', NOW(), NOW())
+                                ON CONFLICT (email) DO UPDATE 
+                                SET role = 'admin',
+                                    is_superuser = true,
+                                    is_active = true,
+                                    disabled = false,
+                                    status = 'ACTIVE',
+                                    password_hash = EXCLUDED.password_hash,
+                                    first_name = EXCLUDED.first_name,
+                                    last_name = EXCLUDED.last_name,
+                                    updated_at = NOW()
+                            """), {
+                                "email": admin_email,  # Use original case
+                                "password_hash": password_hash,
+                                "first_name": admin_user["first_name"] or "Admin",
+                                "last_name": admin_user["last_name"] or "User"
+                            })
+                            db_session.commit()
+                            logger.info(f"✅ Created new admin user {admin_email} in users table!")
+                    
+                    # ALWAYS ensure teacher_registration exists (required for login)
+                    # Use UPSERT pattern to avoid duplicates
+                    # Use the exact email from users table if user exists, otherwise use provided email
+                    teacher_email = existing_user[1] if existing_user else admin_email
+                    
+                    if password_hash:
+                        db_session.execute(text("""
+                            INSERT INTO teacher_registrations (id, email, password_hash, first_name, last_name, is_verified, is_active, created_at, updated_at)
+                            VALUES (gen_random_uuid(), :email, :password_hash, :first_name, :last_name, true, true, NOW(), NOW())
+                            ON CONFLICT (email) DO UPDATE 
+                            SET password_hash = EXCLUDED.password_hash,
+                                first_name = EXCLUDED.first_name,
+                                last_name = EXCLUDED.last_name,
+                                is_verified = true,
+                                is_active = true,
+                                updated_at = NOW()
+                        """), {
+                            "email": teacher_email,  # Use exact email case from DB if user exists
+                            "password_hash": password_hash,
+                            "first_name": admin_user["first_name"] or "Admin",
+                            "last_name": admin_user["last_name"] or "User"
+                        })
+                        db_session.commit()
+                        logger.info(f"✅ Ensured teacher_registration exists for {teacher_email}")
                 
                 db_session.close()
             except Exception as e:

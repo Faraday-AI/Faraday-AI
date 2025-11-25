@@ -5,7 +5,7 @@ This service provides advanced AI capabilities for Physical Education, Health, a
 including predictive analytics, pattern recognition, intelligent recommendations, and automated insights.
 """
 
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Union
 from datetime import datetime, timedelta, date
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_, text
@@ -65,12 +65,24 @@ class AIWidgetService:
     - Features that work with teacher_id only (lesson plans, safety incidents) work for both systems
     """
     
-    def __init__(self, db: Session, user_id: Optional[int] = None):
+    def __init__(self, db: Session, user_id: Optional[int] = None, current_user: Optional[User] = None, current_teacher: Optional[TeacherRegistration] = None):
         self.db = db
         self.logger = logger
         self.user_id = user_id
+        self.current_user = current_user
+        self.current_teacher = current_teacher
         self._is_beta = None  # Cache for beta detection
         self._beta_teacher_id = None  # Cache for beta teacher ID
+        self._is_admin = None  # Cache for admin status
+        
+        # Get admin status if user/teacher provided
+        if current_user or current_teacher:
+            from app.utils.admin_check import is_admin_user
+            if current_user:
+                self._is_admin = is_admin_user(user=current_user, db=db)
+            elif current_teacher:
+                db_user = db.query(User).filter(User.email == current_teacher.email).first()
+                self._is_admin = is_admin_user(db_user=db_user, teacher_registration=current_teacher, db=db)
     
     def _detect_beta_system(self, user_id: Optional[int] = None) -> tuple:
         """
@@ -128,6 +140,199 @@ class AIWidgetService:
             }
         return {}
     
+    def _resolve_teacher_id_for_query(
+        self,
+        requested_teacher_id: Optional[Union[int, str]] = None,
+        requested_teacher_name: Optional[str] = None,
+        requested_teacher_email: Optional[str] = None
+    ) -> Optional[int]:
+        """
+        Resolve teacher_id for queries with admin support.
+        
+        IMPORTANT: Returns User.id (integer) for PhysicalEducationClass queries,
+        NOT TeacherRegistration.id (UUID).
+        
+        ADMIN SUPPORT:
+        - Admin users can query ANY teacher by ID, name, or email
+        - Regular users can only query their own data (requested_teacher_id is ignored)
+        
+        Args:
+            requested_teacher_id: Optional teacher ID to query (admin only) - can be User.id (int) or TeacherRegistration.id (UUID str)
+            requested_teacher_name: Optional teacher name to query (admin only)
+            requested_teacher_email: Optional teacher email to query (admin only)
+        
+        Returns:
+            User.id (integer) to use in PhysicalEducationClass queries, or None if not found/invalid
+        """
+        is_admin = self._is_admin if self._is_admin is not None else False
+        
+        # Helper function to convert TeacherRegistration to User.id
+        def get_user_id_from_teacher_reg(teacher_reg: TeacherRegistration) -> Optional[int]:
+            """Convert TeacherRegistration to User.id (integer) for PhysicalEducationClass queries."""
+            if not teacher_reg or not teacher_reg.email:
+                return None
+            # Use case-insensitive email matching (common issue with seed data)
+            user = self.db.query(User).filter(
+                func.lower(User.email) == func.lower(teacher_reg.email)
+            ).first()
+            if user:
+                return user.id
+            # If exact match fails, try without case sensitivity as fallback
+            user = self.db.query(User).filter(
+                User.email.ilike(teacher_reg.email)
+            ).first()
+            if user:
+                return user.id
+            return None
+        
+        # Regular users: always use their own teacher_id
+        if not is_admin:
+            if self.user_id:
+                # Return User.id directly for regular users
+                return self.user_id
+            elif self.current_teacher:
+                # Convert TeacherRegistration to User.id
+                return get_user_id_from_teacher_reg(self.current_teacher)
+            return None
+        
+        # Admin users: can query any teacher
+        if requested_teacher_id:
+            # Check if it's already an integer (User.id)
+            if isinstance(requested_teacher_id, int):
+                # Validate user exists
+                user = self.db.query(User).filter(User.id == requested_teacher_id).first()
+                if user:
+                    return requested_teacher_id
+                self.logger.warning(f"Admin requested User.id={requested_teacher_id} not found")
+                return None
+            
+            # It's a UUID string (TeacherRegistration.id) - convert to User.id
+            try:
+                from uuid import UUID
+                teacher_uuid = UUID(str(requested_teacher_id))
+                teacher = self.db.query(TeacherRegistration).filter(
+                    TeacherRegistration.id == teacher_uuid
+                ).first()
+                if teacher:
+                    user_id = get_user_id_from_teacher_reg(teacher)
+                    if user_id:
+                        return user_id
+                    self.logger.warning(f"Admin requested TeacherRegistration.id={requested_teacher_id} has no associated User")
+                else:
+                    self.logger.warning(f"Admin requested teacher_id={requested_teacher_id} not found")
+            except (ValueError, TypeError) as e:
+                self.logger.warning(f"Admin requested invalid teacher_id={requested_teacher_id}: {e}")
+            return None
+        
+        if requested_teacher_name:
+            # Search by name (first_name + last_name)
+            name_parts = requested_teacher_name.strip().split()
+            if len(name_parts) >= 2:
+                first_name = name_parts[0]
+                last_name = " ".join(name_parts[1:])
+                teacher = self.db.query(TeacherRegistration).filter(
+                    TeacherRegistration.first_name.ilike(f"%{first_name}%"),
+                    TeacherRegistration.last_name.ilike(f"%{last_name}%")
+                ).first()
+            else:
+                # Single name - search both first and last
+                teacher = self.db.query(TeacherRegistration).filter(
+                    or_(
+                        TeacherRegistration.first_name.ilike(f"%{requested_teacher_name}%"),
+                        TeacherRegistration.last_name.ilike(f"%{requested_teacher_name}%")
+                    )
+                ).first()
+            
+            if teacher:
+                user_id = get_user_id_from_teacher_reg(teacher)
+                if user_id:
+                    self.logger.info(f"Admin resolved teacher name '{requested_teacher_name}' to User.id={user_id}")
+                    return user_id
+                self.logger.warning(f"Admin resolved teacher name '{requested_teacher_name}' but no User found")
+            else:
+                self.logger.warning(f"Admin requested teacher name '{requested_teacher_name}' not found")
+            return None
+        
+        if requested_teacher_email:
+            teacher = self.db.query(TeacherRegistration).filter(
+                TeacherRegistration.email.ilike(f"%{requested_teacher_email}%")
+            ).first()
+            if teacher:
+                user_id = get_user_id_from_teacher_reg(teacher)
+                if user_id:
+                    self.logger.info(f"Admin resolved teacher email '{requested_teacher_email}' to User.id={user_id}")
+                    return user_id
+                self.logger.warning(f"Admin resolved teacher email '{requested_teacher_email}' but no User found")
+            else:
+                self.logger.warning(f"Admin requested teacher email '{requested_teacher_email}' not found")
+            return None
+        
+        # Admin but no specific teacher requested - use their own User.id (integer)
+        # CRITICAL: Always return User.id (integer), not TeacherRegistration.id (UUID)
+        if self.user_id:
+            # Direct User.id - this is what PhysicalEducationClass.teacher_id expects
+            return self.user_id
+        elif self.current_user:
+            # Use current_user.id directly (integer)
+            return self.current_user.id
+        elif self.current_teacher:
+            # Fallback: try to get User.id from TeacherRegistration email
+            user_id = get_user_id_from_teacher_reg(self.current_teacher)
+            if user_id:
+                return user_id
+            # If no User found, log warning but don't fail
+            self.logger.warning(f"⚠️ Current teacher {self.current_teacher.email} has no associated User - cannot query PhysicalEducationClass")
+        
+        return None
+    
+    def _build_admin_aware_query(
+        self,
+        base_query,
+        filter_column,
+        requested_teacher_id: Optional[Union[int, str]] = None,
+        requested_teacher_name: Optional[str] = None,
+        requested_teacher_email: Optional[str] = None
+    ):
+        """
+        Build a query that respects admin access.
+        
+        ADMIN SUPPORT:
+        - Admin users can query any teacher's data if teacher_id/name/email is provided
+        - Regular users can only query their own data
+        
+        Args:
+            base_query: Base SQLAlchemy query
+            filter_column: Column to filter by (e.g., PhysicalEducationClass.teacher_id)
+            requested_teacher_id: Optional teacher ID (admin only)
+            requested_teacher_name: Optional teacher name (admin only)
+            requested_teacher_email: Optional teacher email (admin only)
+        
+        Returns:
+            Query filtered appropriately
+        """
+        from app.utils.admin_check import build_filtered_query
+        
+        # Resolve teacher_id
+        resolved_teacher_id = self._resolve_teacher_id_for_query(
+            requested_teacher_id=requested_teacher_id,
+            requested_teacher_name=requested_teacher_name,
+            requested_teacher_email=requested_teacher_email
+        )
+        
+        if resolved_teacher_id is None:
+            # No valid teacher_id - return empty query
+            return base_query.filter(False)
+        
+        # Use admin-aware query builder
+        return build_filtered_query(
+            base_query,
+            filter_column,
+            resolved_teacher_id,
+            user=self.current_user,
+            teacher_registration=self.current_teacher,
+            db=self.db
+        )
+    
     def _get_student_model_and_table(self):
         """
         Get the appropriate student model and table based on system type.
@@ -144,15 +349,21 @@ class AIWidgetService:
     def _find_class_by_period(
         self,
         period: str,
-        teacher_id: Optional[int] = None
+        teacher_id: Optional[int] = None,
+        allow_admin_override: bool = True
     ) -> Optional[PhysicalEducationClass]:
         """
         Find a Physical Education class by period.
         Period can be in format like "fourth period", "Period 4", "4th period", etc.
         
+        ADMIN SUPPORT:
+        - If current user is admin and teacher_id is provided, allows querying any teacher's classes
+        - If current user is NOT admin, teacher_id is ignored and only their own classes are returned
+        
         Args:
             period: Period string (e.g., "fourth period", "Period 4")
-            teacher_id: Optional teacher ID to filter by
+            teacher_id: Optional teacher ID to filter by (admin users can query any teacher)
+            allow_admin_override: If True, admin users can query any teacher's classes
         
         Returns:
             PhysicalEducationClass if found, None otherwise
@@ -190,8 +401,31 @@ class AIWidgetService:
             # Search for class by period in schedule or name
             query = self.db.query(PhysicalEducationClass)
             
-            if teacher_id:
+            # Admin users can query any teacher's classes if teacher_id is provided
+            # Regular users can only query their own classes
+            # NOTE: teacher_id must be User.id (integer), NOT TeacherRegistration.id (UUID)
+            is_admin = self._is_admin if self._is_admin is not None else False
+            if allow_admin_override and is_admin and teacher_id:
+                # Admin: allow querying any teacher's classes
+                # teacher_id is already User.id (integer) from _resolve_teacher_id_for_query
                 query = query.filter(PhysicalEducationClass.teacher_id == teacher_id)
+                self.logger.info(f"Admin user querying class for User.id={teacher_id}, period={period_num}")
+            elif allow_admin_override and is_admin and teacher_id is None:
+                # Admin: teacher has no User record (seed data teacher) - query all classes by period
+                # This allows admins to query seed data classes even if teacher has no User
+                self.logger.info(f"Admin querying all classes for period={period_num} (requested teacher has no User record)")
+                # Don't filter by teacher_id - query all classes matching the period
+            elif not is_admin:
+                # Regular user: only their own classes
+                # Use User.id directly (integer)
+                if self.user_id:
+                    query = query.filter(PhysicalEducationClass.teacher_id == self.user_id)
+                else:
+                    # Fallback: try to get User.id from current_teacher
+                    if self.current_teacher:
+                        user = self.db.query(User).filter(User.email == self.current_teacher.email).first()
+                        if user:
+                            query = query.filter(PhysicalEducationClass.teacher_id == user.id)
             
             # Search in schedule field or name
             period_pattern = f"%Period {period_num}%"
@@ -218,22 +452,104 @@ class AIWidgetService:
     
     async def predict_attendance_patterns(
         self,
-        class_id: int,
+        class_id: Optional[int] = None,
+        period: Optional[str] = None,
         student_id: Optional[int] = None,
-        days_ahead: int = 7
+        days_ahead: int = 7,
+        teacher_id: Optional[int] = None,
+        teacher_name: Optional[str] = None,
+        teacher_email: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Predict attendance patterns and identify at-risk students.
         
+        ADMIN SUPPORT:
+        - Admin users can query any teacher's classes by providing teacher_id, teacher_name, or teacher_email
+        - Regular users can only query their own classes
+        
         Args:
-            class_id: Physical education class ID
+            class_id: Physical education class ID (optional if period provided)
+            period: Optional class period (e.g., "Period 2", "fourth period")
             student_id: Optional specific student ID
             days_ahead: Number of days to predict ahead
+            teacher_id: Optional teacher ID (admin only)
+            teacher_name: Optional teacher name (admin only)
+            teacher_email: Optional teacher email (admin only)
         
         Returns:
             Dict with predictions, patterns, and recommendations
         """
         try:
+            # Resolve teacher_id with admin support
+            resolved_teacher_id = self._resolve_teacher_id_for_query(
+                requested_teacher_id=teacher_id,
+                requested_teacher_name=teacher_name,
+                requested_teacher_email=teacher_email
+            )
+            
+            # Find class by period if class_id not provided
+            if not class_id and period:
+                pe_class = self._find_class_by_period(period, resolved_teacher_id)
+                if not pe_class:
+                    # Teacher has no classes for this period - return empty data gracefully
+                    self.logger.info(f"No class found for period: {period} (teacher_id={resolved_teacher_id})")
+                    return {
+                        "patterns": {
+                            "total_records": 0,
+                            "average_attendance_rate": 0,
+                            "trend": "insufficient_data",
+                            "note": f"No class found for period: {period}"
+                        },
+                        "predictions": [],
+                        "at_risk_students": [],
+                        "recommendations": [
+                            "No classes found for the specified period. The teacher may not have created classes yet."
+                        ]
+                    }
+                class_id = pe_class.id
+            
+            if not class_id:
+                # No class_id or period provided - return empty data
+                self.logger.info("No class_id or period provided for attendance query")
+                return {
+                    "patterns": {
+                        "total_records": 0,
+                        "average_attendance_rate": 0,
+                        "trend": "insufficient_data",
+                        "note": "Either class_id or period must be provided"
+                    },
+                    "predictions": [],
+                    "at_risk_students": [],
+                    "recommendations": []
+                }
+            
+            # Verify class exists and admin has access
+            base_query = self.db.query(PhysicalEducationClass).filter(
+                PhysicalEducationClass.id == class_id
+            )
+            query = self._build_admin_aware_query(
+                base_query,
+                PhysicalEducationClass.teacher_id,
+                requested_teacher_id=resolved_teacher_id,
+                requested_teacher_name=teacher_name,
+                requested_teacher_email=teacher_email
+            )
+            pe_class = query.first()
+            if not pe_class:
+                # Class not found or access denied - return empty data gracefully
+                self.logger.info(f"Class {class_id} not found or access denied (teacher_id={resolved_teacher_id})")
+                return {
+                    "patterns": {
+                        "total_records": 0,
+                        "average_attendance_rate": 0,
+                        "trend": "insufficient_data",
+                        "note": f"Class {class_id} not found or access denied"
+                    },
+                    "predictions": [],
+                    "at_risk_students": [],
+                    "recommendations": []
+                }
+            
             # Check if beta system - beta students don't use ClassStudent table
             is_beta, _ = self._detect_beta_system()
             
@@ -3696,24 +4012,39 @@ class AIWidgetService:
         self,
         class_id: Optional[int] = None,
         period: Optional[str] = None,
-        teacher_id: Optional[int] = None
+        teacher_id: Optional[int] = None,
+        teacher_name: Optional[str] = None,
+        teacher_email: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Get class roster, optionally filtered by period.
         Can find class by period if class_id not provided.
         
+        ADMIN SUPPORT:
+        - Admin users can query any teacher's classes by providing teacher_id, teacher_name, or teacher_email
+        - Regular users can only query their own classes
+        
         Args:
             class_id: Physical education class ID (optional if period provided)
             period: Optional class period (e.g., "fourth period")
-            teacher_id: Optional teacher ID for period lookup
+            teacher_id: Optional teacher ID for period lookup (admin only)
+            teacher_name: Optional teacher name for period lookup (admin only)
+            teacher_email: Optional teacher email for period lookup (admin only)
         
         Returns:
             Dict with class roster
         """
         try:
+            # Resolve teacher_id with admin support
+            resolved_teacher_id = self._resolve_teacher_id_for_query(
+                requested_teacher_id=teacher_id,
+                requested_teacher_name=teacher_name,
+                requested_teacher_email=teacher_email
+            )
+            
             # Find class by period if class_id not provided
             if not class_id and period:
-                pe_class = self._find_class_by_period(period, teacher_id)
+                pe_class = self._find_class_by_period(period, resolved_teacher_id)
                 if not pe_class:
                     raise HTTPException(
                         status_code=404,
@@ -3728,14 +4059,25 @@ class AIWidgetService:
                 )
             
             # Verify class exists and get class name using raw SQL to avoid relationship loading
-            class_info = self.db.execute(text("""
-                SELECT id, name FROM physical_education_classes WHERE id = :class_id
-            """), {"class_id": class_id}).first()
+            # Admin users can access any class, regular users only their own
+            base_query = self.db.query(PhysicalEducationClass).filter(
+                PhysicalEducationClass.id == class_id
+            )
             
-            if not class_info:
-                raise HTTPException(status_code=404, detail=f"Class {class_id} not found")
+            # Apply admin-aware filtering
+            query = self._build_admin_aware_query(
+                base_query,
+                PhysicalEducationClass.teacher_id,
+                requested_teacher_id=resolved_teacher_id,
+                requested_teacher_name=teacher_name,
+                requested_teacher_email=teacher_email
+            )
             
-            class_name = class_info[1]
+            pe_class = query.first()
+            if not pe_class:
+                raise HTTPException(status_code=404, detail=f"Class {class_id} not found or access denied")
+            
+            class_name = pe_class.name
             
             # Check if beta system
             is_beta, beta_teacher_id = self._detect_beta_system()

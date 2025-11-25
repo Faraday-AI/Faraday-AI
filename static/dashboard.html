@@ -8,6 +8,11 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
     <link rel="apple-touch-icon" sizes="180x180" href="/static/images/apple-touch-icon.png">
     <meta name="description" content="Faraday AI Dashboard - Your AI-powered educational assistant">
+    <!-- Sentry Error Tracking -->
+    <script
+      src="https://js.sentry-cdn.com/86afff47130b94433bedcd2e8c98eb62.min.js"
+      crossorigin="anonymous"
+    ></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -217,6 +222,7 @@
             <div class="log-viewer-controls">
                 <button class="log-btn" id="clearLogsBtn" title="Clear logs">Clear</button>
                 <button class="log-btn" id="exportLogsBtn" title="Export logs">Export</button>
+                <button class="log-btn" id="copyLogsBtn" title="Copy logs">📋 Copy</button>
                 <button class="log-btn" id="closeLogViewerBtn" title="Close log viewer">&times;</button>
             </div>
         </div>

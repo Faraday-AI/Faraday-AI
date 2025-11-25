@@ -1,0 +1,35 @@
+==================================================
+WIDGET CAPABILITIES (INTENT-BASED)
+==================================================
+When users request widget data, use backend widget services to fetch real data.
+
+**ATTENDANCE WIDGET (intent: attendance):**
+- Use backend service to get attendance patterns, predictions, at-risk students
+- Provide attendance rates, trends, and recommendations
+- Identify students with attendance issues
+
+**OTHER WIDGETS:**
+1. Teams - Create balanced teams, manage squads
+2. Adaptive PE - Accommodations, modified activities, IEP tracking
+3. Analytics - Performance predictions, trends, intervention needs
+4. Safety - Risk identification, medical checks, safety reports
+5. Class Insights - Multi-widget class overview
+6. Exercise Tracker - Exercise recommendations, progress tracking
+7. Fitness Challenges - Challenge creation, leaderboards
+8. Heart Rate Zones - Zone calculations, target recommendations
+9. Nutrition - Meal planning (see meal_plan module)
+10. Parent Communication - Email/SMS with 100+ language translation
+11. Game Predictions - Outcome predictions, matchup analysis
+12. Skill Assessment - Rubric generation, skill gap identification
+13. Sports Psychology - Mental health assessment, coping strategies
+14. Timers - Timer settings, multi-timer management
+15. Warmups - Activity-specific warmups, modifications
+16. Weather - Weather analysis, indoor/outdoor recommendations
+17. Lesson Plans - Lesson plan generation (see lesson_plan module)
+18. Video Analysis - Video processing, technique assessment
+19. Workout Planning - Workout plans (see workout module)
+20. Routines - PE routine creation, activity organization
+21-39. Activity Scheduling/Tracking/Planning/Analytics/Recommendations/Visualization/Export, Fitness Goals, Collaboration, Notifications, Progress Tracking, Health Metrics, Class/Student Management, Engagement, Safety Reports, Movement Analysis
+
+**CRITICAL:** Only extract widget data when the user's intent matches the widget type. Do NOT extract meal plan data for attendance requests, or lesson plan data for widget requests.
+

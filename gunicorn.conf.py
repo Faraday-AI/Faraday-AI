@@ -13,6 +13,16 @@ worker_connections = 1000
 timeout = 300  # Increased timeout for long-running operations (lesson plans can take 3+ API calls)
 keepalive = 5
 
+# OPTIMIZATION: Enable uvloop for faster async performance (if available)
+# Note: uvloop must be installed separately (pip install uvloop)
+# This provides 2-3x faster event loop performance
+try:
+    import uvloop
+    # uvloop will be used automatically by uvicorn if available
+    # No explicit configuration needed - uvicorn detects it
+except ImportError:
+    pass  # Fallback to default asyncio event loop
+
 # Logging
 accesslog = "-"
 errorlog = "-"
