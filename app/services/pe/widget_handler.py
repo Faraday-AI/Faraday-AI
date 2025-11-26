@@ -73,14 +73,22 @@ def classify_intent(message_content: str, previous_asked_allergies: bool = False
     # NOT when it appears in phrases like "workout patterns" (which is attendance-related)
     workout_patterns = [
         "workout plan", "workout routine", "exercise plan", "fitness plan",
-        "training plan", "workout program", "exercise routine"
+        "training plan", "workout program", "exercise routine",
+        "week long workout", "weekly workout", "full body workout",
+        "entire body", "all muscle groups", "muscle groups",
+        "strength training", "cardio workout", "workout schedule"
     ]
     # Also check for standalone "workout" but only if not in attendance context
     if "attendance" not in msg_lower and any(k in msg_lower for k in workout_patterns):
         return "workout"
     # Standalone "workout" only if clearly about creating/planning workouts
-    if "attendance" not in msg_lower and ("create workout" in msg_lower or "need workout" in msg_lower or "workout for" in msg_lower):
+    if "attendance" not in msg_lower and ("create workout" in msg_lower or "need workout" in msg_lower or "workout for" in msg_lower or "workout that" in msg_lower):
         return "workout"
+    # Check for exercise/fitness keywords that indicate workout intent
+    if "attendance" not in msg_lower and any(k in msg_lower for k in ["exercise", "exercises", "fitness", "training", "gym", "workout"]):
+        # But only if it's about creating/planning, not just mentioning
+        if any(k in msg_lower for k in ["create", "make", "give me", "need", "want", "plan", "routine", "schedule", "program"]):
+            return "workout"
     # Lesson plan check (BEFORE other widget checks to prioritize lesson plans)
     # Check for comprehensive lesson plan requests first
     lesson_plan_keywords = ["lesson plan", "lesson planning", "create lesson", "generate lesson", 
@@ -119,6 +127,7 @@ def classify_intent(message_content: str, previous_asked_allergies: bool = False
 def _extract_meal_plan_data(response_text: str) -> Dict[str, Any]:
     """
     Extracts meal plan structured data from text.
+    Handles JSON from markdown code blocks first, then falls back to regex patterns.
     Handles multiple formats: "**DAY 1:**", "**Day 1:**", "Day 1:", etc.
     
     Args:
@@ -127,6 +136,28 @@ def _extract_meal_plan_data(response_text: str) -> Dict[str, Any]:
     Returns:
         Dictionary with structured meal plan data
     """
+    if not response_text:
+        return {}
+    
+    # First, try to extract JSON from markdown code blocks
+    json_pattern = re.compile(r'```(?:json)?\s*(\{.*?\})\s*```', re.DOTALL | re.IGNORECASE)
+    json_match = json_pattern.search(response_text)
+    parsed_json_data = None
+    if json_match:
+        try:
+            json_str = json_match.group(1)
+            parsed_json_data = json.loads(json_str)
+            # If JSON parsing succeeds and contains meal plan data, use it
+            if isinstance(parsed_json_data, dict):
+                # Check if it has meal plan structure
+                if parsed_json_data.get("days") or parsed_json_data.get("meals"):
+                    # Return structured meal plan data
+                    return parsed_json_data
+                # If JSON doesn't have meal plan structure, fall through to regex extraction
+        except (json.JSONDecodeError, AttributeError) as e:
+            logger.warning(f"⚠️ Failed to parse JSON from markdown code block: {e}")
+            # Fall through to regex extraction
+    
     days = []
     # Try multiple day patterns (DAY, Day, day)
     day_patterns = [
@@ -305,7 +336,21 @@ def _extract_meal_plan_data(response_text: str) -> Dict[str, Any]:
         if days:  # If we found days with one pattern, stop trying others
             break
     
-    return {"type": "health", "days": days}
+    # If we parsed JSON successfully, merge it with regex-extracted data
+    if parsed_json_data and isinstance(parsed_json_data, dict):
+        # Merge: JSON data takes precedence, but add days from regex if they exist
+        meal_data = parsed_json_data.copy()
+        if days:
+            # Add days from regex extraction if not in JSON
+            if not meal_data.get("days"):
+                meal_data["days"] = days
+        return meal_data
+    
+    # No JSON found or JSON parsing failed - use regex extraction
+    if days:
+        return {"days": days}
+    
+    return {}
 
 
 def _extract_lesson_plan_data(response_text: str, original_message: str = "") -> Dict[str, Any]:
@@ -969,6 +1014,7 @@ def _extract_lesson_plan_data(response_text: str, original_message: str = "") ->
 def _extract_workout_data(response_text: str) -> Dict[str, Any]:
     """
     Extracts workout plan structured data.
+    Handles JSON from markdown code blocks first, then falls back to regex patterns.
     Handles multiple formats: "Bench Press: 3x10", "Bench Press: 3 sets of 10 reps", 
     "Bench Press (3 sets, 10 reps)", etc.
     
@@ -978,6 +1024,196 @@ def _extract_workout_data(response_text: str) -> Dict[str, Any]:
     Returns:
         Dictionary with structured workout data
     """
+    if not response_text:
+        return {}
+    
+    # First, try to extract JSON from markdown code blocks
+    # Use the EXACT same pattern as lesson plan extraction
+    json_pattern = re.compile(r'```(?:json)?\s*(\{.*?\})\s*```', re.DOTALL | re.IGNORECASE)
+    json_match = json_pattern.search(response_text)
+    parsed_json_data = None
+    if json_match:
+        try:
+            json_str = json_match.group(1)
+            parsed_json_data = json.loads(json_str)
+            logger.info(f"✅ Parsed JSON successfully from markdown code block, keys: {list(parsed_json_data.keys()) if isinstance(parsed_json_data, dict) else 'not a dict'}")
+        except (json.JSONDecodeError, AttributeError) as e:
+            logger.warning(f"⚠️ Failed to parse JSON from markdown code block: {e}")
+            # Fall through to more robust extraction below
+            parsed_json_data = None
+    
+    # If simple extraction failed, try the more robust brace-counting approach
+    if parsed_json_data is None:
+        json_marker_pattern = re.compile(r'```(?:json)?', re.IGNORECASE)
+        json_marker_match = json_marker_pattern.search(response_text)
+        
+        if json_marker_match:
+            try:
+                # Find the opening marker position
+                marker_start = json_marker_match.start()
+                marker_end = json_marker_match.end()
+                
+                # Find the first { after the marker (skip any whitespace/newlines)
+                brace_start = None
+                for i in range(marker_end, min(marker_end + 100, len(response_text))):
+                    if response_text[i] == '{':
+                        brace_start = i
+                        break
+                
+                if brace_start is None:
+                    logger.warning(f"⚠️ Found ```json marker at {marker_start} but no opening brace found")
+                else:
+                    # Find the matching closing brace by counting braces
+                    brace_count = 0
+                    json_end_pos = None
+                    json_str = None
+                    
+                    for i in range(brace_start, len(response_text)):
+                        char = response_text[i]
+                        if char == '{':
+                            brace_count += 1
+                        elif char == '}':
+                            brace_count -= 1
+                            if brace_count == 0:
+                                json_end_pos = i + 1
+                                break
+                    
+                    if json_end_pos is None:
+                        logger.warning(f"⚠️ Found opening brace at {brace_start} but couldn't find matching closing brace (brace_count ended at {brace_count})")
+                        # Try to find the closing ``` marker as a fallback
+                        closing_marker = response_text.find('```', brace_start)
+                        if closing_marker > brace_start:
+                            logger.info(f"🔍 Found closing ``` marker at position {closing_marker}")
+                            # Extract everything up to the closing marker
+                            potential_json = response_text[brace_start:closing_marker].rstrip()
+                            logger.info(f"🔍 Potential JSON length: {len(potential_json)} chars")
+                            # Try to find the last } before the closing marker
+                            last_brace = potential_json.rfind('}')
+                            if last_brace > 0:
+                                json_str = potential_json[:last_brace + 1]
+                                json_end_pos = brace_start + len(json_str)
+                                logger.info(f"🔍 Using closing ``` marker as fallback, extracted {len(json_str)} chars (last_brace at {last_brace})")
+                            else:
+                                logger.error(f"❌ No closing brace found before closing ``` marker. Potential JSON ends with: {potential_json[-100:]}")
+                                # Try to extract anyway - maybe the JSON is incomplete but still parseable
+                                json_str = potential_json
+                                json_end_pos = closing_marker
+                                logger.warning(f"⚠️ Attempting to parse incomplete JSON (no closing brace found)")
+                        else:
+                            logger.error(f"❌ No closing ``` marker found after brace_start {brace_start}. Response length: {len(response_text)}")
+                            # Last resort: try to extract up to end of response
+                            potential_json = response_text[brace_start:].rstrip()
+                            last_brace = potential_json.rfind('}')
+                            if last_brace > 0:
+                                json_str = potential_json[:last_brace + 1]
+                                # Try to repair incomplete JSON by counting what's missing
+                                # Count opening and closing braces/brackets
+                                open_braces = json_str.count('{')
+                                close_braces = json_str.count('}')
+                                open_brackets = json_str.count('[')
+                                close_brackets = json_str.count(']')
+                                
+                                missing_braces = open_braces - close_braces
+                                missing_brackets = open_brackets - close_brackets
+                                
+                                if missing_braces > 0 or missing_brackets > 0:
+                                    logger.info(f"🔧 Attempting to repair JSON: missing {missing_brackets} brackets, {missing_braces} braces")
+                                    # Add missing closing brackets first, then braces
+                                    json_str += ']' * missing_brackets
+                                    json_str += '}' * missing_braces
+                                    logger.info(f"🔧 Repaired JSON length: {len(json_str)} chars")
+                                
+                                json_end_pos = brace_start + len(json_str)
+                                logger.warning(f"⚠️ Using end of response as fallback, extracted {len(json_str)} chars")
+                            else:
+                                logger.error(f"❌ Cannot extract JSON - no closing brace or marker found")
+                                json_str = None
+                                json_end_pos = None
+                    else:
+                        # Extract the JSON string
+                        json_str = response_text[brace_start:json_end_pos]
+                        logger.info(f"🔍 Extracted JSON string from workout response: {len(json_str)} chars (start: {brace_start}, end: {json_end_pos})")
+                    
+                    if json_end_pos is not None and json_str is not None:
+                        # Try to parse the JSON
+                        try:
+                            parsed_json_data = json.loads(json_str)
+                            logger.info(f"✅ Parsed JSON successfully, keys: {list(parsed_json_data.keys()) if isinstance(parsed_json_data, dict) else 'not a dict'}")
+                        except json.JSONDecodeError as e:
+                            logger.error(f"❌ JSON parsing failed: {e}")
+                            logger.error(f"❌ JSON string (first 500 chars): {json_str[:500]}")
+                            logger.error(f"❌ JSON string (last 500 chars): {json_str[-500:] if len(json_str) > 500 else json_str}")
+                            parsed_json_data = None
+            except Exception as e:
+                logger.error(f"❌ Error during JSON extraction: {e}", exc_info=True)
+                parsed_json_data = None
+    
+    # If JSON parsing succeeds and contains workout data, use it
+    if isinstance(parsed_json_data, dict):
+        # Check if it has workout_plan structure (week-long format with Day 1, Day 2, etc.)
+        # Handle both naming conventions: with underscores (workout_plan) and without (workoutplan)
+        workout_plan = parsed_json_data.get("workout_plan") or parsed_json_data.get("workoutplan")
+        if workout_plan:
+            # Convert workout_plan format to standard format
+            plan_name = parsed_json_data.get("plan_name") or parsed_json_data.get("planname") or "Week-Long Workout Plan"
+            description = parsed_json_data.get("description") or ""
+            workout_data = {
+                "plan_name": plan_name,
+                "description": description,
+                "days": []
+            }
+            # Convert each day to structured format
+            for day_key, day_data in workout_plan.items():
+                if isinstance(day_data, dict):
+                    day_entry = {
+                        "day": day_key,
+                        "focus": day_data.get("focus", ""),
+                        "exercises": [],
+                        "activities": []
+                    }
+                    # Add exercises if present
+                    if day_data.get("exercises"):
+                        for ex in day_data["exercises"]:
+                            if isinstance(ex, str):
+                                # Parse exercise string like "Push-Ups: 3 sets of 10-15 reps"
+                                day_entry["exercises"].append({"name": ex, "description": ex})
+                            elif isinstance(ex, dict):
+                                day_entry["exercises"].append(ex)
+                    # Add activities if present
+                    if day_data.get("activities"):
+                        day_entry["activities"] = day_data["activities"]
+                    workout_data["days"].append(day_entry)
+            return workout_data
+        # Check if it has standard workout structure
+        # Handle both naming conventions: with underscores (plan_name) and without (planname)
+        strength_training = parsed_json_data.get("strength_training") or parsed_json_data.get("strengthtraining")
+        cardio = parsed_json_data.get("cardio")
+        exercises = parsed_json_data.get("exercises")
+        
+        if strength_training or cardio or exercises:
+            # Return structured workout data
+            workout_data = {}
+            # Handle both naming conventions
+            plan_name = parsed_json_data.get("plan_name") or parsed_json_data.get("planname")
+            description = parsed_json_data.get("description")
+            
+            if plan_name:
+                workout_data["plan_name"] = plan_name
+            if description:
+                workout_data["description"] = description
+            if strength_training:
+                workout_data["strength_training"] = strength_training
+                logger.info(f"✅ Found {len(strength_training)} strength training exercises")
+            if cardio:
+                workout_data["cardio"] = cardio
+                logger.info(f"✅ Found {len(cardio)} cardio exercises")
+            if exercises:
+                workout_data["exercises"] = exercises
+                logger.info(f"✅ Found {len(exercises)} exercises")
+            logger.info(f"✅ Returning workout_data with keys: {list(workout_data.keys())}")
+            return workout_data
+        # If JSON doesn't have workout structure, fall through to regex extraction
+    
     exercises = []
     
     # Pattern 0: "Exercise Name (3 sets, 10 reps)" - most common format
@@ -1061,7 +1297,21 @@ def _extract_workout_data(response_text: str) -> Dict[str, Any]:
             seen.add(name_lower)
             unique_exercises.append(ex)
     
-    return {"type": "fitness", "exercises": unique_exercises}
+    # If we parsed JSON successfully, merge it with regex-extracted data
+    if parsed_json_data and isinstance(parsed_json_data, dict):
+        # Merge: JSON data takes precedence, but add exercises from regex if they exist
+        workout_data = parsed_json_data.copy()
+        if unique_exercises:
+            # Add exercises from regex extraction if not in JSON
+            if not workout_data.get("exercises") and not workout_data.get("strength_training") and not workout_data.get("cardio"):
+                workout_data["exercises"] = unique_exercises
+        return workout_data
+    
+    # No JSON found or JSON parsing failed - use regex extraction
+    if unique_exercises:
+        return {"exercises": unique_exercises}
+    
+    return {}
 
 
 # ==========================

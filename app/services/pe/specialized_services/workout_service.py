@@ -3,7 +3,7 @@ Specialized Workout Service
 Handles all workout plan creation with focused prompt and optimized model.
 """
 
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from openai import OpenAI
 import logging
@@ -51,17 +51,49 @@ class WorkoutService(BaseWidgetService, BaseSpecializedService):
         """Use gpt-4o for workout plans (high quality required)."""
         return self.model
     
+    def generate_response(
+        self,
+        messages: List[Dict[str, str]],
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        response_format: Optional[Dict] = None,
+        user_first_name: Optional[str] = None
+    ) -> tuple[str, Dict[str, Any]]:
+        """
+        Override to use BaseSpecializedService.generate_response() instead of BaseWidgetService.generate_response().
+        This ensures proper method resolution when WorkoutService inherits from both classes.
+        """
+        # Explicitly call BaseSpecializedService's generate_response
+        return BaseSpecializedService.generate_response(
+            self,
+            messages=messages,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            response_format=response_format,
+            user_first_name=user_first_name
+        )
+    
     def extract_widget_data(self, response_text: str, intent: str, original_message: str = "") -> Dict[str, Any]:
         """
         Extract workout widget data from response.
         Workouts use response-based extraction.
+        Returns workout data directly (same pattern as lesson plan).
+        BaseSpecializedService.process() will wrap it in {type: "workout", data: {...}} format.
+        Handles both standard format (exercises, strength_training, cardio) and week-long format (days, workout_plan).
         """
-        return widget_handler._extract_workout_data(response_text)
+        logger.info(f"🔍 WorkoutService.extract_widget_data called, response_text length: {len(response_text)}")
+        workout_data = widget_handler._extract_workout_data(response_text)
+        logger.info(f"🔍 _extract_workout_data returned: {type(workout_data)}, keys: {list(workout_data.keys()) if isinstance(workout_data, dict) else 'not a dict'}")
+        # Return data directly (same pattern as lesson plan)
+        # BaseSpecializedService.process() will wrap it in {type: "workout", data: {...}} format
+        return workout_data
     
     def process(self, user_request: str, context: dict = None) -> dict:
-        """Generate workout response."""
-        if context is None:
-            context = {}
-        prompt = self.load_prompt()
-        return self.generate_response(prompt, user_request, context)
+        """
+        Generate workout response with widget extraction.
+        Uses BaseSpecializedService.process() to handle conversation history and extraction.
+        """
+        # Call parent's process method which handles conversation history and extraction
+        # This already extracts widget_data and puts it in result["widget_data"]
+        return BaseSpecializedService.process(self, user_request, context)
 

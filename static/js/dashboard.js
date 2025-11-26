@@ -2330,14 +2330,23 @@ function formatWidgetData(data, widgetType) {
         const isAuthenticated = !!localStorage.getItem('access_token');
         const isPreview = !isAuthenticated && data.is_preview === true;
         
-        // CRITICAL: Check for lesson plan FIRST, before any other processing
+        // CRITICAL: Check for workout widgets FIRST, before ANY other processing
+        // This prevents workout data from being misclassified as lesson plans
+        const isWorkoutTypeEarly = widgetType === 'workout' || widgetType === 'fitness' || widgetType === 'exercise';
+        const hasWorkoutDataEarly = data && typeof data === 'object' && !Array.isArray(data) && (
+            data.strength_training || data.cardio || data.exercises || data.days || 
+            data.workout_plan || data.plan_name || data.targeted_muscles
+        );
+        const isWorkoutWidgetEarly = isWorkoutTypeEarly || hasWorkoutDataEarly;
+        
+        // CRITICAL: Check for lesson plan, but ONLY if it's NOT a workout widget
         // This must happen at the very beginning to prevent falling through to formatDataObject
-        const isLessonPlanTypeEarly = widgetType === 'lesson-planning' || 
+        const isLessonPlanTypeEarly = !isWorkoutWidgetEarly && (widgetType === 'lesson-planning' || 
                                       widgetType === 'lesson_plan' || 
                                       widgetType === 'lesson-plan' ||
-                                      (widgetType && widgetType.toLowerCase().includes('lesson'));
+                                      (widgetType && widgetType.toLowerCase().includes('lesson')));
         
-        const hasLessonPlanDataEarly = data && typeof data === 'object' && !Array.isArray(data) && (
+        const hasLessonPlanDataEarly = !isWorkoutWidgetEarly && data && typeof data === 'object' && !Array.isArray(data) && (
             data.title || data.description || 
             data.objectives || data.learning_objectives ||
             data.introduction || 
@@ -2353,19 +2362,26 @@ function formatWidgetData(data, widgetType) {
         );
         
         // If this is lesson plan, we'll format it below, but set flag now
-        const isLessonPlan = isLessonPlanTypeEarly || hasLessonPlanDataEarly;
+        // BUT only if it's NOT a workout widget
+        const isLessonPlan = !isWorkoutWidgetEarly && (isLessonPlanTypeEarly || hasLessonPlanDataEarly);
         
-        // Format based on widget type and data structure
-        let html = '<div class="widget-data-display' + (isPreview ? ' widget-preview' : '') + '">';
-        
-        // Show preview banner for guest users (generic, works for all widget types)
-        if (isPreview) {
-            html += '<div class="widget-preview-banner">';
-            html += '<div class="preview-banner-content">';
-            html += '<span class="preview-badge">👁️ PREVIEW</span>';
-            html += '<p class="preview-message">' + (data.preview_message || 'This is a preview of what a complete widget would include. <strong>Sign up for a premium account</strong> to generate full, professional-grade content with advanced features.') + '</p>';
-            html += '</div>';
-            html += '</div>';
+        // CRITICAL: Don't initialize HTML for workout widgets here
+        // The workout formatting block will handle its own HTML initialization
+        // This prevents workout widgets from being formatted as lesson plans
+        let html = '';
+        if (!isWorkoutWidgetEarly) {
+            // Format based on widget type and data structure (for non-workout widgets)
+            html = '<div class="widget-data-display' + (isPreview ? ' widget-preview' : '') + '">';
+            
+            // Show preview banner for guest users (generic, works for all widget types)
+            if (isPreview) {
+                html += '<div class="widget-preview-banner">';
+                html += '<div class="preview-banner-content">';
+                html += '<span class="preview-badge">👁️ PREVIEW</span>';
+                html += '<p class="preview-message">' + (data.preview_message || 'This is a preview of what a complete widget would include. <strong>Sign up for a premium account</strong> to generate full, professional-grade content with advanced features.') + '</p>';
+                html += '</div>';
+                html += '</div>';
+            }
         }
     
     // CRITICAL: Check for lesson plan FIRST, before any other processing
@@ -2377,9 +2393,17 @@ function formatWidgetData(data, widgetType) {
                               widgetType === 'lesson-plan' ||
                               (widgetType && widgetType.toLowerCase().includes('lesson'));
     
+    // Check for workout widgets FIRST - they should never be formatted as lesson plans
+    const isWorkoutType = widgetType === 'workout' || widgetType === 'fitness' || widgetType === 'exercise';
+    const hasWorkoutData = data && typeof data === 'object' && !Array.isArray(data) && (
+        data.strength_training || data.cardio || data.exercises || data.days || 
+        data.workout_plan || data.plan_name || data.targeted_muscles
+    );
+    
     // More comprehensive check for lesson plan data structure
     // Check for ANY lesson plan indicators - be very permissive
-    const hasLessonPlanData = data && typeof data === 'object' && !Array.isArray(data) && (
+    // BUT exclude if it's a workout widget (workouts can have description too)
+    const hasLessonPlanData = !isWorkoutType && !hasWorkoutData && data && typeof data === 'object' && !Array.isArray(data) && (
         data.title || data.description || 
         data.objectives || data.learning_objectives ||
         data.introduction || 
@@ -2397,7 +2421,8 @@ function formatWidgetData(data, widgetType) {
     // CRITICAL: If widget type is lesson plan OR data has lesson plan structure, ALWAYS format as lesson plan
     // This prevents any fallthrough to formatDataObject which shows raw JSON
     // FORCE lesson plan formatting if type matches, regardless of data structure
-    const shouldFormatAsLessonPlan = isLessonPlanType || hasLessonPlanData;
+    // BUT exclude workout widgets explicitly
+    const shouldFormatAsLessonPlan = !isWorkoutType && !hasWorkoutData && (isLessonPlanType || hasLessonPlanData);
     
     console.log('🔍 formatWidgetData lesson plan check:', {
         widgetType: widgetType,
@@ -2416,10 +2441,26 @@ function formatWidgetData(data, widgetType) {
         dataPreview: data ? JSON.stringify(data).substring(0, 200) : 'no data'
     });
     
+    // CRITICAL: Check for workout widgets FIRST, before lesson plan check
+    // This prevents workout data from being misclassified as lesson plans
+    // If it's a workout, skip lesson plan formatting entirely
+    const isWorkoutWidget = isWorkoutType || hasWorkoutData;
+    
+    console.log('🔍 Workout widget detection:', {
+        widgetType: widgetType,
+        isWorkoutType: isWorkoutType,
+        hasWorkoutData: hasWorkoutData,
+        isWorkoutWidget: isWorkoutWidget,
+        hasStrengthTraining: !!(data && data.strength_training),
+        strengthTrainingCount: (data && Array.isArray(data.strength_training)) ? data.strength_training.length : 0,
+        dataKeys: data ? Object.keys(data) : []
+    });
+    
     // FORCE lesson plan formatting if widget type is lesson_plan or lesson-planning
     // This is a safety net to ensure lesson plans are NEVER displayed as raw JSON
     // CRITICAL: Check widget type FIRST before any other processing
-    if (shouldFormatAsLessonPlan || widgetType === 'lesson_plan' || widgetType === 'lesson-planning' || widgetType === 'lesson-plan') {
+    // BUT: Only if it's NOT a workout widget
+    if (!isWorkoutWidget && (shouldFormatAsLessonPlan || widgetType === 'lesson_plan' || widgetType === 'lesson-planning' || widgetType === 'lesson-plan')) {
         console.log('✅ Formatting as lesson plan (forced check)', {
             widgetType: widgetType,
             shouldFormatAsLessonPlan: shouldFormatAsLessonPlan,
@@ -2612,20 +2653,20 @@ function formatWidgetData(data, widgetType) {
             
             if (worksheetsText) {
                 let worksheetsHtml = escapeHtml(worksheetsText);
-                // Convert double newlines to paragraph breaks
-                const paragraphs = worksheetsHtml.split('\n\n').filter(p => p.trim());
-                if (paragraphs.length > 1) {
-                    worksheetsHtml = paragraphs.map(para => {
-                        // Check if paragraph starts with a number or letter (numbered list or question)
+            // Convert double newlines to paragraph breaks
+            const paragraphs = worksheetsHtml.split('\n\n').filter(p => p.trim());
+            if (paragraphs.length > 1) {
+                worksheetsHtml = paragraphs.map(para => {
+                    // Check if paragraph starts with a number or letter (numbered list or question)
                         if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/) || para.match(/^(worksheet|answer\s+key|student\s+worksheet)/i)) {
-                            return `<p class="worksheet-item">${para.replace(/\n/g, '<br>')}</p>`;
-                        }
-                        return `<p>${para.replace(/\n/g, '<br>')}</p>`;
-                    }).join('');
-                } else {
-                    // If no double newlines, just preserve single newlines
-                    worksheetsHtml = worksheetsHtml.replace(/\n/g, '<br>');
-                }
+                        return `<p class="worksheet-item">${para.replace(/\n/g, '<br>')}</p>`;
+                    }
+                    return `<p>${para.replace(/\n/g, '<br>')}</p>`;
+                }).join('');
+            } else {
+                // If no double newlines, just preserve single newlines
+                worksheetsHtml = worksheetsHtml.replace(/\n/g, '<br>');
+            }
                 html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
             }
         }
@@ -2644,20 +2685,20 @@ function formatWidgetData(data, widgetType) {
             
             if (rubricsText) {
                 let rubricsHtml = escapeHtml(rubricsText);
-                // Convert double newlines to paragraph breaks
-                const paragraphs = rubricsHtml.split('\n\n').filter(p => p.trim());
-                if (paragraphs.length > 1) {
-                    rubricsHtml = paragraphs.map(para => {
-                        // Check if paragraph starts with a number, letter, or performance level (numbered list, criteria, or level)
+            // Convert double newlines to paragraph breaks
+            const paragraphs = rubricsHtml.split('\n\n').filter(p => p.trim());
+            if (paragraphs.length > 1) {
+                rubricsHtml = paragraphs.map(para => {
+                    // Check if paragraph starts with a number, letter, or performance level (numbered list, criteria, or level)
                         if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/) || para.match(/^(excellent|proficient|developing|beginning|advanced|novice|criteria|performance\s+level|scoring)/i)) {
-                            return `<p class="rubric-item">${para.replace(/\n/g, '<br>')}</p>`;
-                        }
-                        return `<p>${para.replace(/\n/g, '<br>')}</p>`;
-                    }).join('');
-                } else {
-                    // If no double newlines, just preserve single newlines
-                    rubricsHtml = rubricsHtml.replace(/\n/g, '<br>');
-                }
+                        return `<p class="rubric-item">${para.replace(/\n/g, '<br>')}</p>`;
+                    }
+                    return `<p>${para.replace(/\n/g, '<br>')}</p>`;
+                }).join('');
+            } else {
+                // If no double newlines, just preserve single newlines
+                rubricsHtml = rubricsHtml.replace(/\n/g, '<br>');
+            }
                 html += `<div class="lesson-section rubric-section"><h5>📋 Grading Rubric</h5><div class="rubric-content">${rubricsHtml}</div></div>`;
             }
         }
@@ -2675,21 +2716,110 @@ function formatWidgetData(data, widgetType) {
         console.log('✅ Lesson plan HTML generated, length:', html.length);
         return html;
     }
-    // Special handling for fitness widget FIRST (before health) to avoid misclassification
-    // Check fitness widget BEFORE health to prevent fitness widgets with meal data from being misclassified
-    if (widgetType === 'fitness' && (data.exercises || data.strength_training || data.cardio)) {
+    // Special handling for fitness/workout widget FIRST (before health) to avoid misclassification
+    // Check fitness/workout widget BEFORE health to prevent fitness widgets with meal data from being misclassified
+    // Support both 'fitness' and 'workout' widget types
+    // Use the early workout detection to catch workouts before lesson plan formatting
+    if (isWorkoutWidgetEarly || isWorkoutWidget || ((widgetType === 'fitness' || widgetType === 'workout') && (data.exercises || data.strength_training || data.cardio || data.days || data.workout_plan))) {
         console.log('💪 Rendering fitness/workout widget with data:', {
+            widgetType: widgetType,
+            isWorkoutWidget: isWorkoutWidget,
             hasExercises: !!data.exercises,
             hasStrengthTraining: !!data.strength_training,
+            strengthTrainingLength: data.strength_training ? data.strength_training.length : 0,
             hasCardio: !!data.cardio,
+            hasDays: !!data.days,
+            hasWorkoutPlan: !!data.workout_plan,
+            hasPlanName: !!data.plan_name,
+            hasDescription: !!data.description,
             exercisesCount: data.exercises ? data.exercises.length : 0,
-            dataKeys: Object.keys(data)
+            dataKeys: Object.keys(data),
+            dataPreview: JSON.stringify(data).substring(0, 500)
         });
+        
+        // Initialize HTML at the start of workout formatting
         // Check if this is a preview/teaser widget for guest users
         // For authenticated users, NEVER show preview (even if flag is set)
         const isAuthenticated = !!localStorage.getItem('access_token');
         const isPreview = !isAuthenticated && data.is_preview === true;
         
+        let html = '<div class="widget-data-display' + (isPreview ? ' widget-preview' : '') + '">';
+        
+        // Handle week-long workout format (workout_plan with Day 1, Day 2, etc.)
+        if (data.workout_plan && typeof data.workout_plan === 'object') {
+            // Convert workout_plan format to days format for consistent rendering
+            if (!data.days) {
+                data.days = [];
+                for (const [dayKey, dayData] of Object.entries(data.workout_plan)) {
+                    if (typeof dayData === 'object') {
+                        data.days.push({
+                            day: dayKey,
+                            focus: dayData.focus || '',
+                            exercises: dayData.exercises || [],
+                            activities: dayData.activities || []
+                        });
+                    }
+                }
+            }
+        }
+        
+        // Handle days format (week-long workout)
+        if (data.days && Array.isArray(data.days) && data.days.length > 0) {
+            html += '<div class="workout-plan' + (isPreview ? ' workout-plan-preview' : '') + '">';
+            
+            if (data.plan_name) {
+                html += `<h4 class="workout-plan-title">${escapeHtml(data.plan_name)}</h4>`;
+            }
+            if (data.description) {
+                html += `<div class="workout-section"><p class="workout-description">${escapeHtml(data.description)}</p></div>`;
+            }
+            
+            html += '<div class="workout-days">';
+            data.days.forEach((dayData, dayIndex) => {
+                html += `<div class="workout-day">`;
+                html += `<h5 class="workout-day-title">📅 ${escapeHtml(dayData.day || `Day ${dayIndex + 1}`)}`;
+                if (dayData.focus) {
+                    html += ` - ${escapeHtml(dayData.focus)}`;
+                }
+                html += `</h5>`;
+                
+                if (dayData.exercises && Array.isArray(dayData.exercises) && dayData.exercises.length > 0) {
+                    html += '<ul class="workout-exercises">';
+                    dayData.exercises.forEach((exercise, exIndex) => {
+                        html += '<li class="workout-exercise">';
+                        if (typeof exercise === 'object' && exercise.name) {
+                            html += `<strong class="exercise-name">${escapeHtml(exercise.name)}</strong>`;
+                            if (exercise.sets && exercise.reps) {
+                                html += `<span class="exercise-sets-reps"> - ${exercise.sets} sets × ${exercise.reps} reps</span>`;
+                            }
+                            if (exercise.description) {
+                                html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+                            }
+                        } else if (typeof exercise === 'string') {
+                            // Parse exercise string like "Push-Ups: 3 sets of 10-15 reps"
+                            html += `<strong class="exercise-name">${escapeHtml(exercise)}</strong>`;
+                        }
+                        html += '</li>';
+                    });
+                    html += '</ul>';
+                }
+                
+                if (dayData.activities && Array.isArray(dayData.activities) && dayData.activities.length > 0) {
+                    html += '<div class="workout-activities"><h6>Activities:</h6><ul>';
+                    dayData.activities.forEach((activity, actIndex) => {
+                        html += `<li>${escapeHtml(activity)}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                html += '</div>';
+            });
+            html += '</div>';
+            html += '</div>';
+            return html; // Return early for week-long format
+        }
+        
+        // Standard workout format (not week-long)
         html += '<div class="workout-plan' + (isPreview ? ' workout-plan-preview' : '') + '">';
         
         // Preview banner is now shown at the top level for all widgets
@@ -2704,15 +2834,32 @@ function formatWidgetData(data, widgetType) {
             data.strength_training.forEach((exercise, index) => {
                 html += '<li class="workout-exercise">';
                 html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
+                
+                // Build exercise details
+                const details = [];
                 if (exercise.sets && exercise.reps) {
-                    html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
+                    details.push(`${exercise.sets} sets × ${exercise.reps} reps`);
+                }
+                if (exercise.weight) {
+                    details.push(`Weight: ${escapeHtml(exercise.weight)}`);
+                }
+                if (exercise.rest) {
+                    details.push(`Rest: ${escapeHtml(exercise.rest)}`);
                 }
                 if (exercise.duration) {
-                    html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
+                    details.push(`Duration: ${escapeHtml(exercise.duration)}`);
+                }
+                if (exercise.targeted_muscles) {
+                    details.push(`Targets: ${escapeHtml(exercise.targeted_muscles)}`);
                 }
                 if (exercise.calories_burned) {
-                    html += `<span class="exercise-calories">Burns ${escapeHtml(exercise.calories_burned)} calories</span>`;
+                    details.push(`Burns ${escapeHtml(exercise.calories_burned)} calories`);
                 }
+                
+                if (details.length > 0) {
+                    html += `<div class="exercise-details"><span class="exercise-sets-reps">${details.join(' • ')}</span></div>`;
+                }
+                
                 if (exercise.description) {
                     html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
                 }
@@ -2723,19 +2870,36 @@ function formatWidgetData(data, widgetType) {
         
         // Render Cardio section if available
         if (data.cardio && Array.isArray(data.cardio) && data.cardio.length > 0) {
-            html += '<div class="workout-section"><h5 class="workout-section-title">🏃 Cardio</h5><ul class="workout-exercises">';
+            html += '<div class="workout-section"><h5 class="workout-section-title">🏃 Cardio / Conditioning</h5><ul class="workout-exercises">';
             data.cardio.forEach((exercise, index) => {
                 html += '<li class="workout-exercise">';
                 html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
-                if (exercise.sets && exercise.reps) {
-                    html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
-                }
+                
+                // Build exercise details
+                const details = [];
                 if (exercise.duration) {
-                    html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
+                    details.push(`Duration: ${escapeHtml(exercise.duration)}`);
+                }
+                if (exercise.intensity) {
+                    details.push(`Intensity: ${escapeHtml(exercise.intensity)}`);
+                }
+                if (exercise.heart_rate_zone) {
+                    details.push(`Heart Rate Zone: ${escapeHtml(exercise.heart_rate_zone)}`);
+                }
+                if (exercise.frequency) {
+                    details.push(`Frequency: ${escapeHtml(exercise.frequency)}`);
+                }
+                if (exercise.sets && exercise.reps) {
+                    details.push(`${exercise.sets} sets × ${exercise.reps} reps`);
                 }
                 if (exercise.calories_burned) {
-                    html += `<span class="exercise-calories">Burns ${escapeHtml(exercise.calories_burned)} calories</span>`;
+                    details.push(`Burns ${escapeHtml(exercise.calories_burned)} calories`);
                 }
+                
+                if (details.length > 0) {
+                    html += `<div class="exercise-details"><span class="exercise-sets-reps">${details.join(' • ')}</span></div>`;
+                }
+                
                 if (exercise.description) {
                     html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
                 }
@@ -2775,7 +2939,10 @@ function formatWidgetData(data, widgetType) {
         if (data.description) {
             html += `<p class="workout-description">${escapeHtml(data.description)}</p>`;
         }
-        html += '</div>';
+        html += '</div>'; // Close workout-plan div
+        html += '</div>'; // Close widget-data-display div
+        console.log('✅ Workout HTML generated, length:', html.length);
+        return html; // CRITICAL: Return here to prevent falling through to other formatters
     }
     // Special handling for health/nutrition widget with meal plan data
     else if (widgetType === 'health' && (data.meals || data.daily_calories || data.macros || data.days)) {
@@ -2816,9 +2983,31 @@ function formatWidgetData(data, widgetType) {
             html += '<div class="health-section"><h5>🍽️ Meal Plan</h5>';
             data.days.forEach((dayData, dayIndex) => {
                 html += `<div class="health-day-plan">`;
-                html += `<h6 class="health-day-title">📅 ${escapeHtml(dayData.day)}</h6>`;
+                html += `<h6 class="health-day-title">📅 ${escapeHtml(dayData.day || `Day ${dayIndex + 1}`)}</h6>`;
+                
+                // Handle meals object format (breakfast, lunch, dinner, snacks)
+                if (dayData.meals && typeof dayData.meals === 'object' && !Array.isArray(dayData.meals)) {
                 html += '<ul class="health-meals">';
-                if (dayData.meals && Array.isArray(dayData.meals)) {
+                    if (dayData.meals.breakfast) {
+                        html += `<li class="health-meal-item"><strong>🍳 Breakfast:</strong> ${escapeHtml(dayData.meals.breakfast)}</li>`;
+                    }
+                    if (dayData.meals.lunch) {
+                        html += `<li class="health-meal-item"><strong>🍱 Lunch:</strong> ${escapeHtml(dayData.meals.lunch)}</li>`;
+                    }
+                    if (dayData.meals.dinner) {
+                        html += `<li class="health-meal-item"><strong>🍽️ Dinner:</strong> ${escapeHtml(dayData.meals.dinner)}</li>`;
+                    }
+                    if (dayData.meals.snacks && Array.isArray(dayData.meals.snacks)) {
+                        dayData.meals.snacks.forEach((snack, snackIndex) => {
+                            html += `<li class="health-meal-item"><strong>🥨 Snack ${snackIndex + 1}:</strong> ${escapeHtml(snack)}</li>`;
+                        });
+                    } else if (dayData.meals.snacks) {
+                        html += `<li class="health-meal-item"><strong>🥨 Snacks:</strong> ${escapeHtml(dayData.meals.snacks)}</li>`;
+                    }
+                    html += '</ul>';
+                } else if (dayData.meals && Array.isArray(dayData.meals)) {
+                    // Array format (backward compatibility)
+                    html += '<ul class="health-meals">';
                     dayData.meals.forEach((meal, mealIndex) => {
                         if (typeof meal === 'object' && meal.meal && meal.foods) {
                             const caloriesText = meal.calories ? ` <span class="meal-calories">(${escapeHtml(meal.calories)})</span>` : '';
@@ -2827,8 +3016,64 @@ function formatWidgetData(data, widgetType) {
                             html += `<li class="health-meal-item">${escapeHtml(meal)}</li>`;
                         }
                     });
+                    html += '</ul>';
+                }
+                
+                // Display daily nutritional information
+                if (dayData.calories || dayData.protein || dayData.carbs || dayData.fat) {
+                    html += '<div class="health-nutrition-summary">';
+                    html += '<h6 class="nutrition-title">📊 Daily Nutritional Summary</h6>';
+                    html += '<ul class="nutrition-macros">';
+                    if (dayData.calories) {
+                        html += `<li><strong>🔥 Total Calories:</strong> ${escapeHtml(dayData.calories)}</li>`;
+                    }
+                    if (dayData.protein) {
+                        html += `<li><strong>🥩 Protein:</strong> ${escapeHtml(dayData.protein)}</li>`;
+                    }
+                    if (dayData.carbs) {
+                        html += `<li><strong>🍞 Carbohydrates:</strong> ${escapeHtml(dayData.carbs)}</li>`;
+                    }
+                    if (dayData.fat) {
+                        html += `<li><strong>🥑 Fat:</strong> ${escapeHtml(dayData.fat)}</li>`;
+                    }
+                    if (dayData.fiber) {
+                        html += `<li><strong>🌾 Fiber:</strong> ${escapeHtml(dayData.fiber)}</li>`;
+                    }
+                    if (dayData.sugar) {
+                        html += `<li><strong>🍬 Sugar:</strong> ${escapeHtml(dayData.sugar)}</li>`;
                 }
                 html += '</ul>';
+                    
+                    // Display vitamins if available
+                    if (dayData.vitamins && typeof dayData.vitamins === 'object') {
+                        html += '<div class="nutrition-vitamins"><h6>💊 Vitamins</h6><ul>';
+                        Object.keys(dayData.vitamins).forEach(vitamin => {
+                            html += `<li><strong>${escapeHtml(vitamin.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(dayData.vitamins[vitamin])}</li>`;
+                        });
+                        html += '</ul></div>';
+                    }
+                    
+                    // Display minerals if available
+                    if (dayData.minerals && typeof dayData.minerals === 'object') {
+                        html += '<div class="nutrition-minerals"><h6>⚡ Minerals</h6><ul>';
+                        Object.keys(dayData.minerals).forEach(mineral => {
+                            html += `<li><strong>${escapeHtml(mineral.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(dayData.minerals[mineral])}</li>`;
+                        });
+                        html += '</ul></div>';
+                    }
+                    
+                    // Display other nutrients if available
+                    if (dayData.other && typeof dayData.other === 'object') {
+                        html += '<div class="nutrition-other"><h6>🌿 Other Nutrients</h6><ul>';
+                        Object.keys(dayData.other).forEach(nutrient => {
+                            html += `<li><strong>${escapeHtml(nutrient.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(dayData.other[nutrient])}</li>`;
+                        });
+                        html += '</ul></div>';
+                    }
+                    
+                    html += '</div>';
+                }
+                
                 html += '</div>';
             });
             html += '</div>';
@@ -2872,6 +3117,99 @@ function formatWidgetData(data, widgetType) {
         
         html += '</div>';
     }
+    // Special handling for attendance widget
+    else if (widgetType === 'attendance' && (data.attendance_rate || data.trend || data.at_risk_students || data.statistics)) {
+        console.log('📊 Rendering attendance widget with data:', {
+            hasAttendanceRate: !!data.attendance_rate,
+            hasTrend: !!data.trend,
+            hasAtRiskStudents: !!data.at_risk_students,
+            hasStatistics: !!data.statistics,
+            dataKeys: Object.keys(data)
+        });
+        
+        html += '<div class="attendance-widget' + (isPreview ? ' attendance-widget-preview' : '') + '">';
+        
+        if (data.title) {
+            html += `<h4 class="attendance-title">${escapeHtml(data.title)}</h4>`;
+        }
+        
+        // Attendance Statistics
+        if (data.statistics && typeof data.statistics === 'object') {
+            html += '<div class="attendance-section"><h5>📊 Attendance Statistics</h5>';
+            html += '<ul class="attendance-stats">';
+            if (data.attendance_rate) {
+                html += `<li><strong>Overall Attendance Rate:</strong> ${escapeHtml(data.attendance_rate)}</li>`;
+            }
+            if (data.trend) {
+                html += `<li><strong>Trend:</strong> ${escapeHtml(data.trend)}</li>`;
+            }
+            if (data.statistics.total_students) {
+                html += `<li><strong>Total Students:</strong> ${escapeHtml(data.statistics.total_students)}</li>`;
+            }
+            if (data.statistics.present_count !== undefined) {
+                html += `<li><strong>Present:</strong> ${escapeHtml(data.statistics.present_count)}</li>`;
+            }
+            if (data.statistics.absent_count !== undefined) {
+                html += `<li><strong>Absent:</strong> ${escapeHtml(data.statistics.absent_count)}</li>`;
+            }
+            if (data.statistics.tardy_count !== undefined) {
+                html += `<li><strong>Tardy:</strong> ${escapeHtml(data.statistics.tardy_count)}</li>`;
+            }
+            html += '</ul></div>';
+        } else {
+            // Fallback if statistics not in nested object
+            if (data.attendance_rate) {
+                html += `<div class="attendance-section"><h5>📊 Attendance Rate</h5><p class="attendance-rate">${escapeHtml(data.attendance_rate)}</p></div>`;
+            }
+            if (data.trend) {
+                html += `<div class="attendance-section"><h5>📈 Trend</h5><p>${escapeHtml(data.trend)}</p></div>`;
+            }
+        }
+        
+        // At-Risk Students
+        if (data.at_risk_students && Array.isArray(data.at_risk_students) && data.at_risk_students.length > 0) {
+            html += '<div class="attendance-section"><h5>⚠️ At-Risk Students</h5><ul class="at-risk-students">';
+            data.at_risk_students.forEach((student, index) => {
+                html += '<li class="at-risk-student">';
+                if (typeof student === 'object') {
+                    html += `<strong>${escapeHtml(student.name || 'Student ' + (index + 1))}</strong>`;
+                    if (student.attendance_rate) {
+                        html += ` - Attendance Rate: ${escapeHtml(student.attendance_rate)}`;
+                    }
+                    if (student.pattern) {
+                        html += `<br><span class="student-pattern">Pattern: ${escapeHtml(student.pattern)}</span>`;
+                    }
+                    if (student.interventions && Array.isArray(student.interventions) && student.interventions.length > 0) {
+                        html += '<br><span class="student-interventions">Interventions: ' + student.interventions.map(i => escapeHtml(i)).join(', ') + '</span>';
+                    }
+                } else {
+                    html += escapeHtml(String(student));
+                }
+                html += '</li>';
+            });
+            html += '</ul></div>';
+        }
+        
+        // Recommendations
+        if (data.recommendations && Array.isArray(data.recommendations) && data.recommendations.length > 0) {
+            html += '<div class="attendance-section"><h5>💡 Recommendations</h5><ul class="attendance-recommendations">';
+            data.recommendations.forEach((recommendation, index) => {
+                html += `<li>${escapeHtml(recommendation)}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        
+        // Patterns (if provided as separate field)
+        if (data.patterns && typeof data.patterns === 'object') {
+            html += '<div class="attendance-section"><h5>📈 Attendance Patterns</h5><ul class="attendance-patterns">';
+            Object.keys(data.patterns).forEach(key => {
+                html += `<li><strong>${escapeHtml(key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(data.patterns[key])}</li>`;
+            });
+            html += '</ul></div>';
+        }
+        
+        html += '</div>';
+    }
     // Handle arrays
     else if (Array.isArray(data)) {
         if (data.length === 0) {
@@ -2895,6 +3233,167 @@ function formatWidgetData(data, widgetType) {
     // Handle objects with common structures
     else if (data.students || data.attendance || data.teams || data.performance || data.insights) {
         html += formatDataObject(data);
+    }
+    // FINAL CHECK: If data looks like workout but wasn't caught earlier, format it as workout
+    // This prevents workout data from falling through to formatDataObject (which shows JSON)
+    // CRITICAL: This must check BEFORE formatDataObject to prevent raw JSON display
+    else if (data && typeof data === 'object' && !Array.isArray(data) && (
+        data.workout_plan || (data.days && Array.isArray(data.days) && data.days.length > 0 && data.days[0].exercises) ||
+        data.exercises || data.strength_training || data.cardio ||
+        (data.response && typeof data.response === 'object' && (data.response.workout_plan || data.response.days))
+    )) {
+        console.log('🔄 Fallback: Detected workout data structure, formatting as workout', {
+            widgetType: widgetType,
+            hasWorkoutPlan: !!data.workout_plan,
+            hasDays: !!data.days,
+            hasExercises: !!data.exercises,
+            hasResponse: !!data.response,
+            dataKeys: Object.keys(data)
+        });
+        
+        // Handle nested response object (from general_response service)
+        let workoutData = data;
+        if (data.response && typeof data.response === 'object' && (data.response.workout_plan || data.response.days)) {
+            workoutData = data.response;
+        }
+        
+        // Re-run workout formatting with this data
+        // This is a safety net to catch workouts that weren't detected earlier
+        html = '<div class="widget-data-display"><div class="workout-plan">';
+        
+        if (workoutData.plan_name) {
+            html += `<h4 class="workout-plan-title">${escapeHtml(workoutData.plan_name)}</h4>`;
+        }
+        
+        // Handle week-long format (workout_plan or days)
+        if (workoutData.workout_plan && typeof workoutData.workout_plan === 'object') {
+            // Convert workout_plan format to days format
+            if (!workoutData.days) {
+                workoutData.days = [];
+                for (const [dayKey, dayData] of Object.entries(workoutData.workout_plan)) {
+                    if (typeof dayData === 'object') {
+                        workoutData.days.push({
+                            day: dayKey,
+                            focus: dayData.focus || '',
+                            exercises: dayData.exercises || [],
+                            activities: dayData.activities || []
+                        });
+                    }
+                }
+            }
+        }
+        
+        if (workoutData.days && Array.isArray(workoutData.days) && workoutData.days.length > 0) {
+            html += '<div class="workout-days">';
+            workoutData.days.forEach((dayData, dayIndex) => {
+                html += `<div class="workout-day">`;
+                html += `<h5 class="workout-day-title">📅 ${escapeHtml(dayData.day || `Day ${dayIndex + 1}`)}`;
+                if (dayData.focus) {
+                    html += ` - ${escapeHtml(dayData.focus)}`;
+                }
+                html += `</h5>`;
+                
+                if (dayData.exercises && Array.isArray(dayData.exercises) && dayData.exercises.length > 0) {
+                    html += '<ul class="workout-exercises">';
+                    dayData.exercises.forEach((exercise, exIndex) => {
+                        html += '<li class="workout-exercise">';
+                        if (typeof exercise === 'object' && exercise.name) {
+                            html += `<strong class="exercise-name">${escapeHtml(exercise.name)}</strong>`;
+                            if (exercise.sets && exercise.reps) {
+                                html += `<span class="exercise-sets-reps"> - ${exercise.sets} sets × ${exercise.reps} reps</span>`;
+                            }
+                            if (exercise.description) {
+                                html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+                            }
+                        } else if (typeof exercise === 'string') {
+                            html += `<strong class="exercise-name">${escapeHtml(exercise)}</strong>`;
+                        }
+                        html += '</li>';
+                    });
+                    html += '</ul>';
+                }
+                
+                if (dayData.activities && Array.isArray(dayData.activities) && dayData.activities.length > 0) {
+                    html += '<div class="workout-activities"><h6>Activities:</h6><ul>';
+                    dayData.activities.forEach((activity, actIndex) => {
+                        html += `<li>${escapeHtml(activity)}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                html += '</div>';
+            });
+            html += '</div>';
+        } else if (workoutData.exercises || workoutData.strength_training || workoutData.cardio) {
+            // Standard workout format
+            if (workoutData.strength_training && Array.isArray(workoutData.strength_training) && workoutData.strength_training.length > 0) {
+                html += '<div class="workout-section"><h5 class="workout-section-title">💪 Strength Training</h5><ul class="workout-exercises">';
+                workoutData.strength_training.forEach((exercise, index) => {
+                    html += '<li class="workout-exercise">';
+                    html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
+                    const details = [];
+                    if (exercise.sets && exercise.reps) {
+                        details.push(`${exercise.sets} sets × ${exercise.reps} reps`);
+                    }
+                    if (exercise.weight) details.push(`Weight: ${escapeHtml(exercise.weight)}`);
+                    if (exercise.rest) details.push(`Rest: ${escapeHtml(exercise.rest)}`);
+                    if (exercise.duration) details.push(`Duration: ${escapeHtml(exercise.duration)}`);
+                    if (exercise.targeted_muscles) details.push(`Targets: ${escapeHtml(exercise.targeted_muscles)}`);
+                    if (details.length > 0) {
+                        html += `<div class="exercise-details"><span class="exercise-sets-reps">${details.join(' • ')}</span></div>`;
+                    }
+                    if (exercise.description) {
+                        html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+                    }
+                    html += '</li>';
+                });
+                html += '</ul></div>';
+            }
+            
+            if (workoutData.cardio && Array.isArray(workoutData.cardio) && workoutData.cardio.length > 0) {
+                html += '<div class="workout-section"><h5 class="workout-section-title">🏃 Cardio / Conditioning</h5><ul class="workout-exercises">';
+                workoutData.cardio.forEach((exercise, index) => {
+                    html += '<li class="workout-exercise">';
+                    html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
+                    const details = [];
+                    if (exercise.duration) details.push(`Duration: ${escapeHtml(exercise.duration)}`);
+                    if (exercise.intensity) details.push(`Intensity: ${escapeHtml(exercise.intensity)}`);
+                    if (exercise.heart_rate_zone) details.push(`Heart Rate Zone: ${escapeHtml(exercise.heart_rate_zone)}`);
+                    if (exercise.frequency) details.push(`Frequency: ${escapeHtml(exercise.frequency)}`);
+                    if (details.length > 0) {
+                        html += `<div class="exercise-details"><span class="exercise-sets-reps">${details.join(' • ')}</span></div>`;
+                    }
+                    if (exercise.description) {
+                        html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+                    }
+                    html += '</li>';
+                });
+                html += '</ul></div>';
+            }
+            
+            if (workoutData.exercises && Array.isArray(workoutData.exercises) && workoutData.exercises.length > 0) {
+                html += '<ul class="workout-exercises">';
+                workoutData.exercises.forEach((exercise, index) => {
+                    html += '<li class="workout-exercise">';
+                    html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
+                    if (exercise.sets && exercise.reps) {
+                        html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
+                    }
+                    if (exercise.duration) {
+                        html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
+                    }
+                    if (exercise.description) {
+                        html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
+                    }
+                    html += '</li>';
+                });
+                html += '</ul>';
+            }
+        }
+        
+        html += '</div></div>';
+        console.log('✅ Fallback workout HTML generated, length:', html.length);
+        return html;  // CRITICAL: Return here to prevent falling through to formatDataObject
     }
     // FINAL CHECK: If data looks like lesson plan but wasn't caught earlier, format it as lesson plan
     // This prevents lesson plan data from falling through to formatDataObject (which shows JSON)

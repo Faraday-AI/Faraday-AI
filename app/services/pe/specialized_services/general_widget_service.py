@@ -67,11 +67,33 @@ class GeneralWidgetService(BaseSpecializedService):
     def extract_widget_data(self, response_text: str, intent: str, original_message: str = "") -> Dict[str, Any]:
         """
         Extract widget data from response.
-        General widgets use GPT function calling, so widget data comes from backend.
+        General widgets use GPT function calling, but may also have JSON in responses.
+        Tries to extract JSON from markdown code blocks first.
         """
+        import json
+        import re
+        
+        # First, try to extract JSON from markdown code blocks
+        json_pattern = re.compile(r'```(?:json)?\s*(\{.*?\})\s*```', re.DOTALL | re.IGNORECASE)
+        json_match = json_pattern.search(response_text)
+        if json_match:
+            try:
+                json_str = json_match.group(1)
+                parsed_data = json.loads(json_str)
+                # Return structured data if JSON found
+                if isinstance(parsed_data, dict):
+                    return {
+                        "type": "general_widget",
+                        "data": parsed_data,
+                        "widget_type": intent
+                    }
+            except (json.JSONDecodeError, AttributeError) as e:
+                logger.warning(f"⚠️ Failed to parse JSON from markdown code block: {e}")
+        
+        # Fallback: return text response
         return {
             "type": "general_widget",
-            "data": response_text,
+            "data": {"response": response_text},
             "widget_type": intent
         }
 

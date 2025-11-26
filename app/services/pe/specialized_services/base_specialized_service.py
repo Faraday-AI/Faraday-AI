@@ -199,9 +199,57 @@ class BaseSpecializedService(ABC):
         # Build messages list - use conversation history if available, otherwise just current request
         conversation_messages = context.get("conversation_messages", [])
         if conversation_messages:
-            # Use full conversation history for persistent memory
-            # The last message should be the current user request, but include all previous messages
-            messages = conversation_messages
+            # Keep more conversation history (25 messages = ~12-13 exchanges)
+            # Use intelligent truncation to stay within context limits
+            max_history_messages = 25
+            if len(conversation_messages) > max_history_messages:
+                # Keep the most recent messages
+                conversation_messages = conversation_messages[-max_history_messages:]
+                logger.info(f"⚠️ Truncated conversation history from {len(context.get('conversation_messages', []))} to {max_history_messages} messages")
+            
+            # Intelligent message truncation with sliding window approach
+            # Older messages get truncated more aggressively, recent messages keep more context
+            # Estimate: ~4 chars per token
+            messages = []
+            total_messages = len(conversation_messages)
+            
+            for idx, msg in enumerate(conversation_messages):
+                content = msg.get("content", "")
+                original_length = len(content)
+                
+                # Calculate truncation based on message age (older = more aggressive)
+                # Recent messages (last 10): keep up to 500 chars
+                # Middle messages (10-20): keep up to 300 chars  
+                # Older messages (20+): keep up to 200 chars
+                if idx >= total_messages - 10:
+                    # Recent messages - keep more context
+                    max_length = 500
+                elif idx >= total_messages - 20:
+                    # Middle messages - moderate truncation
+                    max_length = 300
+                else:
+                    # Older messages - aggressive truncation
+                    max_length = 200
+                
+                if len(content) > max_length:
+                    # Smart truncation: keep beginning (context) and end (conclusion) if very long
+                    if len(content) > max_length * 2:
+                        # Very long message: keep start and end
+                        start_chars = int(max_length * 0.6)
+                        end_chars = int(max_length * 0.4)
+                        truncated = content[:start_chars] + "...[truncated]..." + content[-end_chars:]
+                    else:
+                        # Moderately long: just truncate end
+                        truncated = content[:max_length] + "..."
+                    
+                    messages.append({
+                        "role": msg.get("role", "user"),
+                        "content": truncated
+                    })
+                    logger.debug(f"Truncated history message {idx+1}/{total_messages} from {original_length} to {len(truncated)} chars (age-based)")
+                else:
+                    messages.append(msg)
+            
             # Ensure current user_request is the last message (in case it's not in history yet)
             if not messages or messages[-1].get("role") != "user" or messages[-1].get("content") != user_request:
                 messages.append({"role": "user", "content": user_request})
@@ -210,9 +258,16 @@ class BaseSpecializedService(ABC):
             messages = [{"role": "user", "content": user_request}]
         
         # Generate response with full conversation context
+        # Set max_tokens to prevent completion from being too long
+        # With 25 messages (intelligently truncated): system ~2000 tokens, messages ~3000-4000 tokens, completion ~2000 tokens
+        # For gpt-4o (128k context) or gpt-4-turbo (128k context), we have plenty of room
+        # For older models with 8k context, the intelligent truncation above should keep us safe
+        max_completion_tokens = 2000  # Reasonable limit for detailed responses
+        
         response_text, usage_metadata = self.generate_response(
             messages=messages,
             temperature=0.2,
+            max_tokens=max_completion_tokens,
             user_first_name=user_first_name
         )
         

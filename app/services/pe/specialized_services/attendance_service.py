@@ -125,12 +125,4 @@ class AttendanceService(BaseWidgetService, BaseSpecializedService):
         """
         # Call parent's process method which handles conversation history and extraction
         return BaseSpecializedService.process(self, user_request, context)
-    
-    def process(self, user_request: str, context: dict = None) -> dict:
-        """
-        Generate attendance response with widget extraction.
-        Uses BaseSpecializedService.process() to handle conversation history and extraction.
-        """
-        # Call parent's process method which handles conversation history and extraction
-        return BaseSpecializedService.process(self, user_request, context)
 
