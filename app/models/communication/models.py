@@ -175,3 +175,58 @@ class SubmissionTranslation(SharedBase):
     assignment = relationship("app.models.educational.base.assignment.Assignment")
     student = relationship("app.models.physical_education.student.models.Student")
 
+
+class SMSSubscription(SharedBase):
+    """Model for storing SMS opt-in subscriptions."""
+    __tablename__ = "sms_subscriptions"
+    __table_args__ = (
+        Index('idx_sms_phone', 'phone_number'),
+        Index('idx_sms_status', 'is_active'),
+        Index('idx_sms_created', 'created_at'),
+        {'extend_existing': True}
+    )
+    
+    id = Column(Integer, primary_key=True, index=True)
+    
+    # Phone number information
+    phone_number = Column(String(20), nullable=False, unique=True, index=True)
+    phone_number_formatted = Column(String(20), nullable=True)  # E.164 format
+    
+    # User information (optional - can be anonymous opt-in)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    email = Column(String(255), nullable=True)  # Optional email for anonymous opt-ins
+    
+    # Consent information
+    consent_given = Column(Boolean, default=True, nullable=False)
+    consent_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    consent_ip_address = Column(String(45), nullable=True)  # IPv4 or IPv6
+    consent_user_agent = Column(String(500), nullable=True)
+    
+    # Subscription status
+    is_active = Column(Boolean, default=True, nullable=False)
+    opted_out = Column(Boolean, default=False, nullable=False)
+    opted_out_date = Column(DateTime, nullable=True)
+    
+    # Message preferences
+    message_types = Column(JSON, nullable=True)  # List of message types user wants to receive
+    # Example: ["account_alerts", "educational_updates", "product_announcements", "service_notifications"]
+    
+    # Delivery tracking
+    last_message_sent_at = Column(DateTime, nullable=True)
+    total_messages_sent = Column(Integer, default=0)
+    failed_delivery_count = Column(Integer, default=0)
+    
+    # Twilio information
+    twilio_sid = Column(String(100), nullable=True)  # Twilio subscriber SID if applicable
+    
+    # Additional metadata
+    subscription_metadata = Column(JSON, nullable=True)  # Additional subscription data
+    source = Column(String(50), nullable=True)  # Where the opt-in came from (e.g., "homepage", "dashboard")
+    
+    # Timestamps
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    user = relationship("app.models.core.user.User", foreign_keys=[user_id])
+

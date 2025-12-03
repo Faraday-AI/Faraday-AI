@@ -13,6 +13,7 @@ from app.services.pe.specialized_services import (
     LessonPlanService,
     MealPlanService,
     WorkoutService,
+    SMSService,
     GeneralWidgetService,
     GeneralResponseService,
     BaseSpecializedService
@@ -43,6 +44,7 @@ class ServiceRegistry:
             "lesson_plan": LessonPlanService,
             "meal_plan": MealPlanService,
             "workout": WorkoutService,
+            "sms": SMSService,
             # General services for fallback
             "widget": GeneralWidgetService,  # Also register "widget" intent
             "general_widget": GeneralWidgetService,

@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from .endpoints import activity_router, ai_analysis_router, lesson_plans_router, pe_router, user_profile_router, user_preferences_router, role_management_router, permission_management_router, organization_management_router, team_management_router, user_analytics_router, beta_testing_router
 from .endpoints import resource_management, beta_teacher_dashboard, beta_safety, beta_assessment, beta_security, beta_resource_management, dashboard_resource_management, dashboard_context_analytics, beta_context_analytics, dashboard_preferences, beta_dashboard_preferences, beta_avatars_voices
-from .endpoints import microsoft_auth, beta_microsoft_auth, microsoft_calendar, beta_microsoft_calendar, microsoft_health, speech_to_text, guest_chat, text_to_speech, ai_assistant
+from .endpoints import microsoft_auth, beta_microsoft_auth, microsoft_calendar, beta_microsoft_calendar, microsoft_health, speech_to_text, guest_chat, text_to_speech, ai_assistant, sms_subscription
 from .middleware import auth, rate_limit
 
 # Create main router
@@ -53,6 +53,8 @@ router.include_router(text_to_speech.router, prefix="/api/v1", tags=["text-to-sp
 router.include_router(guest_chat.router, prefix="/api/v1", tags=["guest-chat"])
 # AI Assistant router - advanced AI features for authenticated users
 router.include_router(ai_assistant.router, prefix="/api/v1", tags=["ai-assistant"])
+# SMS Subscription router - Twilio SMS opt-in/opt-out management
+router.include_router(sms_subscription.router, prefix="/api/v1/sms", tags=["sms-subscription"])
 
 # Export middleware functions for use in main FastAPI app
 authentication_middleware = auth.add_authentication

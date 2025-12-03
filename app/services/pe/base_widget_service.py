@@ -69,6 +69,7 @@ class BaseWidgetService:
                 "prompts/lesson_plan.txt": "specialized_lesson_plan.txt",
                 "prompts/meal_plan.txt": "specialized_meal_plan.txt",
                 "prompts/workout.txt": "specialized_workout.txt",
+                "prompts/sms.txt": "specialized_sms.txt",
                 "prompts/jasper_router.txt": "jasper_router.txt",
             }
             

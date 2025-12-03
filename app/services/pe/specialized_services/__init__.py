@@ -9,6 +9,7 @@ from app.services.pe.specialized_services.attendance_service import AttendanceSe
 from app.services.pe.specialized_services.lesson_plan_service import LessonPlanService
 from app.services.pe.specialized_services.meal_plan_service import MealPlanService
 from app.services.pe.specialized_services.workout_service import WorkoutService
+from app.services.pe.specialized_services.sms_service import SMSService
 from app.services.pe.specialized_services.general_widget_service import GeneralWidgetService
 from app.services.pe.specialized_services.general_response_service import GeneralResponseService
 
@@ -18,6 +19,7 @@ __all__ = [
     "LessonPlanService",
     "MealPlanService",
     "WorkoutService",
+    "SMSService",
     "GeneralWidgetService",
     "GeneralResponseService",
 ]

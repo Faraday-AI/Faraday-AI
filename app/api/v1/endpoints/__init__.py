@@ -11,7 +11,7 @@ from .team_management import router as team_management_router
 from .user_analytics import router as user_analytics_router
 from .beta_testing import router as beta_testing_router
 from . import resource_management, beta_teacher_dashboard, beta_safety, beta_assessment, beta_security, beta_resource_management, dashboard_resource_management, dashboard_context_analytics, beta_context_analytics, dashboard_preferences, beta_dashboard_preferences, beta_avatars_voices
-from . import microsoft_auth, beta_microsoft_auth, microsoft_calendar, beta_microsoft_calendar, microsoft_health, speech_to_text, text_to_speech, guest_chat, ai_assistant
+from . import microsoft_auth, beta_microsoft_auth, microsoft_calendar, beta_microsoft_calendar, microsoft_health, speech_to_text, text_to_speech, guest_chat, ai_assistant, sms_subscription
 
 __all__ = [
     'activity_router',
@@ -46,5 +46,6 @@ __all__ = [
     'speech_to_text',
     'text_to_speech',
     'guest_chat',
-    'ai_assistant'
+    'ai_assistant',
+    'sms_subscription'
 ] 

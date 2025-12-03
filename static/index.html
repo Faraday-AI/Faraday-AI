@@ -567,6 +567,195 @@
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
 
+        /* SMS Opt-In Section Styles */
+        .sms-optin-section {
+            width: 100%;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, rgba(26, 115, 232, 0.15) 0%, rgba(0, 0, 0, 0.9) 100%);
+            text-align: center;
+            margin: 40px 0 0 0;
+            position: relative;
+            z-index: 9997;
+            border-top: 1px solid rgba(26, 115, 232, 0.3);
+        }
+
+        .sms-optin-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .sms-optin-section h2 {
+            color: #fff;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            font-weight: 700;
+        }
+
+        .sms-optin-section p {
+            color: rgba(255, 255, 255, 0.9);
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .sms-optin-form {
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 2rem;
+            border-radius: 10px;
+            border: 1px solid rgba(26, 115, 232, 0.3);
+            margin-top: 2rem;
+        }
+
+        .sms-optin-form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        .sms-optin-form-group label {
+            display: block;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .sms-optin-form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1rem;
+            border: 1px solid rgba(26, 115, 232, 0.5);
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            box-sizing: border-box;
+        }
+
+        .sms-optin-form-group input:focus {
+            outline: none;
+            border-color: #1a73e8;
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .sms-optin-form-group input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .sms-consent-checkbox {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1rem;
+            background-color: rgba(26, 115, 232, 0.1);
+            border: 1px solid rgba(26, 115, 232, 0.3);
+            border-radius: 8px;
+        }
+
+        .sms-consent-checkbox input[type="checkbox"] {
+            margin-top: 0.25rem;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .sms-consent-checkbox label {
+            color: #fff;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            cursor: pointer;
+            font-weight: 400;
+        }
+
+        .sms-consent-checkbox label strong {
+            color: #1a73e8;
+            font-weight: 600;
+        }
+
+        .sms-message-types {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            padding-left: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .sms-optin-button {
+            background: linear-gradient(135deg, #1a73e8, #0d47a1);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .sms-optin-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(26, 115, 232, 0.3);
+        }
+
+        .sms-optin-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .sms-optin-success {
+            color: #28a745;
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .sms-optin-success.active {
+            display: block;
+        }
+
+        .sms-optin-error {
+            color: #ff4444;
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: rgba(255, 68, 68, 0.1);
+            border: 1px solid rgba(255, 68, 68, 0.3);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .sms-optin-error.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .sms-optin-section {
+                padding: 40px 15px;
+            }
+
+            .sms-optin-section h2 {
+                font-size: 1.5rem;
+            }
+
+            .sms-optin-form {
+                padding: 1.5rem;
+            }
+
+            .sms-consent-checkbox {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .sms-consent-checkbox input[type="checkbox"] {
+                margin-top: 0;
+            }
+        }
+
         .footer-links {
             display: flex;
             justify-content: center;
@@ -1405,6 +1594,65 @@
             </div>
         </div>
 
+        <!-- SMS Opt-In Section -->
+        <div class="sms-optin-section">
+            <div class="sms-optin-content">
+                <h2>Stay Connected via SMS</h2>
+                <p>Receive important updates, account alerts, and educational resources directly to your phone</p>
+                
+                <form class="sms-optin-form" id="smsOptInForm" onsubmit="handleSMSOptIn(event)">
+                    <div class="sms-optin-form-group">
+                        <label for="sms-phone">Phone Number</label>
+                        <input 
+                            type="tel" 
+                            id="sms-phone" 
+                            name="phone" 
+                            placeholder="+1 (555) 123-4567" 
+                            required
+                            pattern="[\+]?[1-9][\d]{0,15}"
+                            title="Please enter a valid phone number (e.g., +18774014926)"
+                        >
+                    </div>
+
+                    <div class="sms-consent-checkbox">
+                        <input 
+                            type="checkbox" 
+                            id="sms-consent" 
+                            name="sms-consent" 
+                            required
+                            aria-required="true"
+                        >
+                        <label for="sms-consent">
+                            <strong>I agree to receive text messages from Faraday AI</strong>
+                            <div class="sms-message-types">
+                                By checking this box, you consent to receive SMS messages from Faraday AI, LLC at the phone number provided. 
+                                Message types include:
+                                <ul style="margin: 0.5rem 0 0 1.5rem; padding: 0;">
+                                    <li>Account alerts and notifications</li>
+                                    <li>Educational updates and resources</li>
+                                    <li>Product announcements and feature updates</li>
+                                    <li>Important service notifications</li>
+                                </ul>
+                                Message and data rates may apply. You can opt out at any time by replying STOP. 
+                                Reply HELP for assistance. This consent is separate from our Privacy Policy and Terms of Service.
+                            </div>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="sms-optin-button" id="sms-optin-submit">
+                        Subscribe to SMS Updates
+                    </button>
+
+                    <div class="sms-optin-success" id="sms-optin-success"></div>
+                    <div class="sms-optin-error" id="sms-optin-error"></div>
+                </form>
+
+                <p style="margin-top: 1.5rem; font-size: 0.85rem; color: rgba(255, 255, 255, 0.7);">
+                    Or text <a href="tel:+18774014926" style="color: #1a73e8; text-decoration: none; font-weight: 600;">+1 (877) 401-4926</a> to opt in directly
+                </p>
+            </div>
+        </div>
+
         <!-- Footer -->
         <footer class="footer" role="contentinfo">
             <div class="footer-content">
@@ -1630,6 +1878,112 @@
                 }
             }
         });
+
+        // SMS Opt-In Form Handler
+        function handleSMSOptIn(event) {
+            event.preventDefault();
+            
+            const form = document.getElementById('smsOptInForm');
+            const phoneInput = document.getElementById('sms-phone');
+            const consentCheckbox = document.getElementById('sms-consent');
+            const submitButton = document.getElementById('sms-optin-submit');
+            const successDiv = document.getElementById('sms-optin-success');
+            const errorDiv = document.getElementById('sms-optin-error');
+            
+            // Hide previous messages
+            successDiv.classList.remove('active');
+            errorDiv.classList.remove('active');
+            
+            // Validate consent checkbox
+            if (!consentCheckbox.checked) {
+                errorDiv.textContent = 'You must agree to receive text messages to continue.';
+                errorDiv.classList.add('active');
+                return;
+            }
+            
+            // Get and format phone number
+            let phoneNumber = phoneInput.value.trim();
+            
+            // Remove common formatting characters
+            phoneNumber = phoneNumber.replace(/[\s\-\(\)]/g, '');
+            
+            // Ensure it starts with + if it doesn't already
+            if (!phoneNumber.startsWith('+')) {
+                // If it starts with 1, add +
+                if (phoneNumber.startsWith('1') && phoneNumber.length === 11) {
+                    phoneNumber = '+' + phoneNumber;
+                } else if (phoneNumber.length === 10) {
+                    // Assume US number, add +1
+                    phoneNumber = '+1' + phoneNumber;
+                } else {
+                    phoneNumber = '+' + phoneNumber;
+                }
+            }
+            
+            // Disable submit button
+            submitButton.disabled = true;
+            submitButton.textContent = 'Subscribing...';
+            
+            // Call the API to opt-in
+            fetch('/api/v1/sms/opt-in', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    phone_number: phoneNumber,
+                    source: 'homepage',
+                    message_types: [
+                        'account_alerts',
+                        'educational_updates',
+                        'product_announcements',
+                        'service_notifications'
+                    ]
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.detail || err.message || 'Failed to subscribe');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Store phone number and consent in localStorage for reference
+                    localStorage.setItem('sms_phone', phoneNumber);
+                    localStorage.setItem('sms_consent', 'true');
+                    localStorage.setItem('sms_consent_date', new Date().toISOString());
+                    
+                    // Show success message
+                    const message = data.confirmation_sent 
+                        ? 'Success! You have been subscribed to SMS updates. A confirmation message has been sent to your phone.'
+                        : data.message || 'Success! You have been subscribed to SMS updates.';
+                    successDiv.textContent = message;
+                    successDiv.classList.add('active');
+                    
+                    // Reset form
+                    form.reset();
+                    
+                    // Scroll to success message
+                    successDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    throw new Error(data.message || 'Failed to subscribe');
+                }
+            })
+            .catch(error => {
+                console.error('SMS opt-in error:', error);
+                errorDiv.textContent = error.message || 'An error occurred while subscribing. Please try again later.';
+                errorDiv.classList.add('active');
+                errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            })
+            .finally(() => {
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.textContent = 'Subscribe to SMS Updates';
+            });
+        }
 
         // Language Switcher
         function toggleLanguage() {
