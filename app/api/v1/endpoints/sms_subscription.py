@@ -118,8 +118,9 @@ async def sms_opt_in(
                 # Send confirmation message
                 twilio_service = get_twilio_service()
                 confirmation_message = (
-                    "You've been re-subscribed to Faraday AI SMS updates. "
-                    "You'll receive account alerts, educational updates, and product announcements. "
+                    "You've been re-subscribed to Faraday AI SMS updates for educational purposes. "
+                    "You'll receive messages from your child's teacher/school including account alerts, "
+                    "educational updates, and important notifications. "
                     "Reply STOP to opt out anytime. Reply HELP for assistance."
                 )
                 sms_result = await twilio_service.send_sms(request.phone_number, confirmation_message)
@@ -169,8 +170,9 @@ async def sms_opt_in(
         # Send confirmation SMS
         twilio_service = get_twilio_service()
         confirmation_message = (
-            "Welcome to Faraday AI SMS updates! You'll receive account alerts, "
-            "educational resources, product announcements, and important service notifications. "
+            "Welcome to Faraday AI SMS updates for educational purposes! "
+            "You'll receive messages from your child's teacher/school including account alerts, "
+            "educational resources, and important notifications. "
             "Message and data rates may apply. Reply STOP to opt out anytime. Reply HELP for assistance."
         )
         sms_result = await twilio_service.send_sms(request.phone_number, confirmation_message)
