@@ -62,6 +62,7 @@
             padding: 0;
             -webkit-text-size-adjust: 100%;
             text-size-adjust: 100%;
+            scroll-behavior: smooth;
         }
 
         body {
@@ -678,6 +679,16 @@
             margin-top: 0.5rem;
             padding-left: 1.5rem;
             line-height: 1.6;
+        }
+
+        .sms-message-types a {
+            color: #1a73e8;
+            text-decoration: underline;
+            transition: color 0.3s ease;
+        }
+
+        .sms-message-types a:hover {
+            color: #34a853;
         }
 
         .sms-optin-button {
@@ -1349,6 +1360,24 @@
             gap: 8px;
         }
 
+        .sms-subscribe-button {
+            padding: 4px 8px;
+            font-size: 0.7em;
+            background-color: transparent;
+            color: #1a73e8;
+            border: 1px solid #1a73e8;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .sms-subscribe-button:hover {
+            background-color: rgba(26, 115, 232, 0.1);
+            transform: translateY(-1px);
+        }
+
         .auth-button {
             padding: 4px 8px;
             font-size: 0.7em;
@@ -1389,6 +1418,12 @@
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                flex-wrap: wrap;
+            }
+
+            .sms-subscribe-button {
+                padding: 4px 8px;
+                font-size: 0.65em;
             }
 
             .auth-button {
@@ -1469,6 +1504,7 @@
     <div class="landing-page">
         <div class="grid-overlay"></div>
         <div class="auth-button-container">
+            <a href="#sms-optin" class="sms-subscribe-button">Subscribe to SMS</a>
             <button class="auth-button" onclick="showAuthForm()">Login / Register</button>
         </div>
         <div class="image-container">
@@ -1595,7 +1631,7 @@
         </div>
 
         <!-- SMS Opt-In Section -->
-        <div class="sms-optin-section">
+        <div class="sms-optin-section" id="sms-optin">
             <div class="sms-optin-content">
                 <h2>Stay Connected via SMS</h2>
                 <p>Receive important educational updates, account alerts, and messages from your child's teacher/school directly to your phone</p>
@@ -1634,7 +1670,7 @@
                                     <li>Service notifications related to your child's education</li>
                                 </ul>
                                 Message and data rates may apply. You can opt out at any time by replying STOP. 
-                                Reply HELP for assistance. This consent is separate from our Privacy Policy and Terms of Service.
+                                Reply HELP for assistance. This consent is separate from our <a href="https://faraday-ai.com/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy Policy</a> and <a href="https://faraday-ai.com/terms-of-service" target="_blank" rel="noopener noreferrer">Terms of Service</a>.
                             </div>
                         </label>
                     </div>
@@ -1648,7 +1684,7 @@
                 </form>
 
                 <p style="margin-top: 1.5rem; font-size: 0.85rem; color: rgba(255, 255, 255, 0.7);">
-                    Or text <a href="tel:+18774014926" style="color: #1a73e8; text-decoration: none; font-weight: 600;">+1 (877) 401-4926</a> to opt in directly
+                    Or text <a href="tel:+18774014926" style="color: #1a73e8; text-decoration: none; font-weight: 600;">+1 (877) 401-4926</a> with keywords: <strong style="color: #1a73e8;">START, YES, JOIN, SUBSCRIBE, OPTIN</strong> to opt in directly
                 </p>
             </div>
         </div>
