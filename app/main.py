@@ -1157,6 +1157,78 @@ async def sms_optin_page():
         logger.error(f"Error serving sms-optin page: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error serving sms-optin page: {str(e)}")
 
+@app.get("/privacy-policy")
+async def privacy_policy():
+    """Privacy Policy page endpoint."""
+    try:
+        base_dir = Path(__file__).parent.parent
+        static_dir = Path("/app/static")
+        
+        if not static_dir.exists():
+            static_dir = base_dir / "static"
+        
+        if not static_dir.exists():
+            logger.error(f"Static directory not found for privacy-policy route")
+            raise HTTPException(status_code=500, detail="Static files not found")
+        
+        privacy_path = static_dir / "privacy-policy.html"
+        
+        if not privacy_path.exists():
+            logger.error(f"privacy-policy.html not found at {privacy_path}")
+            raise HTTPException(status_code=404, detail="Privacy Policy page not found")
+        
+        with open(privacy_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html; charset=utf-8"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving privacy policy page: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving privacy policy page: {str(e)}")
+
+@app.get("/terms-of-service")
+async def terms_of_service():
+    """Terms of Service page endpoint."""
+    try:
+        base_dir = Path(__file__).parent.parent
+        static_dir = Path("/app/static")
+        
+        if not static_dir.exists():
+            static_dir = base_dir / "static"
+        
+        if not static_dir.exists():
+            logger.error(f"Static directory not found for terms-of-service route")
+            raise HTTPException(status_code=500, detail="Static files not found")
+        
+        terms_path = static_dir / "terms-of-service.html"
+        
+        if not terms_path.exists():
+            logger.error(f"terms-of-service.html not found at {terms_path}")
+            raise HTTPException(status_code=404, detail="Terms of Service page not found")
+        
+        with open(terms_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html; charset=utf-8"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving terms of service page: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving terms of service page: {str(e)}")
+
 @app.get("/pricing")
 async def pricing():
     """Pricing page endpoint - serves the pricing guide."""
