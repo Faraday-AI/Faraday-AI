@@ -1432,10 +1432,13 @@ function formatRubrics(rubricsText) {
             tableLines.push(line);
             inTable = true;
         } else if (inTable && line && !line.match(/^\|/)) {
-            // Non-table line after table - break here
-            if (tableLines.length > 0) {
+            // Non-table line after table - but don't break if we only have header rows
+            // Continue parsing in case there are more table rows later
+            if (tableLines.length > 2) {
+                // We have at least header + separator + 1 data row, safe to break
                 break;
             }
+            // Otherwise continue - might be whitespace or formatting between table sections
         }
     }
     
@@ -1475,8 +1478,32 @@ function formatRubrics(rubricsText) {
                         return; // Skip duplicate
                     }
                     
-                    // Skip rows that are too short (likely malformed)
+                    // Handle rows that are too short (might be truncated)
                     if (cells.length < 2) {
+                        // Check if this is a truncated row (has content but incomplete)
+                        // If it's the last row and has at least 1 cell, it might be truncated data
+                        if (cells.length === 1 && cells[0] && cells[0].length > 3 && index === tableLines.length - 1) {
+                            // This looks like a truncated row - render it with placeholder cells
+                            const criteriaName = cells[0].toLowerCase().trim();
+                            if (criteriaName && !seenCriteria.has(criteriaName) && criteriaName.length >= 3) {
+                                // Check if it's not a header-like row
+                                if (!criteriaName.includes('excellent') && 
+                                    !criteriaName.includes('proficient') &&
+                                    !criteriaName.includes('developing') &&
+                                    !criteriaName.includes('beginning') &&
+                                    !criteriaName.includes('criteria')) {
+                                    // This is a valid truncated criteria row - pad with empty cells
+                                    seenCriteria.add(criteriaName);
+                                    // Pad with empty cells to make it a valid row (assume 4 performance levels)
+                                    while (cells.length < 5) {
+                                        cells.push('');
+                                    }
+                                    processedRows.push(cells);
+                                    return; // Skip the rest of the validation for this row
+                                }
+                            }
+                        }
+                        // Not a valid truncated row - skip it
                         return;
                     }
                     
@@ -1540,6 +1567,17 @@ function formatRubrics(rubricsText) {
         });
         
         html += '</tbody></table></div>';
+        
+        // If we only have a header but no data rows, the data might be truncated
+        if (processedRows.length === 0 && headerRowAdded) {
+            console.warn('⚠️ Rubric table has header but no data rows - data may be truncated');
+            // Try to show the raw data as a fallback
+            html += '<div class="rubric-warning" style="padding: 1rem; color: var(--warning-color, #ffa500);">';
+            html += '<strong>Note:</strong> Rubric data appears to be incomplete. Showing raw data:';
+            html += '<pre style="margin-top: 0.5rem; white-space: pre-wrap;">' + escapeHtml(rubricsText) + '</pre>';
+            html += '</div>';
+        }
+        
         return html;
     }
     

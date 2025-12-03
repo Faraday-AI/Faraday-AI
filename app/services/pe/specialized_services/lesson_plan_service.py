@@ -1519,10 +1519,31 @@ def _extract_and_enhance_worksheets(final_data: Dict[str, Any], lesson_data: Dic
 
 
 def _extract_and_enhance_rubrics(final_data: Dict[str, Any], lesson_data: Dict[str, Any], 
-                                  objectives_data: List[Any], response_text: str) -> None:
+                                 objectives_data: List[Any], response_text: str) -> None:
     """Extract rubrics from multiple sources and ensure proper formatting."""
     logger.info(f"🔍 _extract_and_enhance_rubrics called: current_rubrics={final_data.get('rubrics', '')[:50] if final_data.get('rubrics') else 'empty'}..., objectives_count={len(objectives_data) if objectives_data else 0}")
-    if not final_data.get("rubrics") or not final_data.get("rubrics", "").strip():
+    
+    # Check if existing rubric is incomplete (truncated)
+    existing_rubrics = final_data.get("rubrics", "")
+    is_incomplete = False
+    if existing_rubrics and isinstance(existing_rubrics, str) and existing_rubrics.strip():
+        existing_rubrics_clean = existing_rubrics.strip()
+        # Check for signs of truncation
+        if existing_rubrics_clean.endswith('|') or re.search(r'\|\s*[A-Z][a-z]+\s*$', existing_rubrics_clean):
+            is_incomplete = True
+            logger.warning(f"⚠️ Existing rubric appears truncated, will try to extract full rubric from response_text")
+        elif '|' in existing_rubrics_clean and 'criteria' in existing_rubrics_clean.lower():
+            # Count data rows
+            lines = existing_rubrics_clean.split('\n')
+            data_row_count = sum(1 for line in lines if '|' in line and 
+                                not re.match(r'^\|[\s\-:]+\|', line) and
+                                not line.lower().startswith('| criteria') and
+                                line.strip().startswith('|') and len(line.split('|')) >= 3)
+            if data_row_count < 3:
+                is_incomplete = True
+                logger.warning(f"⚠️ Existing rubric appears incomplete ({data_row_count} data rows), will try to extract full rubric")
+    
+    if not final_data.get("rubrics") or not final_data.get("rubrics", "").strip() or is_incomplete:
         if objectives_data:
             objectives_text = "\n".join([str(obj) for obj in objectives_data if obj])
             rubric_rows = _extract_rubric_rows_from_text(objectives_text)
@@ -2607,8 +2628,30 @@ def extract_lesson_plan_data(response_text: str, original_message: str = "") -> 
         if lesson_data.get("worksheets") and (not json_worksheets or (isinstance(json_worksheets, str) and not json_worksheets.strip())):
             logger.info(f"✅ Using regex-extracted worksheets ({len(lesson_data['worksheets'])} chars)")
             final_data["worksheets"] = lesson_data["worksheets"]
-        if lesson_data.get("rubrics") and (not json_rubrics or (isinstance(json_rubrics, str) and not json_rubrics.strip())):
-            logger.info(f"✅ Using regex-extracted rubrics ({len(lesson_data['rubrics'])} chars)")
+        # Check if JSON rubric is incomplete (truncated)
+        json_rubrics_incomplete = False
+        if json_rubrics and isinstance(json_rubrics, str) and json_rubrics.strip():
+            # Check for signs of truncation: ends with incomplete row, has header but few/no data rows
+            json_rubrics_clean = json_rubrics.strip()
+            # Check if it ends with an incomplete table row (starts with | but doesn't have enough cells)
+            if json_rubrics_clean.endswith('|') or re.search(r'\|\s*[A-Z][a-z]+\s*$', json_rubrics_clean):
+                # Ends with incomplete row
+                json_rubrics_incomplete = True
+                logger.warning(f"⚠️ JSON rubric appears truncated (ends with incomplete row): {json_rubrics_clean[-50:]}")
+            # Check if it has header but very few data rows (less than 3 criteria rows)
+            elif '|' in json_rubrics_clean and 'criteria' in json_rubrics_clean.lower():
+                # Count data rows (rows with | that aren't headers or separators)
+                lines = json_rubrics_clean.split('\n')
+                data_row_count = sum(1 for line in lines if '|' in line and 
+                                    not re.match(r'^\|[\s\-:]+\|', line) and
+                                    not line.lower().startswith('| criteria') and
+                                    line.strip().startswith('|') and len(line.split('|')) >= 3)
+                if data_row_count < 3:
+                    json_rubrics_incomplete = True
+                    logger.warning(f"⚠️ JSON rubric appears incomplete (only {data_row_count} data rows found)")
+        
+        if lesson_data.get("rubrics") and (not json_rubrics or (isinstance(json_rubrics, str) and not json_rubrics.strip()) or json_rubrics_incomplete):
+            logger.info(f"✅ Using regex-extracted rubrics ({len(lesson_data['rubrics'])} chars) - JSON rubric was {'empty' if not json_rubrics or not json_rubrics.strip() else 'incomplete'}")
             final_data["rubrics"] = lesson_data["rubrics"]
         if lesson_data.get("assessments") and (not json_assessments or (isinstance(json_assessments, str) and not json_assessments.strip())):
             final_data["assessments"] = lesson_data["assessments"]
