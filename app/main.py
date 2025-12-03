@@ -1103,6 +1103,60 @@ async def root():
         logger.error(f"Error serving root page: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error serving landing page: {str(e)}")
 
+@app.get("/sms-optin")
+async def sms_optin_page():
+    """SMS Opt-in page endpoint - serves the homepage and scrolls to SMS section."""
+    try:
+        # Determine static directory path (same logic as static file mounting)
+        base_dir = Path(__file__).parent.parent
+        static_dir = Path("/app/static")
+        
+        if not static_dir.exists():
+            static_dir = base_dir / "static"
+        
+        if not static_dir.exists():
+            logger.error(f"Static directory not found for sms-optin route")
+            raise HTTPException(status_code=500, detail="Static files not found")
+        
+        # Read index.html
+        index_path = static_dir / "index.html"
+        
+        if not index_path.exists():
+            logger.error(f"index.html not found at {index_path}")
+            raise HTTPException(status_code=404, detail="Landing page not found")
+        
+        with open(index_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # Add JavaScript to scroll to SMS section on page load
+        scroll_script = """
+        <script>
+            window.addEventListener('load', function() {
+                setTimeout(function() {
+                    const smsSection = document.getElementById('sms-optin');
+                    if (smsSection) {
+                        smsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }, 100);
+            });
+        </script>
+        """
+        # Insert script before closing body tag
+        content = content.replace('</body>', scroll_script + '</body>')
+        
+        return HTMLResponse(
+            content=content,
+            headers={
+                "Cache-Control": "no-cache",
+                "Content-Type": "text/html; charset=utf-8"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error serving sms-optin page: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error serving sms-optin page: {str(e)}")
+
 @app.get("/pricing")
 async def pricing():
     """Pricing page endpoint - serves the pricing guide."""
