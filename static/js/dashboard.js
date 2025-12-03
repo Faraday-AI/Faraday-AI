@@ -1272,8 +1272,106 @@ function formatWorksheets(worksheetsText) {
     }
     
     // If no structured content was found, fall back to simple formatting
-    if (!html) {
-        html = escapeHtml(worksheetsText).replace(/\n/g, '<br>');
+    // But still wrap it in worksheet sections to apply CSS
+    if (!html || (!inStudentWorksheet && !inAnswerKey && !currentQuestion)) {
+        // Try to detect if this is worksheet content even without explicit headers
+        const hasQuestions = /^\d+[\.\)]\s+.*\?/m.test(worksheetsText);
+        const hasMC = /[A-D][\.\)]\s+/m.test(worksheetsText);
+        const hasAnswerKey = /answer\s+key/i.test(worksheetsText);
+        
+        if (hasQuestions || hasMC) {
+            // This looks like worksheet content - try to parse it even without headers
+            // Re-run the parser but start in worksheet mode
+            html = '<div class="worksheet-student-section"><h6>Student Worksheet:</h6>';
+            // Re-parse the text assuming we're already in worksheet section
+            inStudentWorksheet = true;
+            inAnswerKey = false;
+            currentQuestion = null;
+            currentOptions = [];
+            questionNumber = 0;
+            
+            // Re-parse lines (skip the header detection this time)
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const trimmedLine = line.trim();
+                
+                // Skip header lines we've already handled
+                if (trimmedLine.match(/^(student\s+worksheet|answer\s+key):?$/i)) {
+                    continue;
+                }
+                
+                // Check for answer key section
+                if (trimmedLine.match(/^answer\s+key:?$/i)) {
+                    if (currentQuestion) {
+                        html += formatQuestionBlock(currentQuestion, currentOptions);
+                        currentQuestion = null;
+                        currentOptions = [];
+                    }
+                    if (inStudentWorksheet) {
+                        html += '</div>';
+                        inStudentWorksheet = false;
+                    }
+                    html += '<div class="worksheet-answer-key"><h6>Answer Key:</h6>';
+                    inAnswerKey = true;
+                    continue;
+                }
+                
+                // Parse questions and options (same logic as above)
+                const questionMatch = trimmedLine.match(/^(\d+)[\.\)]\s+(.+)$/);
+                if (questionMatch && !inAnswerKey) {
+                    if (currentQuestion) {
+                        html += formatQuestionBlock(currentQuestion, currentOptions);
+                    }
+                    questionNumber = parseInt(questionMatch[1]);
+                    const questionText = questionMatch[2].trim();
+                    currentQuestion = {
+                        number: questionNumber,
+                        text: questionText
+                    };
+                    currentOptions = [];
+                    continue;
+                }
+                
+                // Parse MC options
+                const optionMatch = trimmedLine.match(/^[-•\s]*([A-D])[\.\)]\s+(.+)$/i);
+                if (optionMatch && currentQuestion && !inAnswerKey) {
+                    const letter = optionMatch[1].toUpperCase();
+                    const optText = optionMatch[2].trim();
+                    if (optText && optText.length > 2) {
+                        currentOptions.push({ letter, text: optText });
+                    }
+                    continue;
+                }
+                
+                // Parse answer keys
+                if (inAnswerKey && trimmedLine.match(/^\d+[\.\)]?\s*(?:correct\s+)?answer/i)) {
+                    html += `<div class="answer-key-item">${escapeHtml(trimmedLine)}</div>`;
+                    continue;
+                }
+            }
+            
+            // Don't forget the last question
+            if (currentQuestion && !inAnswerKey) {
+                html += formatQuestionBlock(currentQuestion, currentOptions);
+            }
+            
+            if (inStudentWorksheet) {
+                html += '</div>';
+            }
+            if (inAnswerKey) {
+                html += '</div>';
+            }
+            
+            // If still no HTML was generated, fall back to simple formatting
+            if (!html || html === '<div class="worksheet-student-section"><h6>Student Worksheet:</h6></div>') {
+                html = '<div class="worksheet-student-section"><h6>Student Worksheet:</h6>';
+                html += escapeHtml(worksheetsText).replace(/\n/g, '<br>');
+                html += '</div>';
+            }
+        } else {
+            // Not worksheet content - just escape and return
+            html = escapeHtml(worksheetsText).replace(/\n/g, '<br>');
+        }
     }
     
     return html;
@@ -2226,6 +2324,29 @@ function updateWidgetWithData(widgetData) {
             }
         }, 500);
         return;
+    }
+    
+    // CRITICAL: Check if autoplay is in progress and wait for it to complete
+    // This preserves Safari's user interaction context requirement for autoplay
+    const chatMessages = document.getElementById('chatMessages');
+    if (chatMessages) {
+        const lastAIMessage = chatMessages.querySelector('.message.ai-message:last-child');
+        if (lastAIMessage && lastAIMessage._audioPlayPromise) {
+            console.log('🔊 Audio fetch started - deferring widget updates to preserve interaction context');
+            // Wait for audio play() to be called before updating widgets
+            lastAIMessage._audioPlayPromise.then(() => {
+                console.log('✅ Audio play() called successfully - now safe to update widgets');
+                // Recursively call this function now that audio has started
+                updateWidgetWithData(widgetData);
+            }).catch(() => {
+                // If autoplay fails, still update widgets (user can click button)
+                console.log('⚠️ Autoplay failed, updating widgets anyway');
+                // Continue with widget update - remove the promise check and proceed
+                delete lastAIMessage._audioPlayPromise;
+                updateWidgetWithData(widgetData);
+            });
+            return; // Exit early - will continue after promise resolves
+        }
     }
     
     try {

@@ -840,6 +840,25 @@ def _extract_worksheets_from_field(field_data: Any, field_name: str) -> Tuple[Li
             
             # Check if this line is a question
             if '?' in line and line.endswith('?') and 10 < len(line) < 200:
+                # Skip questions with markers that indicate they're not worksheet questions
+                skip_markers = [
+                    r'\*\*Question:\*\*',  # **Question:**
+                    r'Question:\s*',  # Question:
+                    r'Level\s+\d+\s*[\(:]',  # Level 1 (Gathering): or Level 1:
+                    r'Gathering|Processing|Applying',  # Costa's levels
+                    r'Costa\'?s\s+Level',  # Costa's Level
+                    r'Reflection\s+Question',  # Reflection Question
+                ]
+                should_skip = False
+                for marker in skip_markers:
+                    if re.search(marker, line, re.IGNORECASE):
+                        should_skip = True
+                        break
+                
+                if should_skip:
+                    i += 1
+                    continue
+                
                 has_question_word = bool(re.search(r'(?:what|which|how|when|where|why|who|name|list|describe|explain|should|will|does|do|is|are|can|would|could)', line, re.IGNORECASE))
                 is_numbered = bool(re.match(r'^\d+[\.\)]', line))
                 is_short_question = len(line) < 150
@@ -912,9 +931,23 @@ def _extract_worksheets_from_field(field_data: Any, field_name: str) -> Tuple[Li
         mc_options = _extract_mc_options_from_text(text)
         answer_keys = _extract_answer_keys_from_text(text)
         
-        # Add questions that weren't already found
+        # Add questions that weren't already found (filter out non-worksheet questions)
+        skip_markers = [
+            r'\*\*Question:\*\*',  # **Question:**
+            r'Question:\s*',  # Question:
+            r'Level\s+\d+\s*[\(:]',  # Level 1 (Gathering): or Level 1:
+            r'Gathering|Processing|Applying',  # Costa's levels
+            r'Costa\'?s\s+Level',  # Costa's Level
+            r'Reflection\s+Question',  # Reflection Question
+        ]
         for q in questions:
-            if q.lower() not in [existing_q.lower() for existing_q in all_questions]:
+            # Skip questions with markers that indicate they're not worksheet questions
+            should_skip = False
+            for marker in skip_markers:
+                if re.search(marker, q, re.IGNORECASE):
+                    should_skip = True
+                    break
+            if not should_skip and q.lower() not in [existing_q.lower() for existing_q in all_questions]:
                 all_questions.append(q)
         
         # Add MC options that weren't already found
@@ -932,6 +965,24 @@ def _extract_worksheets_from_field(field_data: Any, field_name: str) -> Tuple[Li
                 item_str = str(item).strip()
                 # Check if this item is a question
                 if '?' in item_str:
+                    # Skip questions with markers that indicate they're not worksheet questions
+                    skip_markers = [
+                        r'\*\*Question:\*\*',  # **Question:**
+                        r'Question:\s*',  # Question:
+                        r'Level\s+\d+\s*[\(:]',  # Level 1 (Gathering): or Level 1:
+                        r'Gathering|Processing|Applying',  # Costa's levels
+                        r'Costa\'?s\s+Level',  # Costa's Level
+                        r'Reflection\s+Question',  # Reflection Question
+                    ]
+                    should_skip = False
+                    for marker in skip_markers:
+                        if re.search(marker, item_str, re.IGNORECASE):
+                            should_skip = True
+                            break
+                    
+                    if should_skip:
+                        continue
+                    
                     clean_item = _clean_text(item_str, remove_bullets=True)
                     # VERY LENIENT: if it ends with ? and is under 300 chars and over 5 chars, it's a question
                     # Also check for question words anywhere in the text
