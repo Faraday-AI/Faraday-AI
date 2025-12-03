@@ -18,6 +18,11 @@ import json
 from typing import List, Dict, Any, Tuple
 import logging
 
+# Import extraction functions from specialized services
+from app.services.pe.specialized_services.lesson_plan_service import extract_lesson_plan_data
+from app.services.pe.specialized_services.workout_service import extract_workout_data
+from app.services.pe.specialized_services.meal_plan_service import extract_meal_plan_data
+
 logger = logging.getLogger(__name__)
 
 
@@ -123,256 +128,106 @@ def classify_intent(message_content: str, previous_asked_allergies: bool = False
 # ==========================
 # 3️⃣ Response-Based Extraction
 # ==========================
+# NOTE: Extraction functions have been moved to their respective specialized services.
+# These are wrapper functions for backward compatibility.
 
 def _extract_meal_plan_data(response_text: str) -> Dict[str, Any]:
-    """
-    Extracts meal plan structured data from text.
-    Handles JSON from markdown code blocks first, then falls back to regex patterns.
-    Handles multiple formats: "**DAY 1:**", "**Day 1:**", "Day 1:", etc.
-    
-    Args:
-        response_text: AI's response text containing meal plan
-        
-    Returns:
-        Dictionary with structured meal plan data
-    """
-    if not response_text:
-        return {}
-    
-    # First, try to extract JSON from markdown code blocks
-    json_pattern = re.compile(r'```(?:json)?\s*(\{.*?\})\s*```', re.DOTALL | re.IGNORECASE)
-    json_match = json_pattern.search(response_text)
-    parsed_json_data = None
-    if json_match:
-        try:
-            json_str = json_match.group(1)
-            parsed_json_data = json.loads(json_str)
-            # If JSON parsing succeeds and contains meal plan data, use it
-            if isinstance(parsed_json_data, dict):
-                # Check if it has meal plan structure
-                if parsed_json_data.get("days") or parsed_json_data.get("meals"):
-                    # Return structured meal plan data
-                    return parsed_json_data
-                # If JSON doesn't have meal plan structure, fall through to regex extraction
-        except (json.JSONDecodeError, AttributeError) as e:
-            logger.warning(f"⚠️ Failed to parse JSON from markdown code block: {e}")
-            # Fall through to regex extraction
-    
-    days = []
-    # Try multiple day patterns (DAY, Day, day)
-    day_patterns = [
-        re.compile(r"\*\*DAY (\d+)\*\*[:-]?\s*(.*?)(?=\*\*DAY|\*\*Day|Day \d+|\Z)", re.S | re.I),
-        re.compile(r"\*\*Day (\d+)\*\*[:-]?\s*(.*?)(?=\*\*DAY|\*\*Day|Day \d+|\Z)", re.S | re.I),
-        re.compile(r"Day (\d+):\s*(.*?)(?=Day \d+|\Z)", re.S | re.I)
-    ]
-    
-    for day_pattern in day_patterns:
-        for day_match in day_pattern.finditer(response_text):
-            day_num = day_match.group(1)
-            day_content = day_match.group(2)
-            meals = {}
-            
-            # Try multiple meal name patterns - capture everything until next meal or end
-            # Handle both inline format (Breakfast: content on same line) and multi-line format
-            # Also handle dash-prefixed format (- Breakfast: content)
-            meal_patterns = {
-                "breakfast": [
-                    r"\*\*Breakfast:\*\*\s*(.*?)(?=\*\*(?:Lunch|Dinner|Snack)|$)",
-                    r"Breakfast:\s*(.*?)(?=\n(?:Lunch|Dinner|Snack):|$)",
-                    r"Breakfast:\s*\n(.*?)(?=\n(?:Lunch|Dinner|Snack):|$)",
-                    # Inline format: "Breakfast: content" on same line
-                    r"Breakfast:\s*([^\n]+?)(?=\s*(?:Snack|Lunch|Dinner):|$)",
-                    # Dash-prefixed format: "- Breakfast: content"
-                    r"-\s*Breakfast:\s*([^\n]+?)(?=\s*-\s*(?:Snack|Lunch|Dinner):|\n|$)"
-                ],
-                "lunch": [
-                    r"\*\*Lunch:\*\*\s*(.*?)(?=\*\*(?:Dinner|Snack|Breakfast)|$)",
-                    r"Lunch:\s*(.*?)(?=\n(?:Dinner|Snack|Breakfast):|$)",
-                    r"Lunch:\s*\n(.*?)(?=\n(?:Dinner|Snack|Breakfast):|$)",
-                    # Inline format: "Lunch: content" on same line
-                    r"Lunch:\s*([^\n]+?)(?=\s*(?:Snack|Dinner|Breakfast):|$)",
-                    # Dash-prefixed format: "- Lunch: content"
-                    r"-\s*Lunch:\s*([^\n]+?)(?=\s*-\s*(?:Snack|Dinner|Breakfast):|\n|$)"
-                ],
-                "dinner": [
-                    r"\*\*Dinner:\*\*\s*(.*?)(?=\*\*(?:Snack|Breakfast|Lunch)|$)",
-                    r"Dinner:\s*(.*?)(?=\n(?:Snack|Breakfast|Lunch):|$)",
-                    r"Dinner:\s*\n(.*?)(?=\n(?:Snack|Breakfast|Lunch):|$)",
-                    # Inline format: "Dinner: content" on same line
-                    r"Dinner:\s*([^\n]+?)(?=\s*(?:Snack|Breakfast|Lunch):|$)",
-                    # Dash-prefixed format: "- Dinner: content"
-                    r"-\s*Dinner:\s*([^\n]+?)(?=\s*-\s*(?:Snack|Breakfast|Lunch):|\n|$)"
-                ],
-                "snack": [
-                    r"\*\*Snack:\*\*\s*(.*?)(?=\*\*(?:Breakfast|Lunch|Dinner)|$)",
-                    r"Snack:\s*(.*?)(?=\n(?:Breakfast|Lunch|Dinner):|$)",
-                    r"Snack:\s*\n(.*?)(?=\n(?:Breakfast|Lunch|Dinner):|$)",
-                    # Inline format: "Snack: content" on same line
-                    r"Snack:\s*([^\n]+?)(?=\s*(?:Breakfast|Lunch|Dinner):|$)",
-                    # Dash-prefixed format: "- Snack: content"
-                    r"-\s*Snack:\s*([^\n]+?)(?=\s*-\s*(?:Breakfast|Lunch|Dinner):|\n|$)"
-                ]
-            }
-            
-            for meal_type, patterns in meal_patterns.items():
-                for pattern in patterns:
-                    meal_match = re.search(pattern, day_content, re.S | re.I)
-                    if meal_match:
-                        meal_text = meal_match.group(1).strip()
-                        # Clean up the meal text
-                        # Remove leading dashes and bullets from each line, clean up whitespace
-                        lines = meal_text.split('\n')
-                        cleaned_lines = []
-                        for line in lines:
-                            line = re.sub(r'^[-•]\s*', '', line.strip())
-                            if line:
-                                cleaned_lines.append(line)
-                        meal_text = ' '.join(cleaned_lines)
-                        meal_text = re.sub(r'\s+', ' ', meal_text).strip()
-                        if meal_text and len(meal_text) > 3:  # Must have meaningful content
-                            meals[meal_type] = meal_text
-                            break
-            
-            # Extract daily macros and micronutrients if present
-            daily_totals = {}
-            macros = {}
-            micronutrients = {}
-            
-            # Extract macros (protein, carbs, fat, fiber, sugar)
-            macro_patterns = {
-                "protein": [r"Protein[:\s]+(\d+(?:\.\d+)?)\s*g", r"Protein[:\s]+(\d+(?:\.\d+)?)\s*grams"],
-                "carbs": [r"Carbs[:\s]+(\d+(?:\.\d+)?)\s*g", r"Carbohydrates[:\s]+(\d+(?:\.\d+)?)\s*g", r"Carbs[:\s]+(\d+(?:\.\d+)?)\s*grams"],
-                "fat": [r"Fat[:\s]+(\d+(?:\.\d+)?)\s*g", r"Fat[:\s]+(\d+(?:\.\d+)?)\s*grams"],
-                "fiber": [r"Fiber[:\s]+(\d+(?:\.\d+)?)\s*g", r"Fiber[:\s]+(\d+(?:\.\d+)?)\s*grams"],
-                "sugar": [r"Sugar[:\s]+(\d+(?:\.\d+)?)\s*g", r"Sugar[:\s]+(\d+(?:\.\d+)?)\s*grams"]
-            }
-            
-            for macro_name, patterns in macro_patterns.items():
-                for pattern in patterns:
-                    match = re.search(pattern, day_content, re.I)
-                    if match:
-                        macros[macro_name] = match.group(1)
-                        break
-            
-            # Extract micronutrients - vitamins
-            vitamin_patterns = {
-                "vitamin_a": [r"Vitamin\s*A[:\s]+(\d+(?:\.\d+)?)\s*(?:IU|mcg|μg)"],
-                "vitamin_b1": [r"Vitamin\s*B1[:\s]+(\d+(?:\.\d+)?)\s*mg", r"Thiamine[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "vitamin_b2": [r"Vitamin\s*B2[:\s]+(\d+(?:\.\d+)?)\s*mg", r"Riboflavin[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "vitamin_b3": [r"Vitamin\s*B3[:\s]+(\d+(?:\.\d+)?)\s*mg", r"Niacin[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "vitamin_b6": [r"Vitamin\s*B6[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "vitamin_b12": [r"Vitamin\s*B12[:\s]+(\d+(?:\.\d+)?)\s*(?:mcg|μg)"],
-                "vitamin_c": [r"Vitamin\s*C[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "vitamin_d": [r"Vitamin\s*D[:\s]+(\d+(?:\.\d+)?)\s*(?:IU|mcg|μg)"],
-                "vitamin_e": [r"Vitamin\s*E[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "vitamin_k": [r"Vitamin\s*K[:\s]+(\d+(?:\.\d+)?)\s*(?:mcg|μg)"],
-                "folate": [r"Folate[:\s]+(\d+(?:\.\d+)?)\s*(?:mcg|μg)"]
-            }
-            
-            vitamins = {}
-            for vitamin_name, patterns in vitamin_patterns.items():
-                for pattern in patterns:
-                    match = re.search(pattern, day_content, re.I)
-                    if match:
-                        vitamins[vitamin_name] = match.group(1)
-                        break
-            
-            # Extract micronutrients - minerals
-            mineral_patterns = {
-                "calcium": [r"Calcium[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "iron": [r"Iron[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "magnesium": [r"Magnesium[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "phosphorus": [r"Phosphorus[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "potassium": [r"Potassium[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "sodium": [r"Sodium[:\s]+(\d+(?:\.\d+)?)\s*mg"],
-                "zinc": [r"Zinc[:\s]+(\d+(?:\.\d+)?)\s*mg"]
-            }
-            
-            minerals = {}
-            for mineral_name, patterns in mineral_patterns.items():
-                for pattern in patterns:
-                    match = re.search(pattern, day_content, re.I)
-                    if match:
-                        minerals[mineral_name] = match.group(1)
-                        break
-            
-            # Extract other micronutrients
-            other_patterns = {
-                "omega_3": [r"Omega-3[:\s]+(\d+(?:\.\d+)?)\s*g", r"Omega\s*3[:\s]+(\d+(?:\.\d+)?)\s*g"],
-                "omega_6": [r"Omega-6[:\s]+(\d+(?:\.\d+)?)\s*g", r"Omega\s*6[:\s]+(\d+(?:\.\d+)?)\s*g"],
-                "choline": [r"Choline[:\s]+(\d+(?:\.\d+)?)\s*mg"]
-            }
-            
-            other = {}
-            for other_name, patterns in other_patterns.items():
-                for pattern in patterns:
-                    match = re.search(pattern, day_content, re.I)
-                    if match:
-                        other[other_name] = match.group(1)
-                        break
-            
-            # Build daily_totals structure
-            if macros:
-                daily_totals["macros"] = macros
-            if vitamins or minerals or other:
-                micronutrients = {}
-                if vitamins:
-                    micronutrients["vitamins"] = vitamins
-                if minerals:
-                    micronutrients["minerals"] = minerals
-                if other:
-                    micronutrients["other"] = other
-                if micronutrients:
-                    daily_totals["micronutrients"] = micronutrients
-            
-            # Build day data
-            day_data = {"day": f"Day {day_num}", "meals": meals}
-            if daily_totals:
-                day_data["daily_totals"] = daily_totals
-            
-            if meals:  # Only add day if we found at least one meal
-                days.append(day_data)
-        
-        if days:  # If we found days with one pattern, stop trying others
-            break
-    
-    # If we parsed JSON successfully, merge it with regex-extracted data
-    if parsed_json_data and isinstance(parsed_json_data, dict):
-        # Merge: JSON data takes precedence, but add days from regex if they exist
-        meal_data = parsed_json_data.copy()
-        if days:
-            # Add days from regex extraction if not in JSON
-            if not meal_data.get("days"):
-                meal_data["days"] = days
-        return meal_data
-    
-    # No JSON found or JSON parsing failed - use regex extraction
-    if days:
-        return {"days": days}
-    
-    return {}
+    """Wrapper function - delegates to meal_plan_service.extract_meal_plan_data"""
+    return extract_meal_plan_data(response_text)
+
+
 
 
 def _extract_lesson_plan_data(response_text: str, original_message: str = "") -> Dict[str, Any]:
+    """Wrapper function - delegates to lesson_plan_service.extract_lesson_plan_data"""
+    return extract_lesson_plan_data(response_text, original_message)
+
+
+def _extract_workout_data(response_text: str) -> Dict[str, Any]:
+    """Wrapper function - delegates to workout_service.extract_workout_data"""
+    return extract_workout_data(response_text)
+
+
+# ==========================
+# 4️⃣ Validation Functions
+# ==========================
+
+def validate_meal_plan(response_text: str, allergy_info_already_recorded: bool = False) -> List[str]:
     """
-    Extract structured lesson plan data from AI response text.
-    Returns a dict with lesson plan information if found.
-    Comprehensive extraction handling multiple formats and edge cases.
+    Validate meal plan response for required components.
+    
+    Safety-critical validation that forces auto-correction if validation fails.
     
     Args:
-        response_text: The AI's response text
-        original_message: The original user message (used for title extraction)
+        response_text: AI's meal plan response
+        allergy_info_already_recorded: Whether allergy info was already provided
         
     Returns:
-        Dictionary with structured lesson plan data
+        List of validation error messages (empty if valid)
     """
-    if not response_text:
-        return {}
+    errors: List[str] = []
     
-    # First, try to extract JSON from markdown code blocks
-    json_pattern = re.compile(r'```(?:json)?\s*(\{.*?\})\s*```', re.DOTALL | re.IGNORECASE)
-    json_match = json_pattern.search(response_text)
-    parsed_json_data = None
+    if not response_text.strip().startswith("**DAY 1**"):
+        errors.append("Meal plan must start with Day 1.")
+    
+    if not allergy_info_already_recorded and "allergy" not in response_text.lower():
+        errors.append("Meal plan created WITHOUT asking about allergies.")
+    
+    return errors
+
+
+def validate_lesson_plan(response_text: str) -> List[str]:
+    """
+    Validate lesson plan response for required components.
+    
+    Optional auto-correction can be enabled to enforce requirements.
+    
+    Args:
+        response_text: AI's lesson plan response
+        
+    Returns:
+        List of validation error messages (empty if valid)
+    """
+    errors: List[str] = []
+    
+    # Check for required components
+    if "objectives" not in response_text.lower() and "learning objective" not in response_text.lower():
+        errors.append("Lesson plan missing learning objectives.")
+    
+    if "activity" not in response_text.lower() and "procedure" not in response_text.lower():
+        errors.append("Lesson plan missing activities/procedures.")
+    
+    return errors
+
+
+def validate_workout_plan(response_text: str) -> List[str]:
+    """
+    Validate workout plan response for required components.
+    
+    Optional auto-correction can be enabled to enforce requirements.
+    
+    Args:
+        response_text: AI's workout plan response
+        
+    Returns:
+        List of validation error messages (empty if valid)
+    """
+    errors: List[str] = []
+    
+    # Check for required components
+    if "exercise" not in response_text.lower():
+        errors.append("Workout plan missing exercises.")
+    
+    return errors
+
+
+# ==========================
+# 5️⃣ GPT Function Calling Stubs (20+ Widgets)
+# ==========================
+
+def call_attendance_functions(*args, **kwargs) -> Dict[str, Any]:
+    """Placeholder for attendance widget GPT function calls."""
+    return {}
     if json_match:
         try:
             json_str = json_match.group(1)
@@ -883,21 +738,82 @@ def _extract_lesson_plan_data(response_text: str, original_message: str = "") ->
                         else:
                             lesson_data["danielson_framework"] = clean_line
             elif current_section == "costas_questioning":
-                if re.match(r'^\d+\.', clean_line):
-                    content = re.sub(r'^\d+\.\s*', '', clean_line).strip()
-                    content = re.sub(r'::\s*', ': ', content)
-                    content = re.sub(r'\*\*?', '', content).strip()
-                    if content and len(content) > 5:
-                        if lesson_data["costas_questioning"]:
-                            lesson_data["costas_questioning"] += "\n\n" + content
+                # CRITICAL: Check if this line contains worksheets or rubrics content
+                # Worksheets/rubrics are often embedded in costas_questioning section
+                line_lower = clean_line.lower()
+                
+                # Check for worksheet markers
+                if re.search(r'(?:^###\s*)?(?:worksheets?|student\s+worksheet|worksheet\s+with\s+answer)', line_lower):
+                    # Switch to worksheets section
+                    current_section = "worksheets"
+                    worksheet_text = re.sub(r'^\d+\.?\s*\*\*?', '', clean_line, flags=re.IGNORECASE)
+                    worksheet_text = re.sub(r'\*\*?', '', worksheet_text)
+                    worksheet_text = re.sub(r'(?:###\s*)?(?:worksheets?|student\s+worksheet|worksheet\s+with\s+answer\s+keys?)[:\s]*', '', worksheet_text, flags=re.IGNORECASE).strip()
+                    if worksheet_text and len(worksheet_text) > 5:
+                        if lesson_data["worksheets"]:
+                            lesson_data["worksheets"] += "\n\n" + worksheet_text
                         else:
-                            lesson_data["costas_questioning"] = content
+                            lesson_data["worksheets"] = worksheet_text
+                    # Also add to costas_questioning for backward compatibility
+                    if lesson_data["costas_questioning"]:
+                        lesson_data["costas_questioning"] += " " + clean_line
+                    else:
+                        lesson_data["costas_questioning"] = clean_line
+                # Check for rubric markers
+                elif re.search(r'(?:^###\s*)?(?:grading\s+rubric|rubric|assessment\s+rubric|scoring\s+rubric)', line_lower):
+                    # Switch to rubrics section
+                    current_section = "rubrics"
+                    rubric_text = re.sub(r'^\d+\.?\s*\*\*?', '', clean_line, flags=re.IGNORECASE)
+                    rubric_text = re.sub(r'\*\*?', '', rubric_text)
+                    rubric_text = re.sub(r'(?:###\s*)?(?:grading\s+rubric|rubric|assessment\s+rubric|scoring\s+rubric)[:\s]*', '', rubric_text, flags=re.IGNORECASE).strip()
+                    if rubric_text and len(rubric_text) > 5:
+                        if lesson_data["rubrics"]:
+                            lesson_data["rubrics"] += "\n\n" + rubric_text
+                        else:
+                            lesson_data["rubrics"] = rubric_text
+                    # Also add to costas_questioning for backward compatibility
+                    if lesson_data["costas_questioning"]:
+                        lesson_data["costas_questioning"] += " " + clean_line
+                    else:
+                        lesson_data["costas_questioning"] = clean_line
+                # Check for answer key (part of worksheets)
+                elif re.search(r'answer\s+key[:\s]*', line_lower) and not lesson_data.get("worksheets"):
+                    # If we haven't started worksheets yet, start it now
+                    current_section = "worksheets"
+                    answer_key_text = re.sub(r'answer\s+key[:\s]*', '', clean_line, flags=re.IGNORECASE).strip()
+                    if answer_key_text and len(answer_key_text) > 5:
+                        lesson_data["worksheets"] = "Answer Key:\n" + answer_key_text
+                    # Also add to costas_questioning
+                    if lesson_data["costas_questioning"]:
+                        lesson_data["costas_questioning"] += " " + clean_line
+                    else:
+                        lesson_data["costas_questioning"] = clean_line
+                # Regular costas_questioning content
                 else:
-                    if clean_line and len(clean_line) > 3:
-                        if lesson_data["costas_questioning"]:
-                            lesson_data["costas_questioning"] += " " + clean_line
-                        else:
-                            lesson_data["costas_questioning"] = clean_line
+                    if re.match(r'^\d+\.', clean_line):
+                        content = re.sub(r'^\d+\.\s*', '', clean_line).strip()
+                        content = re.sub(r'::\s*', ': ', content)
+                        content = re.sub(r'\*\*?', '', content).strip()
+                        if content and len(content) > 5:
+                            if lesson_data["costas_questioning"]:
+                                lesson_data["costas_questioning"] += "\n\n" + content
+                            else:
+                                lesson_data["costas_questioning"] = content
+                    else:
+                        if clean_line and len(clean_line) > 3:
+                            # If we're in costas_questioning but see worksheet-like content (multiple choice questions), extract it
+                            if re.match(r'^[A-Z]\)\s+', clean_line) or re.match(r'^\d+[\.\)]\s+[A-Z]', clean_line):
+                                # This looks like a worksheet question - extract to worksheets
+                                if not lesson_data.get("worksheets"):
+                                    # Start worksheets section
+                                    lesson_data["worksheets"] = clean_line
+                                else:
+                                    lesson_data["worksheets"] += "\n" + clean_line
+                            # Also add to costas_questioning for backward compatibility
+                            if lesson_data["costas_questioning"]:
+                                lesson_data["costas_questioning"] += " " + clean_line
+                            else:
+                                lesson_data["costas_questioning"] = clean_line
             elif current_section == "curriculum_standards":
                 if lesson_data["curriculum_standards"]:
                     lesson_data["curriculum_standards"] += " " + clean_line
@@ -982,12 +898,335 @@ def _extract_lesson_plan_data(response_text: str, original_message: str = "") ->
         final_data = parsed_json_data.copy()
         
         # Add worksheets/rubrics from regex extraction if they exist and aren't in JSON
-        if lesson_data.get("worksheets") and not final_data.get("worksheets"):
+        # CRITICAL: Check if JSON value is empty (empty string or just whitespace), not just if key exists
+        # Empty strings are truthy but represent missing content, so we should use regex-extracted data
+        json_worksheets = final_data.get("worksheets", "")
+        json_rubrics = final_data.get("rubrics", "")
+        json_assessments = final_data.get("assessments", "")
+        
+        logger.info(f"🔍 JSON worksheets/rubrics check - worksheets: {len(json_worksheets) if json_worksheets else 0} chars, rubrics: {len(json_rubrics) if json_rubrics else 0} chars")
+        logger.info(f"🔍 Regex extracted - worksheets: {len(lesson_data.get('worksheets', '')) if lesson_data.get('worksheets') else 0} chars, rubrics: {len(lesson_data.get('rubrics', '')) if lesson_data.get('rubrics') else 0} chars")
+        
+        if lesson_data.get("worksheets") and (not json_worksheets or (isinstance(json_worksheets, str) and not json_worksheets.strip())):
+            logger.info(f"✅ Using regex-extracted worksheets ({len(lesson_data['worksheets'])} chars)")
             final_data["worksheets"] = lesson_data["worksheets"]
-        if lesson_data.get("rubrics") and not final_data.get("rubrics"):
+        if lesson_data.get("rubrics") and (not json_rubrics or (isinstance(json_rubrics, str) and not json_rubrics.strip())):
+            logger.info(f"✅ Using regex-extracted rubrics ({len(lesson_data['rubrics'])} chars)")
             final_data["rubrics"] = lesson_data["rubrics"]
-        if lesson_data.get("assessments") and not final_data.get("assessments"):
+        if lesson_data.get("assessments") and (not json_assessments or (isinstance(json_assessments, str) and not json_assessments.strip())):
             final_data["assessments"] = lesson_data["assessments"]
+        
+        # CRITICAL: Check if rubric is embedded in worksheets field (from JSON) and separate them
+        # Only do this if worksheets have good content (10+ questions) to avoid removing worksheets
+        json_worksheets_final = final_data.get("worksheets", "")
+        json_question_count = _count_questions_in_text(json_worksheets_final)
+        has_good_worksheets = json_question_count >= 10 and len(json_worksheets_final.strip()) > 100
+        
+        if json_worksheets_final and isinstance(json_worksheets_final, str) and len(json_worksheets_final) > 50:
+            # Look for rubric markers OR rubric table patterns in worksheets field
+            rubric_marker_pattern = r'(?:###\s*)?(?:grading\s+)?rubrics?[:\s]*'
+            rubric_table_pattern = r'\|[^\|]*\s*(?:criteria|technique|ability|mechanics|accuracy|understanding)[^\|]*\|\s*(?:excellent|proficient|developing|beginning|4\s*pts?|3\s*pts?|2\s*pts?|1\s*pt)[^\|]*\|'
+            
+            rubric_marker_match = re.search(rubric_marker_pattern, json_worksheets_final, re.IGNORECASE)
+            rubric_table_match = re.search(rubric_table_pattern, json_worksheets_final, re.IGNORECASE)
+            
+            # Determine where rubric starts
+            rubric_start = None
+            if rubric_marker_match:
+                rubric_start = rubric_marker_match.start()
+                logger.info(f"🔍 Found rubric marker in JSON worksheets field at position {rubric_start}")
+            elif rubric_table_match:
+                rubric_start = rubric_table_match.start()
+                # Look backwards for table header
+                before_table = json_worksheets_final[max(0, rubric_start-100):rubric_start]
+                header_match = re.search(r'(?:###\s*)?(?:grading\s+)?rubrics?[:\s]*\s*$', before_table, re.IGNORECASE | re.MULTILINE)
+                if header_match:
+                    rubric_start = rubric_start - 100 + header_match.start()
+                logger.info(f"🔍 Found rubric table in JSON worksheets field at position {rubric_start}")
+            
+            # Only extract rubric if worksheets have good content AND we don't already have rubrics
+            if rubric_start is not None and has_good_worksheets and (not final_data.get("rubrics") or not final_data.get("rubrics", "").strip()):
+                # Extract rubric from worksheets field
+                rubric_content_from_json_worksheets = json_worksheets_final[rubric_start:].strip()
+                
+                # Find where rubric ends (next section, assessments, or end)
+                rubric_end_match = re.search(r'\n(?:###|assessments?|$)', rubric_content_from_json_worksheets, re.IGNORECASE | re.MULTILINE)
+                if rubric_end_match:
+                    rubric_content_from_json_worksheets = rubric_content_from_json_worksheets[:rubric_end_match.start()].strip()
+                else:
+                    # No clear end, take up to 3000 chars
+                    rubric_content_from_json_worksheets = rubric_content_from_json_worksheets[:3000].strip()
+                
+                # Verify it's actually a rubric (has table structure or rubric indicators)
+                is_rubric = False
+                if '|' in rubric_content_from_json_worksheets:
+                    has_criteria = re.search(r'(criteria|technique|ability|mechanics|accuracy|understanding|teamwork|communication|safety|effort|performance|skill)', rubric_content_from_json_worksheets, re.IGNORECASE)
+                    has_levels = re.search(r'(excellent|proficient|developing|beginning|4\s*pts?|3\s*pts?|2\s*pts?|1\s*pt|perfect|good|inconsistent|struggles|demonstrates|shows)', rubric_content_from_json_worksheets, re.IGNORECASE)
+                    if has_criteria and has_levels:
+                        is_rubric = True
+                
+                if is_rubric:
+                    logger.info(f"✅ Found rubric embedded in JSON worksheets field. Extracting separately. Length: {len(rubric_content_from_json_worksheets)} chars")
+                    final_data["rubrics"] = rubric_content_from_json_worksheets
+                    
+                    # Remove rubric from worksheets field - but preserve worksheets content
+                    worksheets_cleaned = json_worksheets_final[:rubric_start].strip()
+                    # Clean up any trailing markers or empty lines
+                    worksheets_cleaned = re.sub(r'\n+\s*(?:###\s*)?(?:grading\s+)?rubrics?[:\s]*\s*$', '', worksheets_cleaned, flags=re.IGNORECASE | re.MULTILINE)
+                    # Only update if we still have good worksheets content after removal
+                    if _count_questions_in_text(worksheets_cleaned) >= 10:
+                        final_data["worksheets"] = worksheets_cleaned
+                        logger.info(f"✅ Cleaned JSON worksheets field, removed rubric. New length: {len(worksheets_cleaned)} chars, questions: {_count_questions_in_text(worksheets_cleaned)}")
+                    else:
+                        logger.warning(f"⚠️ Removing rubric would leave worksheets incomplete, preserving original")
+                else:
+                    logger.warning(f"⚠️ Found rubric marker/table in JSON worksheets but content doesn't match rubric pattern")
+        
+        # CRITICAL: Extract worksheets/rubrics from other fields if they're embedded there
+        # Worksheets are often embedded in objectives, costas_questioning field OR in the raw response text
+        # Also check if worksheets field has only headers with no actual content
+        # Check if worksheets need extraction (MANDATORY: minimum 10 questions)
+        worksheets_field = final_data.get("worksheets", "")
+        question_count = _count_questions_in_text(worksheets_field)
+        has_content = (question_count >= 10 and len(worksheets_field.strip()) > 100 and 
+                      ('?' in worksheets_field or 'A)' in worksheets_field))
+        should_extract = (not worksheets_field or len(worksheets_field.strip()) < 100 or 
+                         not has_content or question_count < 10)
+        
+        logger.info(f"🔍 Worksheets check: count={question_count}, has_content={has_content}, should_extract={should_extract}, field_length={len(worksheets_field) if worksheets_field else 0}")
+        
+        # Only extract if worksheets are truly missing or incomplete
+        # Preserve JSON worksheets if they have good content
+        if should_extract:
+            # Extract from all possible fields
+            all_questions, all_mc_options, all_answer_keys = [], [], []
+            fields_to_check = [
+                (final_data.get("objectives", []) or final_data.get("learning_objectives", []) or lesson_data.get("objectives", []), "objectives"),
+                (final_data.get("materials", []) or lesson_data.get("materials", []), "materials"),
+                (final_data.get("costas_questioning", "") or lesson_data.get("costas_questioning", ""), "costas_questioning"),
+                (final_data.get("curriculum_standards", "") or lesson_data.get("curriculum_standards", ""), "curriculum_standards"),
+                (worksheets_field, "worksheets"),
+            ]
+            
+            for field_data, field_name in fields_to_check:
+                if field_data:
+                    q, mc, ak = _extract_worksheets_from_field(field_data, field_name)
+                    all_questions.extend(q)
+                    all_mc_options.extend(mc)
+                    all_answer_keys.extend(ak)
+                    if q or ak:
+                        logger.info(f"🔍 Found {len(q)} questions, {len(ak)} answer keys in {field_name}")
+            
+            # Clean answer keys from curriculum_standards if found there
+            curriculum_standards_text = final_data.get("curriculum_standards", "")
+            if all_answer_keys and curriculum_standards_text and isinstance(curriculum_standards_text, str):
+                cleaned = re.sub(r'\d+\.\s*(?:correct\s+)?answer[:\s]*(?:[A-D]\)\s*)?[^\n]+', '', curriculum_standards_text, flags=re.IGNORECASE | re.MULTILINE)
+                cleaned = re.sub(r'(?:correct\s+)?answer[:\s]*[A-D]\s*-\s*[^\n]+', '', cleaned, flags=re.IGNORECASE | re.MULTILINE).strip()
+                if len(cleaned) < len(curriculum_standards_text):
+                    final_data["curriculum_standards"] = cleaned
+                    logger.info(f"✅ Cleaned answer keys from curriculum_standards")
+            
+            # Combine and format
+            if all_questions:
+                combined = _combine_worksheets(worksheets_field, all_questions, all_mc_options, all_answer_keys)
+                combined_count = _count_questions_in_text(combined)
+                if len(combined) > 50 and combined_count > question_count:
+                    final_data["worksheets"] = combined
+                    logger.info(f"✅ Combined worksheets: {combined_count} questions")
+                    
+                    # Clean objectives
+                    if objectives_data:
+                        cleaned = _clean_objectives_of_questions(objectives_data)
+                        if len(cleaned) < len(objectives_data):
+                            final_data["objectives"] = cleaned
+                            logger.info(f"✅ Cleaned {len(objectives_data) - len(cleaned)} items from objectives")
+            
+            # Check if worksheets only have headers (like "with Answer Keys\n\nStudent Worksheet:" with no actual questions)
+            current_worksheets = final_data.get("worksheets", "")
+            has_only_headers = (current_worksheets and 
+                              ("Student Worksheet:" in current_worksheets or "with Answer Keys" in current_worksheets) and
+                              _count_questions_in_text(current_worksheets) < 10 and
+                              len(current_worksheets.strip()) < 200)
+            
+            # Fallback: Search raw response text if still need more questions OR if only headers exist
+            if _count_questions_in_text(final_data.get("worksheets", "")) < 10 or has_only_headers:
+                q, mc, ak = _extract_worksheets_from_field(response_text, "response_text")
+                if q:
+                    logger.info(f"🔍 Found {len(q)} questions in raw response text")
+                    existing_q, existing_mc, existing_ak = _extract_worksheets_from_field(final_data.get("worksheets", ""), "worksheets")
+                    all_questions = existing_q + q
+                    all_mc_options = existing_mc + mc
+                    all_answer_keys = existing_ak + ak
+                    combined = _combine_worksheets(final_data.get("worksheets", ""), all_questions, all_mc_options, all_answer_keys)
+                    if _count_questions_in_text(combined) >= 10:
+                        final_data["worksheets"] = combined
+                        logger.info(f"✅ Extracted from raw text: {_count_questions_in_text(combined)} questions")
+            
+            # Final check: Extract from raw response text if still incomplete
+            current_count = _count_questions_in_text(final_data.get("worksheets", ""))
+            if current_count < 10 and response_text:
+                # Try to find worksheet section, otherwise use entire response
+                worksheet_section = _extract_section_from_text(
+                    response_text,
+                    [
+                        r'(?:###\s*)?worksheets?\s+(?:with\s+answer\s+keys?)?[:\s]*\n(.+?)(?=###\s*(?:grading\s+)?rubrics?|rubrics?|assessments?|$)',
+                        r'student\s+worksheet[:\s]*\n(.+?)(?=###\s*(?:grading\s+)?rubrics?|rubrics?|assessments?|$)',
+                    ],
+                    r'(?:###\s*)?(?:grading\s+)?rubrics?[:\s]*'
+                )
+                
+                search_text = worksheet_section if worksheet_section else response_text
+                q, mc, ak = _extract_worksheets_from_field(search_text, "response_text")
+                if q:
+                    existing_q, existing_mc, existing_ak = _extract_worksheets_from_field(final_data.get("worksheets", ""), "worksheets")
+                    combined = _combine_worksheets(final_data.get("worksheets", ""), existing_q + q, existing_mc + mc, existing_ak + ak)
+                    combined_count = _count_questions_in_text(combined)
+                    if combined_count >= 10 or combined_count > current_count:
+                        final_data["worksheets"] = combined
+                        logger.info(f"✅ Extracted from raw text: {combined_count} questions")
+        
+        # CRITICAL: Check if rubric is embedded in worksheets field and extract it separately
+        # This must happen AFTER worksheets are extracted but BEFORE final rubric extraction
+        worksheets_field = final_data.get("worksheets", "")
+        if worksheets_field and isinstance(worksheets_field, str) and len(worksheets_field) > 50:
+            # Look for rubric markers OR rubric table patterns in worksheets field
+            rubric_marker_pattern = r'(?:###\s*)?(?:grading\s+)?rubrics?[:\s]*'
+            rubric_table_pattern = r'\|[^\|]*\s*(?:criteria|technique|ability|mechanics|accuracy|understanding)[^\|]*\|\s*(?:excellent|proficient|developing|beginning|4\s*pts?|3\s*pts?|2\s*pts?|1\s*pt)[^\|]*\|'
+            
+            rubric_marker_match = re.search(rubric_marker_pattern, worksheets_field, re.IGNORECASE)
+            rubric_table_match = re.search(rubric_table_pattern, worksheets_field, re.IGNORECASE)
+            
+            # Determine where rubric starts
+            rubric_start = None
+            if rubric_marker_match:
+                rubric_start = rubric_marker_match.start()
+                logger.info(f"🔍 Found rubric marker in worksheets field at position {rubric_start}")
+            elif rubric_table_match:
+                # Rubric table found without header - find the start of the table
+                rubric_start = rubric_table_match.start()
+                # Look backwards for table header or start of line
+                before_table = worksheets_field[max(0, rubric_start-100):rubric_start]
+                header_match = re.search(r'(?:###\s*)?(?:grading\s+)?rubrics?[:\s]*\s*$', before_table, re.IGNORECASE | re.MULTILINE)
+                if header_match:
+                    rubric_start = rubric_start - 100 + header_match.start()
+                logger.info(f"🔍 Found rubric table in worksheets field at position {rubric_start}")
+            
+            if rubric_start is not None:
+                # Extract rubric from worksheets field
+                rubric_content_from_worksheets = worksheets_field[rubric_start:].strip()
+                
+                # Find where rubric ends (next section, assessments, or end of string)
+                rubric_end_match = re.search(r'\n(?:###|assessments?|$)', rubric_content_from_worksheets, re.IGNORECASE | re.MULTILINE)
+                if rubric_end_match:
+                    rubric_content_from_worksheets = rubric_content_from_worksheets[:rubric_end_match.start()].strip()
+                else:
+                    # No clear end, take up to 3000 chars (reasonable rubric size)
+                    rubric_content_from_worksheets = rubric_content_from_worksheets[:3000].strip()
+                
+                # Verify it's actually a rubric (has table structure or rubric indicators)
+                is_rubric = False
+                if '|' in rubric_content_from_worksheets:
+                    # Check for rubric table indicators
+                    has_criteria = re.search(r'(criteria|technique|ability|mechanics|accuracy|understanding|teamwork|communication|safety|effort|performance|skill)', rubric_content_from_worksheets, re.IGNORECASE)
+                    has_levels = re.search(r'(excellent|proficient|developing|beginning|4\s*pts?|3\s*pts?|2\s*pts?|1\s*pt|perfect|good|inconsistent|struggles|demonstrates|shows)', rubric_content_from_worksheets, re.IGNORECASE)
+                    if has_criteria and has_levels:
+                        is_rubric = True
+                
+                if is_rubric:
+                    logger.info(f"✅ Found rubric embedded in worksheets field. Extracting separately. Length: {len(rubric_content_from_worksheets)} chars")
+                    # Only set rubrics if it's not already set or is empty
+                    if not final_data.get("rubrics") or not final_data.get("rubrics", "").strip():
+                        final_data["rubrics"] = rubric_content_from_worksheets
+                    
+                    # Remove rubric from worksheets field
+                    worksheets_cleaned = worksheets_field[:rubric_start].strip()
+                    # Clean up any trailing markers or empty lines
+                    worksheets_cleaned = re.sub(r'\n+\s*(?:###\s*)?(?:grading\s+)?rubrics?[:\s]*\s*$', '', worksheets_cleaned, flags=re.IGNORECASE | re.MULTILINE)
+                    # Remove any trailing "with Answer Keys" if it's the only thing left
+                    worksheets_cleaned = re.sub(r'^with\s+answer\s+keys?\s*$', '', worksheets_cleaned, flags=re.IGNORECASE | re.MULTILINE).strip()
+                    final_data["worksheets"] = worksheets_cleaned
+                    logger.info(f"✅ Cleaned worksheets field, removed rubric. New length: {len(worksheets_cleaned)} chars")
+                else:
+                    logger.warning(f"⚠️ Found rubric marker/table in worksheets but content doesn't match rubric pattern")
+        
+        # Extract rubrics from objectives, assessments, curriculum_standards, and raw text
+        if not final_data.get("rubrics") or not final_data.get("rubrics", "").strip():
+            # Check objectives for rubric rows
+            objectives_data = final_data.get("objectives", []) or final_data.get("learning_objectives", []) or lesson_data.get("objectives", [])
+            if objectives_data:
+                objectives_text = "\n".join([str(obj) for obj in objectives_data if obj])
+                rubric_rows = _extract_rubric_rows_from_text(objectives_text)
+                valid_rows = [row for row in rubric_rows if _is_valid_rubric_row(row)]
+                
+                if valid_rows:
+                    logger.info(f"🔍 Found {len(valid_rows)} rubric rows in objectives")
+                    rubric_table = _build_rubric_table(valid_rows)
+                    if rubric_table:
+                        final_data["rubrics"] = rubric_table
+                        logger.info(f"✅ Extracted rubric from objectives: {len(valid_rows)} rows")
+                        
+                        # Clean objectives
+                        cleaned = _clean_objectives_of_rubrics(objectives_data)
+                        if len(cleaned) < len(objectives_data):
+                            final_data["objectives"] = cleaned
+                            logger.info(f"✅ Cleaned {len(objectives_data) - len(cleaned)} rubric rows from objectives")
+            
+            # Check assessments and curriculum_standards
+            assessments_text = final_data.get("assessments", "") or lesson_data.get("assessments", "")
+            curriculum_standards_text = final_data.get("curriculum_standards", "") or lesson_data.get("curriculum_standards", "")
+            
+            # Prioritize curriculum_standards if it mentions rubric
+            search_text = curriculum_standards_text if (curriculum_standards_text and 'rubric' in curriculum_standards_text.lower()) else assessments_text
+            
+            if search_text:
+                rubric_content = _extract_rubrics_from_field(search_text)
+                if rubric_content:
+                    final_data["rubrics"] = rubric_content
+                    logger.info(f"✅ Extracted rubric from {'curriculum_standards' if search_text == curriculum_standards_text else 'assessments'}")
+            
+            # Fallback: Search raw response text for rubric section or rubric rows
+            if not final_data.get("rubrics") or not final_data.get("rubrics", "").strip():
+                if response_text:
+                    rubric_section = _extract_section_from_text(
+                        response_text,
+                        [
+                            r'(?:###\s*)?(?:grading\s+)?rubrics?[:\s]*\n(.+?)(?=###|assessments?|exit|extensions?|safety|homework|$)',
+                            r'\|\s*Criteria\s*\|.*?Excellent.*?Proficient.*?Developing.*?Beginning.*?\|',
+                        ]
+                    )
+                    
+                    search_text = rubric_section if rubric_section and '|' in rubric_section else response_text
+                    rubric_rows = _extract_rubric_rows_from_text(search_text)
+                    valid_rows = [row for row in rubric_rows if _is_valid_rubric_row(row)]
+                    
+                    if valid_rows:
+                        rubric_table = _build_rubric_table(valid_rows)
+                        if rubric_table:
+                            final_data["rubrics"] = rubric_table
+                            logger.info(f"✅ Extracted rubric from raw text: {len(valid_rows)} rows")
+                    elif rubric_section and re.search(r'(criteria|excellent|proficient|developing|beginning)', rubric_section, re.IGNORECASE):
+                        final_data["rubrics"] = "Grading Rubric:\n" + rubric_section
+                        logger.info(f"✅ Using rubric section directly from raw text")
+                
+                # Final fallback: Search all fields for rubric rows
+                if not final_data.get("rubrics") or not final_data.get("rubrics", "").strip():
+                    for field_name, field_value in final_data.items():
+                        if field_name == "rubrics" or not field_value:
+                            continue
+                        
+                        text = str(field_value) if isinstance(field_value, str) else "\n".join([str(item) for item in field_value if item]) if isinstance(field_value, list) else ""
+                        if len(text) < 30:
+                            continue
+                        
+                        rubric_rows = _extract_rubric_rows_from_text(text)
+                        valid_rows = [row for row in rubric_rows if _is_valid_rubric_row(row)]
+                        
+                        if valid_rows:
+                            rubric_table = _build_rubric_table(valid_rows)
+                            if rubric_table:
+                                final_data["rubrics"] = rubric_table
+                                logger.info(f"✅ Found rubric in field '{field_name}': {len(valid_rows)} rows")
+                                break
         
         # Also ensure other fields from regex are included if missing in JSON
         for key in ["title", "description", "introduction", "exit_ticket", "homework"]:
@@ -1001,6 +1240,22 @@ def _extract_lesson_plan_data(response_text: str, original_message: str = "") ->
             final_data["activities"] = lesson_data["activities"]
         if lesson_data.get("materials") and not final_data.get("materials_list") and not final_data.get("materials"):
             final_data["materials_list"] = lesson_data["materials"]
+        
+        # FINAL SUMMARY LOG - Show what was extracted
+        worksheets_final = final_data.get("worksheets", "")
+        rubrics_final = final_data.get("rubrics", "")
+        worksheets_len = len(worksheets_final) if isinstance(worksheets_final, str) else 0
+        rubrics_len = len(rubrics_final) if isinstance(rubrics_final, str) else 0
+        worksheets_has_content = worksheets_len > 50 and ('?' in worksheets_final or 'A)' in worksheets_final or re.search(r'[A-D]\)', worksheets_final, re.IGNORECASE))
+        rubrics_has_content = rubrics_len > 50 and ('|' in rubrics_final or 'criteria' in rubrics_final.lower() or 'excellent' in rubrics_final.lower())
+        
+        logger.info(f"📊 EXTRACTION SUMMARY:")
+        logger.info(f"   - Worksheets: {worksheets_len} chars, has_content: {worksheets_has_content}")
+        if worksheets_final and isinstance(worksheets_final, str):
+            logger.info(f"   - Worksheets preview: {worksheets_final[:200]}...")
+        logger.info(f"   - Rubrics: {rubrics_len} chars, has_content: {rubrics_has_content}")
+        if rubrics_final and isinstance(rubrics_final, str):
+            logger.info(f"   - Rubrics preview: {rubrics_final[:200]}...")
         
         return final_data
     
@@ -1311,9 +1566,6 @@ def _extract_workout_data(response_text: str) -> Dict[str, Any]:
     if unique_exercises:
         return {"exercises": unique_exercises}
     
-    return {}
-
-
 # ==========================
 # 4️⃣ Validation Functions
 # ==========================

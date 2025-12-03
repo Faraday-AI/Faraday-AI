@@ -569,11 +569,23 @@ async function initializeDashboardState() {
 function setupEventListeners() {
     // Track user interaction for autoplay (required after browser refresh)
     // Set flag on any user interaction (click, keypress, etc.)
+    // Track user interaction for autoplay (required after browser refresh)
+    // CRITICAL: Only mark interaction if audio is NOT manually paused
+    // This prevents autoplay from restarting when user interacts elsewhere (other windows/apps)
     const markUserInteraction = () => {
-        sessionStorage.setItem('user_interaction_detected', 'true');
+        // Check pause flag BEFORE setting interaction flag
+        // If audio is paused, don't set interaction flag - this prevents autoplay restart
+        const wasManuallyPaused = sessionStorage.getItem('audio_manually_paused') === 'true' || 
+                                  (window.audioManager && window.audioManager.manuallyPaused === true);
+        if (!wasManuallyPaused) {
+            sessionStorage.setItem('user_interaction_detected', 'true');
+        } else {
+            // Audio is paused - clear interaction flag to prevent autoplay
+            sessionStorage.removeItem('user_interaction_detected');
+        }
     };
     
-    // Track various user interactions
+    // Track various user interactions - but respect pause flag
     document.addEventListener('click', markUserInteraction, { once: false, passive: true });
     document.addEventListener('keydown', markUserInteraction, { once: false, passive: true });
     document.addEventListener('touchstart', markUserInteraction, { once: false, passive: true });
@@ -1082,6 +1094,361 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+// Format worksheets with proper structure (questions, MC options, answer keys)
+function formatWorksheets(worksheetsText) {
+    if (!worksheetsText || typeof worksheetsText !== 'string') {
+        return '';
+    }
+    
+    let html = '';
+    const lines = worksheetsText.split('\n');
+    let inAnswerKey = false;
+    let currentQuestion = null;
+    let currentOptions = [];
+    let inStudentWorksheet = false;
+    let questionNumber = 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmedLine = line.trim();
+        
+        // Check if we're entering the Student Worksheet section (handle markdown bold formatting)
+        if (trimmedLine.match(/^\*\*?student\s+worksheet:?\*\*?$/i) || trimmedLine.match(/^student\s+worksheet:?$/i)) {
+            inStudentWorksheet = true;
+            if (currentQuestion) {
+                html += formatQuestionBlock(currentQuestion, currentOptions);
+                currentQuestion = null;
+                currentOptions = [];
+            }
+            html += '<div class="worksheet-student-section"><h6>Student Worksheet:</h6>';
+            continue;
+        }
+        
+        // Check if we're entering the Answer Key section (handle markdown bold formatting)
+        if (trimmedLine.match(/^\*\*?answer\s+key:?\*\*?$/i) || trimmedLine.match(/^answer\s+key:?$/i)) {
+            inAnswerKey = true;
+            if (currentQuestion) {
+                html += formatQuestionBlock(currentQuestion, currentOptions);
+                currentQuestion = null;
+                currentOptions = [];
+            }
+            if (inStudentWorksheet) {
+                html += '</div>'; // Close student worksheet section
+                inStudentWorksheet = false;
+            }
+            html += '<div class="worksheet-answer-key"><h6>Answer Key:</h6>';
+            continue;
+        }
+        
+        // Check if line is a numbered question (e.g., "1. What is...?")
+        const questionMatch = trimmedLine.match(/^(\d+)[\.\)]\s+(.+)$/);
+        if (questionMatch && !inAnswerKey) {
+            // Save previous question if exists
+            if (currentQuestion) {
+                html += formatQuestionBlock(currentQuestion, currentOptions);
+            }
+            questionNumber = parseInt(questionMatch[1]);
+            currentQuestion = {
+                number: questionMatch[1],
+                text: questionMatch[2]
+            };
+            currentOptions = [];
+            
+            // Look ahead for MC options (they might be on next lines, possibly with blank lines in between)
+            // Check up to 25 lines ahead for options, allowing blank lines between options
+            let consecutiveNonOptionLines = 0;
+            let foundOptions = new Map(); // Track all found options by letter
+            let lastOptionLine = -1;
+            
+            for (let j = i + 1; j < Math.min(i + 25, lines.length); j++) {
+                const nextLine = lines[j].trim();
+                
+                // Stop if we hit another question
+                if (nextLine.match(/^\d+[\.\)]\s+/)) {
+                    break;
+                }
+                
+                // Stop if we hit the Answer Key section
+                if (nextLine.match(/^answer\s+key:?$/i)) {
+                    break;
+                }
+                
+                // Skip empty lines but don't count them as non-option lines
+                if (!nextLine) {
+                    continue;
+                }
+                
+                // Check if this line is an MC option (with or without leading spaces)
+                // Pattern: optional spaces, letter A-D, closing paren, space, text
+                const optionMatch = nextLine.match(/^\s*([A-D])\)\s+(.+)$/i);
+                if (optionMatch) {
+                    const optionLetter = optionMatch[1].toUpperCase();
+                    const optionText = optionMatch[2];
+                    
+                    // Store all found options (even if out of sequence)
+                    if (!foundOptions.has(optionLetter)) {
+                        foundOptions.set(optionLetter, optionText);
+                        lastOptionLine = j;
+                        consecutiveNonOptionLines = 0; // Reset counter
+                    }
+                } else {
+                    // Not an option line
+                    // Only count as non-option if we're past where we last found an option
+                    if (j > lastOptionLine) {
+                        consecutiveNonOptionLines++;
+                    }
+                    
+                    // If we've seen 5+ consecutive non-option, non-empty lines after finding at least one option,
+                    // and we're well past the last option, we've probably moved past this question's options
+                    if (consecutiveNonOptionLines >= 5 && foundOptions.size > 0 && j > lastOptionLine + 3) {
+                        break;
+                    }
+                    
+                    // If we haven't found any options yet and this line doesn't look like an option,
+                    // it might be a continuation of the question text (but only if question doesn't end with ?)
+                    if (foundOptions.size === 0 && currentQuestion.text && !currentQuestion.text.endsWith('?')) {
+                        // Only add if it's a short line (likely continuation, not a new question)
+                        if (nextLine.length < 100 && !nextLine.match(/^[A-Z][a-z]+\s+[a-z]+:/)) {
+                            currentQuestion.text += ' ' + nextLine;
+                        }
+                    }
+                }
+            }
+            
+            // Convert found options map to array in correct order (A, B, C, D)
+            if (foundOptions.size > 0) {
+                const optionOrder = ['A', 'B', 'C', 'D'];
+                optionOrder.forEach(letter => {
+                    if (foundOptions.has(letter)) {
+                        currentOptions.push({
+                            letter: letter,
+                            text: foundOptions.get(letter)
+                        });
+                    }
+                });
+            }
+            continue;
+        }
+        
+        // Skip lines that are MC options if we're between questions (they should have been caught in look-ahead)
+        // This prevents processing options that belong to a question we've already moved past
+        if (trimmedLine.match(/^\s*([A-D])\)\s+/i) && !currentQuestion && !inAnswerKey) {
+            continue;
+        }
+        
+        // Check if line is an answer key entry (e.g., "1. Correct Answer: A - Explanation")
+        if (inAnswerKey) {
+            const answerKeyMatch = trimmedLine.match(/^(\d+)[\.\)]\s+(.+)$/);
+            if (answerKeyMatch) {
+                const answerText = answerKeyMatch[2];
+                // Format answer key with proper styling
+                html += `<div class="answer-key-item"><strong>${answerKeyMatch[1]}.</strong> ${escapeHtml(answerText)}</div>`;
+            } else if (trimmedLine) {
+                // Continuation of previous answer key (if it doesn't start with a number)
+                if (!trimmedLine.match(/^\d+[\.\)]/)) {
+                    html += `<div class="answer-key-continuation">${escapeHtml(trimmedLine)}</div>`;
+                }
+            }
+            continue;
+        }
+        
+        // Skip empty lines and lines that don't match anything
+        if (!trimmedLine) {
+            continue;
+        }
+    }
+    
+    // Don't forget the last question
+    if (currentQuestion && !inAnswerKey) {
+        html += formatQuestionBlock(currentQuestion, currentOptions);
+    }
+    
+    if (inStudentWorksheet) {
+        html += '</div>'; // Close student worksheet section
+    }
+    
+    if (inAnswerKey) {
+        html += '</div>'; // Close answer-key div
+    }
+    
+    // If no structured content was found, fall back to simple formatting
+    if (!html) {
+        html = escapeHtml(worksheetsText).replace(/\n/g, '<br>');
+    }
+    
+    return html;
+}
+
+// Format a question block with its MC options
+function formatQuestionBlock(question, options) {
+    let html = `<div class="worksheet-question">`;
+    html += `<div class="question-number">${question.number}.</div>`;
+    html += `<div class="question-content">`;
+    html += `<div class="question-text">${escapeHtml(question.text)}</div>`;
+    
+    if (options && options.length > 0) {
+        html += `<div class="question-options">`;
+        options.forEach(opt => {
+            html += `<div class="question-option"><span class="option-letter">${opt.letter})</span> ${escapeHtml(opt.text)}</div>`;
+        });
+        html += `</div>`;
+    }
+    
+    html += `</div></div>`;
+    return html;
+}
+
+// Format rubrics - convert markdown tables to HTML tables
+function formatRubrics(rubricsText) {
+    if (!rubricsText || typeof rubricsText !== 'string') {
+        return '';
+    }
+    
+    // Check if this is a markdown table format
+    const lines = rubricsText.split('\n');
+    const tableLines = [];
+    let inTable = false;
+    let headerFound = false;
+    let foundHeaderRow = false;
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Skip rubric header lines
+        if (line.match(/^(grading\s+)?rubric:?$/i)) {
+            continue;
+        }
+        
+        // Check if line is a table row (contains pipes)
+        if (line.includes('|') && line.split('|').length >= 3) {
+            // Skip separator rows (e.g., |---|---|)
+            if (line.match(/^\|[\s\-:]+\|/)) {
+                if (!headerFound && tableLines.length > 0) {
+                    // This is the separator after header
+                    headerFound = true;
+                    foundHeaderRow = true;
+                }
+                continue;
+            }
+            
+            tableLines.push(line);
+            inTable = true;
+        } else if (inTable && line && !line.match(/^\|/)) {
+            // Non-table line after table - break here
+            if (tableLines.length > 0) {
+                break;
+            }
+        }
+    }
+    
+    // If we found table lines, convert to HTML table
+    if (tableLines.length > 0) {
+        let html = '<div class="rubric-table-container"><table class="rubric-table">';
+        let headerRowAdded = false;
+        let seenCriteria = new Set(); // Track criteria to avoid duplicates
+        let processedRows = [];
+        
+        // First pass: identify header and filter rows
+        tableLines.forEach((line, index) => {
+            const cells = line.split('|').map(cell => cell.trim()).filter(cell => cell);
+            
+            if (cells.length > 0) {
+                // Check if this is a header row (contains "Criteria" or looks like a header)
+                const isHeader = cells[0].toLowerCase().includes('criteria') || 
+                                cells.some(cell => cell.toLowerCase().includes('excellent') || 
+                                           cell.toLowerCase().includes('proficient') ||
+                                           cell.toLowerCase().includes('developing') ||
+                                           cell.toLowerCase().includes('beginning'));
+                
+                if (isHeader && !headerRowAdded) {
+                    // This is the header row
+                    html += '<thead><tr>';
+                    cells.forEach(cell => {
+                        html += `<th>${escapeHtml(cell)}</th>`;
+                    });
+                    html += '</tr></thead><tbody>';
+                    headerRowAdded = true;
+                } else if (headerRowAdded) {
+                    // This is a data row - check for duplicates and malformed content
+                    const criteriaName = cells[0] ? cells[0].toLowerCase().trim() : '';
+                    
+                    // Skip if we've seen this criteria before (duplicate detection)
+                    if (criteriaName && seenCriteria.has(criteriaName)) {
+                        return; // Skip duplicate
+                    }
+                    
+                    // Skip rows that are too short (likely malformed)
+                    if (cells.length < 2) {
+                        return;
+                    }
+                    
+                    // Skip rows that look like headers (contain "excellent", "proficient", etc. in first cell)
+                    const firstCellLower = cells[0] ? cells[0].toLowerCase() : '';
+                    if (firstCellLower.includes('excellent') || 
+                        firstCellLower.includes('proficient') ||
+                        firstCellLower.includes('developing') ||
+                        firstCellLower.includes('beginning') ||
+                        firstCellLower.includes('4 pts') ||
+                        firstCellLower.includes('3 pts') ||
+                        firstCellLower.includes('2 pts') ||
+                        firstCellLower.includes('1 pt')) {
+                        return; // Skip header-like rows
+                    }
+                    
+                    // Skip rows where first cell looks like a performance level description
+                    // (contains words like "shows", "demonstrates", "struggles" which are usually in description cells)
+                    const performanceWords = ['shows', 'demonstrates', 'struggles', 'lacks', 'needs', 'good form', 'basic technique'];
+                    const hasPerformanceWords = performanceWords.some(word => firstCellLower.includes(word));
+                    if (hasPerformanceWords && firstCellLower.length > 50) {
+                        // First cell is too long and contains performance words - likely a malformed row
+                        return;
+                    }
+                    
+                    // Skip rows where first cell is empty or just whitespace
+                    if (!criteriaName || criteriaName.length < 3) {
+                        return;
+                    }
+                    
+                    // Check if this row looks like it's mixing content from different rows
+                    // (has multiple performance level indicators in the first cell)
+                    const performanceIndicators = ['excellent', 'proficient', 'developing', 'beginning', 'good', 'basic', 'struggles'];
+                    const indicatorCount = performanceIndicators.filter(ind => firstCellLower.includes(ind)).length;
+                    if (indicatorCount >= 2 && firstCellLower.length > 80) {
+                        // Likely a malformed row mixing multiple descriptions
+                        return;
+                    }
+                    
+                    // Add to seen set and process
+                    if (criteriaName) {
+                        seenCriteria.add(criteriaName);
+                    }
+                    processedRows.push(cells);
+                }
+            }
+        });
+        
+        // Second pass: render processed rows
+        processedRows.forEach((cells) => {
+            html += '<tr>';
+            cells.forEach((cell, cellIndex) => {
+                if (cellIndex === 0) {
+                    // First cell is the criteria - make it bold
+                    html += `<td class="rubric-criteria"><strong>${escapeHtml(cell)}</strong></td>`;
+                } else {
+                    html += `<td class="rubric-level">${escapeHtml(cell)}</td>`;
+                }
+            });
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table></div>';
+        return html;
+    }
+    
+    // Fall back to simple formatting if not a table
+    return escapeHtml(rubricsText).replace(/\n/g, '<br>');
+}
+
 // Toggle log viewer
 function toggleLogViewer() {
     const logViewer = document.getElementById('logViewer');
@@ -1469,89 +1836,34 @@ async function sendMessage() {
         
         // Add AI response to chat
         if (result.response) {
-            // CRITICAL: Add message to chat and start autoplay FIRST
-            // This must happen immediately within the user interaction context
-            // Widget updates will happen AFTER autoplay starts
-            console.log('🔊 About to call addMessageToChat with autoplay=true');
-            addMessageToChat('ai', result.response, true); // Pass true to auto-speak
-            console.log('🔊 addMessageToChat called, checking if autoplay was triggered...');
+            // CRITICAL FOR SAFARI: Generate widgets FIRST, then start autoplay
+            // Safari requires autoplay to be in one continuous interaction that starts with user request
+            // Widget generation must happen BEFORE autoplay to maintain the interaction context
+            const pendingWidgetData = result.widget_data;
+            const pendingWidgets = result.widgets;
+            
+            // Generate widgets FIRST (synchronously within user interaction context)
+            if (pendingWidgets && Array.isArray(pendingWidgets) && pendingWidgets.length > 0) {
+                console.log(`🔄 Processing ${pendingWidgets.length} widgets from widgets array (BEFORE autoplay)`);
+                pendingWidgets.forEach((widget, index) => {
+                    if (widget && widget.type && widget.data) {
+                        console.log(`🔄 Updating widget ${index + 1}/${pendingWidgets.length}: ${widget.type}`);
+                        updateWidgetWithData(widget);
+                    }
+                });
+            } else if (pendingWidgetData) {
+                console.log('🔄 Updating widget with data (BEFORE autoplay):', pendingWidgetData);
+                updateWidgetWithData(pendingWidgetData);
+            }
             
             // Update chat history
             chatHistory.push({ role: 'user', content: message });
             chatHistory.push({ role: 'assistant', content: result.response });
             
-            // Store widget data temporarily - we'll update widgets AFTER autoplay starts
-            const pendingWidgetData = result.widget_data;
-            const pendingWidgets = result.widgets;
-            
-            // Find the message div to get the audio play promise
-            const chatMessages = document.getElementById('chatMessages');
-            const lastMessage = chatMessages?.lastElementChild;
-            const audioPlayPromise = lastMessage?._audioPlayPromise;
-            
-            // CRITICAL: Wait for audio play() call to be initiated (not completed)
-            // Once play() is called, Safari has queued it and we can safely update widgets
-            // The play() call itself must happen synchronously within user interaction context
-            const updateWidgets = () => {
-                // Check if AI wants to add/update multiple widgets
-                if (pendingWidgets && Array.isArray(pendingWidgets) && pendingWidgets.length > 0) {
-                    console.log(`🔄 Processing ${pendingWidgets.length} widgets from widgets array`);
-                    // Process each widget in the array
-                    pendingWidgets.forEach((widget, index) => {
-                        if (widget && widget.type && widget.data) {
-                            console.log(`🔄 Updating widget ${index + 1}/${pendingWidgets.length}: ${widget.type}`);
-                            updateWidgetWithData(widget);
-                        }
-                    });
-                }
-                // Also check widget_data for backward compatibility (single widget)
-                else if (pendingWidgetData) {
-                    console.log('🔄 Updating widget with data:', pendingWidgetData);
-                    console.log('🔍 Widget data structure:', {
-                        hasType: !!pendingWidgetData.type,
-                        type: pendingWidgetData.type,
-                        hasData: !!pendingWidgetData.data,
-                        dataKeys: pendingWidgetData.data ? Object.keys(pendingWidgetData.data) : [],
-                        dataType: typeof pendingWidgetData.data,
-                        isObject: pendingWidgetData.data && typeof pendingWidgetData.data === 'object',
-                        fullKeys: Object.keys(pendingWidgetData)
-                    });
-                    // Log the actual data content for debugging
-                    if (pendingWidgetData.data) {
-                        console.log('📦 Widget data content:', JSON.stringify(pendingWidgetData.data).substring(0, 500));
-                    } else {
-                        console.warn('⚠️ pendingWidgetData.data is missing! Full pendingWidgetData:', pendingWidgetData);
-                    }
-                    updateWidgetWithData(pendingWidgetData);
-                } else {
-                    console.log('⚠️ No widget_data or widgets in response');
-                }
-            };
-            
-            if (audioPlayPromise) {
-                // CRITICAL: Wait for audio blob to be received AND play() to be called
-                // Widget updates break Safari's interaction context, so we must wait
-                // The audio fetch is async and takes ~5-8 seconds, but we need to wait for it
-                console.log('🔊 Audio fetch started - deferring widget updates to preserve interaction context');
-                
-                // Wait for the audio blob to be received and play() to be called
-                // The promise resolves when play() is called (not when it completes)
-                audioPlayPromise.then(() => {
-                    console.log('✅ Audio play() called successfully - now safe to update widgets');
-                    // Now that play() has been called, we can safely update widgets
-                    // Use a small delay to ensure play() is fully queued by Safari
-                    setTimeout(updateWidgets, 100);
-                }).catch((error) => {
-                    console.log('⚠️ Audio play() blocked or failed:', error.name);
-                    // Even if autoplay failed, update widgets after a delay
-                    // The audio is still ready for manual play
-                    setTimeout(updateWidgets, 500);
-                });
-            } else {
-                // No audio play promise (autoplay disabled or button not found)
-                // Update widgets immediately
-                setTimeout(updateWidgets, 50);
-            }
+            // NOW start autoplay (still within the same user interaction context)
+            console.log('🔊 About to call addMessageToChat with autoplay=true (AFTER widgets)');
+            addMessageToChat('ai', result.response, true); // Pass true to auto-speak
+            console.log('🔊 addMessageToChat called, checking if autoplay was triggered...');
         } else {
             throw new Error('Invalid response format: missing "response" field');
         }
@@ -1605,12 +1917,8 @@ function addMessageToChat(role, content, autoSpeak = false, widgetData = null) {
         messageDiv.setAttribute('data-message-id', messageId);
         window[`msg_${messageId}`] = content; // Store content globally temporarily
         
-        speakerButton = `
-        <button class="message-speaker-btn" onclick="speakMessageFromId('${messageId}')" 
-                aria-label="Speak message" title="Play audio">
-            🔊
-        </button>
-    `;
+        speakerButton = `<button class="message-speaker-btn" onclick="speakMessageFromId('${messageId}')" aria-label="Speak message" title="Play audio">🔊</button>`;
+        console.log('🔊 Button created with 🔊 icon for message:', messageId);
     }
     
     messageDiv.innerHTML = `
@@ -1633,10 +1941,26 @@ function addMessageToChat(role, content, autoSpeak = false, widgetData = null) {
         const enableAIVoice = localStorage.getItem('enable_ai_voice') !== 'false'; // Default to true
         // Check if user has interacted in this session (required for autoplay after page refresh)
         const hasUserInteraction = sessionStorage.getItem('user_interaction_detected') === 'true';
-        const wasManuallyPaused = sessionStorage.getItem('audio_manually_paused') === 'true';
-        console.log('🔊 Auto-speak check:', { enableAIVoice, autoSpeak, role, hasUserInteraction, wasManuallyPaused });
+        const wasManuallyPaused = sessionStorage.getItem('audio_manually_paused') === 'true' || 
+                                  (window.audioManager && window.audioManager.manuallyPaused === true);
+        console.log('🔊 Auto-speak check:', { 
+            enableAIVoice, 
+            autoSpeak, 
+            role, 
+            hasUserInteraction, 
+            wasManuallyPaused,
+            sessionStorageValue: sessionStorage.getItem('audio_manually_paused'),
+            audioManagerValue: window.audioManager?.manuallyPaused
+        });
         // Don't autoplay if audio was manually paused - user must click speaker button to resume
+        if (!enableAIVoice || !hasUserInteraction || wasManuallyPaused) {
+            console.log('⏸️ Autoplay BLOCKED:', { 
+                reason: !enableAIVoice ? 'AIVoice disabled' : !hasUserInteraction ? 'No user interaction' : 'Manually paused',
+                buttonShouldStay: '🔊'
+            });
+        }
         if (enableAIVoice && hasUserInteraction && !wasManuallyPaused) {
+            console.log('✅ Autoplay ALLOWED - calling speakMessage');
             // Start fetching audio IMMEDIATELY and SYNCHRONOUSLY to preserve user interaction context
             // The user just sent a message, so we're still in their interaction context
             // DO NOT use requestAnimationFrame or setTimeout - they break the interaction chain
@@ -1723,9 +2047,18 @@ function addMessageToChat(role, content, autoSpeak = false, widgetData = null) {
                     }
                 }).catch(error => {
                     console.log('⚠️ Auto-speak error:', error.name, error.message);
+                    // If autoplay is blocked (pause flag or browser restriction), reset button to 🔊
+                    const speakerBtn = messageDiv.querySelector('.message-speaker-btn');
+                    if (speakerBtn) {
+                        speakerBtn.classList.remove('playing');
+                        speakerBtn.textContent = '🔊';
+                        speakerBtn.disabled = false;
+                    }
                     // If autoplay is blocked, that's okay - user can click the button
                     if (error.name === 'NotAllowedError' || error.name === 'NotSupportedError') {
                         console.log('ℹ️ Autoplay blocked (expected on some browsers). User can click speaker button.');
+                    } else if (error.message && error.message.includes('manually paused')) {
+                        console.log('ℹ️ Autoplay blocked - audio was manually paused. User can click speaker button to resume.');
                     } else if (error.message && (
                         error.message.includes('Load failed') || 
                         error.message.includes('network') || 
@@ -2330,23 +2663,14 @@ function formatWidgetData(data, widgetType) {
         const isAuthenticated = !!localStorage.getItem('access_token');
         const isPreview = !isAuthenticated && data.is_preview === true;
         
-        // CRITICAL: Check for workout widgets FIRST, before ANY other processing
-        // This prevents workout data from being misclassified as lesson plans
-        const isWorkoutTypeEarly = widgetType === 'workout' || widgetType === 'fitness' || widgetType === 'exercise';
-        const hasWorkoutDataEarly = data && typeof data === 'object' && !Array.isArray(data) && (
-            data.strength_training || data.cardio || data.exercises || data.days || 
-            data.workout_plan || data.plan_name || data.targeted_muscles
-        );
-        const isWorkoutWidgetEarly = isWorkoutTypeEarly || hasWorkoutDataEarly;
-        
-        // CRITICAL: Check for lesson plan, but ONLY if it's NOT a workout widget
+        // CRITICAL: Check for lesson plan FIRST, before any other processing
         // This must happen at the very beginning to prevent falling through to formatDataObject
-        const isLessonPlanTypeEarly = !isWorkoutWidgetEarly && (widgetType === 'lesson-planning' || 
+        const isLessonPlanTypeEarly = widgetType === 'lesson-planning' || 
                                       widgetType === 'lesson_plan' || 
                                       widgetType === 'lesson-plan' ||
-                                      (widgetType && widgetType.toLowerCase().includes('lesson')));
+                                      (widgetType && widgetType.toLowerCase().includes('lesson'));
         
-        const hasLessonPlanDataEarly = !isWorkoutWidgetEarly && data && typeof data === 'object' && !Array.isArray(data) && (
+        const hasLessonPlanDataEarly = data && typeof data === 'object' && !Array.isArray(data) && (
             data.title || data.description || 
             data.objectives || data.learning_objectives ||
             data.introduction || 
@@ -2362,26 +2686,19 @@ function formatWidgetData(data, widgetType) {
         );
         
         // If this is lesson plan, we'll format it below, but set flag now
-        // BUT only if it's NOT a workout widget
-        const isLessonPlan = !isWorkoutWidgetEarly && (isLessonPlanTypeEarly || hasLessonPlanDataEarly);
+        const isLessonPlan = isLessonPlanTypeEarly || hasLessonPlanDataEarly;
         
-        // CRITICAL: Don't initialize HTML for workout widgets here
-        // The workout formatting block will handle its own HTML initialization
-        // This prevents workout widgets from being formatted as lesson plans
-        let html = '';
-        if (!isWorkoutWidgetEarly) {
-            // Format based on widget type and data structure (for non-workout widgets)
-            html = '<div class="widget-data-display' + (isPreview ? ' widget-preview' : '') + '">';
-            
-            // Show preview banner for guest users (generic, works for all widget types)
-            if (isPreview) {
-                html += '<div class="widget-preview-banner">';
-                html += '<div class="preview-banner-content">';
-                html += '<span class="preview-badge">👁️ PREVIEW</span>';
-                html += '<p class="preview-message">' + (data.preview_message || 'This is a preview of what a complete widget would include. <strong>Sign up for a premium account</strong> to generate full, professional-grade content with advanced features.') + '</p>';
-                html += '</div>';
-                html += '</div>';
-            }
+        // Format based on widget type and data structure
+        let html = '<div class="widget-data-display' + (isPreview ? ' widget-preview' : '') + '">';
+        
+        // Show preview banner for guest users (generic, works for all widget types)
+        if (isPreview) {
+            html += '<div class="widget-preview-banner">';
+            html += '<div class="preview-banner-content">';
+            html += '<span class="preview-badge">👁️ PREVIEW</span>';
+            html += '<p class="preview-message">' + (data.preview_message || 'This is a preview of what a complete widget would include. <strong>Sign up for a premium account</strong> to generate full, professional-grade content with advanced features.') + '</p>';
+            html += '</div>';
+            html += '</div>';
         }
     
     // CRITICAL: Check for lesson plan FIRST, before any other processing
@@ -2393,17 +2710,12 @@ function formatWidgetData(data, widgetType) {
                               widgetType === 'lesson-plan' ||
                               (widgetType && widgetType.toLowerCase().includes('lesson'));
     
-    // Check for workout widgets FIRST - they should never be formatted as lesson plans
-    const isWorkoutType = widgetType === 'workout' || widgetType === 'fitness' || widgetType === 'exercise';
-    const hasWorkoutData = data && typeof data === 'object' && !Array.isArray(data) && (
-        data.strength_training || data.cardio || data.exercises || data.days || 
-        data.workout_plan || data.plan_name || data.targeted_muscles
-    );
-    
     // More comprehensive check for lesson plan data structure
     // Check for ANY lesson plan indicators - be very permissive
-    // BUT exclude if it's a workout widget (workouts can have description too)
-    const hasLessonPlanData = !isWorkoutType && !hasWorkoutData && data && typeof data === 'object' && !Array.isArray(data) && (
+    // CRITICAL: Exclude workout widgets - they have description/plan_name but are NOT lesson plans
+    const isWorkoutWidget = widgetType === 'workout' || widgetType === 'workout_plan' || 
+                           (data && (data.plan_name || data.strength_training || data.cardio));
+    const hasLessonPlanData = !isWorkoutWidget && data && typeof data === 'object' && !Array.isArray(data) && (
         data.title || data.description || 
         data.objectives || data.learning_objectives ||
         data.introduction || 
@@ -2421,8 +2733,7 @@ function formatWidgetData(data, widgetType) {
     // CRITICAL: If widget type is lesson plan OR data has lesson plan structure, ALWAYS format as lesson plan
     // This prevents any fallthrough to formatDataObject which shows raw JSON
     // FORCE lesson plan formatting if type matches, regardless of data structure
-    // BUT exclude workout widgets explicitly
-    const shouldFormatAsLessonPlan = !isWorkoutType && !hasWorkoutData && (isLessonPlanType || hasLessonPlanData);
+    const shouldFormatAsLessonPlan = isLessonPlanType || hasLessonPlanData;
     
     console.log('🔍 formatWidgetData lesson plan check:', {
         widgetType: widgetType,
@@ -2441,26 +2752,12 @@ function formatWidgetData(data, widgetType) {
         dataPreview: data ? JSON.stringify(data).substring(0, 200) : 'no data'
     });
     
-    // CRITICAL: Check for workout widgets FIRST, before lesson plan check
-    // This prevents workout data from being misclassified as lesson plans
-    // If it's a workout, skip lesson plan formatting entirely
-    const isWorkoutWidget = isWorkoutType || hasWorkoutData;
-    
-    console.log('🔍 Workout widget detection:', {
-        widgetType: widgetType,
-        isWorkoutType: isWorkoutType,
-        hasWorkoutData: hasWorkoutData,
-        isWorkoutWidget: isWorkoutWidget,
-        hasStrengthTraining: !!(data && data.strength_training),
-        strengthTrainingCount: (data && Array.isArray(data.strength_training)) ? data.strength_training.length : 0,
-        dataKeys: data ? Object.keys(data) : []
-    });
-    
     // FORCE lesson plan formatting if widget type is lesson_plan or lesson-planning
     // This is a safety net to ensure lesson plans are NEVER displayed as raw JSON
     // CRITICAL: Check widget type FIRST before any other processing
-    // BUT: Only if it's NOT a workout widget
-    if (!isWorkoutWidget && (shouldFormatAsLessonPlan || widgetType === 'lesson_plan' || widgetType === 'lesson-planning' || widgetType === 'lesson-plan')) {
+    // EXCLUDE workout widgets - they should NEVER be formatted as lesson plans
+    const isWorkoutType = widgetType === 'workout' || widgetType === 'workout_plan';
+    if (!isWorkoutType && (shouldFormatAsLessonPlan || widgetType === 'lesson_plan' || widgetType === 'lesson-planning' || widgetType === 'lesson-plan')) {
         console.log('✅ Formatting as lesson plan (forced check)', {
             widgetType: widgetType,
             shouldFormatAsLessonPlan: shouldFormatAsLessonPlan,
@@ -2639,67 +2936,138 @@ function formatWidgetData(data, widgetType) {
             html += `<div class="lesson-section"><h5>Costa's Levels of Questioning</h5><p>${escapeHtml(data.costas_questioning)}</p></div>`;
         }
         if (data.worksheets) {
-            // Format worksheets with better structure - preserve line breaks and formatting
-            // Handle different formats: string, array, or object
-            let worksheetsText = '';
-            if (typeof data.worksheets === 'string') {
-                worksheetsText = data.worksheets;
-            } else if (Array.isArray(data.worksheets)) {
-                worksheetsText = data.worksheets.join('\n\n');
-            } else if (typeof data.worksheets === 'object') {
-                // If it's an object, try to extract content
-                worksheetsText = data.worksheets.content || data.worksheets.worksheet || JSON.stringify(data.worksheets, null, 2);
-            }
-            
-            if (worksheetsText) {
-                let worksheetsHtml = escapeHtml(worksheetsText);
-            // Convert double newlines to paragraph breaks
-            const paragraphs = worksheetsHtml.split('\n\n').filter(p => p.trim());
-            if (paragraphs.length > 1) {
-                worksheetsHtml = paragraphs.map(para => {
-                    // Check if paragraph starts with a number or letter (numbered list or question)
-                        if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/) || para.match(/^(worksheet|answer\s+key|student\s+worksheet)/i)) {
-                        return `<p class="worksheet-item">${para.replace(/\n/g, '<br>')}</p>`;
+            // Check if worksheets is structured data (array of question objects) - similar to workout exercises
+            if (Array.isArray(data.worksheets) && data.worksheets.length > 0) {
+                // Check if first item is an object (structured data) or string (array of strings)
+                if (typeof data.worksheets[0] === 'object' && data.worksheets[0] !== null) {
+                    // Structured format: array of question objects
+                    html += '<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5>';
+                    html += '<div class="worksheet-student-section"><h6>Student Worksheet:</h6>';
+                    
+                    data.worksheets.forEach((question, index) => {
+                        if (question.question || question.text) {
+                            const questionText = question.question || question.text;
+                            const questionNumber = question.number || (index + 1);
+                            const rawOptions = question.options || question.mc_options || [];
+                            // Convert options to format expected by formatQuestionBlock: [{letter: 'A', text: '...'}, ...]
+                            const options = rawOptions.map((opt, optIdx) => {
+                                if (typeof opt === 'string') {
+                                    // If option is a string like "A) Option text", parse it
+                                    const match = opt.match(/^([A-D])\)\s+(.+)$/i);
+                                    if (match) {
+                                        return { letter: match[1].toUpperCase(), text: match[2] };
+                                    }
+                                    // Otherwise, use letter based on index
+                                    return { letter: String.fromCharCode(65 + optIdx), text: opt };
+                                } else if (typeof opt === 'object' && opt !== null) {
+                                    // If option is an object with letter/text properties
+                                    return {
+                                        letter: opt.letter || opt.option || String.fromCharCode(65 + optIdx),
+                                        text: opt.text || opt.value || String(opt)
+                                    };
+                                }
+                                return { letter: String.fromCharCode(65 + optIdx), text: String(opt) };
+                            });
+                            
+                            html += formatQuestionBlock({
+                                number: String(questionNumber),
+                                text: questionText
+                            }, options);
+                        }
+                    });
+                    
+                    // Add answer keys if available
+                    const answerKeys = data.worksheets.filter(q => q.answer_key || q.answer).map((q, idx) => ({
+                        number: q.number || (idx + 1),
+                        text: q.answer_key || q.answer
+                    }));
+                    
+                    if (answerKeys.length > 0) {
+                        html += '</div>'; // Close student worksheet section
+                        html += '<div class="worksheet-answer-key"><h6>Answer Key:</h6>';
+                        answerKeys.forEach(ak => {
+                            html += `<div class="answer-key-item"><strong>${ak.number}.</strong> ${escapeHtml(ak.text)}</div>`;
+                        });
+                        html += '</div>';
+                    } else {
+                        html += '</div>'; // Close student worksheet section
                     }
-                    return `<p>${para.replace(/\n/g, '<br>')}</p>`;
-                }).join('');
-            } else {
-                // If no double newlines, just preserve single newlines
-                worksheetsHtml = worksheetsHtml.replace(/\n/g, '<br>');
-            }
-                html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+                    
+                    html += '</div>'; // Close worksheet-content
+                    html += '</div>'; // Close worksheet-section
+                } else {
+                    // Array of strings - join and parse as text
+                    const worksheetsText = data.worksheets.join('\n\n');
+                    const hasActualContent = worksheetsText && worksheetsText.trim().length > 50;
+                    if (hasActualContent) {
+                        let worksheetsHtml = formatWorksheets(worksheetsText);
+                        html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+                    }
+                }
+            } else if (typeof data.worksheets === 'string') {
+                // String format - parse as text
+                const worksheetsText = data.worksheets;
+                const hasActualContent = worksheetsText && worksheetsText.trim().length > 50 && 
+                                         !worksheetsText.match(/^(with\s+answer\s+keys?|student\s+worksheet:?|worksheet:?)\s*$/i) &&
+                                         (worksheetsText.includes('?') || worksheetsText.match(/\d+[\.\)]\s/) || worksheetsText.includes('A)') || worksheetsText.includes('Answer Key:'));
+                
+                if (hasActualContent) {
+                    // Use the new formatWorksheets function for proper parsing
+                    let worksheetsHtml = formatWorksheets(worksheetsText);
+                    html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+                } else if (worksheetsText && worksheetsText.trim().length > 0) {
+                    console.warn('⚠️ Worksheets field exists but has insufficient content:', worksheetsText.substring(0, 100));
+                }
+            } else if (typeof data.worksheets === 'object' && data.worksheets !== null) {
+                // Object format - try to extract content
+                const worksheetsText = data.worksheets.content || data.worksheets.worksheet || JSON.stringify(data.worksheets, null, 2);
+                const hasActualContent = worksheetsText && typeof worksheetsText === 'string' && worksheetsText.trim().length > 50;
+                if (hasActualContent) {
+                    let worksheetsHtml = formatWorksheets(worksheetsText);
+                    html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+                }
             }
         }
-        if (data.rubrics) {
+        // Check for rubrics (plural) or rubric (singular)
+        const rubricData = data.rubrics || data.rubric;
+        if (rubricData) {
+            console.log('🔍 Found rubric data:', {
+                hasRubrics: !!data.rubrics,
+                hasRubric: !!data.rubric,
+                type: typeof rubricData,
+                length: typeof rubricData === 'string' ? rubricData.length : 'N/A',
+                preview: typeof rubricData === 'string' ? rubricData.substring(0, 100) : JSON.stringify(rubricData).substring(0, 100)
+            });
+            
             // Format rubrics with better structure - preserve line breaks and formatting
             // Handle different formats: string, array, or object
             let rubricsText = '';
-            if (typeof data.rubrics === 'string') {
-                rubricsText = data.rubrics;
-            } else if (Array.isArray(data.rubrics)) {
-                rubricsText = data.rubrics.join('\n\n');
-            } else if (typeof data.rubrics === 'object') {
+            if (typeof rubricData === 'string') {
+                rubricsText = rubricData.trim(); // Trim whitespace
+            } else if (Array.isArray(rubricData)) {
+                rubricsText = rubricData.join('\n\n').trim();
+            } else if (typeof rubricData === 'object') {
                 // If it's an object, try to extract content
-                rubricsText = data.rubrics.content || data.rubrics.rubric || JSON.stringify(data.rubrics, null, 2);
+                rubricsText = (rubricData.content || rubricData.rubric || JSON.stringify(rubricData, null, 2)).trim();
             }
             
-            if (rubricsText) {
-                let rubricsHtml = escapeHtml(rubricsText);
-            // Convert double newlines to paragraph breaks
-            const paragraphs = rubricsHtml.split('\n\n').filter(p => p.trim());
-            if (paragraphs.length > 1) {
-                rubricsHtml = paragraphs.map(para => {
-                    // Check if paragraph starts with a number, letter, or performance level (numbered list, criteria, or level)
-                        if (para.match(/^\d+[\.\)]\s/) || para.match(/^[A-Z][a-z]+:/) || para.match(/^(excellent|proficient|developing|beginning|advanced|novice|criteria|performance\s+level|scoring)/i)) {
-                        return `<p class="rubric-item">${para.replace(/\n/g, '<br>')}</p>`;
-                    }
-                    return `<p>${para.replace(/\n/g, '<br>')}</p>`;
-                }).join('');
-            } else {
-                // If no double newlines, just preserve single newlines
-                rubricsHtml = rubricsHtml.replace(/\n/g, '<br>');
-            }
+            // Check if rubricsText has actual content (not just whitespace)
+            if (rubricsText && rubricsText.length > 0) {
+                console.log('✅ Rendering rubric, length:', rubricsText.length);
+                // Use the new formatRubrics function for proper table parsing
+                let rubricsHtml = formatRubrics(rubricsText);
                 html += `<div class="lesson-section rubric-section"><h5>📋 Grading Rubric</h5><div class="rubric-content">${rubricsHtml}</div></div>`;
+            } else {
+                console.warn('⚠️ Rubric data exists but is empty or whitespace only:', {
+                    rubricData: rubricData,
+                    rubricsText: rubricsText,
+                    rubricsTextLength: rubricsText ? rubricsText.length : 0
+                });
+            }
+        } else {
+            // Log when we expect a rubric but don't have one
+            if (data.assessments && typeof data.assessments === 'string' && data.assessments.toLowerCase().includes('rubric')) {
+                console.warn('⚠️ Assessments mention rubric but no rubric data found in widget data');
             }
         }
         if (data.assessments) {
@@ -2716,110 +3084,24 @@ function formatWidgetData(data, widgetType) {
         console.log('✅ Lesson plan HTML generated, length:', html.length);
         return html;
     }
-    // Special handling for fitness/workout widget FIRST (before health) to avoid misclassification
-    // Check fitness/workout widget BEFORE health to prevent fitness widgets with meal data from being misclassified
-    // Support both 'fitness' and 'workout' widget types
-    // Use the early workout detection to catch workouts before lesson plan formatting
-    if (isWorkoutWidgetEarly || isWorkoutWidget || ((widgetType === 'fitness' || widgetType === 'workout') && (data.exercises || data.strength_training || data.cardio || data.days || data.workout_plan))) {
+    // Special handling for workout/fitness widgets FIRST (before lesson plan check) to avoid misclassification
+    // CRITICAL: Check for workout widgets BEFORE lesson plan check to prevent workout data from being formatted as lesson plans
+    // Support multiple widget type names: 'fitness', 'workout', 'workout_plan'
+    const isWorkoutWidgetType = widgetType === 'fitness' || widgetType === 'workout' || widgetType === 'workout_plan';
+    const hasWorkoutData = data && (data.exercises || data.strength_training || data.cardio || data.plan_name || data.days);
+    if (isWorkoutWidgetType && hasWorkoutData) {
         console.log('💪 Rendering fitness/workout widget with data:', {
-            widgetType: widgetType,
-            isWorkoutWidget: isWorkoutWidget,
             hasExercises: !!data.exercises,
             hasStrengthTraining: !!data.strength_training,
-            strengthTrainingLength: data.strength_training ? data.strength_training.length : 0,
             hasCardio: !!data.cardio,
-            hasDays: !!data.days,
-            hasWorkoutPlan: !!data.workout_plan,
-            hasPlanName: !!data.plan_name,
-            hasDescription: !!data.description,
             exercisesCount: data.exercises ? data.exercises.length : 0,
-            dataKeys: Object.keys(data),
-            dataPreview: JSON.stringify(data).substring(0, 500)
+            dataKeys: Object.keys(data)
         });
-        
-        // Initialize HTML at the start of workout formatting
         // Check if this is a preview/teaser widget for guest users
         // For authenticated users, NEVER show preview (even if flag is set)
         const isAuthenticated = !!localStorage.getItem('access_token');
         const isPreview = !isAuthenticated && data.is_preview === true;
         
-        let html = '<div class="widget-data-display' + (isPreview ? ' widget-preview' : '') + '">';
-        
-        // Handle week-long workout format (workout_plan with Day 1, Day 2, etc.)
-        if (data.workout_plan && typeof data.workout_plan === 'object') {
-            // Convert workout_plan format to days format for consistent rendering
-            if (!data.days) {
-                data.days = [];
-                for (const [dayKey, dayData] of Object.entries(data.workout_plan)) {
-                    if (typeof dayData === 'object') {
-                        data.days.push({
-                            day: dayKey,
-                            focus: dayData.focus || '',
-                            exercises: dayData.exercises || [],
-                            activities: dayData.activities || []
-                        });
-                    }
-                }
-            }
-        }
-        
-        // Handle days format (week-long workout)
-        if (data.days && Array.isArray(data.days) && data.days.length > 0) {
-            html += '<div class="workout-plan' + (isPreview ? ' workout-plan-preview' : '') + '">';
-            
-            if (data.plan_name) {
-                html += `<h4 class="workout-plan-title">${escapeHtml(data.plan_name)}</h4>`;
-            }
-            if (data.description) {
-                html += `<div class="workout-section"><p class="workout-description">${escapeHtml(data.description)}</p></div>`;
-            }
-            
-            html += '<div class="workout-days">';
-            data.days.forEach((dayData, dayIndex) => {
-                html += `<div class="workout-day">`;
-                html += `<h5 class="workout-day-title">📅 ${escapeHtml(dayData.day || `Day ${dayIndex + 1}`)}`;
-                if (dayData.focus) {
-                    html += ` - ${escapeHtml(dayData.focus)}`;
-                }
-                html += `</h5>`;
-                
-                if (dayData.exercises && Array.isArray(dayData.exercises) && dayData.exercises.length > 0) {
-                    html += '<ul class="workout-exercises">';
-                    dayData.exercises.forEach((exercise, exIndex) => {
-                        html += '<li class="workout-exercise">';
-                        if (typeof exercise === 'object' && exercise.name) {
-                            html += `<strong class="exercise-name">${escapeHtml(exercise.name)}</strong>`;
-                            if (exercise.sets && exercise.reps) {
-                                html += `<span class="exercise-sets-reps"> - ${exercise.sets} sets × ${exercise.reps} reps</span>`;
-                            }
-                            if (exercise.description) {
-                                html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
-                            }
-                        } else if (typeof exercise === 'string') {
-                            // Parse exercise string like "Push-Ups: 3 sets of 10-15 reps"
-                            html += `<strong class="exercise-name">${escapeHtml(exercise)}</strong>`;
-                        }
-                        html += '</li>';
-                    });
-                    html += '</ul>';
-                }
-                
-                if (dayData.activities && Array.isArray(dayData.activities) && dayData.activities.length > 0) {
-                    html += '<div class="workout-activities"><h6>Activities:</h6><ul>';
-                    dayData.activities.forEach((activity, actIndex) => {
-                        html += `<li>${escapeHtml(activity)}</li>`;
-                    });
-                    html += '</ul></div>';
-                }
-                
-                html += '</div>';
-            });
-            html += '</div>';
-            html += '</div>';
-            return html; // Return early for week-long format
-        }
-        
-        // Standard workout format (not week-long)
         html += '<div class="workout-plan' + (isPreview ? ' workout-plan-preview' : '') + '">';
         
         // Preview banner is now shown at the top level for all widgets
@@ -2834,32 +3116,15 @@ function formatWidgetData(data, widgetType) {
             data.strength_training.forEach((exercise, index) => {
                 html += '<li class="workout-exercise">';
                 html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
-                
-                // Build exercise details
-                const details = [];
                 if (exercise.sets && exercise.reps) {
-                    details.push(`${exercise.sets} sets × ${exercise.reps} reps`);
-                }
-                if (exercise.weight) {
-                    details.push(`Weight: ${escapeHtml(exercise.weight)}`);
-                }
-                if (exercise.rest) {
-                    details.push(`Rest: ${escapeHtml(exercise.rest)}`);
+                    html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
                 }
                 if (exercise.duration) {
-                    details.push(`Duration: ${escapeHtml(exercise.duration)}`);
-                }
-                if (exercise.targeted_muscles) {
-                    details.push(`Targets: ${escapeHtml(exercise.targeted_muscles)}`);
+                    html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
                 }
                 if (exercise.calories_burned) {
-                    details.push(`Burns ${escapeHtml(exercise.calories_burned)} calories`);
+                    html += `<span class="exercise-calories">Burns ${escapeHtml(exercise.calories_burned)} calories</span>`;
                 }
-                
-                if (details.length > 0) {
-                    html += `<div class="exercise-details"><span class="exercise-sets-reps">${details.join(' • ')}</span></div>`;
-                }
-                
                 if (exercise.description) {
                     html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
                 }
@@ -2870,36 +3135,19 @@ function formatWidgetData(data, widgetType) {
         
         // Render Cardio section if available
         if (data.cardio && Array.isArray(data.cardio) && data.cardio.length > 0) {
-            html += '<div class="workout-section"><h5 class="workout-section-title">🏃 Cardio / Conditioning</h5><ul class="workout-exercises">';
+            html += '<div class="workout-section"><h5 class="workout-section-title">🏃 Cardio</h5><ul class="workout-exercises">';
             data.cardio.forEach((exercise, index) => {
                 html += '<li class="workout-exercise">';
                 html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
-                
-                // Build exercise details
-                const details = [];
-                if (exercise.duration) {
-                    details.push(`Duration: ${escapeHtml(exercise.duration)}`);
-                }
-                if (exercise.intensity) {
-                    details.push(`Intensity: ${escapeHtml(exercise.intensity)}`);
-                }
-                if (exercise.heart_rate_zone) {
-                    details.push(`Heart Rate Zone: ${escapeHtml(exercise.heart_rate_zone)}`);
-                }
-                if (exercise.frequency) {
-                    details.push(`Frequency: ${escapeHtml(exercise.frequency)}`);
-                }
                 if (exercise.sets && exercise.reps) {
-                    details.push(`${exercise.sets} sets × ${exercise.reps} reps`);
+                    html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
+                }
+                if (exercise.duration) {
+                    html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
                 }
                 if (exercise.calories_burned) {
-                    details.push(`Burns ${escapeHtml(exercise.calories_burned)} calories`);
+                    html += `<span class="exercise-calories">Burns ${escapeHtml(exercise.calories_burned)} calories</span>`;
                 }
-                
-                if (details.length > 0) {
-                    html += `<div class="exercise-details"><span class="exercise-sets-reps">${details.join(' • ')}</span></div>`;
-                }
-                
                 if (exercise.description) {
                     html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
                 }
@@ -2939,10 +3187,10 @@ function formatWidgetData(data, widgetType) {
         if (data.description) {
             html += `<p class="workout-description">${escapeHtml(data.description)}</p>`;
         }
-        html += '</div>'; // Close workout-plan div
+        html += '</div>';
         html += '</div>'; // Close widget-data-display div
-        console.log('✅ Workout HTML generated, length:', html.length);
-        return html; // CRITICAL: Return here to prevent falling through to other formatters
+        console.log('✅ Workout widget HTML generated, length:', html.length);
+        return html; // CRITICAL: Return here to prevent falling through to formatDataObject
     }
     // Special handling for health/nutrition widget with meal plan data
     else if (widgetType === 'health' && (data.meals || data.daily_calories || data.macros || data.days)) {
@@ -2983,31 +3231,9 @@ function formatWidgetData(data, widgetType) {
             html += '<div class="health-section"><h5>🍽️ Meal Plan</h5>';
             data.days.forEach((dayData, dayIndex) => {
                 html += `<div class="health-day-plan">`;
-                html += `<h6 class="health-day-title">📅 ${escapeHtml(dayData.day || `Day ${dayIndex + 1}`)}</h6>`;
-                
-                // Handle meals object format (breakfast, lunch, dinner, snacks)
-                if (dayData.meals && typeof dayData.meals === 'object' && !Array.isArray(dayData.meals)) {
+                html += `<h6 class="health-day-title">📅 ${escapeHtml(dayData.day)}</h6>`;
                 html += '<ul class="health-meals">';
-                    if (dayData.meals.breakfast) {
-                        html += `<li class="health-meal-item"><strong>🍳 Breakfast:</strong> ${escapeHtml(dayData.meals.breakfast)}</li>`;
-                    }
-                    if (dayData.meals.lunch) {
-                        html += `<li class="health-meal-item"><strong>🍱 Lunch:</strong> ${escapeHtml(dayData.meals.lunch)}</li>`;
-                    }
-                    if (dayData.meals.dinner) {
-                        html += `<li class="health-meal-item"><strong>🍽️ Dinner:</strong> ${escapeHtml(dayData.meals.dinner)}</li>`;
-                    }
-                    if (dayData.meals.snacks && Array.isArray(dayData.meals.snacks)) {
-                        dayData.meals.snacks.forEach((snack, snackIndex) => {
-                            html += `<li class="health-meal-item"><strong>🥨 Snack ${snackIndex + 1}:</strong> ${escapeHtml(snack)}</li>`;
-                        });
-                    } else if (dayData.meals.snacks) {
-                        html += `<li class="health-meal-item"><strong>🥨 Snacks:</strong> ${escapeHtml(dayData.meals.snacks)}</li>`;
-                    }
-                    html += '</ul>';
-                } else if (dayData.meals && Array.isArray(dayData.meals)) {
-                    // Array format (backward compatibility)
-                    html += '<ul class="health-meals">';
+                if (dayData.meals && Array.isArray(dayData.meals)) {
                     dayData.meals.forEach((meal, mealIndex) => {
                         if (typeof meal === 'object' && meal.meal && meal.foods) {
                             const caloriesText = meal.calories ? ` <span class="meal-calories">(${escapeHtml(meal.calories)})</span>` : '';
@@ -3016,64 +3242,8 @@ function formatWidgetData(data, widgetType) {
                             html += `<li class="health-meal-item">${escapeHtml(meal)}</li>`;
                         }
                     });
-                    html += '</ul>';
-                }
-                
-                // Display daily nutritional information
-                if (dayData.calories || dayData.protein || dayData.carbs || dayData.fat) {
-                    html += '<div class="health-nutrition-summary">';
-                    html += '<h6 class="nutrition-title">📊 Daily Nutritional Summary</h6>';
-                    html += '<ul class="nutrition-macros">';
-                    if (dayData.calories) {
-                        html += `<li><strong>🔥 Total Calories:</strong> ${escapeHtml(dayData.calories)}</li>`;
-                    }
-                    if (dayData.protein) {
-                        html += `<li><strong>🥩 Protein:</strong> ${escapeHtml(dayData.protein)}</li>`;
-                    }
-                    if (dayData.carbs) {
-                        html += `<li><strong>🍞 Carbohydrates:</strong> ${escapeHtml(dayData.carbs)}</li>`;
-                    }
-                    if (dayData.fat) {
-                        html += `<li><strong>🥑 Fat:</strong> ${escapeHtml(dayData.fat)}</li>`;
-                    }
-                    if (dayData.fiber) {
-                        html += `<li><strong>🌾 Fiber:</strong> ${escapeHtml(dayData.fiber)}</li>`;
-                    }
-                    if (dayData.sugar) {
-                        html += `<li><strong>🍬 Sugar:</strong> ${escapeHtml(dayData.sugar)}</li>`;
                 }
                 html += '</ul>';
-                    
-                    // Display vitamins if available
-                    if (dayData.vitamins && typeof dayData.vitamins === 'object') {
-                        html += '<div class="nutrition-vitamins"><h6>💊 Vitamins</h6><ul>';
-                        Object.keys(dayData.vitamins).forEach(vitamin => {
-                            html += `<li><strong>${escapeHtml(vitamin.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(dayData.vitamins[vitamin])}</li>`;
-                        });
-                        html += '</ul></div>';
-                    }
-                    
-                    // Display minerals if available
-                    if (dayData.minerals && typeof dayData.minerals === 'object') {
-                        html += '<div class="nutrition-minerals"><h6>⚡ Minerals</h6><ul>';
-                        Object.keys(dayData.minerals).forEach(mineral => {
-                            html += `<li><strong>${escapeHtml(mineral.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(dayData.minerals[mineral])}</li>`;
-                        });
-                        html += '</ul></div>';
-                    }
-                    
-                    // Display other nutrients if available
-                    if (dayData.other && typeof dayData.other === 'object') {
-                        html += '<div class="nutrition-other"><h6>🌿 Other Nutrients</h6><ul>';
-                        Object.keys(dayData.other).forEach(nutrient => {
-                            html += `<li><strong>${escapeHtml(nutrient.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(dayData.other[nutrient])}</li>`;
-                        });
-                        html += '</ul></div>';
-                    }
-                    
-                    html += '</div>';
-                }
-                
                 html += '</div>';
             });
             html += '</div>';
@@ -3117,99 +3287,6 @@ function formatWidgetData(data, widgetType) {
         
         html += '</div>';
     }
-    // Special handling for attendance widget
-    else if (widgetType === 'attendance' && (data.attendance_rate || data.trend || data.at_risk_students || data.statistics)) {
-        console.log('📊 Rendering attendance widget with data:', {
-            hasAttendanceRate: !!data.attendance_rate,
-            hasTrend: !!data.trend,
-            hasAtRiskStudents: !!data.at_risk_students,
-            hasStatistics: !!data.statistics,
-            dataKeys: Object.keys(data)
-        });
-        
-        html += '<div class="attendance-widget' + (isPreview ? ' attendance-widget-preview' : '') + '">';
-        
-        if (data.title) {
-            html += `<h4 class="attendance-title">${escapeHtml(data.title)}</h4>`;
-        }
-        
-        // Attendance Statistics
-        if (data.statistics && typeof data.statistics === 'object') {
-            html += '<div class="attendance-section"><h5>📊 Attendance Statistics</h5>';
-            html += '<ul class="attendance-stats">';
-            if (data.attendance_rate) {
-                html += `<li><strong>Overall Attendance Rate:</strong> ${escapeHtml(data.attendance_rate)}</li>`;
-            }
-            if (data.trend) {
-                html += `<li><strong>Trend:</strong> ${escapeHtml(data.trend)}</li>`;
-            }
-            if (data.statistics.total_students) {
-                html += `<li><strong>Total Students:</strong> ${escapeHtml(data.statistics.total_students)}</li>`;
-            }
-            if (data.statistics.present_count !== undefined) {
-                html += `<li><strong>Present:</strong> ${escapeHtml(data.statistics.present_count)}</li>`;
-            }
-            if (data.statistics.absent_count !== undefined) {
-                html += `<li><strong>Absent:</strong> ${escapeHtml(data.statistics.absent_count)}</li>`;
-            }
-            if (data.statistics.tardy_count !== undefined) {
-                html += `<li><strong>Tardy:</strong> ${escapeHtml(data.statistics.tardy_count)}</li>`;
-            }
-            html += '</ul></div>';
-        } else {
-            // Fallback if statistics not in nested object
-            if (data.attendance_rate) {
-                html += `<div class="attendance-section"><h5>📊 Attendance Rate</h5><p class="attendance-rate">${escapeHtml(data.attendance_rate)}</p></div>`;
-            }
-            if (data.trend) {
-                html += `<div class="attendance-section"><h5>📈 Trend</h5><p>${escapeHtml(data.trend)}</p></div>`;
-            }
-        }
-        
-        // At-Risk Students
-        if (data.at_risk_students && Array.isArray(data.at_risk_students) && data.at_risk_students.length > 0) {
-            html += '<div class="attendance-section"><h5>⚠️ At-Risk Students</h5><ul class="at-risk-students">';
-            data.at_risk_students.forEach((student, index) => {
-                html += '<li class="at-risk-student">';
-                if (typeof student === 'object') {
-                    html += `<strong>${escapeHtml(student.name || 'Student ' + (index + 1))}</strong>`;
-                    if (student.attendance_rate) {
-                        html += ` - Attendance Rate: ${escapeHtml(student.attendance_rate)}`;
-                    }
-                    if (student.pattern) {
-                        html += `<br><span class="student-pattern">Pattern: ${escapeHtml(student.pattern)}</span>`;
-                    }
-                    if (student.interventions && Array.isArray(student.interventions) && student.interventions.length > 0) {
-                        html += '<br><span class="student-interventions">Interventions: ' + student.interventions.map(i => escapeHtml(i)).join(', ') + '</span>';
-                    }
-                } else {
-                    html += escapeHtml(String(student));
-                }
-                html += '</li>';
-            });
-            html += '</ul></div>';
-        }
-        
-        // Recommendations
-        if (data.recommendations && Array.isArray(data.recommendations) && data.recommendations.length > 0) {
-            html += '<div class="attendance-section"><h5>💡 Recommendations</h5><ul class="attendance-recommendations">';
-            data.recommendations.forEach((recommendation, index) => {
-                html += `<li>${escapeHtml(recommendation)}</li>`;
-            });
-            html += '</ul></div>';
-        }
-        
-        // Patterns (if provided as separate field)
-        if (data.patterns && typeof data.patterns === 'object') {
-            html += '<div class="attendance-section"><h5>📈 Attendance Patterns</h5><ul class="attendance-patterns">';
-            Object.keys(data.patterns).forEach(key => {
-                html += `<li><strong>${escapeHtml(key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()))}:</strong> ${escapeHtml(data.patterns[key])}</li>`;
-            });
-            html += '</ul></div>';
-        }
-        
-        html += '</div>';
-    }
     // Handle arrays
     else if (Array.isArray(data)) {
         if (data.length === 0) {
@@ -3233,167 +3310,6 @@ function formatWidgetData(data, widgetType) {
     // Handle objects with common structures
     else if (data.students || data.attendance || data.teams || data.performance || data.insights) {
         html += formatDataObject(data);
-    }
-    // FINAL CHECK: If data looks like workout but wasn't caught earlier, format it as workout
-    // This prevents workout data from falling through to formatDataObject (which shows JSON)
-    // CRITICAL: This must check BEFORE formatDataObject to prevent raw JSON display
-    else if (data && typeof data === 'object' && !Array.isArray(data) && (
-        data.workout_plan || (data.days && Array.isArray(data.days) && data.days.length > 0 && data.days[0].exercises) ||
-        data.exercises || data.strength_training || data.cardio ||
-        (data.response && typeof data.response === 'object' && (data.response.workout_plan || data.response.days))
-    )) {
-        console.log('🔄 Fallback: Detected workout data structure, formatting as workout', {
-            widgetType: widgetType,
-            hasWorkoutPlan: !!data.workout_plan,
-            hasDays: !!data.days,
-            hasExercises: !!data.exercises,
-            hasResponse: !!data.response,
-            dataKeys: Object.keys(data)
-        });
-        
-        // Handle nested response object (from general_response service)
-        let workoutData = data;
-        if (data.response && typeof data.response === 'object' && (data.response.workout_plan || data.response.days)) {
-            workoutData = data.response;
-        }
-        
-        // Re-run workout formatting with this data
-        // This is a safety net to catch workouts that weren't detected earlier
-        html = '<div class="widget-data-display"><div class="workout-plan">';
-        
-        if (workoutData.plan_name) {
-            html += `<h4 class="workout-plan-title">${escapeHtml(workoutData.plan_name)}</h4>`;
-        }
-        
-        // Handle week-long format (workout_plan or days)
-        if (workoutData.workout_plan && typeof workoutData.workout_plan === 'object') {
-            // Convert workout_plan format to days format
-            if (!workoutData.days) {
-                workoutData.days = [];
-                for (const [dayKey, dayData] of Object.entries(workoutData.workout_plan)) {
-                    if (typeof dayData === 'object') {
-                        workoutData.days.push({
-                            day: dayKey,
-                            focus: dayData.focus || '',
-                            exercises: dayData.exercises || [],
-                            activities: dayData.activities || []
-                        });
-                    }
-                }
-            }
-        }
-        
-        if (workoutData.days && Array.isArray(workoutData.days) && workoutData.days.length > 0) {
-            html += '<div class="workout-days">';
-            workoutData.days.forEach((dayData, dayIndex) => {
-                html += `<div class="workout-day">`;
-                html += `<h5 class="workout-day-title">📅 ${escapeHtml(dayData.day || `Day ${dayIndex + 1}`)}`;
-                if (dayData.focus) {
-                    html += ` - ${escapeHtml(dayData.focus)}`;
-                }
-                html += `</h5>`;
-                
-                if (dayData.exercises && Array.isArray(dayData.exercises) && dayData.exercises.length > 0) {
-                    html += '<ul class="workout-exercises">';
-                    dayData.exercises.forEach((exercise, exIndex) => {
-                        html += '<li class="workout-exercise">';
-                        if (typeof exercise === 'object' && exercise.name) {
-                            html += `<strong class="exercise-name">${escapeHtml(exercise.name)}</strong>`;
-                            if (exercise.sets && exercise.reps) {
-                                html += `<span class="exercise-sets-reps"> - ${exercise.sets} sets × ${exercise.reps} reps</span>`;
-                            }
-                            if (exercise.description) {
-                                html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
-                            }
-                        } else if (typeof exercise === 'string') {
-                            html += `<strong class="exercise-name">${escapeHtml(exercise)}</strong>`;
-                        }
-                        html += '</li>';
-                    });
-                    html += '</ul>';
-                }
-                
-                if (dayData.activities && Array.isArray(dayData.activities) && dayData.activities.length > 0) {
-                    html += '<div class="workout-activities"><h6>Activities:</h6><ul>';
-                    dayData.activities.forEach((activity, actIndex) => {
-                        html += `<li>${escapeHtml(activity)}</li>`;
-                    });
-                    html += '</ul></div>';
-                }
-                
-                html += '</div>';
-            });
-            html += '</div>';
-        } else if (workoutData.exercises || workoutData.strength_training || workoutData.cardio) {
-            // Standard workout format
-            if (workoutData.strength_training && Array.isArray(workoutData.strength_training) && workoutData.strength_training.length > 0) {
-                html += '<div class="workout-section"><h5 class="workout-section-title">💪 Strength Training</h5><ul class="workout-exercises">';
-                workoutData.strength_training.forEach((exercise, index) => {
-                    html += '<li class="workout-exercise">';
-                    html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
-                    const details = [];
-                    if (exercise.sets && exercise.reps) {
-                        details.push(`${exercise.sets} sets × ${exercise.reps} reps`);
-                    }
-                    if (exercise.weight) details.push(`Weight: ${escapeHtml(exercise.weight)}`);
-                    if (exercise.rest) details.push(`Rest: ${escapeHtml(exercise.rest)}`);
-                    if (exercise.duration) details.push(`Duration: ${escapeHtml(exercise.duration)}`);
-                    if (exercise.targeted_muscles) details.push(`Targets: ${escapeHtml(exercise.targeted_muscles)}`);
-                    if (details.length > 0) {
-                        html += `<div class="exercise-details"><span class="exercise-sets-reps">${details.join(' • ')}</span></div>`;
-                    }
-                    if (exercise.description) {
-                        html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
-                    }
-                    html += '</li>';
-                });
-                html += '</ul></div>';
-            }
-            
-            if (workoutData.cardio && Array.isArray(workoutData.cardio) && workoutData.cardio.length > 0) {
-                html += '<div class="workout-section"><h5 class="workout-section-title">🏃 Cardio / Conditioning</h5><ul class="workout-exercises">';
-                workoutData.cardio.forEach((exercise, index) => {
-                    html += '<li class="workout-exercise">';
-                    html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
-                    const details = [];
-                    if (exercise.duration) details.push(`Duration: ${escapeHtml(exercise.duration)}`);
-                    if (exercise.intensity) details.push(`Intensity: ${escapeHtml(exercise.intensity)}`);
-                    if (exercise.heart_rate_zone) details.push(`Heart Rate Zone: ${escapeHtml(exercise.heart_rate_zone)}`);
-                    if (exercise.frequency) details.push(`Frequency: ${escapeHtml(exercise.frequency)}`);
-                    if (details.length > 0) {
-                        html += `<div class="exercise-details"><span class="exercise-sets-reps">${details.join(' • ')}</span></div>`;
-                    }
-                    if (exercise.description) {
-                        html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
-                    }
-                    html += '</li>';
-                });
-                html += '</ul></div>';
-            }
-            
-            if (workoutData.exercises && Array.isArray(workoutData.exercises) && workoutData.exercises.length > 0) {
-                html += '<ul class="workout-exercises">';
-                workoutData.exercises.forEach((exercise, index) => {
-                    html += '<li class="workout-exercise">';
-                    html += `<strong class="exercise-name">${escapeHtml(exercise.name || 'Exercise ' + (index + 1))}</strong>`;
-                    if (exercise.sets && exercise.reps) {
-                        html += `<span class="exercise-sets-reps">${exercise.sets} sets × ${exercise.reps} reps</span>`;
-                    }
-                    if (exercise.duration) {
-                        html += `<span class="exercise-duration">${escapeHtml(exercise.duration)}</span>`;
-                    }
-                    if (exercise.description) {
-                        html += `<p class="exercise-description">${escapeHtml(exercise.description)}</p>`;
-                    }
-                    html += '</li>';
-                });
-                html += '</ul>';
-            }
-        }
-        
-        html += '</div></div>';
-        console.log('✅ Fallback workout HTML generated, length:', html.length);
-        return html;  // CRITICAL: Return here to prevent falling through to formatDataObject
     }
     // FINAL CHECK: If data looks like lesson plan but wasn't caught earlier, format it as lesson plan
     // This prevents lesson plan data from falling through to formatDataObject (which shows JSON)
@@ -3467,17 +3383,78 @@ function formatWidgetData(data, widgetType) {
         }
         // Add worksheets with answer key
         if (data.worksheets) {
-            let worksheetsText = '';
-            if (typeof data.worksheets === 'string') {
-                worksheetsText = data.worksheets;
-            } else if (Array.isArray(data.worksheets)) {
-                worksheetsText = data.worksheets.join('\n\n');
-            } else if (typeof data.worksheets === 'object') {
-                worksheetsText = data.worksheets.content || data.worksheets.worksheet || JSON.stringify(data.worksheets, null, 2);
-            }
-            if (worksheetsText) {
-                let worksheetsHtml = escapeHtml(worksheetsText).replace(/\n/g, '<br>');
-                html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+            // Check if worksheets is structured data (array of question objects)
+            if (Array.isArray(data.worksheets) && data.worksheets.length > 0 && typeof data.worksheets[0] === 'object' && data.worksheets[0] !== null) {
+                // Structured format: array of question objects
+                html += '<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5>';
+                html += '<div class="worksheet-student-section"><h6>Student Worksheet:</h6>';
+                
+                data.worksheets.forEach((question, index) => {
+                    if (question.question || question.text) {
+                        const questionText = question.question || question.text;
+                        const questionNumber = question.number || (index + 1);
+                        const rawOptions = question.options || question.mc_options || [];
+                        // Convert options to format expected by formatQuestionBlock: [{letter: 'A', text: '...'}, ...]
+                        const options = rawOptions.map((opt, optIdx) => {
+                            if (typeof opt === 'string') {
+                                // If option is a string like "A) Option text", parse it
+                                const match = opt.match(/^([A-D])\)\s+(.+)$/i);
+                                if (match) {
+                                    return { letter: match[1].toUpperCase(), text: match[2] };
+                                }
+                                // Otherwise, use letter based on index
+                                return { letter: String.fromCharCode(65 + optIdx), text: opt };
+                            } else if (typeof opt === 'object' && opt !== null) {
+                                // If option is an object with letter/text properties
+                                return {
+                                    letter: opt.letter || opt.option || String.fromCharCode(65 + optIdx),
+                                    text: opt.text || opt.value || String(opt)
+                                };
+                            }
+                            return { letter: String.fromCharCode(65 + optIdx), text: String(opt) };
+                        });
+                        
+                        html += formatQuestionBlock({
+                            number: String(questionNumber),
+                            text: questionText
+                        }, options);
+                    }
+                });
+                
+                // Add answer keys if available
+                const answerKeys = data.worksheets.filter(q => q.answer_key || q.answer).map((q, idx) => ({
+                    number: q.number || (idx + 1),
+                    text: q.answer_key || q.answer
+                }));
+                
+                if (answerKeys.length > 0) {
+                    html += '</div>'; // Close student worksheet section
+                    html += '<div class="worksheet-answer-key"><h6>Answer Key:</h6>';
+                    answerKeys.forEach(ak => {
+                        html += `<div class="answer-key-item"><strong>${ak.number}.</strong> ${escapeHtml(ak.text)}</div>`;
+                    });
+                    html += '</div>';
+                } else {
+                    html += '</div>'; // Close student worksheet section
+                }
+                
+                html += '</div>'; // Close worksheet-content
+                html += '</div>'; // Close worksheet-section
+            } else {
+                // String or array of strings format
+                let worksheetsText = '';
+                if (typeof data.worksheets === 'string') {
+                    worksheetsText = data.worksheets;
+                } else if (Array.isArray(data.worksheets)) {
+                    worksheetsText = data.worksheets.join('\n\n');
+                } else if (typeof data.worksheets === 'object') {
+                    worksheetsText = data.worksheets.content || data.worksheets.worksheet || JSON.stringify(data.worksheets, null, 2);
+                }
+                if (worksheetsText) {
+                    // Use the new formatWorksheets function for proper parsing
+                    let worksheetsHtml = formatWorksheets(worksheetsText);
+                    html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+                }
             }
         }
         // Add grading rubric
@@ -3491,7 +3468,8 @@ function formatWidgetData(data, widgetType) {
                 rubricsText = data.rubrics.content || data.rubrics.rubric || JSON.stringify(data.rubrics, null, 2);
             }
             if (rubricsText) {
-                let rubricsHtml = escapeHtml(rubricsText).replace(/\n/g, '<br>');
+                // Use the new formatRubrics function for proper table parsing
+                let rubricsHtml = formatRubrics(rubricsText);
                 html += `<div class="lesson-section rubric-section"><h5>📋 Grading Rubric</h5><div class="rubric-content">${rubricsHtml}</div></div>`;
             }
         }
@@ -6738,16 +6716,33 @@ function showVoicePreview(voice) {
 
 // Helper function to get message text from stored ID
 function speakMessageFromId(messageId) {
-    const text = window[`msg_${messageId}`];
-    if (!text) {
-        console.error('Message not found:', messageId);
+    // Find the message div first
+    const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (!messageDiv) {
+        console.error('Message div not found:', messageId);
         return;
     }
+    
+    // Try to get text from global storage first (for backward compatibility)
+    let text = window[`msg_${messageId}`];
+    
+    // If not in global storage, extract text from DOM
+    if (!text) {
+        const messageContent = messageDiv.querySelector('.message-content p');
+        if (messageContent) {
+            text = messageContent.textContent || messageContent.innerText;
+        } else {
+            console.error('Message content not found in DOM for:', messageId);
+            return;
+        }
+    }
+    
     // Find the button that was clicked
-    const messageDiv = document.querySelector(`[data-message-id="${messageId}"]`);
-    const button = messageDiv?.querySelector('.message-speaker-btn');
+    const button = messageDiv.querySelector('.message-speaker-btn');
     if (button) {
         speakMessage(button, text);
+    } else {
+        console.error('Speaker button not found for message:', messageId);
     }
 }
 
@@ -6759,10 +6754,11 @@ if (!window.audioManager) {
         currentUtterance: null,
         currentAudioUrl: null,
         stopAll: function() {
-            // Stop any playing audio
-            if (this.currentAudio) {
-                try {
-                    // Remove all event listeners to prevent restart
+            // CRITICAL: Stop ALL audio elements, not just the one in currentAudio
+            // This prevents multiple audio streams from playing simultaneously
+            try {
+                // First, stop the managed audio
+                if (this.currentAudio) {
                     const audio = this.currentAudio;
                     // Remove handlers
                     if (audio._handleEnded) {
@@ -6781,10 +6777,24 @@ if (!window.audioManager) {
                     // Load empty source to fully stop and prevent any events
                     audio.src = '';
                     audio.load(); // Force reload with empty source
-                } catch (e) {
-                    console.warn('Error stopping audio:', e);
+                    this.currentAudio = null;
                 }
-                this.currentAudio = null;
+                
+                // Also stop any other audio elements that might be playing
+                // Find all audio elements in the document and stop them
+                const allAudioElements = document.querySelectorAll('audio');
+                allAudioElements.forEach(audioEl => {
+                    if (!audioEl.paused) {
+                        try {
+                            audioEl.pause();
+                            audioEl.currentTime = 0;
+                        } catch (e) {
+                            // Ignore errors - audio might not be controllable
+                        }
+                    }
+                });
+            } catch (e) {
+                console.warn('Error stopping audio:', e);
             }
             // Revoke audio URL if exists
             if (this.currentAudioUrl) {
@@ -6808,19 +6818,22 @@ if (!window.audioManager) {
             }
             // Reset button states
             if (this.currentButton) {
-                const originalText = this.currentButton.getAttribute('data-original-text') || '🔊';
+                // Always reset to speaker icon
                 this.currentButton.classList.remove('playing');
-                this.currentButton.textContent = originalText;
+                this.currentButton.textContent = '🔊';
                 // Clear stored audio URL from button
                 this.currentButton.removeAttribute('data-audio-url');
                 this.currentButton = null;
             }
-            // Reset all playing buttons
-            document.querySelectorAll('.message-speaker-btn.playing').forEach(btn => {
-                const originalText = btn.getAttribute('data-original-text') || '🔊';
+            // Reset all playing buttons - always reset to speaker icon
+            const playingButtons = document.querySelectorAll('.message-speaker-btn.playing');
+            console.log('🔄 stopAll: Resetting', playingButtons.length, 'playing buttons to 🔊');
+            playingButtons.forEach(btn => {
+                console.log('🔄 stopAll: Resetting button, current textContent:', btn.textContent);
                 btn.classList.remove('playing');
-                btn.textContent = originalText;
+                btn.textContent = '🔊';
                 btn.removeAttribute('data-audio-url');
+                console.log('✅ stopAll: Button reset, new textContent:', btn.textContent);
             });
         }
     };
@@ -6861,60 +6874,94 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
     // Clean markdown formatting from text before sending to TTS
     text = cleanTextForTTS(text);
     
-    // Stop any currently playing audio first
-    window.audioManager.stopAll();
-    
-    // User explicitly clicked speaker button - clear manually paused flag
-    window.audioManager.manuallyPaused = false;
-    sessionStorage.removeItem('audio_manually_paused');
-    
     // Update button state
     const originalText = button.textContent.trim();
     button.setAttribute('data-original-text', originalText);
     const isPlaying = button.classList.contains('playing');
     
-    // If this button is already playing, pause/stop it
-    if (isPlaying && window.audioManager.currentButton === button) {
+    // Get messageId for this button to check if audio is already playing for this message
+    const messageDiv = button.closest('[data-message-id]');
+    const messageId = messageDiv ? messageDiv.getAttribute('data-message-id') : null;
+    
+    // CRITICAL: Check if there's already audio playing for this button/message BEFORE creating new audio
+    // This handles both: button with 'playing' class AND autoplay audio that's still playing
+    const currentAudio = window.audioManager.currentAudio;
+    const currentButton = window.audioManager.currentButton;
+    const isCurrentButton = currentButton === button;
+    const isCurrentMessage = currentAudio && currentAudio._messageId && messageId && currentAudio._messageId === messageId;
+    const isAudioPlaying = currentAudio && !currentAudio.paused && currentAudio.currentTime > 0 && !currentAudio.ended;
+    
+    // If audio is already playing for this button/message, pause/stop it
+    if ((isPlaying && isCurrentButton) || (isAudioPlaying && (isCurrentButton || isCurrentMessage))) {
+        console.log('⏸️ Pausing existing audio for this button/message', {
+            isPlaying,
+            isCurrentButton,
+            isCurrentMessage,
+            isAudioPlaying,
+            messageId,
+            currentMessageId: currentAudio?._messageId
+        });
+        
         // Mark that audio was manually paused - prevent autoplay from restarting
         window.audioManager.manuallyPaused = true;
         sessionStorage.setItem('audio_manually_paused', 'true');
         
         // Fully stop the audio
-        if (window.audioManager.currentAudio) {
+        if (currentAudio) {
             try {
-                const audio = window.audioManager.currentAudio;
                 // Remove event listeners to prevent auto-restart
-                if (audio._handleEnded) {
-                    audio.onended = null;
-                    audio._handleEnded = null;
+                if (currentAudio._handleEnded) {
+                    currentAudio.onended = null;
+                    currentAudio._handleEnded = null;
                 }
-                if (audio._handleError) {
-                    audio.onerror = null;
-                    audio._handleError = null;
+                if (currentAudio._handleError) {
+                    currentAudio.onerror = null;
+                    currentAudio._handleError = null;
                 }
-                audio.onplay = null;
-                audio.pause();
-                audio.currentTime = 0;
+                currentAudio.onplay = null;
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
                 // Clear source to fully stop
-                audio.src = '';
-                audio.load(); // Force reload with empty source
+                currentAudio.src = '';
+                currentAudio.load(); // Force reload with empty source
             } catch (e) {
                 console.warn('Error pausing audio:', e);
             }
         }
         window.audioManager.stopAll();
+        // CRITICAL: Always reset to speaker icon when paused
+        button.classList.remove('playing');
+        button.textContent = '🔊';
+        button.disabled = false;
         return;
     }
     
+    // Stop any OTHER currently playing audio (not for this button)
+    window.audioManager.stopAll();
+    
+    // Clear pause flag - if user clicked speaker button, they want to play
+    // If autoplay, the pause flag was already checked in addMessageToChat before calling this
+    window.audioManager.manuallyPaused = false;
+    sessionStorage.removeItem('audio_manually_paused');
+    
+    // CRITICAL: Create audio element IMMEDIATELY (synchronously) after pause check
+    // This must happen before any async operations or closures that might reference it
+    const audio = new Audio();
+    // CRITICAL: Assign to manager immediately to ensure it's always available
+    window.audioManager.currentAudio = audio;
+    
     // Check if there's a stored audio for this button (from a previous autoplay failure)
+    // This is a different scenario - user clicks button after autoplay was blocked
     const storedAudioUrl = button.getAttribute('data-audio-url');
     if (storedAudioUrl && window.audioManager.currentAudio) {
         // Check if this is the same button that had autoplay blocked
         const storedButton = window.audioManager.currentButton;
         if (storedButton === button || (storedButton && storedButton.getAttribute('data-audio-url') === storedAudioUrl)) {
             // Try to play the stored audio (user clicked after autoplay was blocked)
-            const audio = window.audioManager.currentAudio;
-            if (audio && (audio.readyState >= 2 || audio.readyState === 0)) { // HAVE_CURRENT_DATA or HAVE_NOTHING
+            // Use the audio element we just created, but set its src to the stored URL
+            if (audio && (audio.readyState >= 2 || audio.readyState === 0 || !audio.src)) {
+                // Set the stored audio URL as the source
+                audio.src = storedAudioUrl;
                 // Mark this button as the current one
                 window.audioManager.currentButton = button;
                 button.classList.add('playing');
@@ -6936,17 +6983,18 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
                     }
                     // Continue with normal flow below to fetch new audio
                     // Reset button state first
-                    const originalText = button.getAttribute('data-original-text') || '🔊';
+                    // Always reset to speaker icon
                     button.classList.remove('playing');
-                    button.textContent = originalText;
+                    button.textContent = '🔊';
                 });
-                // If audio is ready, try to play it and return
-                if (audio.readyState >= 2 || audio.readyState === 0) {
+                // If we're using stored audio, return here (don't fetch new)
+                if (audio.src === storedAudioUrl) {
                     return;
                 }
             } else {
                 // Audio not ready, clear it and fetch new
                 button.removeAttribute('data-audio-url');
+                // Clear currentAudio if it exists
                 if (window.audioManager.currentAudio === audio) {
                     window.audioManager.currentAudio = null;
                 }
@@ -6954,16 +7002,19 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
         }
     }
     
+    // Audio element already created and assigned to manager at the start of function
     // Mark this button as the current one
     window.audioManager.currentButton = button;
+    // Store messageId from button's parent message div for later retrieval (messageDiv already declared above)
+    if (messageDiv) {
+        // messageId already extracted above, reuse it
+        window.audioManager.currentMessageId = messageId;
+        audio._messageId = messageId; // Also store on audio element
+    }
+    console.log('🔊 Setting button to ⏸️ - speakMessage called with autoplay:', autoplay, 'button current text:', button.textContent);
     button.classList.add('playing');
     button.textContent = '⏸️';
     button.disabled = true;
-    
-    // CRITICAL: Create audio element IMMEDIATELY (synchronously) to preserve user interaction context
-    // This must happen before any async operations
-    const audio = new Audio();
-    window.audioManager.currentAudio = audio;
     
     try {
         // Get voice settings from localStorage
@@ -7161,10 +7212,90 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
                 console.warn(`⚠️ Audio may have ended prematurely: duration=${duration.toFixed(2)}s but stopped at ${currentTime.toFixed(2)}s`);
             }
             
-            const originalText = button.getAttribute('data-original-text') || '🔊';
-            button.classList.remove('playing');
-            button.textContent = originalText;
-            button.disabled = false;
+            // CRITICAL: Always reset to speaker icon
+            // Strategy: Try multiple methods to find the button
+            // 1. Button from closure (if still in DOM)
+            // 2. window.audioManager.currentButton (if still in DOM)
+            // 3. Find by messageId stored on audio element
+            // 4. Find by messageId from window.audioManager
+            // 5. Search all buttons showing ⏸️
+            let buttonToReset = null;
+            
+            // Try closure button first
+            if (button && button.isConnected) {
+                buttonToReset = button;
+            }
+            // Try manager button
+            else if (window.audioManager?.currentButton && window.audioManager.currentButton.isConnected) {
+                buttonToReset = window.audioManager.currentButton;
+            }
+            // Try finding by messageId from audio element
+            else if (audio._messageId) {
+                const messageDiv = document.querySelector(`[data-message-id="${audio._messageId}"]`);
+                if (messageDiv) {
+                    buttonToReset = messageDiv.querySelector('.message-speaker-btn');
+                }
+            }
+            // Try finding by messageId from manager
+            else if (window.audioManager?.currentMessageId) {
+                const messageDiv = document.querySelector(`[data-message-id="${window.audioManager.currentMessageId}"]`);
+                if (messageDiv) {
+                    buttonToReset = messageDiv.querySelector('.message-speaker-btn');
+                }
+            }
+            
+            console.log('🔄 handleEnded: Resetting button to 🔊', {
+                hasClosureButton: !!button,
+                closureButtonInDOM: button ? button.isConnected : false,
+                hasManagerButton: !!window.audioManager?.currentButton,
+                managerButtonInDOM: window.audioManager?.currentButton ? window.audioManager.currentButton.isConnected : false,
+                hasMessageId: !!(audio._messageId || window.audioManager?.currentMessageId),
+                messageId: audio._messageId || window.audioManager?.currentMessageId,
+                buttonToReset: !!buttonToReset,
+                buttonToResetInDOM: buttonToReset ? buttonToReset.isConnected : false,
+                currentTextContent: buttonToReset?.textContent?.trim()
+            });
+            
+            if (buttonToReset && buttonToReset.isConnected) {
+                // Reset this specific button - use both textContent and innerHTML to ensure it updates
+                buttonToReset.classList.remove('playing');
+                buttonToReset.textContent = '🔊';
+                buttonToReset.innerHTML = '🔊'; // Also set innerHTML to ensure visual update
+                buttonToReset.disabled = false;
+                // Force a reflow to ensure the change is visible
+                void buttonToReset.offsetWidth;
+                console.log('✅ handleEnded: Button reset to 🔊, new textContent:', buttonToReset.textContent.trim(), 'innerHTML:', buttonToReset.innerHTML.trim());
+            } else {
+                console.warn('⚠️ handleEnded: Could not find button in DOM, will search all buttons...');
+            }
+            
+            // CRITICAL: Also reset ALL message speaker buttons that show ⏸️ (safety net)
+            // The .playing class might be removed before handleEnded runs, so check textContent instead
+            // Search everywhere, not just chatMessages, in case buttons are in different containers
+            const allMessageButtons = document.querySelectorAll('.message-speaker-btn');
+            console.log('🔄 handleEnded: Checking', allMessageButtons.length, 'total message speaker buttons in document');
+            let resetCount = 0;
+            allMessageButtons.forEach(btn => {
+                // Reset any button that shows ⏸️, regardless of class
+                const textContent = btn.textContent.trim();
+                const isPauseIcon = textContent === '⏸️';
+                const isVisible = btn.offsetParent !== null; // Check if button is visible (not hidden)
+                if (isPauseIcon && isVisible) {
+                    console.log('🔄 handleEnded: Found visible button with ⏸️, resetting to 🔊');
+                    btn.classList.remove('playing');
+                    btn.textContent = '🔊';
+                    btn.disabled = false;
+                    resetCount++;
+                }
+            });
+            if (resetCount > 0) {
+                console.log('✅ handleEnded: Reset', resetCount, 'visible buttons from ⏸️ to 🔊');
+            }
+            
+            // Clear the current button reference
+            if (window.audioManager) {
+                window.audioManager.currentButton = null;
+            }
             // Revoke URL after a delay to ensure audio is fully done
             setTimeout(() => {
                 if (window.audioManager.currentAudioUrl === audioUrl) {
@@ -7187,9 +7318,9 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
                 return; // Audio was stopped, don't process error
             }
             console.error('Error playing audio:', e);
-            const originalText = button.getAttribute('data-original-text') || '🔊';
+            // Always reset to speaker icon
             button.classList.remove('playing');
-            button.textContent = originalText;
+            button.textContent = '🔊';
             button.disabled = false;
             // Revoke URL after a delay
             setTimeout(() => {
@@ -7259,9 +7390,9 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
                     if (playError.name === 'NotAllowedError' || playError.name === 'NotSupportedError') {
                         console.log('⚠️ Autoplay blocked - user interaction may have expired. Audio ready for manual play.');
                         // Don't show error - just reset button state but keep audio ready
-                        const originalText = button.getAttribute('data-original-text') || '🔊';
+                        // Always reset to speaker icon
                         button.classList.remove('playing');
-                        button.textContent = originalText;
+                        button.textContent = '🔊';
                         button.disabled = false;
                         // Store audio URL in button so user can click to play
                         button.setAttribute('data-audio-url', audioUrl);
@@ -7270,9 +7401,9 @@ async function speakMessage(button, text, autoplay = false, useFullText = false)
                     } else {
                         // Other errors - log and reset
                         console.error('Error playing audio:', playError);
-                        const originalText = button.getAttribute('data-original-text') || '🔊';
+                        // Always reset to speaker icon
                         button.classList.remove('playing');
-                        button.textContent = originalText;
+                        button.textContent = '🔊';
                         button.disabled = false;
                         if (window.audioManager.currentAudio === audio) {
                             window.audioManager.currentAudio = null;
@@ -7845,6 +7976,8 @@ function logout() {
         sessionStorage.removeItem('dashboard_session_id');
         sessionStorage.removeItem('widgets_cleared_for_session');
         sessionStorage.removeItem('guest_name'); // Clear guest name on logout
+        sessionStorage.removeItem('audio_manually_paused'); // Clear pause flag on logout
+        sessionStorage.removeItem('user_interaction_detected'); // Clear interaction flag on logout
         
         window.location.href = '/';
     }
