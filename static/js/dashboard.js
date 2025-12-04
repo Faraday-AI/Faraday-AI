@@ -145,6 +145,18 @@ async function initializeDashboard() {
         // Check authentication first
         const token = localStorage.getItem('access_token');
         
+        // Show/hide guest mode notice in opening prompt
+        const guestModeNotice = document.getElementById('guestModeNotice');
+        if (guestModeNotice) {
+            if (!token) {
+                // Guest user - show the notice
+                guestModeNotice.style.display = 'block';
+            } else {
+                // Authenticated user - hide the notice
+                guestModeNotice.style.display = 'none';
+            }
+        }
+        
         // Check for new session (both guest and authenticated users)
         // Use a timestamp-based approach: if last session was more than 1 hour ago, clear widgets
         // This handles both tab closes and long breaks
@@ -322,11 +334,15 @@ function hideLoginOverlay() {
     // Allow limited guest access
     setupEventListeners();
     initializeVoiceRecognition();
-    // Show a message that features are limited
-    addMessageToChat('ai', 'Welcome! You\'re viewing the dashboard in guest mode. Some features may be limited. Please log in for full access.');
+    
+    // Show guest mode notice in opening prompt (no separate message needed)
+    const guestModeNotice = document.getElementById('guestModeNotice');
+    if (guestModeNotice) {
+        guestModeNotice.style.display = 'block';
+    }
     
     // Setup opening prompt autoplay for guest users
-    // Delay slightly to ensure DOM is fully ready and the welcome message is rendered
+    // Delay slightly to ensure DOM is fully ready
     setTimeout(() => setupOpeningPrompt(), 500);
 }
 
@@ -394,6 +410,12 @@ async function loadUserInfo() {
         const name = currentUser.first_name ? `${currentUser.first_name} ${currentUser.last_name || ''}`.trim() : email;
         document.getElementById('userName').textContent = name || email || 'User';
         
+        // Hide guest mode notice for authenticated users
+        const guestModeNotice = document.getElementById('guestModeNotice');
+        if (guestModeNotice) {
+            guestModeNotice.style.display = 'none';
+        }
+        
         // Update opening prompt with personalized greeting if user has a name
         const firstName = currentUser.first_name || (name ? name.split(' ')[0] : null);
         updateOpeningPromptForAuthenticatedUser(firstName);
@@ -408,6 +430,13 @@ async function loadUserInfo() {
                 document.getElementById('userName').textContent = email;
                 // Try to extract first name from email (before @) or use email as fallback
                 const emailName = email.split('@')[0].split('.')[0]; // Get part before @ and before first dot
+                
+                // Hide guest mode notice for authenticated users
+                const guestModeNotice = document.getElementById('guestModeNotice');
+                if (guestModeNotice) {
+                    guestModeNotice.style.display = 'none';
+                }
+                
                 updateOpeningPromptForAuthenticatedUser(emailName || null);
             } catch (e) {
                 document.getElementById('userName').textContent = 'Guest';
@@ -736,44 +765,86 @@ function setupOpeningPrompt() {
     }
     
     // Extract the opening prompt text from the dashboard
-    // Find the first AI message in the chat (the opening prompt)
-    const chatMessages = document.getElementById('chatMessages');
-    if (!chatMessages) {
-        originalConsole.warn('⚠️ Chat messages container not found, retrying in 500ms...');
-        // Retry after a short delay in case DOM isn't ready yet
-        setTimeout(() => setupOpeningPrompt(), 500);
-        return;
-    }
+    // For guest users, try to find the openingPromptContent element directly
+    // For authenticated users, find the first AI message in the chat
+    let messageContent = null;
     
-    const firstAIMessage = chatMessages.querySelector('.message.ai-message');
-    if (!firstAIMessage) {
-        originalConsole.warn('⚠️ Opening prompt message not found, retrying in 500ms...');
-        // Retry after a short delay in case DOM isn't ready yet
-        setTimeout(() => setupOpeningPrompt(), 500);
-        return;
-    }
-    
-    const messageContent = firstAIMessage.querySelector('.message-content');
-    if (!messageContent) {
-        originalConsole.warn('⚠️ Message content not found');
-        return;
+    if (isGuest) {
+        // For guest users, use the openingPromptContent element directly
+        messageContent = document.getElementById('openingPromptContent');
+        if (!messageContent) {
+            originalConsole.warn('⚠️ Opening prompt content not found for guest, retrying in 500ms...');
+            originalConsole.warn('⚠️ Debug: Available elements:', {
+                chatMessages: !!document.getElementById('chatMessages'),
+                openingPromptContent: !!document.getElementById('openingPromptContent')
+            });
+            setTimeout(() => setupOpeningPrompt(), 500);
+            return;
+        }
+        originalConsole.log('✅ Found openingPromptContent element for guest user');
+    } else {
+        // For authenticated users, find the first AI message in the chat
+        const chatMessages = document.getElementById('chatMessages');
+        if (!chatMessages) {
+            originalConsole.warn('⚠️ Chat messages container not found, retrying in 500ms...');
+            setTimeout(() => setupOpeningPrompt(), 500);
+            return;
+        }
+        
+        const firstAIMessage = chatMessages.querySelector('.message.ai-message');
+        if (!firstAIMessage) {
+            originalConsole.warn('⚠️ Opening prompt message not found, retrying in 500ms...');
+            setTimeout(() => setupOpeningPrompt(), 500);
+            return;
+        }
+        
+        messageContent = firstAIMessage.querySelector('.message-content');
+        if (!messageContent) {
+            originalConsole.warn('⚠️ Message content not found');
+            return;
+        }
     }
     
     originalConsole.log('✅ Found opening prompt message, extracting text...');
+    originalConsole.log('🔍 Debug: isGuest =', isGuest, 'messageContent found:', !!messageContent);
     
-    // For TTS autoplay, ONLY use the first greeting sentence
-    // Extract just the first paragraph (the greeting) for autoplay
-    const firstParagraph = messageContent.querySelector('p');
+    // Extract text based on user type
     let welcomeMessage = '';
     
-    if (firstParagraph) {
-        // Get just the first paragraph text (the greeting)
-        welcomeMessage = firstParagraph.textContent || firstParagraph.innerText || '';
+    if (isGuest) {
+        originalConsole.log('👤 Guest user path: Extracting FULL opening prompt text...');
+        // For guest users: Extract ALL text from the opening prompt (full message)
+        // Clone the content to avoid modifying the original
+        const contentClone = messageContent.cloneNode(true);
+        // Remove script and style tags
+        const scripts = contentClone.querySelectorAll('script, style');
+        scripts.forEach(el => el.remove());
+        // Remove the timestamp element if it exists
+        const timestamp = contentClone.querySelector('.message-time');
+        if (timestamp) {
+            timestamp.remove();
+        }
+        // Get all text content
+        welcomeMessage = contentClone.textContent || contentClone.innerText || '';
         welcomeMessage = welcomeMessage.trim();
-        originalConsole.log('📝 Extracted first paragraph for TTS autoplay:', welcomeMessage.substring(0, 100));
+        // Remove the timestamp text if present (fallback)
+        welcomeMessage = welcomeMessage.replace(/Just now\s*$/i, '').trim();
+        originalConsole.log('📝 Extracted FULL guest opening prompt for TTS autoplay:', welcomeMessage.length, 'chars');
+        originalConsole.log('📝 First 200 chars:', welcomeMessage.substring(0, 200));
+    } else {
+        originalConsole.log('🔐 Authenticated user path: Extracting first paragraph only...');
+        // For authenticated users: ONLY use the first greeting sentence
+        // Extract just the first paragraph (the greeting) for autoplay
+        const firstParagraph = messageContent.querySelector('p');
+        if (firstParagraph) {
+            // Get just the first paragraph text (the greeting)
+            welcomeMessage = firstParagraph.textContent || firstParagraph.innerText || '';
+            welcomeMessage = welcomeMessage.trim();
+            originalConsole.log('📝 Extracted first paragraph for TTS autoplay:', welcomeMessage.substring(0, 100));
+        }
     }
     
-    // If we couldn't extract the first paragraph, use a fallback
+    // If we couldn't extract text, use a fallback
     if (!welcomeMessage || welcomeMessage.length < 50) {
         welcomeMessage = "Hello, I'm Jasper, your comprehensive AI assistant for Physical Education, what can I do for you today?";
         originalConsole.warn('⚠️ Using fallback opening prompt');
@@ -849,8 +920,17 @@ function setupOpeningPrompt() {
     // Start pre-fetching immediately (non-blocking)
     preFetchAudio();
     
+    // Track if opening prompt is currently playing to prevent double playback
+    let isOpeningPromptPlaying = false;
+    
     // One-time click listener for the entire document
     const handleFirstClick = async (event) => {
+        // Prevent double-click or rapid clicks from causing double playback
+        if (isOpeningPromptPlaying) {
+            originalConsole.warn('⚠️ Opening prompt already playing, ignoring click');
+            return;
+        }
+        
         // Remove the listener immediately so it only fires once
         document.removeEventListener('click', handleFirstClick, true);
         document.removeEventListener('touchstart', handleFirstClick, true);
@@ -860,14 +940,26 @@ function setupOpeningPrompt() {
         
         originalConsole.log('🎵 User clicked - playing opening prompt...');
         
+        // Set flag to prevent double playback
+        isOpeningPromptPlaying = true;
+        
+        // CRITICAL: Stop ALL existing audio before playing opening prompt
+        // This prevents double playback if autoplay or other audio is already playing
+        if (window.audioManager) {
+            window.audioManager.stopAll();
+        }
+        
+        // Small delay to ensure all audio is stopped before starting new audio
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
         // If audio is pre-generated, play it immediately (FAST PATH)
         if (preGeneratedAudio && preGeneratedAudioUrl) {
             try {
                 originalConsole.log('⚡ Using pre-generated audio (instant playback)');
                 
-                // Stop any existing audio
-                if (window.audioManager && window.audioManager.currentAudio) {
-                    window.audioManager.currentAudio.pause();
+                // Double-check: Stop any audio that might have started during the delay
+                if (window.audioManager) {
+                    window.audioManager.stopAll();
                 }
                 
                 // Set up audio manager
@@ -877,6 +969,7 @@ function setupOpeningPrompt() {
                 
                 // Set up event handlers
                 const handleEnded = () => {
+                    isOpeningPromptPlaying = false; // Reset flag when audio ends
                     tempButton.classList.remove('playing');
                     tempButton.textContent = '🔊';
                     tempButton.disabled = false;
@@ -907,25 +1000,60 @@ function setupOpeningPrompt() {
                     }).catch((error) => {
                         originalConsole.warn('⚠️ Autoplay blocked for pre-generated audio:', error);
                         tempButton.textContent = '🔊';
+                        // Fall through to on-demand generation if pre-generated fails
+                        playFallbackAudio();
                     });
+                } else {
+                    // If play() didn't return a promise, audio started immediately
+                    originalConsole.log('✅ Opening prompt playing (pre-generated, no promise)');
+                    tempButton.classList.add('playing');
+                    tempButton.textContent = '⏸️';
                 }
                 return; // Success - exit early
             } catch (error) {
                 originalConsole.warn('⚠️ Error playing pre-generated audio, falling back to on-demand generation:', error);
                 // Fall through to on-demand generation
+                playFallbackAudio();
             }
+        } else {
+            // No pre-generated audio, use fallback
+            playFallbackAudio();
         }
         
         // FALLBACK: Generate audio on-demand (slower but works if pre-fetch failed)
-        originalConsole.log('🔄 Generating opening prompt audio on-demand...');
-        try {
-            // Use the FULL welcome message (not truncated) to ensure complete message
-            // speakMessage will handle truncation based on useFullText parameter
-            await speakMessage(tempButton, welcomeMessage, true, true); // Use full text for opening prompt
-            originalConsole.log('✅ Opening prompt played successfully (on-demand)');
-        } catch (error) {
-            // If autoplay fails, that's okay - user can click speaker button later
-            originalConsole.log('⚠️ Opening prompt autoplay blocked, but audio is ready. Error:', error);
+        async function playFallbackAudio() {
+            // Double-check flag to prevent double playback
+            if (!isOpeningPromptPlaying) {
+                originalConsole.warn('⚠️ Opening prompt flag reset, aborting fallback playback');
+                return;
+            }
+            
+            // CRITICAL: Stop ALL existing audio before playing fallback
+            if (window.audioManager) {
+                window.audioManager.stopAll();
+            }
+            
+            // Small delay to ensure all audio is stopped
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            originalConsole.log('🔄 Generating opening prompt audio on-demand...');
+            try {
+                // Use the FULL welcome message (not truncated) to ensure complete message
+                // speakMessage will handle truncation based on useFullText parameter
+                await speakMessage(tempButton, welcomeMessage, true, true); // Use full text for opening prompt
+                originalConsole.log('✅ Opening prompt played successfully (on-demand)');
+                
+                // Reset flag when audio completes (speakMessage handles this via audioManager)
+                // But also set a timeout as backup
+                setTimeout(() => {
+                    isOpeningPromptPlaying = false;
+                }, 1000);
+            } catch (error) {
+                // If autoplay fails, reset flag
+                isOpeningPromptPlaying = false;
+                // If autoplay fails, that's okay - user can click speaker button later
+                originalConsole.log('⚠️ Opening prompt autoplay blocked, but audio is ready. Error:', error);
+            }
         }
         
         // Clean up temp button after a delay

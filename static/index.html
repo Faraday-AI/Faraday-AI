@@ -245,6 +245,153 @@
             font-weight: 500;
         }
 
+        /* Carousel Styles */
+        .overview-carousel {
+            position: relative;
+            width: 100%;
+            margin-top: 2rem;
+        }
+
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            min-height: 300px;
+        }
+
+        .carousel-slide {
+            display: none;
+            padding: 0 1rem;
+            box-sizing: border-box;
+            animation: fadeIn 0.6s ease-in-out;
+        }
+
+        .carousel-slide.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .carousel-navigation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2.5rem;
+            padding: 1rem 0;
+        }
+
+        .carousel-button {
+            background: rgba(26, 115, 232, 0.2);
+            border: 2px solid rgba(26, 115, 232, 0.5);
+            color: #1a73e8;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .carousel-button:hover:not(:disabled) {
+            background: rgba(26, 115, 232, 0.4);
+            border-color: #1a73e8;
+            transform: scale(1.1);
+        }
+
+        .carousel-button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .carousel-dots {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .carousel-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid rgba(26, 115, 232, 0.5);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .carousel-dot.active {
+            background: #1a73e8;
+            border-color: #1a73e8;
+            transform: scale(1.3);
+        }
+
+        .carousel-dot:hover {
+            background: rgba(26, 115, 232, 0.6);
+            border-color: #1a73e8;
+        }
+
+        .carousel-slide-number {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9em;
+            margin-top: 1rem;
+        }
+
+        .carousel-voice-control {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .voice-button {
+            background: rgba(26, 115, 232, 0.2);
+            border: 2px solid rgba(26, 115, 232, 0.5);
+            color: #1a73e8;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            transition: all 0.3s ease;
+            font-weight: normal;
+            padding: 0;
+        }
+
+        .voice-button:hover {
+            background: rgba(26, 115, 232, 0.4);
+            border-color: #1a73e8;
+            transform: scale(1.1);
+        }
+
+        .voice-button.active {
+            background: rgba(26, 115, 232, 0.6);
+            border-color: #1a73e8;
+            color: #fff;
+        }
+
+        .voice-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         @media (max-width: 768px) {
             .platform-overview {
                 padding: 3rem 1.5rem;
@@ -284,6 +431,21 @@
 
             .stat-label {
                 font-size: 0.85em;
+            }
+
+            .carousel-button {
+                width: 40px;
+                height: 40px;
+                font-size: 1em;
+            }
+
+            .carousel-dot {
+                width: 10px;
+                height: 10px;
+            }
+
+            .carousel-slide {
+                padding: 0 0.5rem;
             }
         }
 
@@ -1523,74 +1685,123 @@
                 <h2 class="overview-title">The Complete AI Ecosystem for Modern Education</h2>
                 <p class="overview-subtitle">AI Assistants for Every Role • Save 10-15 Hours Per Week • Transform Your Entire School</p>
                 
-                <div class="overview-content">
-                    <p class="overview-paragraph">
-                        <strong>Welcome to the future of education.</strong> Faraday AI isn't just a platform—it's a complete AI ecosystem designed to transform every aspect of your school. From teachers and administrators to students and parents, everyone gets their own intelligent assistant tailored to their unique needs. Imagine a school where every teacher has an AI partner for their subject, every student has a personalized tutor, every administrator has an AI assistant, and every parent has a dedicated liaison—all working together seamlessly. That's Faraday AI.
-                    </p>
+                <div class="overview-carousel">
+                    <div class="carousel-container" id="overviewCarousel">
+                        <!-- Slide 1: Introduction -->
+                        <div class="carousel-slide active">
+                            <div class="overview-content">
+                                <p class="overview-paragraph">
+                                    <strong>Welcome to the future of education.</strong> Faraday AI isn't just a platform—it's a complete AI ecosystem designed to transform every aspect of your school. From teachers and administrators to students and parents, everyone gets their own intelligent assistant tailored to their unique needs. Imagine a school where every teacher has an AI partner for their subject, every student has a personalized tutor, every administrator has an AI assistant, and every parent has a dedicated liaison—all working together seamlessly. That's Faraday AI.
+                                </p>
+                            </div>
+                        </div>
 
-                    <h3 class="overview-section-title">AI Assistants for Every Teacher, Every Subject</h3>
-                    <p class="overview-paragraph">
-                        <strong>Have a real conversation with your AI teaching partner.</strong> This isn't typing commands or clicking through menus—it's having a natural conversation with an intelligent avatar that understands context, remembers your preferences, and controls everything through dialogue. Simply talk to your AI assistant like you would talk to a colleague: "Create a lesson plan on quadratic equations for my Algebra 2 class," or "Show me which students are struggling with fractions," or "Generate a rubric for the lab report due Friday." Your assistant understands what you need and handles it instantly, controlling all 39 widgets, accessing all student data, and managing your entire classroom through conversation.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Subject-specific AI assistants that know your curriculum inside and out.</strong> Whether you teach Math, Science, History, Language Arts, Physical Education, or any other subject, you have a dedicated AI assistant with an avatar that becomes your teaching partner. Our <strong>Math Teacher Assistant</strong> generates problem sets, creates visualizations, and provides step-by-step explanations—all through natural conversation. Our <strong>Science Teacher Assistant</strong> helps plan labs, explains complex concepts, and suggests hands-on activities—just ask, and it handles everything. Our <strong>History Teacher Assistant</strong> curates primary sources, creates engaging timelines, and helps students analyze historical events—all while you have a conversation. Our <strong>Language Arts Assistant</strong> supports writing instruction, literature analysis, and grammar lessons—through dialogue, not data entry. And our <strong>Physical Education Assistant</strong> manages 39 specialized widgets covering everything from lesson planning to safety management—all controlled by your voice or text conversation.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Every assistant saves you 10-15 hours per week</strong> by automating lesson planning, generating assessments, creating rubrics, tracking student progress, and handling administrative tasks—all through simple conversation. But more importantly, they help you teach better. Your AI assistant understands curriculum standards, knows your students' learning patterns, and provides insights that help you personalize instruction—all while you have a natural conversation with an avatar that feels like a real teaching partner. They don't replace you—they amplify your impact through intelligent conversation that makes teaching easier and more effective.
-                    </p>
+                        <!-- Slide 2: AI Assistants for Teachers -->
+                        <div class="carousel-slide">
+                            <div class="overview-content">
+                                <h3 class="overview-section-title">AI Assistants for Every Teacher, Every Subject</h3>
+                                <p class="overview-paragraph">
+                                    <strong>Have a real conversation with your AI teaching partner.</strong> This isn't typing commands or clicking through menus—it's having a natural conversation with an intelligent avatar that understands context, remembers your preferences, and controls everything through dialogue. Simply talk to your AI assistant like you would talk to a colleague: "Create a lesson plan on quadratic equations for my Algebra 2 class," or "Show me which students are struggling with fractions," or "Generate a rubric for the lab report due Friday." Your assistant understands what you need and handles it instantly, controlling all 39 widgets, accessing all student data, and managing your entire classroom through conversation.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Subject-specific AI assistants that know your curriculum inside and out.</strong> Whether you teach Math, Science, History, Language Arts, Physical Education, or any other subject, you have a dedicated AI assistant with an avatar that becomes your teaching partner. Our <strong>Math Teacher Assistant</strong> generates problem sets, creates visualizations, and provides step-by-step explanations—all through natural conversation. Our <strong>Science Teacher Assistant</strong> helps plan labs, explains complex concepts, and suggests hands-on activities—just ask, and it handles everything. Our <strong>History Teacher Assistant</strong> curates primary sources, creates engaging timelines, and helps students analyze historical events—all while you have a conversation. Our <strong>Language Arts Assistant</strong> supports writing instruction, literature analysis, and grammar lessons—through dialogue, not data entry. And our <strong>Physical Education Assistant</strong> manages 39 specialized widgets covering everything from lesson planning to safety management—all controlled by your voice or text conversation.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Every assistant saves you 10-15 hours per week</strong> by automating lesson planning, generating assessments, creating rubrics, tracking student progress, and handling administrative tasks—all through simple conversation. But more importantly, they help you teach better. Your AI assistant understands curriculum standards, knows your students' learning patterns, and provides insights that help you personalize instruction—all while you have a natural conversation with an avatar that feels like a real teaching partner. They don't replace you—they amplify your impact through intelligent conversation that makes teaching easier and more effective.
+                                </p>
+                            </div>
+                        </div>
 
-                    <h3 class="overview-section-title">AI Tutors for Every Student</h3>
-                    <p class="overview-paragraph">
-                        <strong>Have a real conversation with your personal academic assistant.</strong> Your AI tutor isn't just an app you use—it's an intelligent avatar you talk to like a friend or mentor. Simply have a natural conversation: "What assignments are due this week?" or "Help me study for my math test on Friday," or "Create a study plan to improve my science grade." Your tutor avatar understands what you need, tracks everything automatically, and manages your entire academic life through conversation. No need to navigate complex interfaces or remember where things are—just talk, and your avatar handles it all.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Your personal academic assistant, available 24/7.</strong> Every student gets an AI tutor avatar that does far more than answer questions—it's a complete academic management system you control through conversation. Your AI tutor tracks all assessments, due dates, tests, and quizzes across every subject, ensuring you never miss an assignment—just ask "What's due this week?" and it tells you everything. It creates personalized study guides tailored to your learning style and upcoming exams—simply say "Help me prepare for my history test" and it generates everything you need. It helps you set academic goals and creates actionable plans to achieve them—have a conversation about your goals, and your avatar creates the plan. And it connects to your calendar, sending reminders and notifications so you stay organized and on track—all managed through natural dialogue.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Personalized learning support that adapts to you.</strong> Struggling with algebra? Just tell your math tutor avatar "I don't understand quadratic equations" and it breaks it down step-by-step, creates practice problems at your level, and explains it in ways that make sense to you—all through conversation. Need help with a science lab report? Your science tutor avatar provides structure, feedback, and helps you understand the concepts—just describe what you're working on, and it guides you. Preparing for a history exam? Your history tutor avatar generates comprehensive study guides, creates practice quizzes, and identifies areas where you need more review—simply ask, and it handles everything. The AI tutors learn your learning patterns through your conversations, identify knowledge gaps, and provide targeted support that helps you succeed.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Stay organized, stay ahead.</strong> Your AI tutor avatar keeps track of everything through your conversations: upcoming tests, assignment due dates, project deadlines, and quiz schedules. It creates study schedules that fit your calendar, sends reminders before important deadlines, and helps you prioritize your work—all managed by talking to your avatar. When you set a goal—like improving your math grade or preparing for the SAT—just tell your tutor, and it creates a step-by-step action plan with milestones and checkpoints. Parents love seeing their children stay organized and on track, and teachers appreciate students who arrive prepared and never miss deadlines—all made possible through natural conversation with an intelligent avatar.
-                    </p>
+                        <!-- Slide 3: AI Tutors for Students -->
+                        <div class="carousel-slide">
+                            <div class="overview-content">
+                                <h3 class="overview-section-title">AI Tutors for Every Student</h3>
+                                <p class="overview-paragraph">
+                                    <strong>Have a real conversation with your personal academic assistant.</strong> Your AI tutor isn't just an app you use—it's an intelligent avatar you talk to like a friend or mentor. Simply have a natural conversation: "What assignments are due this week?" or "Help me study for my math test on Friday," or "Create a study plan to improve my science grade." Your tutor avatar understands what you need, tracks everything automatically, and manages your entire academic life through conversation. No need to navigate complex interfaces or remember where things are—just talk, and your avatar handles it all.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Your personal academic assistant, available 24/7.</strong> Every student gets an AI tutor avatar that does far more than answer questions—it's a complete academic management system you control through conversation. Your AI tutor tracks all assessments, due dates, tests, and quizzes across every subject, ensuring you never miss an assignment—just ask "What's due this week?" and it tells you everything. It creates personalized study guides tailored to your learning style and upcoming exams—simply say "Help me prepare for my history test" and it generates everything you need. It helps you set academic goals and creates actionable plans to achieve them—have a conversation about your goals, and your avatar creates the plan. And it connects to your calendar, sending reminders and notifications so you stay organized and on track—all managed through natural dialogue.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Personalized learning support that adapts to you.</strong> Struggling with algebra? Just tell your math tutor avatar "I don't understand quadratic equations" and it breaks it down step-by-step, creates practice problems at your level, and explains it in ways that make sense to you—all through conversation. Need help with a science lab report? Your science tutor avatar provides structure, feedback, and helps you understand the concepts—just describe what you're working on, and it guides you. Preparing for a history exam? Your history tutor avatar generates comprehensive study guides, creates practice quizzes, and identifies areas where you need more review—simply ask, and it handles everything. The AI tutors learn your learning patterns through your conversations, identify knowledge gaps, and provide targeted support that helps you succeed.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Stay organized, stay ahead.</strong> Your AI tutor avatar keeps track of everything through your conversations: upcoming tests, assignment due dates, project deadlines, and quiz schedules. It creates study schedules that fit your calendar, sends reminders before important deadlines, and helps you prioritize your work—all managed by talking to your avatar. When you set a goal—like improving your math grade or preparing for the SAT—just tell your tutor, and it creates a step-by-step action plan with milestones and checkpoints. Parents love seeing their children stay organized and on track, and teachers appreciate students who arrive prepared and never miss deadlines—all made possible through natural conversation with an intelligent avatar.
+                                </p>
+                            </div>
+                        </div>
 
-                    <h3 class="overview-section-title">AI Assistants for School Administrators & Staff</h3>
-                    <p class="overview-paragraph">
-                        <strong>Have a real conversation with your administrative partner.</strong> School administrators and staff don't need to learn complex software or navigate multiple systems—they simply have a conversation with their AI assistant avatar. Tell your admin assistant: "Show me the attendance trends for this month," or "Generate a compliance report for the district," or "What resources do we need for next semester?" Your avatar understands the context, accesses all the data, generates reports, and handles everything through natural dialogue. It's like having a knowledgeable colleague you can talk to anytime.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Streamline operations, improve efficiency, make better decisions.</strong> School administrators have an <strong>AI Admin Assistant</strong> avatar that handles scheduling, coordinates staff, manages communications, tracks compliance, generates reports, and provides predictive analytics for resource allocation—all through conversation. Secretaries have AI avatar support for document management, communication, and administrative tasks—just describe what you need, and your avatar handles it. Every school employee gets an AI assistant avatar tailored to their role, reducing administrative burden and freeing time for what matters most—all controlled through natural conversation, not complex interfaces.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Data-driven decision making at the district level.</strong> Your admin assistant avatar provides comprehensive analytics through conversation, helping you understand school-wide trends, predict resource needs, identify at-risk students early, and make informed decisions about curriculum, staffing, and programs. Simply ask questions like "Which students are at risk this semester?" or "What are our staffing needs for next year?" and your avatar analyzes the data from <strong>545 database tables</strong> and provides insights in plain language. The platform scales from single schools to entire districts, providing insights that were previously impossible to gather—all accessible through natural conversation with your intelligent avatar.
-                    </p>
+                        <!-- Slide 4: AI Assistants for Administrators -->
+                        <div class="carousel-slide">
+                            <div class="overview-content">
+                                <h3 class="overview-section-title">AI Assistants for School Administrators & Staff</h3>
+                                <p class="overview-paragraph">
+                                    <strong>Have a real conversation with your administrative partner.</strong> School administrators and staff don't need to learn complex software or navigate multiple systems—they simply have a conversation with their AI assistant avatar. Tell your admin assistant: "Show me the attendance trends for this month," or "Generate a compliance report for the district," or "What resources do we need for next semester?" Your avatar understands the context, accesses all the data, generates reports, and handles everything through natural dialogue. It's like having a knowledgeable colleague you can talk to anytime.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Streamline operations, improve efficiency, make better decisions.</strong> School administrators have an <strong>AI Admin Assistant</strong> avatar that handles scheduling, coordinates staff, manages communications, tracks compliance, generates reports, and provides predictive analytics for resource allocation—all through conversation. Secretaries have AI avatar support for document management, communication, and administrative tasks—just describe what you need, and your avatar handles it. Every school employee gets an AI assistant avatar tailored to their role, reducing administrative burden and freeing time for what matters most—all controlled through natural conversation, not complex interfaces.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Data-driven decision making at the district level.</strong> Your admin assistant avatar provides comprehensive analytics through conversation, helping you understand school-wide trends, predict resource needs, identify at-risk students early, and make informed decisions about curriculum, staffing, and programs. Simply ask questions like "Which students are at risk this semester?" or "What are our staffing needs for next year?" and your avatar analyzes the data from <strong>545 database tables</strong> and provides insights in plain language. The platform scales from single schools to entire districts, providing insights that were previously impossible to gather—all accessible through natural conversation with your intelligent avatar.
+                                </p>
+                            </div>
+                        </div>
 
-                    <h3 class="overview-section-title">AI Liaison for Every Parent</h3>
-                    <p class="overview-paragraph">
-                        <strong>Have a real conversation with your school connection.</strong> Parents don't need to navigate school websites or remember which app to use—they simply talk to their <strong>AI Parent Liaison</strong> avatar in their preferred language. Ask your liaison: "How is my child doing in math?" or "What assignments are due this week?" or "Can you schedule a conference with my child's teacher?" Your avatar understands your questions, accesses your child's information, translates everything into your language, and provides answers through natural conversation. It's like having a personal school representative available 24/7.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Bridge the gap between home and school.</strong> Parents get their own <strong>AI Parent Liaison</strong> avatar that keeps them informed about their child's progress, translates communications into their preferred language, answers questions about school policies and procedures, schedules parent-teacher conferences, and provides insights into how they can support their child's learning at home—all through natural conversation. The liaison avatar understands each family's communication preferences, cultural context, and language needs through your conversations, ensuring every parent feels connected and informed, regardless of language barriers or technical comfort.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Automated updates, personalized communication.</strong> Your parent liaison avatar proactively provides timely updates about your child's achievements, areas for improvement, upcoming assignments, and school events—all in your preferred language and format, delivered through conversation. The AI liaison avatar handles routine questions through dialogue, freeing teachers and administrators to focus on more complex issues. Simply ask "What did my child accomplish this week?" or "How can I help with homework?" and your avatar provides personalized, actionable information. Stronger home-school connections lead to better student outcomes, and our AI liaison avatar makes those connections easier to build and maintain through natural, accessible conversation.
-                    </p>
+                        <!-- Slide 5: AI Liaison for Parents -->
+                        <div class="carousel-slide">
+                            <div class="overview-content">
+                                <h3 class="overview-section-title">AI Liaison for Every Parent</h3>
+                                <p class="overview-paragraph">
+                                    <strong>Have a real conversation with your school connection.</strong> Parents don't need to navigate school websites or remember which app to use—they simply talk to their <strong>AI Parent Liaison</strong> avatar in their preferred language. Ask your liaison: "How is my child doing in math?" or "What assignments are due this week?" or "Can you schedule a conference with my child's teacher?" Your avatar understands your questions, accesses your child's information, translates everything into your language, and provides answers through natural conversation. It's like having a personal school representative available 24/7.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Bridge the gap between home and school.</strong> Parents get their own <strong>AI Parent Liaison</strong> avatar that keeps them informed about their child's progress, translates communications into their preferred language, answers questions about school policies and procedures, schedules parent-teacher conferences, and provides insights into how they can support their child's learning at home—all through natural conversation. The liaison avatar understands each family's communication preferences, cultural context, and language needs through your conversations, ensuring every parent feels connected and informed, regardless of language barriers or technical comfort.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Automated updates, personalized communication.</strong> Your parent liaison avatar proactively provides timely updates about your child's achievements, areas for improvement, upcoming assignments, and school events—all in your preferred language and format, delivered through conversation. The AI liaison avatar handles routine questions through dialogue, freeing teachers and administrators to focus on more complex issues. Simply ask "What did my child accomplish this week?" or "How can I help with homework?" and your avatar provides personalized, actionable information. Stronger home-school connections lead to better student outcomes, and our AI liaison avatar makes those connections easier to build and maintain through natural, accessible conversation.
+                                </p>
+                            </div>
+                        </div>
 
-                    <h3 class="overview-section-title">One Platform, Infinite Possibilities</h3>
-                    <p class="overview-paragraph">
-                        <strong>Everything works together seamlessly.</strong> All AI assistants share data and insights, creating a comprehensive view of each student's journey. When a student struggles in math, their math tutor, math teacher assistant, and parent liaison all work together to provide coordinated support. When a teacher needs to understand a student's progress across subjects, the platform provides a unified view. When administrators need to make decisions, they have access to school-wide analytics that show the complete picture.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Enterprise-grade security and reliability.</strong> With <strong>1,405 passing tests</strong> and 100% production readiness, Faraday AI is built for scale and security. Microsoft/Azure AD integration provides single sign-on, role-based access controls ensure data privacy, and industry-standard encryption protects sensitive information. The platform integrates with Microsoft Calendar, Google Cloud Translation, and your existing communication systems—no disruption to your current workflow.
-                    </p>
+                        <!-- Slide 6: One Platform -->
+                        <div class="carousel-slide">
+                            <div class="overview-content">
+                                <h3 class="overview-section-title">One Platform, Infinite Possibilities</h3>
+                                <p class="overview-paragraph">
+                                    <strong>Everything works together seamlessly.</strong> All AI assistants share data and insights, creating a comprehensive view of each student's journey. When a student struggles in math, their math tutor, math teacher assistant, and parent liaison all work together to provide coordinated support. When a teacher needs to understand a student's progress across subjects, the platform provides a unified view. When administrators need to make decisions, they have access to school-wide analytics that show the complete picture.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Enterprise-grade security and reliability.</strong> With <strong>1,405 passing tests</strong> and 100% production readiness, Faraday AI is built for scale and security. Microsoft/Azure AD integration provides single sign-on, role-based access controls ensure data privacy, and industry-standard encryption protects sensitive information. The platform integrates with Microsoft Calendar, Google Cloud Translation, and your existing communication systems—no disruption to your current workflow.
+                                </p>
+                            </div>
+                        </div>
 
-                    <h3 class="overview-section-title">The Future of Education, Available Today</h3>
-                    <p class="overview-paragraph">
-                        <strong>We're building the complete ecosystem.</strong> Today, we offer AI assistants for Math, Science, History, Language Arts, Physical Education, and Administration. We're continuously expanding to cover every subject, every role, and every need. Soon, every teacher will have their subject-specific assistant, every student will have personalized tutors, every administrator will have AI support, and every parent will have a dedicated liaison. The future of education is AI-powered, personalized, and accessible—and it starts with Faraday AI.
-                    </p>
-                    <p class="overview-paragraph">
-                        <strong>Join the schools transforming education with AI.</strong> Forward-thinking districts are already using Faraday AI to revolutionize teaching, improve student outcomes, reduce administrative burden, and strengthen home-school connections. Whether you're a single teacher, a school administrator, or a district leader, our platform adapts to your needs and grows with you. Experience the difference that a complete AI ecosystem can make—start your free trial today and see why schools are choosing Faraday AI to transform education.
-                    </p>
+                        <!-- Slide 7: The Future -->
+                        <div class="carousel-slide">
+                            <div class="overview-content">
+                                <h3 class="overview-section-title">The Future of Education, Available Today</h3>
+                                <p class="overview-paragraph">
+                                    <strong>We're building the complete ecosystem.</strong> Today, we offer AI assistants for Math, Science, History, Language Arts, Physical Education, and Administration. We're continuously expanding to cover every subject, every role, and every need. Soon, every teacher will have their subject-specific assistant, every student will have personalized tutors, every administrator will have AI support, and every parent will have a dedicated liaison. The future of education is AI-powered, personalized, and accessible—and it starts with Faraday AI.
+                                </p>
+                                <p class="overview-paragraph">
+                                    <strong>Join the schools transforming education with AI.</strong> Forward-thinking districts are already using Faraday AI to revolutionize teaching, improve student outcomes, reduce administrative burden, and strengthen home-school connections. Whether you're a single teacher, a school administrator, or a district leader, our platform adapts to your needs and grows with you. Experience the difference that a complete AI ecosystem can make—start your free trial today and see why schools are choosing Faraday AI to transform education.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
+                    <!-- Carousel Navigation -->
+                    <div class="carousel-navigation">
+                        <button class="carousel-button" id="carouselPrev" aria-label="Previous slide">‹</button>
+                        <div class="carousel-dots" id="carouselDots"></div>
+                        <button class="carousel-button" id="carouselNext" aria-label="Next slide">›</button>
+                    </div>
+                    <div class="carousel-slide-number">
+                        <span id="currentSlide">1</span> / <span id="totalSlides">7</span>
+                    </div>
+                    <div class="carousel-voice-control">
+                        <button class="voice-button" id="voiceToggle" aria-label="Play/Pause voice narration">🔊</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2020,6 +2231,845 @@
                 submitButton.textContent = 'Subscribe to SMS Updates';
             });
         }
+
+        // Overview Carousel Functionality
+        function initOverviewCarousel() {
+            const carousel = document.getElementById('overviewCarousel');
+            const slides = carousel.querySelectorAll('.carousel-slide');
+            const prevButton = document.getElementById('carouselPrev');
+            const nextButton = document.getElementById('carouselNext');
+            const dotsContainer = document.getElementById('carouselDots');
+            const currentSlideSpan = document.getElementById('currentSlide');
+            const totalSlidesSpan = document.getElementById('totalSlides');
+            const voiceToggle = document.getElementById('voiceToggle');
+            const voiceButtonText = document.getElementById('voiceButtonText');
+            
+            let currentSlideIndex = 0;
+            const totalSlides = slides.length;
+            let autoPlayInterval = null;
+            const autoPlayDelay = 8000; // 8 seconds per slide
+            let isPaused = false;
+            
+            // Voice functionality - Using Azure TTS (Jasper's voice from dashboard)
+            let voiceEnabled = false;
+            let currentAudio = null;
+            let hasUserInteraction = false;
+            let manuallyPaused = false;
+            let recentButtonClick = false; // Track if a button was recently clicked
+            
+            // Get voice settings from localStorage (same as dashboard)
+            function getVoiceSettings() {
+                // Always use voice ID '7' (Christopher/Jasper) for homepage carousel
+                // This ensures consistent voice regardless of dashboard settings
+                const selectedVoiceId = '7';
+                
+                // Get speed from localStorage (default: 1%)
+                const speedPercent = parseFloat(localStorage.getItem('voice_speed') || '1');
+                // Clamp speed to valid range (1-100)
+                const clampedSpeed = Math.max(1, Math.min(100, speedPercent));
+                // Convert frontend speed (1-100%) to backend rate (0.2-2.0)
+                // Formula: rate = 0.2 + (speed_percent - 1) * 1.8 / 99
+                const voiceSpeed = 0.2 + (clampedSpeed - 1) * 1.8 / 99;
+                
+                // Get pitch from localStorage (default: 100%)
+                const pitchPercent = parseFloat(localStorage.getItem('voice_pitch') || '100');
+                // Convert percentage to decimal (100% = 1.0)
+                const pitchDecimal = pitchPercent / 100;
+                // Azure TTS pitch is in semitones (-50 to +50)
+                // Dashboard conversion: pitch = ((pitchDecimal - 1) * 50)
+                // This maps: 0.5 (50%) → -25 semitones, 1.0 (100%) → 0 semitones, 2.0 (200%) → +50 semitones
+                const voicePitch = (pitchDecimal - 1) * 50;
+                
+                return {
+                    voiceId: selectedVoiceId,
+                    rate: voiceSpeed,
+                    pitch: voicePitch
+                };
+            }
+            
+            // Extract text from a slide
+            function getSlideText(slide) {
+                const content = slide.querySelector('.overview-content');
+                if (!content) return '';
+                
+                // Get all text content, excluding script and style tags
+                const clone = content.cloneNode(true);
+                const scripts = clone.querySelectorAll('script, style');
+                scripts.forEach(el => el.remove());
+                
+                // Get text and clean it up
+                let text = clone.textContent || clone.innerText || '';
+                text = text.trim().replace(/\s+/g, ' ');
+                
+                return text;
+            }
+            
+            // Stop speech
+            function stopSpeech(clearManuallyPaused = false) {
+                if (currentAudio) {
+                    console.log('🛑 stopSpeech called, stopping audio:', {
+                        paused: currentAudio.paused,
+                        currentTime: currentAudio.currentTime,
+                        ended: currentAudio.ended
+                    });
+                    
+                    // Remove all event listeners to prevent callbacks
+                    currentAudio.onended = null;
+                    currentAudio.onerror = null;
+                    currentAudio.onplay = null;
+                    currentAudio.onpause = null;
+                    
+                    // Stop and clean up audio
+                    try {
+                        currentAudio.pause();
+                        currentAudio.currentTime = 0;
+                        // Clear source to fully stop
+                        const audioSrc = currentAudio.src;
+                        currentAudio.src = '';
+                        currentAudio.load(); // Force reload with empty source
+                        
+                        // Clean up the object URL if it exists
+                        if (audioSrc && audioSrc.startsWith('blob:')) {
+                            URL.revokeObjectURL(audioSrc);
+                        }
+                    } catch (e) {
+                        console.warn('Error stopping audio:', e);
+                    }
+                    
+                    // CRITICAL: Set to null immediately to prevent race conditions
+                    currentAudio = null;
+                    console.log('✅ Audio stopped and cleared');
+                }
+                // Update button to speaker icon
+                if (voiceToggle) {
+                    voiceToggle.classList.remove('active');
+                    voiceToggle.textContent = '🔊';
+                }
+                // Clear manuallyPaused flag if requested (for auto-advance)
+                if (clearManuallyPaused) {
+                    manuallyPaused = false;
+                }
+            }
+            
+            // Speak text using Azure TTS (Jasper's voice)
+            async function speakText(text) {
+                if (!text) return;
+                
+                // CRITICAL: Cancel any Web Speech API that might be playing (digital voice)
+                if ('speechSynthesis' in window) {
+                    try {
+                        window.speechSynthesis.cancel();
+                        console.log('🔇 Cancelled any Web Speech API (digital voice)');
+                    } catch (e) {
+                        console.warn('Error cancelling Web Speech API:', e);
+                    }
+                }
+                
+                // CRITICAL: Stop any current speech and wait a moment to ensure it's fully stopped
+                if (currentAudio) {
+                    console.log('🛑 Stopping existing audio before starting new speech');
+                    stopSpeech();
+                    // Small delay to ensure audio is fully stopped before starting new one
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                } else {
+                    stopSpeech(); // Still call to update button state
+                }
+                
+                try {
+                    // Update button state to show loading
+                    if (voiceToggle) {
+                        voiceToggle.classList.add('active');
+                        voiceToggle.textContent = '⏸️';
+                    }
+                    
+                    // Get voice settings (matching dashboard defaults)
+                    const voiceSettings = getVoiceSettings();
+                    
+                    // Use voice-sample endpoint (same as dashboard) which handles voice_id mapping
+                    // This ensures we get the exact same voice as the dashboard (voice_id 7 = Christopher)
+                    const params = new URLSearchParams({
+                        voice_id: voiceSettings.voiceId,
+                        text: text.substring(0, 10000), // Limit text length like dashboard
+                        rate: voiceSettings.rate.toString(),
+                        pitch: voiceSettings.pitch.toString()
+                    });
+                    
+                    const response = await fetch(`/api/v1/text-to-speech/voice-sample?${params.toString()}`, {
+                        method: 'POST'
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`TTS API error: ${response.status}`);
+                    }
+                    
+                    // Get audio blob
+                    const audioBlob = await response.blob();
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    
+                    // Create audio element
+                    currentAudio = new Audio(audioUrl);
+                    
+                    // Event handlers
+                    currentAudio.onended = () => {
+                        console.log('🎵 Audio ended, checking auto-advance conditions:', {
+                            voiceEnabled: voiceEnabled,
+                            isPaused: isPaused,
+                            manuallyPaused: manuallyPaused,
+                            hasUserInteraction: hasUserInteraction,
+                            currentSlideIndex: currentSlideIndex
+                        });
+                        
+                        // Store reference before cleanup
+                        const shouldAdvance = voiceEnabled && !isPaused && !manuallyPaused && hasUserInteraction;
+                        
+                        URL.revokeObjectURL(audioUrl);
+                        currentAudio = null;
+                        
+                        // Update button to speaker icon
+                        if (voiceToggle) {
+                            voiceToggle.classList.remove('active');
+                            voiceToggle.textContent = '🔊';
+                        }
+                        
+                        // Advance to next slide when audio finishes
+                        // Only check voiceEnabled and manuallyPaused - ignore isPaused (hover pause shouldn't block audio completion)
+                        if (voiceEnabled && !manuallyPaused && hasUserInteraction) {
+                            console.log('✅ Auto-advancing to next slide...');
+                            // Small delay before advancing
+                            setTimeout(() => {
+                                // Double-check conditions before advancing (ignore isPaused for audio completion)
+                                // Ensure voice is still enabled (it should be, but double-check)
+                                if (!voiceEnabled) {
+                                    console.log('⚠️ Voice was disabled, re-enabling for auto-advance');
+                                    voiceEnabled = true;
+                                }
+                                if (voiceEnabled && !manuallyPaused) {
+                                    if (currentSlideIndex < totalSlides - 1) {
+                                        currentSlideIndex++;
+                                    } else {
+                                        // Loop back to first slide
+                                        currentSlideIndex = 0;
+                                    }
+                                    console.log('➡️ Advancing to slide:', currentSlideIndex + 1, {
+                                        voiceEnabled,
+                                        manuallyPaused,
+                                        hasUserInteraction
+                                    });
+                                    // Ensure hasUserInteraction is still true (it should be from first interaction)
+                                    if (!hasUserInteraction) {
+                                        console.log('⚠️ hasUserInteraction was false, setting to true');
+                                        hasUserInteraction = true;
+                                    }
+                                    updateSlide(true); // Will speak next slide if voice is enabled
+                                } else {
+                                    console.log('❌ Auto-advance blocked in setTimeout:', {
+                                        voiceEnabled: voiceEnabled,
+                                        manuallyPaused: manuallyPaused
+                                    });
+                                }
+                            }, 500);
+                        } else {
+                            console.log('❌ Auto-advance blocked - conditions not met:', {
+                                voiceEnabled: voiceEnabled,
+                                isPaused: isPaused,
+                                manuallyPaused: manuallyPaused,
+                                hasUserInteraction: hasUserInteraction,
+                                reason: !voiceEnabled ? 'voice not enabled' : 
+                                        manuallyPaused ? 'manually paused' : 
+                                        !hasUserInteraction ? 'no user interaction' : 'unknown'
+                            });
+                        }
+                    };
+                    
+                    currentAudio.onerror = (event) => {
+                        console.error('Audio playback error:', event);
+                        URL.revokeObjectURL(audioUrl);
+                        currentAudio = null;
+                        // Update button to speaker icon
+                        if (voiceToggle) {
+                            voiceToggle.classList.remove('active');
+                            voiceToggle.textContent = '🔊';
+                        }
+                    };
+                    
+                    // Play audio
+                    await currentAudio.play();
+                    
+                    // Update button to pause icon
+                    if (voiceToggle) {
+                        voiceToggle.textContent = '⏸️';
+                    }
+                    
+                    // Fallback: Set up a timeout to advance if onended doesn't fire
+                    // This ensures auto-advance works even if the event doesn't fire
+                    const audioDuration = currentAudio.duration || 0;
+                    if (audioDuration > 0 && voiceEnabled && !manuallyPaused) {
+                        // Set timeout slightly longer than audio duration as fallback
+                        setTimeout(() => {
+                            // Only advance if audio has ended and we haven't already advanced
+                            if (currentAudio && (currentAudio.ended || currentAudio.paused) && voiceEnabled && !manuallyPaused && !isPaused) {
+                                console.log('Fallback auto-advance triggered');
+                                if (currentSlideIndex < totalSlides - 1) {
+                                    currentSlideIndex++;
+                                } else {
+                                    currentSlideIndex = 0;
+                                }
+                                updateSlide(true);
+                            }
+                        }, (audioDuration * 1000) + 1000); // Audio duration + 1 second buffer
+                    }
+                } catch (error) {
+                    console.error('Error synthesizing speech:', error);
+                    if (voiceToggle) {
+                        voiceToggle.classList.remove('active');
+                        voiceToggle.textContent = '🔊';
+                    }
+                    // DO NOT fallback to Web Speech API - it causes digital voice issues
+                    // Just log the error and let user manually retry if needed
+                    console.warn('Azure TTS failed, not using Web Speech API fallback to avoid digital voice');
+                }
+            }
+            
+            // REMOVED: Fallback to Web Speech API
+            // This was causing digital voice issues and double playback
+            // If Azure TTS fails, we just log an error and don't use Web Speech API
+            // function fallbackToWebSpeech(text) {
+            //     // REMOVED - causes digital voice and double playback issues
+            // }
+            
+            // Toggle voice play/pause
+            function toggleVoice() {
+                // Check if audio is actually playing (more robust check)
+                const isAudioPlaying = currentAudio && 
+                                      currentAudio.readyState >= 2 && // HAVE_CURRENT_DATA or higher
+                                      !currentAudio.paused && 
+                                      currentAudio.currentTime > 0 && 
+                                      !currentAudio.ended;
+                
+                console.log('🔊 Toggle voice clicked:', {
+                    isAudioPlaying,
+                    voiceEnabled,
+                    manuallyPaused,
+                    hasCurrentAudio: !!currentAudio,
+                    audioPaused: currentAudio ? currentAudio.paused : 'no audio',
+                    audioCurrentTime: currentAudio ? currentAudio.currentTime : 'no audio',
+                    audioEnded: currentAudio ? currentAudio.ended : 'no audio'
+                });
+                
+                if (isAudioPlaying) {
+                    // Pause audio - stop it completely
+                    manuallyPaused = true;
+                    console.log('⏸️ Manually pausing audio');
+                    stopSpeech();
+                    // Update button immediately
+                    if (voiceToggle) {
+                        voiceToggle.classList.remove('active');
+                        voiceToggle.textContent = '🔊';
+                    }
+                } else {
+                    // Play audio - speakText will handle stopping any existing audio
+                    console.log('▶️ Resuming/starting audio');
+                    manuallyPaused = false;
+                    voiceEnabled = true;
+                    
+                    // Start speaking current slide
+                    // speakText will stop any existing audio before starting new one
+                    const currentSlide = slides[currentSlideIndex];
+                    const text = getSlideText(currentSlide);
+                    if (text) {
+                        speakText(text);
+                    }
+                }
+            }
+            
+            // Voice toggle button (speaker/pause)
+            if (voiceToggle) {
+                voiceToggle.addEventListener('click', (e) => {
+                    // Mark that this is a voice toggle click to prevent autoplay
+                    recentButtonClick = true;
+                    setTimeout(() => {
+                        recentButtonClick = false;
+                    }, 500);
+                    // Call toggleVoice - this should work even if markUserInteraction runs
+                    toggleVoice();
+                });
+            }
+            
+            // Track user interaction for autoplay (like dashboard)
+            // BUT: Exclude button clicks - only non-button clicks and scrolling should trigger autoplay
+            const markUserInteraction = (event) => {
+                // Check if the click was on a button or inside a button
+                if (event && event.type === 'click') {
+                    const target = event.target;
+                    
+                    // Walk up the DOM tree to find button or link elements
+                    let currentElement = target;
+                    let isButton = false;
+                    let isLink = false;
+                    let hasButtonClass = false;
+                    
+                    // Check up to 5 levels up the DOM tree
+                    for (let i = 0; i < 5 && currentElement && currentElement !== document.body; i++) {
+                        const tagName = currentElement.tagName;
+                        const className = currentElement.className || '';
+                        
+                        // Check for button element
+                        if (tagName === 'BUTTON') {
+                            isButton = true;
+                            break;
+                        }
+                        
+                        // Check for link element (anchor tag)
+                        if (tagName === 'A') {
+                            isLink = true;
+                            break;
+                        }
+                        
+                        // Check for button-like classes
+                        if (typeof className === 'string' && (
+                            className.includes('button') ||
+                            className.includes('btn') ||
+                            className.includes('free-trial-button') ||
+                            className.includes('auth-button') ||
+                            className.includes('category-button') ||
+                            className.includes('cookie-button')
+                        )) {
+                            hasButtonClass = true;
+                            break;
+                        }
+                        
+                        currentElement = currentElement.parentElement;
+                    }
+                    
+                    // Also use closest as a fallback
+                    const buttonElement = target.closest('button');
+                    const linkElement = target.closest('a');
+                    const parentWithButtonClass = target.closest('.button, .btn, .free-trial-button, .auth-button, .category-button, .cookie-button, [class*="button"], [class*="btn"]');
+                    
+                    // Check if this is the voice toggle button - allow it to work normally
+                    const isVoiceToggle = target.id === 'voiceToggle' || 
+                                         target.closest('#voiceToggle') !== null ||
+                                         (buttonElement && buttonElement.id === 'voiceToggle');
+                    
+                    const shouldExclude = (isButton || isLink || hasButtonClass || 
+                                        buttonElement !== null || 
+                                        linkElement !== null || 
+                                        parentWithButtonClass !== null) && !isVoiceToggle;
+                    
+                    if (shouldExclude) {
+                        console.log('🚫 Button/link click ignored for autoplay:', {
+                            targetTag: target.tagName,
+                            targetClass: target.className || target.id,
+                            targetHref: target.href,
+                            isButton: isButton || buttonElement !== null,
+                            isLink: isLink || linkElement !== null,
+                            hasButtonClass: hasButtonClass || parentWithButtonClass !== null,
+                            linkElement: linkElement?.tagName,
+                            linkHref: linkElement?.href,
+                            linkClass: linkElement?.className
+                        });
+                        
+                        // Set flag to prevent autoplay for a short time after button click
+                        recentButtonClick = true;
+                        setTimeout(() => {
+                            recentButtonClick = false;
+                        }, 1000); // Prevent autoplay for 1 second after button click
+                        
+                        // CRITICAL: Don't stop propagation or prevent default for buttons/links
+                        // They need to execute their onclick handlers and navigate
+                        // We just return early to prevent autoplay, but let the button/link work normally
+                        console.log('🚫 Button/link click - preventing autoplay but allowing button/link to work');
+                        return; // Don't trigger autoplay for button/link clicks, but let them work normally
+                    }
+                    
+                    // If it's the voice toggle button, don't trigger autoplay but allow the button to work
+                    if (isVoiceToggle) {
+                        console.log('🔊 Voice toggle button clicked - allowing button handler to work');
+                        // Set flag to prevent autoplay
+                        recentButtonClick = true;
+                        setTimeout(() => {
+                            recentButtonClick = false;
+                        }, 500);
+                        // Don't stop propagation or prevent default - let the button's own handler work
+                        // Return early to prevent autoplay, but the button handler will still fire
+                        return;
+                    }
+                }
+                
+                // CRITICAL: Check if a button was recently clicked (even if detection missed it)
+                if (recentButtonClick) {
+                    console.log('🚫 Recent button click detected, ignoring interaction');
+                    return;
+                }
+                
+                console.log('👆 User interaction detected (non-button), manuallyPaused:', manuallyPaused, 'voiceEnabled:', voiceEnabled, 'hasUserInteraction:', hasUserInteraction);
+                
+                // Prevent multiple simultaneous autoplay starts
+                if (voiceEnabled && currentAudio && !currentAudio.paused) {
+                    console.log('⏸️ Audio already playing, ignoring additional interaction');
+                    return;
+                }
+                
+                // Mark that user has interacted
+                hasUserInteraction = true;
+                console.log('✅ hasUserInteraction set to true');
+                
+                if (!manuallyPaused) {
+                    // Start autoplay and voice on first interaction (only if not already enabled)
+                    if (!voiceEnabled) {
+                        voiceEnabled = true;
+                        console.log('🎤 Voice enabled, starting to speak slide:', currentSlideIndex + 1);
+                        // Start speaking current slide
+                        const currentSlide = slides[currentSlideIndex];
+                        const text = getSlideText(currentSlide);
+                        if (text) {
+                            speakText(text);
+                        }
+                    } else {
+                        console.log('🎤 Voice already enabled, continuing autoplay');
+                    }
+                } else {
+                    console.log('⏸️ User interaction ignored (manually paused)');
+                }
+            };
+            
+            // Track various user interactions (excluding button clicks)
+            // Use capture phase to catch events before they bubble and potentially trigger navigation
+            // BUT: Skip markUserInteraction entirely for buttons/links - they need to work normally
+            document.addEventListener('click', (e) => {
+                const target = e.target;
+                
+                // Only check for actual button and link elements - be precise
+                const buttonElement = target.closest ? target.closest('button') : null;
+                const linkElement = target.closest ? target.closest('a') : null;
+                const isButton = target.tagName === 'BUTTON' || buttonElement !== null;
+                const isLink = target.tagName === 'A' || linkElement !== null;
+                
+                // If it's a button or link, skip markUserInteraction - let it work normally
+                if (isButton || isLink) {
+                    console.log('🚫 Button/link click - skipping markUserInteraction, allowing button/link to work', {
+                        isButton,
+                        isLink,
+                        targetTag: target.tagName,
+                        buttonElement: buttonElement ? 'found' : 'none',
+                        linkElement: linkElement ? 'found' : 'none'
+                    });
+                    // Set flag to prevent autoplay
+                    recentButtonClick = true;
+                    setTimeout(() => {
+                        recentButtonClick = false;
+                    }, 1000);
+                    return; // Don't call markUserInteraction for buttons/links
+                }
+                
+                // For non-button clicks, call markUserInteraction
+                console.log('✅ Non-button click - calling markUserInteraction for autoplay', {
+                    targetTag: target.tagName,
+                    targetClass: target.className || 'none'
+                });
+                markUserInteraction(e);
+            }, { once: false, passive: true, capture: true });
+            document.addEventListener('keydown', markUserInteraction, { once: false, passive: true });
+            document.addEventListener('touchstart', markUserInteraction, { once: false, passive: true });
+            
+            // Also track scrolling as a valid user interaction
+            let scrollTimeout = null;
+            document.addEventListener('scroll', () => {
+                // Debounce scroll events to avoid too many calls
+                if (scrollTimeout) {
+                    clearTimeout(scrollTimeout);
+                }
+                scrollTimeout = setTimeout(() => {
+                    markUserInteraction(null); // Pass null since scroll doesn't have a target element
+                }, 100);
+            }, { once: false, passive: true });
+            
+            // Stop audio when page is about to unload (navigating away)
+            window.addEventListener('beforeunload', () => {
+                console.log('🛑 Page unloading, stopping all audio');
+                stopSpeech();
+                stopAutoPlay();
+                voiceEnabled = false;
+            });
+            
+            // Stop audio when page becomes hidden (tab switch, minimize, navigate to dashboard, etc.)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    console.log('👁️ Page hidden, stopping all audio');
+                    stopSpeech();
+                    stopAutoPlay();
+                    // Don't disable voiceEnabled here - user might come back
+                }
+            });
+            
+            // Stop audio when page is unloaded (navigating to dashboard)
+            window.addEventListener('pagehide', () => {
+                console.log('📄 Page hiding, stopping all audio');
+                stopSpeech();
+                stopAutoPlay();
+                voiceEnabled = false;
+            });
+            
+            // Also stop audio when navigating away via link clicks
+            document.addEventListener('click', (e) => {
+                const link = e.target.closest('a');
+                if (link && link.href && !link.href.startsWith('#') && !link.href.startsWith('javascript:')) {
+                    // User clicked a link that will navigate away
+                    console.log('🔗 Navigation link clicked, stopping audio:', link.href);
+                    stopSpeech();
+                    stopAutoPlay();
+                }
+            }, true); // Use capture phase to catch all link clicks
+            
+            // Set total slides count
+            totalSlidesSpan.textContent = totalSlides;
+            
+            // Create dots
+            slides.forEach((_, index) => {
+                const dot = document.createElement('div');
+                dot.className = 'carousel-dot';
+                if (index === 0) dot.classList.add('active');
+                dot.setAttribute('aria-label', `Go to slide ${index + 1}`);
+                dot.addEventListener('click', () => {
+                    goToSlide(index);
+                    pauseAutoPlay();
+                    resumeAutoPlay();
+                });
+                dotsContainer.appendChild(dot);
+            });
+            
+            // Update slide display
+            function updateSlide(shouldSpeak = true) {
+                slides.forEach((slide, index) => {
+                    slide.classList.remove('active');
+                    if (index === currentSlideIndex) {
+                        slide.classList.add('active');
+                    }
+                });
+                
+                // Update dots
+                const dots = dotsContainer.querySelectorAll('.carousel-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === currentSlideIndex);
+                });
+                
+                // Update slide number
+                currentSlideSpan.textContent = currentSlideIndex + 1;
+                
+                // Update button states
+                prevButton.disabled = currentSlideIndex === 0;
+                nextButton.disabled = currentSlideIndex === totalSlides - 1;
+                
+                // Speak new slide if voice is enabled and not manually paused
+                if (shouldSpeak && voiceEnabled && !manuallyPaused && hasUserInteraction) {
+                    console.log('🎤 updateSlide: Should speak slide', currentSlideIndex + 1, {
+                        shouldSpeak,
+                        voiceEnabled,
+                        manuallyPaused,
+                        hasUserInteraction
+                    });
+                    // Small delay to ensure slide is visible
+                    setTimeout(() => {
+                        // Double-check conditions before speaking (ignore isPaused - hover pause shouldn't block auto-advance speech)
+                        if (voiceEnabled && !manuallyPaused) {
+                            const currentSlide = slides[currentSlideIndex];
+                            const text = getSlideText(currentSlide);
+                            if (text) {
+                                console.log('🎤 Speaking slide:', currentSlideIndex + 1);
+                                speakText(text);
+                            } else {
+                                console.log('⚠️ No text found for slide:', currentSlideIndex + 1);
+                            }
+                        } else {
+                            console.log('❌ Not speaking slide - conditions not met:', {
+                                voiceEnabled,
+                                manuallyPaused
+                            });
+                        }
+                    }, 300);
+                } else {
+                    console.log('❌ updateSlide: Not speaking slide', currentSlideIndex + 1, {
+                        shouldSpeak,
+                        voiceEnabled,
+                        manuallyPaused,
+                        hasUserInteraction,
+                        reason: !shouldSpeak ? 'shouldSpeak=false' :
+                                !voiceEnabled ? 'voice not enabled' :
+                                manuallyPaused ? 'manually paused' :
+                                !hasUserInteraction ? 'no user interaction' : 'unknown'
+                    });
+                }
+            }
+            
+            // Go to specific slide
+            function goToSlide(index) {
+                if (index >= 0 && index < totalSlides) {
+                    // Stop current speech when manually navigating (but don't clear manuallyPaused - user might want to pause)
+                    stopSpeech();
+                    currentSlideIndex = index;
+                    updateSlide(true);
+                }
+            }
+            
+            // Next slide (with loop)
+            function nextSlide() {
+                // Stop current speech when manually navigating (but don't clear manuallyPaused - user might want to pause)
+                stopSpeech();
+                if (currentSlideIndex < totalSlides - 1) {
+                    currentSlideIndex++;
+                } else {
+                    // Loop back to first slide
+                    currentSlideIndex = 0;
+                }
+                updateSlide(true);
+            }
+            
+            // Previous slide
+            function prevSlide() {
+                // Stop current speech when manually navigating (but don't clear manuallyPaused - user might want to pause)
+                stopSpeech();
+                if (currentSlideIndex > 0) {
+                    currentSlideIndex--;
+                } else {
+                    // Loop to last slide
+                    currentSlideIndex = totalSlides - 1;
+                }
+                updateSlide(true);
+            }
+            
+            // Auto-play functions
+            function startAutoPlay() {
+                if (autoPlayInterval) return;
+                autoPlayInterval = setInterval(() => {
+                    if (!isPaused && !manuallyPaused) {
+                        // If voice is enabled and audio is playing, don't advance (let audio finish first)
+                        // The audio onended handler will advance the slide
+                        if (voiceEnabled && currentAudio && !currentAudio.paused && !currentAudio.ended) {
+                            return; // Skip this interval, audio will advance when it finishes
+                        }
+                        // Only auto-advance if voice is disabled OR audio is not playing
+                        if (!voiceEnabled || !currentAudio || currentAudio.ended || currentAudio.paused) {
+                            // Don't stop speech for auto-advance, let it continue or start new
+                            if (currentSlideIndex < totalSlides - 1) {
+                                currentSlideIndex++;
+                            } else {
+                                currentSlideIndex = 0;
+                            }
+                            updateSlide(true); // Will speak if voice enabled
+                        }
+                    }
+                }, autoPlayDelay);
+            }
+            
+            function stopAutoPlay() {
+                if (autoPlayInterval) {
+                    clearInterval(autoPlayInterval);
+                    autoPlayInterval = null;
+                }
+            }
+            
+            function pauseAutoPlay() {
+                isPaused = true;
+            }
+            
+            function resumeAutoPlay() {
+                isPaused = false;
+            }
+            
+            // Pause on hover, resume on leave
+            const carouselWrapper = carousel.closest('.platform-overview');
+            if (carouselWrapper) {
+                carouselWrapper.addEventListener('mouseenter', () => {
+                    pauseAutoPlay();
+                });
+                
+                carouselWrapper.addEventListener('mouseleave', () => {
+                    resumeAutoPlay();
+                });
+            }
+            
+            // Event listeners
+            nextButton.addEventListener('click', () => {
+                nextSlide();
+                pauseAutoPlay();
+                resumeAutoPlay();
+            });
+            prevButton.addEventListener('click', () => {
+                prevSlide();
+                pauseAutoPlay();
+                resumeAutoPlay();
+            });
+            
+            // Start auto-play
+            startAutoPlay();
+            
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (carousel.closest('.platform-overview')) {
+                    if (e.key === 'ArrowLeft') {
+                        prevSlide();
+                        pauseAutoPlay();
+                        resumeAutoPlay();
+                    } else if (e.key === 'ArrowRight') {
+                        nextSlide();
+                        pauseAutoPlay();
+                        resumeAutoPlay();
+                    }
+                }
+            });
+            
+            // Touch/swipe support for mobile
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            carousel.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+                pauseAutoPlay();
+            }, { passive: true });
+            
+            carousel.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+                // Resume after a delay to allow user to continue swiping
+                setTimeout(() => {
+                    resumeAutoPlay();
+                }, 3000);
+            }, { passive: true });
+            
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                const diff = touchStartX - touchEndX;
+                
+                if (Math.abs(diff) > swipeThreshold) {
+                    if (diff > 0) {
+                        // Swipe left - next slide
+                        nextSlide();
+                    } else {
+                        // Swipe right - previous slide
+                        prevSlide();
+                    }
+                }
+            }
+            
+            // Pause auto-play when page is not visible (tab switch)
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    pauseAutoPlay();
+                } else {
+                    resumeAutoPlay();
+                }
+            });
+            
+            // Initialize
+            updateSlide();
+        }
+        
+        // Initialize carousel when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            if (document.getElementById('overviewCarousel')) {
+                initOverviewCarousel();
+            }
+        });
 
         // Language Switcher
         function toggleLanguage() {
