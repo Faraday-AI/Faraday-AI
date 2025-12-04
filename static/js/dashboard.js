@@ -749,7 +749,16 @@ function setupOpeningPrompt() {
     // For guest users, always allow opening prompt to play (clear flag if it exists)
     // For authenticated users, check if it was already played this session
     const token = localStorage.getItem('access_token');
-    const isGuest = !token;
+    // More robust guest detection: check both token and user info
+    const userInfo = localStorage.getItem('user_info');
+    const isGuest = !token || !userInfo || token === 'null' || token === 'undefined';
+    
+    originalConsole.log('🔍 Guest detection:', {
+        hasToken: !!token,
+        tokenValue: token ? token.substring(0, 20) + '...' : 'none',
+        hasUserInfo: !!userInfo,
+        isGuest: isGuest
+    });
     
     if (isGuest) {
         // Guest users: clear the flag so opening prompt can play on every page load
@@ -806,11 +815,12 @@ function setupOpeningPrompt() {
     }
     
     originalConsole.log('✅ Found opening prompt message, extracting text...');
-    originalConsole.log('🔍 Debug: isGuest =', isGuest, 'messageContent found:', !!messageContent);
+    originalConsole.log('🔍 Debug: isGuest =', isGuest, 'messageContent found:', !!messageContent, 'messageContent tag:', messageContent ? messageContent.tagName : 'none');
     
     // Extract text based on user type
     let welcomeMessage = '';
     
+    // CRITICAL: Double-check isGuest here to ensure we use the correct extraction method
     if (isGuest) {
         originalConsole.log('👤 Guest user path: Extracting FULL opening prompt text...');
         // For guest users: Extract ALL text from the opening prompt (full message)
