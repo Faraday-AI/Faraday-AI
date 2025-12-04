@@ -15,7 +15,7 @@ Add these environment variables to your Render deployment:
 MSCLIENTID=your-microsoft-client-id
 MSCLIENTSECRET=your-microsoft-client-secret
 MSTENANTID=your-microsoft-tenant-id
-REDIRECT_URI=https://faraday-ai.com/auth/callback
+REDIRECT_URI=https://faraday-ai.onrender.com/api/v1/auth/microsoft/callback
 
 # Recommended - Token Encryption (for security)
 TOKEN_ENCRYPTION_KEY=your-generated-encryption-key
@@ -31,7 +31,7 @@ print(key.decode())  # Use this as TOKEN_ENCRYPTION_KEY
 ### 2. Verify Azure AD App Registration
 
 Ensure your Azure AD app registration has:
-- ✅ Redirect URI configured: `https://faraday-ai.com/auth/callback`
+- ✅ Redirect URI configured: `https://faraday-ai.onrender.com/api/v1/auth/microsoft/callback`
 - ✅ API Permissions granted:
   - `User.Read` (for user info)
   - `Calendars.ReadWrite` (for calendar integration)
@@ -57,7 +57,7 @@ After deployment, verify the integration is configured:
 
 ```bash
 # Test health check
-curl https://faraday-ai.com/api/v1/health/microsoft/
+curl https://faraday-ai.onrender.com/api/v1/health/microsoft/
 
 # Expected: JSON with service status
 # Should show: "configured": true if credentials are set
@@ -66,7 +66,7 @@ curl https://faraday-ai.com/api/v1/health/microsoft/
 ### 5. Test OAuth Flow (End-to-End)
 
 1. **Initiate Login:**
-   - Navigate to: `https://faraday-ai.com/api/v1/auth/microsoft/`
+   - Navigate to: `https://faraday-ai.onrender.com/api/v1/auth/microsoft/`
    - Should redirect to Microsoft login
 
 2. **Complete OAuth:**
@@ -85,11 +85,11 @@ After OAuth authentication:
 ```bash
 # Get calendar info
 curl -H "Authorization: Bearer <JWT_TOKEN>" \
-     https://faraday-ai.com/api/v1/integration/microsoft/calendar/
+     https://faraday-ai.onrender.com/api/v1/integration/microsoft/calendar/
 
 # Get events
 curl -H "Authorization: Bearer <JWT_TOKEN>" \
-     https://faraday-ai.com/api/v1/integration/microsoft/calendar/events
+     https://faraday-ai.onrender.com/api/v1/integration/microsoft/calendar/events
 
 # Create event
 curl -X POST \
@@ -100,7 +100,7 @@ curl -X POST \
        "start": "2024-12-01T10:00:00Z",
        "end": "2024-12-01T11:00:00Z"
      }' \
-     https://faraday-ai.com/api/v1/integration/microsoft/calendar/events
+     https://faraday-ai.onrender.com/api/v1/integration/microsoft/calendar/events
 ```
 
 ## 📋 Available API Endpoints
@@ -157,11 +157,11 @@ curl -X POST \
 
 3. **Test health endpoint:**
    ```bash
-   curl https://faraday-ai.com/api/v1/health/microsoft/
+   curl https://faraday-ai.onrender.com/api/v1/health/microsoft/
    ```
 
 4. **Test OAuth flow:**
-   - Visit: `https://faraday-ai.com/api/v1/auth/microsoft/`
+   - Visit: `https://faraday-ai.onrender.com/api/v1/auth/microsoft/`
    - Complete Microsoft login
    - Verify callback works
 
@@ -174,7 +174,7 @@ curl -X POST \
 
 ## ⚠️ Important Notes
 
-1. **Redirect URI must match exactly** - The redirect URI in Azure AD must match `REDIRECT_URI` environment variable
+1. **Redirect URI must match exactly** - The redirect URI in Azure AD must match `REDIRECT_URI` environment variable (`https://faraday-ai.onrender.com/api/v1/auth/microsoft/callback`)
 2. **Token encryption is recommended** - Without `TOKEN_ENCRYPTION_KEY`, tokens are stored in plain text (less secure)
 3. **API Permissions** - Ensure Azure AD app has required permissions granted and admin consent
 4. **Rate Limits** - All endpoints have rate limiting configured (see deployment docs for details)
