@@ -11,7 +11,7 @@ Add to your `.env` or environment configuration:
 MSCLIENTID=your-microsoft-client-id
 MSCLIENTSECRET=your-microsoft-client-secret
 MSTENANTID=your-microsoft-tenant-id
-REDIRECT_URI=https://faraday-ai.com/auth/callback
+REDIRECT_URI=https://faraday-ai.onrender.com/api/v1/auth/microsoft/callback
 
 # Token Encryption (Recommended)
 TOKEN_ENCRYPTION_KEY=<generate-using-python-code-below>
