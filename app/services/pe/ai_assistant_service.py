@@ -334,6 +334,16 @@ class AIAssistantService:
                 extracted_data = router_result.get("widget_data")
                 usage_metadata = router_result.get("usage", {})
                 
+                # Extract generated content (images, documents, OneDrive links)
+                extracted_content = {
+                    "images": router_result.get("images", []),
+                    "file_content": router_result.get("file_content"),
+                    "filename": router_result.get("filename"),
+                    "web_url": router_result.get("web_url"),
+                    "file_id": router_result.get("file_id"),
+                    "num_slides": router_result.get("num_slides")
+                }
+                
                 # Get token count from usage metadata
                 token_count = usage_metadata.get("total_tokens", 0) if isinstance(usage_metadata, dict) else 0
                 processing_time = int((end_time - start_time).total_seconds() * 1000)
@@ -359,7 +369,7 @@ class AIAssistantService:
                 messages.append({"role": "user", "content": chat_request.message})
                 
                 response = self.openai_client.chat.completions.create(
-                    model=config.config_data.get('model', 'gpt-4'),
+                    model=config.config_data.get('model', 'gpt-4-turbo'),  # Full production model for authorized users
                     messages=messages,
                     temperature=config.config_data.get('temperature', 0.7),
                     max_tokens=config.config_data.get('max_tokens', 2000)
@@ -369,6 +379,8 @@ class AIAssistantService:
                 token_count = response.usage.total_tokens
                 processing_time = int((end_time - start_time).total_seconds() * 1000)
                 extracted_data = None
+                # Initialize router_result as empty dict for fallback case
+                router_result = {}
             
             # Save AI response
             ai_message = AIAssistantMessage(
@@ -377,7 +389,7 @@ class AIAssistantService:
                 message_type="assistant",
                 content=ai_response,
                 metadata={
-                    "model": config.config_data.get('model', 'gpt-4'),
+                    "model": config.config_data.get('model', 'gpt-4-turbo'),  # Full production model for authorized users
                     "temperature": config.config_data.get('temperature', 0.7),
                     "max_tokens": config.config_data.get('max_tokens', 2000)
                 },
@@ -465,16 +477,50 @@ class AIAssistantService:
                     logger.info(f"✅ Returning {len(widgets_list)} widgets: {[w.get('type') for w in widgets_list]}")
             
             # Legacy fallback block removed - ModelRouter handles all widget extraction via specialized services
-            return AIAssistantChatResponse(
-                conversation_id=str(conversation.id) if conversation.id else None,
-                message_id=str(ai_message.id) if ai_message.id else None,
-                response=ai_response,
-                token_count=token_count,
-                processing_time_ms=processing_time,
-                model_used=config.config_data.get('model', 'gpt-4'),
-                widget_data=widget_data,
-                widgets=widgets
-            )
+            # Build response with extracted content from router
+            response_kwargs = {
+                "conversation_id": str(conversation.id) if conversation.id else None,
+                "message_id": str(ai_message.id) if ai_message.id else None,
+                "response": ai_response,
+                "token_count": token_count,
+                "processing_time_ms": processing_time,
+                "model_used": config.config_data.get('model', 'gpt-4-turbo'),  # Full production model for authorized users
+                "widget_data": widget_data,
+                "widgets": widgets
+            }
+            
+            # Include generated content if present (from ContentGenerationService)
+            # Only check router_result if it was successfully created (not in fallback case)
+            if router_result:
+                if router_result.get("images"):
+                    response_kwargs["images"] = router_result.get("images")
+                if router_result.get("file_content"):
+                    response_kwargs["file_content"] = router_result.get("file_content")
+                    response_kwargs["filename"] = router_result.get("filename")
+                if router_result.get("web_url"):
+                    response_kwargs["web_url"] = router_result.get("web_url")
+                    response_kwargs["file_id"] = router_result.get("file_id")
+                if router_result.get("num_slides"):
+                    response_kwargs["num_slides"] = router_result.get("num_slides")
+            
+            # Also extract file_content and filename from widget_data.data if present (for generated documents)
+            # This ensures chat display works even if they're nested in widget_data
+            if widget_data and isinstance(widget_data, dict) and widget_data.get("data"):
+                widget_data_content = widget_data.get("data", {})
+                if isinstance(widget_data_content, dict):
+                    # Extract file_content and filename from widget_data.data if not already at top level
+                    if widget_data_content.get("file_content") and not response_kwargs.get("file_content"):
+                        response_kwargs["file_content"] = widget_data_content.get("file_content")
+                        logger.info("📄 Extracted file_content from widget_data.data for chat display")
+                    if widget_data_content.get("filename") and not response_kwargs.get("filename"):
+                        response_kwargs["filename"] = widget_data_content.get("filename")
+                        logger.info("📄 Extracted filename from widget_data.data for chat display")
+                    # Also extract web_url if present
+                    if widget_data_content.get("web_url") and not response_kwargs.get("web_url"):
+                        response_kwargs["web_url"] = widget_data_content.get("web_url")
+                        logger.info("☁️ Extracted web_url from widget_data.data for chat display")
+            
+            return AIAssistantChatResponse(**response_kwargs)
             
         except Exception as e:
             self.db.rollback()
@@ -690,7 +736,7 @@ class AIAssistantService:
             comprehensive_system_prompt = ENHANCED_SYSTEM_PROMPT
             
             default_config_data = {
-                "model": "gpt-4",
+                "model": "gpt-4-turbo",  # Full production model for authorized users
                 "temperature": 0.7,
                 "max_tokens": 2000,
                 "system_prompt": comprehensive_system_prompt

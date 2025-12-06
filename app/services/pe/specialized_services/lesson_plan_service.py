@@ -662,7 +662,7 @@ def _combine_worksheets(existing: str, questions: List[str], mc_options: List[st
                         keys_to_show.append(cleaned_keys[next_idx])
                 
                 # Limit to number of questions
-                keys_to_show = keys_to_show[:num_questions_added]
+                    keys_to_show = keys_to_show[:num_questions_added]
                 
                 # Ensure each answer key has "Correct Answer:" prefix if missing and number them
                 formatted_keys = []
@@ -1519,7 +1519,7 @@ def _extract_and_enhance_worksheets(final_data: Dict[str, Any], lesson_data: Dic
 
 
 def _extract_and_enhance_rubrics(final_data: Dict[str, Any], lesson_data: Dict[str, Any], 
-                                 objectives_data: List[Any], response_text: str) -> None:
+                                  objectives_data: List[Any], response_text: str) -> None:
     """Extract rubrics from multiple sources and ensure proper formatting."""
     logger.info(f"🔍 _extract_and_enhance_rubrics called: current_rubrics={final_data.get('rubrics', '')[:50] if final_data.get('rubrics') else 'empty'}..., objectives_count={len(objectives_data) if objectives_data else 0}")
     
@@ -1849,7 +1849,7 @@ def _extract_and_enhance_rubrics(final_data: Dict[str, Any], lesson_data: Dict[s
                             # Build proper rubric table with header (only once)
                             header = "Grading Rubric:\n| Criteria | Excellent (4 pts) | Proficient (3 pts) | Developing (2 pts) | Beginning (1 pt) |\n|----------|-------------------|-------------------|-------------------|------------------|\n"
                             rubric_table = header + "\n".join(formatted_rows)
-                            # Only set if rubrics is empty (don't overwrite existing)
+                    # Only set if rubrics is empty (don't overwrite existing)
                             if not final_data.get("rubrics") or not final_data.get("rubrics", "").strip():
                                 final_data["rubrics"] = rubric_table
                                 logger.info(f"✅ Formatted and saved rubric from section: {len(formatted_rows)} criteria rows")

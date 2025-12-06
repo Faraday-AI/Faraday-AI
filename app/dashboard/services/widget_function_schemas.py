@@ -997,6 +997,437 @@ class WidgetFunctionSchemas:
         ]
     
     @staticmethod
+    def get_presentation_schemas() -> List[Dict[str, Any]]:
+        """Get presentation creation function schemas."""
+        return [
+            {
+                "name": "create_powerpoint_presentation",
+                "description": "Create a PowerPoint presentation with specified number of slides on a given topic. The presentation will be generated and can be downloaded or uploaded to OneDrive.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "presentation_title": {
+                            "type": "string",
+                            "description": "Title of the presentation"
+                        },
+                        "topic": {
+                            "type": "string",
+                            "description": "Topic or subject of the presentation"
+                        },
+                        "num_slides": {
+                            "type": "integer",
+                            "description": "Number of slides to create (excluding title slide)",
+                            "minimum": 1,
+                            "maximum": 50
+                        },
+                        "slide_outline": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "title": {"type": "string", "description": "Slide title"},
+                                    "content": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Bullet points for the slide"
+                                    },
+                                    "notes": {
+                                        "type": "string",
+                                        "description": "Optional speaker notes for the slide"
+                                    }
+                                },
+                                "required": ["title", "content"]
+                            },
+                            "description": "Optional: Detailed outline of slides. If not provided, slides will be generated based on topic."
+                        },
+                        "subtitle": {
+                            "type": "string",
+                            "description": "Optional subtitle for the title slide"
+                        },
+                        "upload_to_onedrive": {
+                            "type": "boolean",
+                            "description": "Upload to OneDrive instead of downloading",
+                            "default": False
+                        },
+                        "onedrive_folder": {
+                            "type": "string",
+                            "description": "Optional OneDrive folder path",
+                            "default": ""
+                        }
+                    },
+                    "required": ["presentation_title", "topic", "num_slides"]
+                }
+            },
+            {
+                "name": "create_word_document",
+                "description": "Create a Word document with sections and content on a given topic. The document will be generated and can be downloaded or uploaded to OneDrive. IMPORTANT: If user requests images, you MUST generate them first using generate_image function calls. Each generate_image result contains an 'image' field with base64-encoded data. Extract that 'image' value and use it directly as 'image_base64' in your content_sections. The 'image' field from generate_image is already base64-encoded, so use it directly without modification.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "document_title": {
+                            "type": "string",
+                            "description": "Title of the document"
+                        },
+                        "topic": {
+                            "type": "string",
+                            "description": "Topic or subject of the document"
+                        },
+                        "content_sections": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "heading": {"type": "string", "description": "Section heading"},
+                                    "paragraphs": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Paragraphs of text for this section"
+                                    },
+                                    "bullet_points": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Optional bullet points for this section"
+                                    },
+                                    "image_base64": {
+                                        "type": "string",
+                                        "description": "Optional base64-encoded image to embed in this section. Use this when you've generated images with generate_image - extract the 'image' field from the result and include it here."
+                                    },
+                                    "image_url": {
+                                        "type": "string",
+                                        "description": "Optional URL of an image to embed in this section"
+                                    }
+                                },
+                                "required": ["heading", "paragraphs"]
+                            },
+                            "description": "Content sections for the document. Each section can include images via image_base64 (from generated images) or image_url."
+                        },
+                        "subtitle": {
+                            "type": "string",
+                            "description": "Optional subtitle for the document"
+                        },
+                        "upload_to_onedrive": {
+                            "type": "boolean",
+                            "description": "Upload to OneDrive instead of downloading",
+                            "default": False
+                        },
+                        "onedrive_folder": {
+                            "type": "string",
+                            "description": "Optional OneDrive folder path",
+                            "default": ""
+                        }
+                    },
+                    "required": ["document_title", "topic", "content_sections"]
+                }
+            },
+            {
+                "name": "create_pdf_document",
+                "description": "Create a PDF document with sections and content on a given topic. The PDF will be generated and can be downloaded or uploaded to OneDrive.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "document_title": {
+                            "type": "string",
+                            "description": "Title of the document"
+                        },
+                        "topic": {
+                            "type": "string",
+                            "description": "Topic or subject of the document"
+                        },
+                        "content_sections": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "heading": {"type": "string", "description": "Section heading"},
+                                    "paragraphs": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Paragraphs of text for this section"
+                                    },
+                                    "bullet_points": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Optional bullet points for this section"
+                                    }
+                                },
+                                "required": ["heading", "paragraphs"]
+                            },
+                            "description": "Content sections for the document"
+                        },
+                        "subtitle": {
+                            "type": "string",
+                            "description": "Optional subtitle for the document"
+                        },
+                        "upload_to_onedrive": {
+                            "type": "boolean",
+                            "description": "Upload to OneDrive instead of downloading",
+                            "default": False
+                        },
+                        "onedrive_folder": {
+                            "type": "string",
+                            "description": "Optional OneDrive folder path",
+                            "default": ""
+                        }
+                    },
+                    "required": ["document_title", "topic", "content_sections"]
+                }
+            },
+            {
+                "name": "create_excel_spreadsheet",
+                "description": "Create an Excel spreadsheet with data tables on a given topic. The spreadsheet will be generated and can be downloaded or uploaded to OneDrive.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "spreadsheet_title": {
+                            "type": "string",
+                            "description": "Title of the spreadsheet"
+                        },
+                        "topic": {
+                            "type": "string",
+                            "description": "Topic or subject of the spreadsheet"
+                        },
+                        "sheets": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string", "description": "Sheet name"},
+                                    "headers": {
+                                        "type": "array",
+                                        "items": {"type": "string"},
+                                        "description": "Column headers"
+                                    },
+                                    "rows": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "array",
+                                            "items": {"type": "string"}
+                                        },
+                                        "description": "Row data (list of lists)"
+                                    },
+                                    "summary": {
+                                        "type": "string",
+                                        "description": "Optional summary text for the sheet"
+                                    }
+                                },
+                                "required": ["name", "headers", "rows"]
+                            },
+                            "description": "Sheets with data for the spreadsheet"
+                        },
+                        "subtitle": {
+                            "type": "string",
+                            "description": "Optional subtitle for the spreadsheet"
+                        },
+                        "upload_to_onedrive": {
+                            "type": "boolean",
+                            "description": "Upload to OneDrive instead of downloading",
+                            "default": False
+                        },
+                        "onedrive_folder": {
+                            "type": "string",
+                            "description": "Optional OneDrive folder path",
+                            "default": ""
+                        }
+                    },
+                    "required": ["spreadsheet_title", "topic", "sheets"]
+                }
+            },
+            {
+                "name": "generate_image",
+                "description": "Generate images, artwork, or illustrations using AI (DALL-E). Can create pictures for educational content, presentations, or documents.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "prompt": {
+                            "type": "string",
+                            "description": "Description of the image to generate (e.g., 'basketball player shooting a free throw', 'diagram of the human heart')"
+                        },
+                        "size": {
+                            "type": "string",
+                            "enum": ["256x256", "512x512", "1024x1024"],
+                            "description": "Image size",
+                            "default": "1024x1024"
+                        },
+                        "style": {
+                            "type": "string",
+                            "description": "Art style (e.g., 'natural', 'abstract', 'cartoon', 'educational', 'diagram')",
+                            "default": "natural"
+                        },
+                        "variations": {
+                            "type": "integer",
+                            "description": "Number of variations to generate",
+                            "minimum": 1,
+                            "maximum": 4,
+                            "default": 1
+                        }
+                    },
+                    "required": ["prompt"]
+                }
+            },
+            {
+                "name": "search_and_embed_video",
+                "description": "Search for educational videos and embed video links in documents. Can find YouTube, Vimeo, or other educational video content.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "topic": {
+                            "type": "string",
+                            "description": "Topic to search for videos (e.g., 'basketball fundamentals', 'nutrition basics')"
+                        },
+                        "video_platform": {
+                            "type": "string",
+                            "enum": ["youtube", "vimeo", "any"],
+                            "description": "Preferred video platform",
+                            "default": "any"
+                        },
+                        "max_results": {
+                            "type": "integer",
+                            "description": "Maximum number of video links to return",
+                            "minimum": 1,
+                            "maximum": 10,
+                            "default": 5
+                        }
+                    },
+                    "required": ["topic"]
+                }
+            },
+            {
+                "name": "search_and_embed_web_links",
+                "description": "Search for relevant web resources and embed links in documents. Can find educational websites, articles, or resources.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "topic": {
+                            "type": "string",
+                            "description": "Topic to search for web resources"
+                        },
+                        "resource_type": {
+                            "type": "string",
+                            "enum": ["article", "website", "resource", "any"],
+                            "description": "Type of web resource",
+                            "default": "any"
+                        },
+                        "max_results": {
+                            "type": "integer",
+                            "description": "Maximum number of links to return",
+                            "minimum": 1,
+                            "maximum": 10,
+                            "default": 5
+                        }
+                    },
+                    "required": ["topic"]
+                }
+            }
+        ]
+    
+    @staticmethod
+    def get_microsoft_graph_schemas() -> List[Dict[str, Any]]:
+        """Get Microsoft Graph integration function schemas."""
+        return [
+            {
+                "name": "send_email_via_outlook",
+                "description": "Send an email via Outlook (Microsoft 365) with optional attachments. Requires Microsoft account authentication.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "recipients": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of recipient email addresses"
+                        },
+                        "subject": {
+                            "type": "string",
+                            "description": "Email subject line"
+                        },
+                        "body": {
+                            "type": "string",
+                            "description": "Email body content (plain text or HTML)"
+                        },
+                        "body_type": {
+                            "type": "string",
+                            "enum": ["Text", "HTML"],
+                            "description": "Email body type",
+                            "default": "Text"
+                        },
+                        "attachments": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "name": {"type": "string", "description": "Attachment filename"},
+                                    "content_bytes": {"type": "string", "description": "Base64-encoded file content"},
+                                    "content_type": {"type": "string", "description": "MIME type (e.g., application/pdf)"}
+                                },
+                                "required": ["name", "content_bytes", "content_type"]
+                            },
+                            "description": "Optional list of email attachments"
+                        }
+                    },
+                    "required": ["recipients", "subject", "body"]
+                }
+            },
+            {
+                "name": "upload_to_onedrive",
+                "description": "Upload a file to the user's OneDrive. Requires Microsoft account authentication. Can upload to root or specific folder.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "file_content": {
+                            "type": "string",
+                            "description": "Base64-encoded file content"
+                        },
+                        "filename": {
+                            "type": "string",
+                            "description": "Name of the file to upload (include extension)"
+                        },
+                        "folder_path": {
+                            "type": "string",
+                            "description": "Optional folder path in OneDrive (e.g., 'Documents/Widgets'). Leave empty for root.",
+                            "default": ""
+                        },
+                        "conflict_behavior": {
+                            "type": "string",
+                            "enum": ["fail", "replace", "rename"],
+                            "description": "What to do if file already exists",
+                            "default": "rename"
+                        }
+                    },
+                    "required": ["file_content", "filename"]
+                }
+            },
+            {
+                "name": "share_onedrive_file",
+                "description": "Share a OneDrive file with recipients via email. Requires Microsoft account authentication and file ID.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "file_id": {
+                            "type": "string",
+                            "description": "OneDrive file ID (obtained from upload_to_onedrive)"
+                        },
+                        "recipients": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "List of recipient email addresses to share with"
+                        },
+                        "permissions": {
+                            "type": "string",
+                            "enum": ["read", "write"],
+                            "description": "Sharing permissions",
+                            "default": "read"
+                        },
+                        "send_notification": {
+                            "type": "boolean",
+                            "description": "Send email notification to recipients",
+                            "default": True
+                        }
+                    },
+                    "required": ["file_id", "recipients"]
+                }
+            }
+        ]
+    
+    @staticmethod
     def get_all_schemas() -> List[Dict[str, Any]]:
         """Get all widget function schemas including enhancements."""
         schemas = []
@@ -1005,5 +1436,7 @@ class WidgetFunctionSchemas:
         schemas.extend(WidgetFunctionSchemas.get_drivers_ed_schemas())
         schemas.extend(WidgetFunctionSchemas.get_widget_management_schemas())
         schemas.extend(WidgetFunctionSchemas.get_enhancement_schemas())
+        schemas.extend(WidgetFunctionSchemas.get_presentation_schemas())
+        schemas.extend(WidgetFunctionSchemas.get_microsoft_graph_schemas())
         return schemas
 

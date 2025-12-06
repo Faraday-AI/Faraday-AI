@@ -114,6 +114,74 @@ def classify_intent(message_content: str, previous_asked_allergies: bool = False
     if "insight" in msg_lower:
         return "class_insights"
     
+    # Content generation keywords (check BEFORE generic widget keywords)
+    # Check for individual keywords that indicate content generation
+    content_generation_patterns = [
+        # Image generation
+        ("generate", ["image", "artwork", "picture", "photo", "illustration"]),
+        ("create", ["image", "artwork", "picture", "photo", "illustration"]),
+        ("make", ["image", "artwork", "picture", "photo", "illustration"]),
+        ("draw", ["image", "artwork", "picture", "illustration"]),
+        # Presentation generation
+        ("create", ["powerpoint", "presentation", "slides", "slide deck"]),
+        ("generate", ["powerpoint", "presentation", "slides", "slide deck"]),
+        ("make", ["powerpoint", "presentation", "slides", "slide deck"]),
+        # Document generation
+        ("create", ["word", "document", "doc", "handout"]),
+        ("generate", ["word", "document", "doc", "handout"]),
+        ("make", ["word", "document", "doc", "handout"]),
+        # PDF generation
+        ("create", ["pdf"]),
+        ("generate", ["pdf"]),
+        ("make", ["pdf"]),
+        # Spreadsheet generation
+        ("create", ["excel", "spreadsheet"]),
+        ("generate", ["excel", "spreadsheet"]),
+        ("make", ["excel", "spreadsheet"]),
+        # OneDrive/Outlook actions
+        ("upload", ["onedrive"]),
+        ("save", ["onedrive"]),
+        ("send", ["outlook", "email"]),
+    ]
+    
+    # Check for content generation patterns
+    for action, targets in content_generation_patterns:
+        if action in msg_lower:
+            for target in targets:
+                # Check if target appears near the action (within reasonable distance)
+                action_idx = msg_lower.find(action)
+                target_idx = msg_lower.find(target)
+                if target_idx != -1:
+                    # Check if they're close together (within 20 chars) or if target comes after action
+                    if abs(action_idx - target_idx) < 20 or target_idx > action_idx:
+                        return "content_generation"
+    
+    # Also check for standalone content generation phrases
+    content_generation_phrases = [
+        "generate image", "create image", "make image", "generate artwork", "create artwork",
+        "create powerpoint", "create presentation", "make presentation", "generate slides",
+        "create word", "create document", "make document", "generate document", "create handout", "word handout",
+        "create pdf", "make pdf", "generate pdf",
+        "create excel", "create spreadsheet", "make spreadsheet", "generate spreadsheet",
+        "upload to onedrive", "save to onedrive", "send via outlook", "email via outlook"
+    ]
+    if any(phrase in msg_lower for phrase in content_generation_phrases):
+        return "content_generation"
+    
+    # Check for follow-up messages that provide details for document creation
+    # These are messages that mention document structure/details but don't explicitly say "create"
+    follow_up_patterns = [
+        ("section", ["bullet", "point", "list", "rules", "content"]),
+        ("image", ["clipboard", "basketball", "court", "whistle", "picture", "photo", "illustration"]),
+        ("slide", ["title", "content", "presentation"]),
+        ("document", ["section", "heading", "paragraph", "bullet"]),
+    ]
+    for keyword, context_words in follow_up_patterns:
+        if keyword in msg_lower:
+            if any(ctx in msg_lower for ctx in context_words):
+                # This looks like a follow-up providing details for content generation
+                return "content_generation"
+    
     # Generic widget keywords
     widget_keywords = [
         "schedule", "tracking", "progress", "widget", "capabilities", "features",

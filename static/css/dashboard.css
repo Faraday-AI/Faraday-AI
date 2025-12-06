@@ -2407,3 +2407,131 @@ body.light-theme .widgets-header h2 {
     margin-bottom: 0;
 }
 
+/* Generated Image Widget */
+.generated-image-widget {
+    padding: 1rem;
+}
+
+.image-prompt {
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: var(--border-radius);
+    border-left: 3px solid var(--primary-color);
+}
+
+.image-prompt strong {
+    color: var(--primary-color);
+    margin-right: 0.5rem;
+}
+
+.generated-images-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.generated-image-item {
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.generated-image-preview {
+    width: 100%;
+    height: auto;
+    max-height: 400px;
+    object-fit: contain;
+    background-color: rgba(0, 0, 0, 0.2);
+}
+
+.image-actions {
+    padding: 0.75rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.btn-download-image {
+    padding: 0.5rem 1rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.btn-download-image:hover {
+    background-color: #2980b9;
+    transform: translateY(-1px);
+}
+
+/* Generated Document Widget */
+.generated-document-widget {
+    padding: 1rem;
+}
+
+.document-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    color: var(--primary-color);
+}
+
+.document-type,
+.document-filename,
+.document-created {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.document-type strong,
+.document-filename strong,
+.document-created strong {
+    color: var(--text-color);
+    margin-right: 0.5rem;
+}
+
+.document-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-download-document,
+.btn-onedrive-link {
+    padding: 0.5rem 1rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-block;
+    transition: var(--transition);
+}
+
+.btn-download-document:hover,
+.btn-onedrive-link:hover {
+    background-color: #2980b9;
+    transform: translateY(-1px);
+}
+
+.btn-onedrive-link {
+    background-color: #0078d4;
+}
+
+.btn-onedrive-link:hover {
+    background-color: #0063b1;
+}
+

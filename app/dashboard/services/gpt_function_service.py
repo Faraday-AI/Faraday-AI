@@ -2,6 +2,8 @@ from typing import Dict, Any, Optional
 import openai
 import json
 import logging
+import base64
+import os
 from sqlalchemy.orm import Session
 from app.dashboard.services.tool_registry_service import ToolRegistryService
 from app.dashboard.services.gpt_coordination_service import GPTCoordinationService
@@ -9,6 +11,10 @@ from app.dashboard.services.ai_widget_service import AIWidgetService
 from app.dashboard.services.widget_function_schemas import WidgetFunctionSchemas
 from app.models.core.user import User
 from app.models.teacher_registration import TeacherRegistration
+from app.services.integration.msgraph_service import get_msgraph_service
+from app.models.integration.microsoft_token import MicrosoftOAuthToken
+from app.services.integration.token_encryption import get_token_encryption_service
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -92,11 +98,33 @@ class GPTFunctionService:
                 ]
             )
             
-            return {
+            # Extract content from function result for frontend display
+            response_data = {
                 "action": function_name,
                 "result": result,
+                "response": follow_up.choices[0].message.content,
                 "explanation": follow_up.choices[0].message.content
             }
+            
+            # Extract images, file_content, web_url, widget_data from result
+            if isinstance(result, dict):
+                if result.get("images"):
+                    response_data["images"] = result.get("images", [])
+                if result.get("file_content"):
+                    response_data["file_content"] = result.get("file_content")
+                    response_data["filename"] = result.get("filename")
+                if result.get("web_url"):
+                    response_data["web_url"] = result.get("web_url")
+                    response_data["file_id"] = result.get("file_id")
+                    if result.get("filename"):
+                        response_data["filename"] = result.get("filename")
+                if result.get("widget_data"):
+                    response_data["widget_data"] = result.get("widget_data")
+                # Also include num_slides and other metadata
+                if result.get("num_slides"):
+                    response_data["num_slides"] = result.get("num_slides")
+            
+            return response_data
         else:
             return {
                 "response": message.content
@@ -387,6 +415,32 @@ class GPTFunctionService:
                     tone=arguments.get("tone", "professional")
                 )
             
+            # Document Creation Functions
+            elif function_name == "create_powerpoint_presentation":
+                return await self._handle_create_powerpoint_presentation(user_id, arguments)
+            elif function_name == "create_word_document":
+                return await self._handle_create_word_document(user_id, arguments)
+            elif function_name == "create_pdf_document":
+                return await self._handle_create_pdf_document(user_id, arguments)
+            elif function_name == "create_excel_spreadsheet":
+                return await self._handle_create_excel_spreadsheet(user_id, arguments)
+            
+            # Media Creation Functions
+            elif function_name == "generate_image":
+                return await self._handle_generate_image(user_id, arguments)
+            elif function_name == "search_and_embed_video":
+                return await self._handle_search_and_embed_video(user_id, arguments)
+            elif function_name == "search_and_embed_web_links":
+                return await self._handle_search_and_embed_web_links(user_id, arguments)
+            
+            # Microsoft Graph Functions
+            elif function_name == "send_email_via_outlook":
+                return await self._handle_send_email_via_outlook(user_id, arguments)
+            elif function_name == "upload_to_onedrive":
+                return await self._handle_upload_to_onedrive(user_id, arguments)
+            elif function_name == "share_onedrive_file":
+                return await self._handle_share_onedrive_file(user_id, arguments)
+            
             # For now, return a placeholder for unhandled functions
             else:
                 logger.warning(f"Unhandled function call: {function_name}")
@@ -398,6 +452,849 @@ class GPTFunctionService:
         except Exception as e:
             logger.error(f"Error executing function {function_name}: {str(e)}")
             raise
+    
+    def _get_microsoft_token(self, user_id: str) -> Optional[str]:
+        """Get Microsoft access token for user, refreshing if necessary."""
+        try:
+            # Convert user_id to int if needed
+            user_id_int = None
+            if isinstance(user_id, str) and user_id.isdigit():
+                user_id_int = int(user_id)
+            elif isinstance(user_id, int):
+                user_id_int = user_id
+            else:
+                logger.error(f"Invalid user_id format: {user_id}")
+                return None
+            
+            # Get encryption service for decrypting tokens
+            encryption_service = get_token_encryption_service()
+            
+            # Get stored token from database
+            oauth_token = self.db.query(MicrosoftOAuthToken).filter(
+                MicrosoftOAuthToken.user_id == user_id_int,
+                MicrosoftOAuthToken.is_active == True
+            ).first()
+            
+            if not oauth_token:
+                logger.warning(f"No active Microsoft token found for user {user_id_int}")
+                return None
+            
+            # Check if token is expired or will expire soon (within 5 minutes)
+            if oauth_token.expires_at and oauth_token.expires_at <= datetime.utcnow() + timedelta(minutes=5):
+                # Token expired or expiring soon, try to refresh
+                if oauth_token.refresh_token:
+                    msgraph_service = get_msgraph_service()
+                    refresh_result = msgraph_service.refresh_token(oauth_token.refresh_token)
+                    
+                    if refresh_result.get("status") == "success":
+                        token_data = refresh_result.get("token", {})
+                        # Update token in database (would need to implement this)
+                        # For now, use the new access token
+                        return token_data.get("access_token")
+                    else:
+                        logger.error(f"Failed to refresh token: {refresh_result.get('error')}")
+                        return None
+            
+            # Decrypt and return access token
+            if oauth_token.encrypted_access_token:
+                try:
+                    access_token = encryption_service.decrypt(oauth_token.encrypted_access_token)
+                    return access_token
+                except Exception as e:
+                    logger.error(f"Error decrypting access token: {str(e)}")
+                    return None
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting Microsoft token: {str(e)}")
+            return None
+    
+    async def _handle_send_email_via_outlook(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle send_email_via_outlook function call."""
+        try:
+            # Get Microsoft token
+            token = self._get_microsoft_token(user_id)
+            if not token:
+                return {
+                    "status": "error",
+                    "error": "Microsoft account not connected. Please connect your Microsoft account first."
+                }
+            
+            msgraph_service = get_msgraph_service()
+            
+            # Prepare attachments if provided
+            attachments = None
+            if arguments.get("attachments"):
+                attachments = []
+                for att in arguments.get("attachments", []):
+                    attachments.append({
+                        "name": att.get("name"),
+                        "contentBytes": att.get("content_bytes"),  # Should already be base64
+                        "contentType": att.get("content_type", "application/octet-stream")
+                    })
+            
+            # Send email
+            result = msgraph_service.send_email_via_outlook(
+                token=token,
+                recipients=arguments.get("recipients", []),
+                subject=arguments.get("subject", ""),
+                body=arguments.get("body", ""),
+                body_type=arguments.get("body_type", "Text"),
+                attachments=attachments
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error sending email via Outlook: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _handle_upload_to_onedrive(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle upload_to_onedrive function call."""
+        try:
+            # Get Microsoft token
+            token = self._get_microsoft_token(user_id)
+            if not token:
+                return {
+                    "status": "error",
+                    "error": "Microsoft account not connected. Please connect your Microsoft account first."
+                }
+            
+            # Decode base64 file content
+            file_content_b64 = arguments.get("file_content", "")
+            try:
+                file_bytes = base64.b64decode(file_content_b64)
+            except Exception as e:
+                return {"status": "error", "error": f"Invalid base64 file content: {str(e)}"}
+            
+            msgraph_service = get_msgraph_service()
+            
+            # Upload to OneDrive
+            result = msgraph_service.upload_to_onedrive(
+                token=token,
+                file_bytes=file_bytes,
+                filename=arguments.get("filename", "file"),
+                folder_path=arguments.get("folder_path", ""),
+                conflict_behavior=arguments.get("conflict_behavior", "rename")
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error uploading to OneDrive: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _handle_share_onedrive_file(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle share_onedrive_file function call."""
+        try:
+            # Get Microsoft token
+            token = self._get_microsoft_token(user_id)
+            if not token:
+                return {
+                    "status": "error",
+                    "error": "Microsoft account not connected. Please connect your Microsoft account first."
+                }
+            
+            msgraph_service = get_msgraph_service()
+            
+            # Share file
+            result = msgraph_service.share_document(
+                token=token,
+                file_id=arguments.get("file_id", ""),
+                recipients=arguments.get("recipients", []),
+                permissions=arguments.get("permissions", "read"),
+                send_notification=arguments.get("send_notification", True)
+            )
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error sharing OneDrive file: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _handle_create_powerpoint_presentation(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle create_powerpoint_presentation function call."""
+        try:
+            from app.services.widget_export_service import WidgetExportService
+            import base64
+            
+            presentation_title = arguments.get("presentation_title", "Presentation")
+            topic = arguments.get("topic", "")
+            num_slides = arguments.get("num_slides", 10)
+            subtitle = arguments.get("subtitle")
+            upload_to_onedrive = arguments.get("upload_to_onedrive", False)
+            onedrive_folder = arguments.get("onedrive_folder", "")
+            
+            # Get slide outline if provided, otherwise generate slides
+            slide_outline = arguments.get("slide_outline")
+            
+            if not slide_outline:
+                # Generate basic slide structure based on topic
+                # In a real implementation, you might want to use AI to generate slide content
+                slide_outline = []
+                for i in range(1, num_slides + 1):
+                    slide_outline.append({
+                        "title": f"Slide {i}: {topic}",
+                        "content": [f"Key point {i} about {topic}", f"Additional information {i}"],
+                        "notes": f"Speaker notes for slide {i}"
+                    })
+            
+            # Create presentation
+            export_service = WidgetExportService()
+            ppt_bytes = export_service.create_presentation_from_slides(
+                presentation_title=presentation_title,
+                slides=slide_outline,
+                subtitle=subtitle
+            )
+            
+            filename = f"{presentation_title.replace(' ', '_')}.pptx"
+            
+            # If upload to OneDrive is requested
+            if upload_to_onedrive:
+                token = self._get_microsoft_token(user_id)
+                if not token:
+                    return {
+                        "status": "error",
+                        "error": "Microsoft account not connected. Please connect your Microsoft account to upload to OneDrive."
+                    }
+                
+                msgraph_service = get_msgraph_service()
+                upload_result = msgraph_service.upload_to_onedrive(
+                    token=token,
+                    file_bytes=ppt_bytes,
+                    filename=filename,
+                    folder_path=onedrive_folder or "",
+                    conflict_behavior="rename"
+                )
+                
+                if upload_result.get("status") == "success":
+                    # Create widget data for OneDrive-uploaded presentation
+                    widget_data = {
+                        "type": "generated-document",
+                        "title": f"Presentation: {presentation_title}",
+                        "data": {
+                            "document_type": "powerpoint",
+                            "filename": upload_result.get("filename", filename),
+                            "title": presentation_title,
+                            "num_slides": len(slide_outline) + 1,  # +1 for title slide
+                            "web_url": upload_result.get("web_url"),
+                            "file_id": upload_result.get("file_id"),
+                            "onedrive_uploaded": True,
+                            "created_at": datetime.now().isoformat() if hasattr(datetime, 'now') else None
+                        }
+                    }
+                    return {
+                        "status": "success",
+                        "message": f"PowerPoint presentation '{presentation_title}' created and uploaded to OneDrive",
+                        "file_id": upload_result.get("file_id"),
+                        "web_url": upload_result.get("web_url"),
+                        "filename": upload_result.get("filename"),
+                        "num_slides": len(slide_outline) + 1,  # +1 for title slide
+                        "widget_data": widget_data
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to upload to OneDrive: {upload_result.get('error')}"
+                    }
+            
+            # Return presentation as base64 for download
+            ppt_base64 = base64.b64encode(ppt_bytes).decode('utf-8')
+            
+            # Create widget data for generated presentation
+            widget_data = {
+                "type": "generated-document",
+                "title": f"Presentation: {presentation_title}",
+                "data": {
+                    "document_type": "powerpoint",
+                    "filename": filename,
+                    "title": presentation_title,
+                    "num_slides": len(slide_outline) + 1,  # +1 for title slide
+                    "file_content": ppt_base64,
+                    "created_at": datetime.now().isoformat() if hasattr(datetime, 'now') else None
+                }
+            }
+            
+            return {
+                "status": "success",
+                "message": f"PowerPoint presentation '{presentation_title}' created successfully",
+                "filename": filename,
+                "file_content": ppt_base64,
+                "num_slides": len(slide_outline) + 1,  # +1 for title slide
+                "download_url": f"/api/v1/dashboard/presentations/{presentation_title.replace(' ', '_')}/download",
+                "widget_data": widget_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating PowerPoint presentation: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _handle_create_word_document(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle create_word_document function call."""
+        try:
+            from app.services.widget_export_service import WidgetExportService
+            import base64
+            
+            document_title = arguments.get("document_title", "Document")
+            content_sections = arguments.get("content_sections", [])
+            subtitle = arguments.get("subtitle")
+            upload_to_onedrive = arguments.get("upload_to_onedrive", False)
+            onedrive_folder = arguments.get("onedrive_folder", "")
+            
+            # Create document
+            export_service = WidgetExportService()
+            doc_bytes = export_service.create_word_document_from_content(
+                document_title=document_title,
+                content=content_sections,
+                subtitle=subtitle
+            )
+            
+            filename = f"{document_title.replace(' ', '_')}.docx"
+            
+            # If upload to OneDrive is requested
+            if upload_to_onedrive:
+                token = self._get_microsoft_token(user_id)
+                if not token:
+                    return {
+                        "status": "error",
+                        "error": "Microsoft account not connected. Please connect your Microsoft account to upload to OneDrive."
+                    }
+                
+                msgraph_service = get_msgraph_service()
+                upload_result = msgraph_service.upload_to_onedrive(
+                    token=token,
+                    file_bytes=doc_bytes,
+                    filename=filename,
+                    folder_path=onedrive_folder or "",
+                    conflict_behavior="rename"
+                )
+                
+                if upload_result.get("status") == "success":
+                    # Create widget data for OneDrive-uploaded Word document
+                    widget_data = {
+                        "type": "generated-document",
+                        "title": f"Word Document: {document_title}",
+                        "data": {
+                            "document_type": "word",
+                            "filename": upload_result.get("filename", filename),
+                            "title": document_title,
+                            "web_url": upload_result.get("web_url"),
+                            "file_id": upload_result.get("file_id"),
+                            "onedrive_uploaded": True,
+                            "created_at": datetime.now().isoformat() if hasattr(datetime, 'now') else None
+                        }
+                    }
+                    return {
+                        "status": "success",
+                        "message": f"Word document '{document_title}' created and uploaded to OneDrive",
+                        "file_id": upload_result.get("file_id"),
+                        "web_url": upload_result.get("web_url"),
+                        "filename": upload_result.get("filename"),
+                        "widget_data": widget_data
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to upload to OneDrive: {upload_result.get('error')}"
+                    }
+            
+            # Return document as base64 for download
+            doc_base64 = base64.b64encode(doc_bytes).decode('utf-8')
+            
+            # Create widget data for generated Word document
+            widget_data = {
+                "type": "generated-document",
+                "title": f"Word Document: {document_title}",
+                "data": {
+                    "document_type": "word",
+                    "filename": filename,
+                    "title": document_title,
+                    "file_content": doc_base64,
+                    "created_at": datetime.now().isoformat() if hasattr(datetime, 'now') else None
+                }
+            }
+            
+            return {
+                "status": "success",
+                "message": f"Word document '{document_title}' created successfully",
+                "filename": filename,
+                "file_content": doc_base64,
+                "widget_data": widget_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating Word document: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _handle_create_pdf_document(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle create_pdf_document function call."""
+        try:
+            from app.services.widget_export_service import WidgetExportService
+            import base64
+            
+            document_title = arguments.get("document_title", "Document")
+            content_sections = arguments.get("content_sections", [])
+            subtitle = arguments.get("subtitle")
+            upload_to_onedrive = arguments.get("upload_to_onedrive", False)
+            onedrive_folder = arguments.get("onedrive_folder", "")
+            
+            # Create PDF
+            export_service = WidgetExportService()
+            pdf_bytes = export_service.create_pdf_from_content(
+                document_title=document_title,
+                content=content_sections,
+                subtitle=subtitle
+            )
+            
+            filename = f"{document_title.replace(' ', '_')}.pdf"
+            
+            # If upload to OneDrive is requested
+            if upload_to_onedrive:
+                token = self._get_microsoft_token(user_id)
+                if not token:
+                    return {
+                        "status": "error",
+                        "error": "Microsoft account not connected. Please connect your Microsoft account to upload to OneDrive."
+                    }
+                
+                msgraph_service = get_msgraph_service()
+                upload_result = msgraph_service.upload_to_onedrive(
+                    token=token,
+                    file_bytes=pdf_bytes,
+                    filename=filename,
+                    folder_path=onedrive_folder or "",
+                    conflict_behavior="rename"
+                )
+                
+                if upload_result.get("status") == "success":
+                    # Create widget data for OneDrive-uploaded PDF
+                    widget_data = {
+                        "type": "generated-document",
+                        "title": f"PDF Document: {document_title}",
+                        "data": {
+                            "document_type": "pdf",
+                            "filename": upload_result.get("filename", filename),
+                            "title": document_title,
+                            "web_url": upload_result.get("web_url"),
+                            "file_id": upload_result.get("file_id"),
+                            "onedrive_uploaded": True,
+                            "created_at": datetime.now().isoformat() if hasattr(datetime, 'now') else None
+                        }
+                    }
+                    return {
+                        "status": "success",
+                        "message": f"PDF document '{document_title}' created and uploaded to OneDrive",
+                        "file_id": upload_result.get("file_id"),
+                        "web_url": upload_result.get("web_url"),
+                        "filename": upload_result.get("filename"),
+                        "widget_data": widget_data
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to upload to OneDrive: {upload_result.get('error')}"
+                    }
+            
+            # Return PDF as base64 for download
+            pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+            
+            # Create widget data for generated PDF
+            widget_data = {
+                "type": "generated-document",
+                "title": f"PDF Document: {document_title}",
+                "data": {
+                    "document_type": "pdf",
+                    "filename": filename,
+                    "title": document_title,
+                    "file_content": pdf_base64,
+                    "created_at": datetime.now().isoformat() if hasattr(datetime, 'now') else None
+                }
+            }
+            
+            return {
+                "status": "success",
+                "message": f"PDF document '{document_title}' created successfully",
+                "filename": filename,
+                "file_content": pdf_base64,
+                "widget_data": widget_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating PDF document: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _handle_create_excel_spreadsheet(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle create_excel_spreadsheet function call."""
+        try:
+            from app.services.widget_export_service import WidgetExportService
+            import base64
+            
+            spreadsheet_title = arguments.get("spreadsheet_title", "Spreadsheet")
+            sheets = arguments.get("sheets", [])
+            subtitle = arguments.get("subtitle")
+            upload_to_onedrive = arguments.get("upload_to_onedrive", False)
+            onedrive_folder = arguments.get("onedrive_folder", "")
+            
+            # Create spreadsheet
+            export_service = WidgetExportService()
+            excel_bytes = export_service.create_excel_spreadsheet_from_data(
+                spreadsheet_title=spreadsheet_title,
+                sheets=sheets,
+                subtitle=subtitle
+            )
+            
+            filename = f"{spreadsheet_title.replace(' ', '_')}.xlsx"
+            
+            # If upload to OneDrive is requested
+            if upload_to_onedrive:
+                token = self._get_microsoft_token(user_id)
+                if not token:
+                    return {
+                        "status": "error",
+                        "error": "Microsoft account not connected. Please connect your Microsoft account to upload to OneDrive."
+                    }
+                
+                msgraph_service = get_msgraph_service()
+                upload_result = msgraph_service.upload_to_onedrive(
+                    token=token,
+                    file_bytes=excel_bytes,
+                    filename=filename,
+                    folder_path=onedrive_folder or "",
+                    conflict_behavior="rename"
+                )
+                
+                if upload_result.get("status") == "success":
+                    # Create widget data for OneDrive-uploaded Excel spreadsheet
+                    widget_data = {
+                        "type": "generated-document",
+                        "title": f"Excel Spreadsheet: {spreadsheet_title}",
+                        "data": {
+                            "document_type": "excel",
+                            "filename": upload_result.get("filename", filename),
+                            "title": spreadsheet_title,
+                            "web_url": upload_result.get("web_url"),
+                            "file_id": upload_result.get("file_id"),
+                            "onedrive_uploaded": True,
+                            "created_at": datetime.now().isoformat() if hasattr(datetime, 'now') else None
+                        }
+                    }
+                    return {
+                        "status": "success",
+                        "message": f"Excel spreadsheet '{spreadsheet_title}' created and uploaded to OneDrive",
+                        "file_id": upload_result.get("file_id"),
+                        "web_url": upload_result.get("web_url"),
+                        "filename": upload_result.get("filename"),
+                        "widget_data": widget_data
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "error": f"Failed to upload to OneDrive: {upload_result.get('error')}"
+                    }
+            
+            # Return spreadsheet as base64 for download
+            excel_base64 = base64.b64encode(excel_bytes).decode('utf-8')
+            
+            # Create widget data for generated Excel spreadsheet
+            widget_data = {
+                "type": "generated-document",
+                "title": f"Excel Spreadsheet: {spreadsheet_title}",
+                "data": {
+                    "document_type": "excel",
+                    "filename": filename,
+                    "title": spreadsheet_title,
+                    "file_content": excel_base64,
+                    "created_at": datetime.now().isoformat() if hasattr(datetime, 'now') else None
+                }
+            }
+            
+            return {
+                "status": "success",
+                "message": f"Excel spreadsheet '{spreadsheet_title}' created successfully",
+                "filename": filename,
+                "file_content": excel_base64,
+                "widget_data": widget_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating Excel spreadsheet: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _handle_generate_image(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle generate_image function call."""
+        try:
+            from app.services.content.artwork_service import ArtworkService
+            
+            prompt = arguments.get("prompt", "")
+            size = arguments.get("size", "1024x1024")
+            style = arguments.get("style", "natural")
+            variations = arguments.get("variations", 1)
+            
+            artwork_service = ArtworkService()
+            results = await artwork_service.generate_artwork(
+                prompt=prompt,
+                size=size,
+                style=style,
+                variations=variations
+            )
+            
+            # Create widget data for generated images
+            widget_data = {
+                "type": "generated-image",
+                "title": f"Generated Image: {prompt[:50]}{'...' if len(prompt) > 50 else ''}",
+                "data": {
+                    "images": results,
+                    "prompt": prompt,
+                    "style": style,
+                    "size": size,
+                    "created_at": datetime.now().isoformat() if hasattr(datetime, 'now') else None
+                }
+            }
+            
+            return {
+                "status": "success",
+                "message": f"Generated {len(results)} image(s) successfully",
+                "images": results,
+                "prompt": prompt,
+                "style": style,
+                "size": size,
+                "widget_data": widget_data
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating image: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _handle_search_and_embed_video(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle search_and_embed_video function call."""
+        try:
+            topic = arguments.get("topic", "")
+            platform = arguments.get("video_platform", "any")
+            max_results = arguments.get("max_results", 5)
+            
+            # RECOMMENDED: Use SerpAPI (best option - see explanation below)
+            serpapi_key = os.getenv("SERPAPI_KEY")
+            if serpapi_key:
+                try:
+                    # Optional import - install with: pip install google-search-results
+                    try:
+                        from serpapi import GoogleSearch
+                    except ImportError:
+                        GoogleSearch = None
+                    
+                    if not GoogleSearch:
+                        raise ImportError("SerpAPI not installed")
+                    
+                    params = {
+                        "q": f"{topic} educational video",
+                        "api_key": serpapi_key,
+                        "engine": "youtube" if platform == "youtube" else "google",
+                        "num": max_results
+                    }
+                    
+                    search = GoogleSearch(params)
+                    results = search.get_dict()
+                    
+                    video_links = []
+                    if "video_results" in results:
+                        for video in results["video_results"][:max_results]:
+                            video_links.append({
+                                "title": video.get("title", ""),
+                                "url": video.get("link", ""),
+                                "platform": "youtube" if "youtube.com" in video.get("link", "") else "other",
+                                "description": video.get("snippet", ""),
+                                "thumbnail": video.get("thumbnail", "")
+                            })
+                    
+                    return {
+                        "status": "success",
+                        "message": f"Found {len(video_links)} video(s) for '{topic}'",
+                        "videos": video_links,
+                        "topic": topic,
+                        "platform": platform,
+                        "source": "serpapi"
+                    }
+                except ImportError:
+                    logger.warning("SerpAPI not installed. Install with: pip install google-search-results")
+                except Exception as e:
+                    logger.warning(f"SerpAPI search failed: {str(e)}, falling back to placeholder")
+            
+            # FALLBACK: YouTube Data API (if SerpAPI not available)
+            youtube_api_key = os.getenv("YOUTUBE_API_KEY")
+            if youtube_api_key and platform in ["youtube", "any"]:
+                try:
+                    import aiohttp
+                    async with aiohttp.ClientSession() as session:
+                        url = "https://www.googleapis.com/youtube/v3/search"
+                        params = {
+                            "part": "snippet",
+                            "q": f"{topic} educational",
+                            "type": "video",
+                            "maxResults": max_results,
+                            "key": youtube_api_key
+                        }
+                        async with session.get(url, params=params) as response:
+                            if response.status == 200:
+                                data = await response.json()
+                                video_links = []
+                                for item in data.get("items", []):
+                                    video_links.append({
+                                        "title": item["snippet"]["title"],
+                                        "url": f"https://www.youtube.com/watch?v={item['id']['videoId']}",
+                                        "platform": "youtube",
+                                        "description": item["snippet"]["description"],
+                                        "thumbnail": item["snippet"]["thumbnails"]["default"]["url"]
+                                    })
+                                
+                                return {
+                                    "status": "success",
+                                    "message": f"Found {len(video_links)} video(s) for '{topic}'",
+                                    "videos": video_links,
+                                    "topic": topic,
+                                    "platform": platform,
+                                    "source": "youtube_api"
+                                }
+                except Exception as e:
+                    logger.warning(f"YouTube API search failed: {str(e)}, falling back to placeholder")
+            
+            # PLACEHOLDER: Return structured response if no APIs configured
+            video_links = []
+            for i in range(min(max_results, 5)):
+                video_links.append({
+                    "title": f"Educational video about {topic}",
+                    "url": f"https://www.youtube.com/watch?v=example{i}",
+                    "platform": "youtube",
+                    "description": f"Video resource about {topic}",
+                    "note": "Configure SERPAPI_KEY or YOUTUBE_API_KEY for real results"
+                })
+            
+            return {
+                "status": "success",
+                "message": f"Found {len(video_links)} video(s) for '{topic}' (placeholder - configure API keys for real results)",
+                "videos": video_links,
+                "topic": topic,
+                "platform": platform,
+                "source": "placeholder"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error searching for videos: {str(e)}")
+            return {"status": "error", "error": str(e)}
+    
+    async def _handle_search_and_embed_web_links(self, user_id: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle search_and_embed_web_links function call."""
+        try:
+            topic = arguments.get("topic", "")
+            resource_type = arguments.get("resource_type", "any")
+            max_results = arguments.get("max_results", 5)
+            
+            # RECOMMENDED: Use SerpAPI (best option - combines Google, Bing, etc.)
+            serpapi_key = os.getenv("SERPAPI_KEY")
+            if serpapi_key:
+                try:
+                    # Optional import - install with: pip install google-search-results
+                    try:
+                        from serpapi import GoogleSearch
+                    except ImportError:
+                        GoogleSearch = None
+                    
+                    if not GoogleSearch:
+                        raise ImportError("SerpAPI not installed")
+                    
+                    params = {
+                        "q": f"{topic} educational resource",
+                        "api_key": serpapi_key,
+                        "engine": "google",
+                        "num": max_results
+                    }
+                    
+                    search = GoogleSearch(params)
+                    results = search.get_dict()
+                    
+                    web_links = []
+                    if "organic_results" in results:
+                        for result in results["organic_results"][:max_results]:
+                            web_links.append({
+                                "title": result.get("title", ""),
+                                "url": result.get("link", ""),
+                                "description": result.get("snippet", ""),
+                                "type": resource_type
+                            })
+                    
+                    return {
+                        "status": "success",
+                        "message": f"Found {len(web_links)} web resource(s) for '{topic}'",
+                        "links": web_links,
+                        "topic": topic,
+                        "resource_type": resource_type,
+                        "source": "serpapi"
+                    }
+                except ImportError:
+                    logger.warning("SerpAPI not installed. Install with: pip install google-search-results")
+                except Exception as e:
+                    logger.warning(f"SerpAPI search failed: {str(e)}, falling back to placeholder")
+            
+            # FALLBACK: Google Custom Search API
+            google_search_key = os.getenv("GOOGLE_SEARCH_API_KEY")
+            google_cx = os.getenv("GOOGLE_SEARCH_ENGINE_ID")
+            if google_search_key and google_cx:
+                try:
+                    import aiohttp
+                    async with aiohttp.ClientSession() as session:
+                        url = "https://www.googleapis.com/customsearch/v1"
+                        params = {
+                            "key": google_search_key,
+                            "cx": google_cx,
+                            "q": f"{topic} educational",
+                            "num": max_results
+                        }
+                        async with session.get(url, params=params) as response:
+                            if response.status == 200:
+                                data = await response.json()
+                                web_links = []
+                                for item in data.get("items", []):
+                                    web_links.append({
+                                        "title": item.get("title", ""),
+                                        "url": item.get("link", ""),
+                                        "description": item.get("snippet", ""),
+                                        "type": resource_type
+                                    })
+                                
+                                return {
+                                    "status": "success",
+                                    "message": f"Found {len(web_links)} web resource(s) for '{topic}'",
+                                    "links": web_links,
+                                    "topic": topic,
+                                    "resource_type": resource_type,
+                                    "source": "google_custom_search"
+                                }
+                except Exception as e:
+                    logger.warning(f"Google Custom Search failed: {str(e)}, falling back to placeholder")
+            
+            # PLACEHOLDER: Return structured response if no APIs configured
+            web_links = []
+            for i in range(min(max_results, 5)):
+                web_links.append({
+                    "title": f"Educational resource about {topic}",
+                    "url": f"https://example.com/resource/{i}",
+                    "description": f"Resource about {topic}",
+                    "type": resource_type,
+                    "note": "Configure SERPAPI_KEY or GOOGLE_SEARCH_API_KEY for real results"
+                })
+            
+            return {
+                "status": "success",
+                "message": f"Found {len(web_links)} web resource(s) for '{topic}' (placeholder - configure API keys for real results)",
+                "links": web_links,
+                "topic": topic,
+                "resource_type": resource_type,
+                "source": "placeholder"
+            }
+            
+        except Exception as e:
+            logger.error(f"Error searching for web links: {str(e)}")
+            return {"status": "error", "error": str(e)}
 
     async def suggest_tools(self, user_id: str, context: str) -> Dict[str, Any]:
         # Get available tools

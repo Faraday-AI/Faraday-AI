@@ -282,21 +282,21 @@ function updateOpeningPromptForAuthenticatedUser(firstName) {
         return; // Opening prompt not found
     }
     
-    // Create personalized greeting - FULL VERSION (visual display stays the same)
-    const personalizedGreeting = `<p>Hello ${firstName}, I'm Jasper, your comprehensive AI assistant for Physical Education, what can I do for you today?</p>
+    // Create personalized greeting - Simple and focused on standout features
+    // Display text shows intro without greeting, TTS uses short greeting only
+    const personalizedGreeting = `<p data-tts-text="Hello ${firstName}, what are we working on today" data-no-autoplay="true">I'm Jasper, your comprehensive AI assistant for Physical Education:</p>
                                 
                                 <p style="margin-top: 0.75rem;"><strong>Try these examples:</strong></p>
                                 <ul style="margin-top: 0.5rem; padding-left: 1.5rem; text-align: left;">
-                                    <li>"Create a lesson plan on basketball fundamentals"</li>
-                                    <li>"Show me attendance patterns for my fourth period class"</li>
-                                    <li>"Create balanced teams for Period 3"</li>
-                                    <li>"Send a progress update to Sarah's parents - translate to Spanish"</li>
+                                    <li>"Create an image of a basketball court with players"</li>
+                                    <li>"Create a Word document with basketball rules and add an image"</li>
+                                    <li>"Create a PowerPoint presentation about nutrition for my health class"</li>
+                                    <li>"Send an email to Sarah's parents about her progress - translate to Spanish"</li>
+                                    <li>"Add a meeting to my calendar for parent conferences next week"</li>
+                                    <li>"Create an Excel spreadsheet with student fitness test results"</li>
+                                    <li>"Generate a lesson plan on cardiovascular fitness"</li>
+                                    <li>"Create a meal plan for 7 days with macros and micronutrients"</li>
                                 </ul>
-                                
-                                <p style="margin-top: 0.75rem;">The more comprehensive your request is, the more detailed my responses will be. All responses can be modified or enhanced further with more explicit details through our continued conversation.</p>
-                                
-                                <p style="margin-top: 0.5rem;"><strong>Try this comprehensive example:</strong></p>
-                                <p style="margin-top: 0.5rem; font-style: italic; padding-left: 1rem; border-left: 3px solid #4CAF50;">"Create a comprehensive lesson plan for a 6th grade basketball unit that includes detailed learning objectives aligned with state standards, step-by-step activities for a 45-minute class, assessment rubrics, differentiation strategies for students with varying skill levels, safety considerations, and homework assignments. Also include Costa's Levels of Questioning examples and Danielson Framework alignment."</p>
                                 
                                 <span class="message-time">Just now</span>`;
     
@@ -793,24 +793,24 @@ function setupOpeningPrompt() {
         originalConsole.log('✅ Found openingPromptContent element for guest user');
     } else {
         // For authenticated users, find the first AI message in the chat
-        const chatMessages = document.getElementById('chatMessages');
-        if (!chatMessages) {
-            originalConsole.warn('⚠️ Chat messages container not found, retrying in 500ms...');
-            setTimeout(() => setupOpeningPrompt(), 500);
-            return;
-        }
-        
-        const firstAIMessage = chatMessages.querySelector('.message.ai-message');
-        if (!firstAIMessage) {
-            originalConsole.warn('⚠️ Opening prompt message not found, retrying in 500ms...');
-            setTimeout(() => setupOpeningPrompt(), 500);
-            return;
-        }
-        
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) {
+        originalConsole.warn('⚠️ Chat messages container not found, retrying in 500ms...');
+        setTimeout(() => setupOpeningPrompt(), 500);
+        return;
+    }
+    
+    const firstAIMessage = chatMessages.querySelector('.message.ai-message');
+    if (!firstAIMessage) {
+        originalConsole.warn('⚠️ Opening prompt message not found, retrying in 500ms...');
+        setTimeout(() => setupOpeningPrompt(), 500);
+        return;
+    }
+    
         messageContent = firstAIMessage.querySelector('.message-content');
-        if (!messageContent) {
-            originalConsole.warn('⚠️ Message content not found');
-            return;
+    if (!messageContent) {
+        originalConsole.warn('⚠️ Message content not found');
+        return;
         }
     }
     
@@ -846,11 +846,21 @@ function setupOpeningPrompt() {
         // For authenticated users: ONLY use the first greeting sentence
         // Extract just the first paragraph (the greeting) for autoplay
         const firstParagraph = messageContent.querySelector('p');
-        if (firstParagraph) {
-            // Get just the first paragraph text (the greeting)
+    if (firstParagraph) {
+        // Check if there's a data-tts-text attribute for TTS (different from displayed text)
+        const ttsText = firstParagraph.getAttribute('data-tts-text');
+        if (ttsText) {
+            welcomeMessage = ttsText;
+            originalConsole.log('📝 Using data-tts-text attribute for TTS:', welcomeMessage);
+        } else {
+            // Fallback to text content if no TTS attribute
             welcomeMessage = firstParagraph.textContent || firstParagraph.innerText || '';
             welcomeMessage = welcomeMessage.trim();
-            originalConsole.log('📝 Extracted first paragraph for TTS autoplay:', welcomeMessage.substring(0, 100));
+            originalConsole.log('⚠️ No data-tts-text found, using textContent:', welcomeMessage.substring(0, 100));
+        }
+        originalConsole.log('📝 Extracted first paragraph for TTS autoplay:', welcomeMessage.substring(0, 100));
+        } else {
+            originalConsole.warn('⚠️ No first paragraph found in opening prompt content');
         }
     }
     
@@ -870,11 +880,26 @@ function setupOpeningPrompt() {
     let preGeneratedAudio = null;
     let preGeneratedAudioUrl = null;
     
-    // For opening prompt, use the FULL text (up to 5000 chars) to ensure complete message
-    // Since this is pre-fetched in background, we can use more text without blocking
-    // The opening prompt is important and should be read completely
-    const openingPromptText = welcomeMessage.length > 5000 ? welcomeMessage.substring(0, 5000) : welcomeMessage;
-    originalConsole.log(`📝 Opening prompt text length: ${welcomeMessage.length} chars, using: ${openingPromptText.length} chars for pre-fetch`);
+    // RE-EXTRACT text from DOM to ensure we have the latest content with data-tts-text
+    // This ensures we get the updated HTML even if updateOpeningPromptForAuthenticatedUser ran after setupOpeningPrompt
+    let textForPreFetch = welcomeMessage; // Default to pre-extracted
+    const openingPromptContentForPreFetch = document.getElementById('openingPromptContent');
+    if (openingPromptContentForPreFetch) {
+        const firstParagraphForPreFetch = openingPromptContentForPreFetch.querySelector('p');
+        if (firstParagraphForPreFetch) {
+            const freshTtsTextForPreFetch = firstParagraphForPreFetch.getAttribute('data-tts-text');
+            if (freshTtsTextForPreFetch) {
+                textForPreFetch = freshTtsTextForPreFetch;
+                originalConsole.log('📝 Re-extracted data-tts-text for pre-fetch:', textForPreFetch);
+            } else {
+                originalConsole.log('⚠️ No data-tts-text found for pre-fetch, using pre-extracted text');
+            }
+        }
+    }
+    
+    // For opening prompt, use the TTS text (up to 5000 chars)
+    const openingPromptText = textForPreFetch.length > 5000 ? textForPreFetch.substring(0, 5000) : textForPreFetch;
+    originalConsole.log(`📝 Opening prompt text length: ${textForPreFetch.length} chars, using: ${openingPromptText.length} chars for pre-fetch`);
     
     // Pre-fetch audio in background (non-blocking)
     const preFetchAudio = async () => {
@@ -1046,23 +1071,37 @@ function setupOpeningPrompt() {
             // Small delay to ensure all audio is stopped
             await new Promise(resolve => setTimeout(resolve, 50));
             
-            originalConsole.log('🔄 Generating opening prompt audio on-demand...');
-            try {
-                // Use the FULL welcome message (not truncated) to ensure complete message
-                // speakMessage will handle truncation based on useFullText parameter
-                await speakMessage(tempButton, welcomeMessage, true, true); // Use full text for opening prompt
-                originalConsole.log('✅ Opening prompt played successfully (on-demand)');
+        originalConsole.log('🔄 Generating opening prompt audio on-demand...');
+        try {
+            // RE-EXTRACT text fresh from DOM to ensure we have the latest content with data-tts-text
+            let ttsText = welcomeMessage; // Default to pre-extracted
+            const openingPromptContent = document.getElementById('openingPromptContent');
+            if (openingPromptContent) {
+                const firstParagraph = openingPromptContent.querySelector('p');
+                if (firstParagraph) {
+                    const freshTtsText = firstParagraph.getAttribute('data-tts-text');
+                    if (freshTtsText) {
+                        ttsText = freshTtsText;
+                        originalConsole.log('📝 Re-extracted data-tts-text for on-demand audio:', ttsText);
+                    } else {
+                        originalConsole.log('⚠️ No data-tts-text found, using pre-extracted text');
+                    }
+                }
+            }
+            // Use the TTS text (not the full welcome message)
+            await speakMessage(tempButton, ttsText, true, true); // Use TTS text for opening prompt
+            originalConsole.log('✅ Opening prompt played successfully (on-demand)');
                 
                 // Reset flag when audio completes (speakMessage handles this via audioManager)
                 // But also set a timeout as backup
                 setTimeout(() => {
                     isOpeningPromptPlaying = false;
                 }, 1000);
-            } catch (error) {
+        } catch (error) {
                 // If autoplay fails, reset flag
                 isOpeningPromptPlaying = false;
-                // If autoplay fails, that's okay - user can click speaker button later
-                originalConsole.log('⚠️ Opening prompt autoplay blocked, but audio is ready. Error:', error);
+            // If autoplay fails, that's okay - user can click speaker button later
+            originalConsole.log('⚠️ Opening prompt autoplay blocked, but audio is ready. Error:', error);
             }
         }
         
@@ -2136,8 +2175,11 @@ async function sendMessage() {
             
             // NOW start autoplay (still within the same user interaction context)
             console.log('🔊 About to call addMessageToChat with autoplay=true (AFTER widgets)');
-            addMessageToChat('ai', result.response, true); // Pass true to auto-speak
+            addMessageToChat('ai', result.response, true, null, result); // Pass result for content parsing
             console.log('🔊 addMessageToChat called, checking if autoplay was triggered...');
+            
+            // Handle generated content (images, documents, OneDrive links)
+            handleGeneratedContent(result);
         } else {
             throw new Error('Invalid response format: missing "response" field');
         }
@@ -2174,8 +2216,739 @@ async function sendMessage() {
     }
 }
 
+// Handle generated content (images, documents, OneDrive links)
+function handleGeneratedContent(result) {
+    if (!result) return;
+    
+    // Extract file_content, filename, images, and web_url from result or widget_data.data
+    // Backend may provide these at top level OR nested in widget_data.data
+    let fileContent = result.file_content;
+    let filename = result.filename;
+    let images = result.images;
+    let webUrl = result.web_url;
+    
+    // Fallback: Check widget_data.data for generated-document widgets
+    if (result.widget_data && result.widget_data.type === 'generated-document' && result.widget_data.data) {
+        const widgetData = result.widget_data.data;
+        if (!fileContent && widgetData.file_content) {
+            fileContent = widgetData.file_content;
+            console.log('📄 Found file_content in widget_data.data');
+        }
+        if (!filename && widgetData.filename) {
+            filename = widgetData.filename;
+            console.log('📄 Found filename in widget_data.data');
+        }
+        if (!images && widgetData.images && Array.isArray(widgetData.images) && widgetData.images.length > 0) {
+            images = widgetData.images;
+            console.log('🖼️ Found images in widget_data.data:', images.length);
+        }
+        if (!webUrl && widgetData.web_url) {
+            webUrl = widgetData.web_url;
+            console.log('☁️ Found web_url in widget_data.data');
+        }
+    }
+    
+    // Handle generated images
+    if (images && Array.isArray(images) && images.length > 0) {
+        console.log('🖼️ Displaying generated images:', images.length);
+        images.forEach((image, index) => {
+            addImageToChat(image, index);
+        });
+    }
+    
+    // Handle generated documents (file downloads)
+    if (fileContent) {
+        console.log('📄 Handling file download:', filename || 'document');
+        addFileDownloadToChat({
+            file_content: fileContent,
+            filename: filename || 'document',
+            num_slides: result.num_slides
+        });
+    }
+    
+    // Handle OneDrive links
+    if (webUrl) {
+        console.log('☁️ Adding OneDrive link:', webUrl);
+        addOneDriveLinkToChat({
+            web_url: webUrl,
+            filename: filename || result.filename || 'file',
+            file_id: result.file_id
+        });
+    }
+}
+
+// Add image to chat
+function addImageToChat(image, index = 0) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+    
+    const imageDiv = document.createElement('div');
+    imageDiv.className = 'message ai-message generated-content';
+    imageDiv.style.marginTop = '0.5rem';
+    
+    // Support both 'image' (from ContentGenerationService) and 'base64_image' (for compatibility)
+    const base64Image = image.image || image.base64_image || image.base64;
+    const imageUrl = image.url || (base64Image ? `data:image/png;base64,${base64Image}` : null);
+    if (!imageUrl) {
+        console.warn('⚠️ No image URL or base64 data found', image);
+        return;
+    }
+    
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    imageDiv.innerHTML = `
+        <div class="message-avatar">🖼️</div>
+        <div class="message-content">
+            <div style="margin-bottom: 0.5rem;">
+                <img src="${imageUrl}" alt="Generated image" style="max-width: 100%; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); cursor: pointer;" onclick="window.open('${imageUrl}', '_blank')" />
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                ${base64Image ? `<button class="btn-secondary" style="font-size: 0.85rem; padding: 0.25rem 0.5rem;" onclick="downloadFileFromBase64('${base64Image}', '${image.filename || `generated_image_${index + 1}.png`}')">📥 Download</button>` : `<button class="btn-secondary" style="font-size: 0.85rem; padding: 0.25rem 0.5rem;" onclick="downloadImage('${imageUrl}', '${image.filename || `generated_image_${index + 1}.png`}')">📥 Download</button>`}
+                ${image.prompt ? `<span style="font-size: 0.85rem; color: #666; font-style: italic;">"${escapeHtml(image.prompt)}"</span>` : ''}
+            </div>
+            <span class="message-time">${time}</span>
+        </div>
+    `;
+    
+    chatMessages.appendChild(imageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Add file download to chat
+function addFileDownloadToChat(result) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+    
+    const fileDiv = document.createElement('div');
+    fileDiv.className = 'message ai-message generated-content';
+    fileDiv.style.marginTop = '0.5rem';
+    
+    const filename = result.filename || 'download';
+    const fileType = filename.split('.').pop().toLowerCase();
+    const fileIcon = getFileIcon(fileType);
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    // Determine document type for display
+    let documentType = 'Document';
+    if (fileType === 'docx') documentType = 'Word Document';
+    else if (fileType === 'pptx') documentType = 'PowerPoint Presentation';
+    else if (fileType === 'pdf') documentType = 'PDF Document';
+    else if (fileType === 'xlsx') documentType = 'Excel Spreadsheet';
+    
+    // Calculate file size if we have base64 content
+    let fileSizeText = '';
+    if (result.file_content) {
+        try {
+            // Approximate size: base64 is ~33% larger than binary
+            const binarySize = Math.round((result.file_content.length * 3) / 4);
+            const sizeInKB = (binarySize / 1024).toFixed(1);
+            fileSizeText = `<span style="font-size: 0.85rem; color: #666; margin-left: 0.5rem;">(${sizeInKB} KB)</span>`;
+        } catch (e) {
+            // Ignore size calculation errors
+        }
+    }
+    
+    fileDiv.innerHTML = `
+        <div class="message-avatar">${fileIcon}</div>
+        <div class="message-content">
+            <div style="margin-bottom: 0.75rem; padding: 0.75rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <span style="font-size: 1.5rem;">${fileIcon}</span>
+                    <div style="flex: 1;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                            <span style="font-weight: 600; font-size: 1.1rem; color: #333;">${escapeHtml(documentType)}</span>
+                            ${result.num_slides ? `<span style="font-size: 0.85rem; color: #666;">(${result.num_slides} slides)</span>` : ''}
+                        </div>
+                        <div style="font-size: 0.95rem; color: #555; margin-top: 0.25rem;">
+                            <span style="font-weight: 500;">${escapeHtml(filename)}</span>
+                            ${fileSizeText}
+                        </div>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                    ${fileType === 'docx' || fileType === 'doc' || fileType === 'pdf' || fileType === 'xlsx' || fileType === 'xls' || fileType === 'pptx' || fileType === 'ppt' ? `<button class="btn-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem; font-weight: 500; background: #007bff; color: white;" onclick="viewDocument('${result.file_content}', '${filename}')">👁️ View Document</button>` : ''}
+                    <button class="btn-secondary" style="font-size: 0.9rem; padding: 0.5rem 1rem; font-weight: 500;" onclick="downloadFileFromBase64('${result.file_content}', '${filename}')">📥 Download Document</button>
+                </div>
+            </div>
+            <span class="message-time">${time}</span>
+        </div>
+    `;
+    
+    chatMessages.appendChild(fileDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Add OneDrive link to chat
+function addOneDriveLinkToChat(result) {
+    const chatMessages = document.getElementById('chatMessages');
+    if (!chatMessages) return;
+    
+    const linkDiv = document.createElement('div');
+    linkDiv.className = 'message ai-message generated-content';
+    linkDiv.style.marginTop = '0.5rem';
+    
+    const filename = result.filename || 'file';
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    linkDiv.innerHTML = `
+        <div class="message-avatar">☁️</div>
+        <div class="message-content">
+            <div style="margin-bottom: 0.5rem;">
+                <span style="font-weight: 500;">File uploaded to OneDrive</span>
+                <div style="font-size: 0.85rem; color: #666; margin-top: 0.25rem;">${escapeHtml(filename)}</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <a href="${result.web_url}" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="font-size: 0.85rem; padding: 0.25rem 0.5rem; text-decoration: none; display: inline-block;">🔗 Open in OneDrive</a>
+            </div>
+            <span class="message-time">${time}</span>
+        </div>
+    `;
+    
+    chatMessages.appendChild(linkDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+// Download image helper
+function downloadImage(imageUrl, filename) {
+    const a = document.createElement('a');
+    a.href = imageUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+// Download file from base64 helper
+function downloadFileFromBase64(base64Content, filename) {
+    try {
+        // Convert base64 to blob
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray]);
+        
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('✅ File downloaded:', filename);
+    } catch (error) {
+        console.error('❌ Error downloading file:', error);
+        alert('Error downloading file. Please try again.');
+    }
+}
+
+// Get file icon helper
+function getFileIcon(fileType) {
+    const icons = {
+        'pptx': '📊',
+        'ppt': '📊',
+        'docx': '📝',
+        'doc': '📝',
+        'pdf': '📄',
+        'xlsx': '📈',
+        'xls': '📈'
+    };
+    return icons[fileType] || '📎';
+}
+
+// View Word document using docx-preview
+function viewWordDocument(base64Content, filename) {
+    try {
+        // Create modal for document viewer
+        let modal = document.getElementById('documentViewerModal');
+        if (!modal) {
+            modal = createDocumentViewerModal();
+        }
+        
+        // Set title
+        document.getElementById('documentViewerTitle').textContent = filename || 'Document';
+        
+        // Show modal
+        modal.classList.add('active');
+        
+        // Convert base64 to blob
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+        
+        // Check if docx-preview is available
+        if (typeof docx !== 'undefined' && docx.renderAsync) {
+            const contentDiv = document.getElementById('documentViewerContent');
+            contentDiv.innerHTML = '<div class="document-viewer-loading">Loading document...</div>';
+            
+            // Render the document
+            docx.renderAsync(blob, contentDiv, null, {
+                className: 'docx-wrapper',
+                inWrapper: true,
+                ignoreWidth: false,
+                ignoreHeight: false,
+                ignoreFonts: false,
+                breakPages: true,
+                ignoreLastRenderedPageBreak: true,
+                experimental: false,
+                trimXmlDeclaration: true,
+                useBase64URL: false,
+                useMathMLPolyfill: true,
+                showChanges: false,
+                showComments: false,
+                showInserted: true,
+                showDeleted: false
+            }).then(() => {
+                console.log('✅ Document rendered successfully');
+            }).catch((error) => {
+                console.error('❌ Error rendering document:', error);
+                contentDiv.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #d32f2f;">
+                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">⚠️ Error loading document</p>
+                        <p style="color: #666;">${error.message || 'Unable to preview this document. Please download it to view.'}</p>
+                        <button onclick="downloadFileFromBase64('${base64Content}', '${filename}')" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">📥 Download Instead</button>
+                    </div>
+                `;
+            });
+        } else {
+            // Fallback if library not loaded
+            document.getElementById('documentViewerContent').innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #666;">
+                    <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Document viewer not available</p>
+                    <p>Please download the document to view it.</p>
+                    <button onclick="downloadFileFromBase64('${base64Content}', '${filename}')" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">📥 Download Document</button>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('❌ Error viewing document:', error);
+        alert('Error opening document viewer. Please download the document instead.');
+    }
+}
+
+// View PDF document (using iframe)
+function viewPDFDocument(base64Content, filename) {
+    try {
+        // Create modal for PDF viewer
+        let modal = document.getElementById('documentViewerModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'documentViewerModal';
+            modal.className = 'document-viewer-modal';
+            modal.innerHTML = `
+                <div class="document-viewer-overlay" onclick="closeDocumentViewer()"></div>
+                <div class="document-viewer-container">
+                    <div class="document-viewer-header">
+                        <h3 id="documentViewerTitle">Document Viewer</h3>
+                        <button class="document-viewer-close" onclick="closeDocumentViewer()" aria-label="Close viewer">×</button>
+                    </div>
+                    <div class="document-viewer-content" id="documentViewerContent" style="padding: 0;">
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        // Set title
+        document.getElementById('documentViewerTitle').textContent = filename || 'Document';
+        
+        // Show modal
+        modal.classList.add('active');
+        
+        // Convert base64 to data URL
+        const dataUrl = `data:application/pdf;base64,${base64Content}`;
+        
+        // Create iframe for PDF
+        const contentDiv = document.getElementById('documentViewerContent');
+        contentDiv.innerHTML = `<iframe src="${dataUrl}" style="width: 100%; height: 100%; border: none; min-height: 80vh;"></iframe>`;
+    } catch (error) {
+        console.error('❌ Error viewing PDF:', error);
+        alert('Error opening PDF viewer. Please download the document instead.');
+    }
+}
+
+// Close document viewer
+function closeDocumentViewer() {
+    const modal = document.getElementById('documentViewerModal');
+    if (modal) {
+        modal.classList.remove('active');
+        // Clear content to free memory
+        const contentDiv = document.getElementById('documentViewerContent');
+        if (contentDiv) {
+            contentDiv.innerHTML = '';
+        }
+    }
+}
+
+// View Excel document using xlsx library
+function viewExcelDocument(base64Content, filename) {
+    try {
+        // Create modal for document viewer
+        let modal = document.getElementById('documentViewerModal');
+        if (!modal) {
+            modal = createDocumentViewerModal();
+        }
+        
+        // Set title
+        document.getElementById('documentViewerTitle').textContent = filename || 'Spreadsheet';
+        
+        // Show modal
+        modal.classList.add('active');
+        
+        const contentDiv = document.getElementById('documentViewerContent');
+        contentDiv.innerHTML = '<div class="document-viewer-loading">Loading spreadsheet...</div>';
+        
+        // Convert base64 to array buffer
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        
+        // Check if XLSX library is available
+        if (typeof XLSX !== 'undefined') {
+            try {
+                // Read the workbook
+                const workbook = XLSX.read(byteArray, { type: 'array' });
+                
+                // Get sheet names
+                const sheetNames = workbook.SheetNames;
+                
+                // Create tabs for multiple sheets
+                let html = '';
+                if (sheetNames.length > 1) {
+                    html += '<div class="excel-sheet-tabs" style="display: flex; gap: 0.5rem; padding: 1rem; border-bottom: 1px solid #e0e0e0; background: #f8f9fa; flex-wrap: wrap;">';
+                    sheetNames.forEach((sheetName, index) => {
+                        html += `<button class="excel-tab-btn ${index === 0 ? 'active' : ''}" onclick="switchExcelSheet(${index})" data-sheet-index="${index}" style="padding: 0.5rem 1rem; border: 1px solid #ddd; background: ${index === 0 ? '#007bff' : 'white'}; color: ${index === 0 ? 'white' : '#333'}; border-radius: 4px; cursor: pointer; font-size: 0.9rem;">${escapeHtml(sheetName)}</button>`;
+                    });
+                    html += '</div>';
+                }
+                
+                // Create content area for sheets
+                html += '<div class="excel-sheets-container" style="padding: 1rem; overflow: auto;">';
+                sheetNames.forEach((sheetName, index) => {
+                    const worksheet = workbook.Sheets[sheetName];
+                    const htmlTable = XLSX.utils.sheet_to_html(worksheet, { id: `sheet-${index}` });
+                    html += `<div class="excel-sheet-content" data-sheet-index="${index}" style="display: ${index === 0 ? 'block' : 'none'};">`;
+                    html += `<h4 style="margin-bottom: 1rem; color: #333;">${escapeHtml(sheetName)}</h4>`;
+                    html += '<div style="overflow: auto; max-width: 100%;">';
+                    html += htmlTable;
+                    html += '</div>';
+                    html += '</div>';
+                });
+                html += '</div>';
+                
+                contentDiv.innerHTML = html;
+                
+                // Store workbook data for tab switching
+                window.currentExcelWorkbook = { sheetNames, workbook };
+                
+                // Add styles for Excel table
+                if (!document.getElementById('excelViewerStyles')) {
+                    const style = document.createElement('style');
+                    style.id = 'excelViewerStyles';
+                    style.textContent = `
+                        .excel-sheet-tabs {
+                            display: flex;
+                            gap: 0.5rem;
+                            padding: 1rem;
+                            border-bottom: 1px solid #e0e0e0;
+                            background: #f8f9fa;
+                            flex-wrap: wrap;
+                        }
+                        .excel-tab-btn {
+                            padding: 0.5rem 1rem;
+                            border: 1px solid #ddd;
+                            background: white;
+                            color: #333;
+                            border-radius: 4px;
+                            cursor: pointer;
+                            font-size: 0.9rem;
+                            transition: all 0.2s;
+                        }
+                        .excel-tab-btn:hover {
+                            background: #e9ecef;
+                        }
+                        .excel-tab-btn.active {
+                            background: #007bff;
+                            color: white;
+                            border-color: #007bff;
+                        }
+                        .excel-sheets-container table {
+                            border-collapse: collapse;
+                            width: 100%;
+                            font-size: 0.9rem;
+                        }
+                        .excel-sheets-container table td,
+                        .excel-sheets-container table th {
+                            border: 1px solid #ddd;
+                            padding: 0.5rem;
+                            text-align: left;
+                        }
+                        .excel-sheets-container table th {
+                            background: #f8f9fa;
+                            font-weight: 600;
+                            position: sticky;
+                            top: 0;
+                            z-index: 10;
+                        }
+                        .excel-sheets-container table tr:nth-child(even) {
+                            background: #f9f9f9;
+                        }
+                        .excel-sheets-container table tr:hover {
+                            background: #f0f0f0;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                }
+            } catch (error) {
+                console.error('❌ Error reading Excel file:', error);
+                contentDiv.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #d32f2f;">
+                        <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">⚠️ Error loading spreadsheet</p>
+                        <p style="color: #666;">${error.message || 'Unable to preview this spreadsheet. Please download it to view.'}</p>
+                        <button onclick="downloadFileFromBase64('${base64Content}', '${filename}')" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">📥 Download Instead</button>
+                    </div>
+                `;
+            }
+        } else {
+            contentDiv.innerHTML = `
+                <div style="text-align: center; padding: 2rem; color: #666;">
+                    <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Excel viewer not available</p>
+                    <p>Please download the spreadsheet to view it.</p>
+                    <button onclick="downloadFileFromBase64('${base64Content}', '${filename}')" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">📥 Download Spreadsheet</button>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('❌ Error viewing Excel document:', error);
+        alert('Error opening spreadsheet viewer. Please download the file instead.');
+    }
+}
+
+// Switch Excel sheet tab
+function switchExcelSheet(sheetIndex) {
+    // Update tab buttons
+    document.querySelectorAll('.excel-tab-btn').forEach((btn, index) => {
+        if (index === sheetIndex) {
+            btn.classList.add('active');
+            btn.style.background = '#007bff';
+            btn.style.color = 'white';
+        } else {
+            btn.classList.remove('active');
+            btn.style.background = 'white';
+            btn.style.color = '#333';
+        }
+    });
+    
+    // Update sheet content visibility
+    document.querySelectorAll('.excel-sheet-content').forEach((content, index) => {
+        if (index === sheetIndex) {
+            content.style.display = 'block';
+        } else {
+            content.style.display = 'none';
+        }
+    });
+}
+
+// View PowerPoint document
+function viewPowerPointDocument(base64Content, filename) {
+    try {
+        // Create modal for document viewer
+        let modal = document.getElementById('documentViewerModal');
+        if (!modal) {
+            modal = createDocumentViewerModal();
+        }
+        
+        // Set title
+        document.getElementById('documentViewerTitle').textContent = filename || 'Presentation';
+        
+        // Show modal
+        modal.classList.add('active');
+        
+        const contentDiv = document.getElementById('documentViewerContent');
+        contentDiv.innerHTML = '<div class="document-viewer-loading">Loading presentation...</div>';
+        
+        // Convert base64 to blob
+        const byteCharacters = atob(base64Content);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+        
+        // For PowerPoint, we'll provide a message that it needs to be downloaded
+        // or use Office Online Viewer if we have a public URL
+        // Client-side PowerPoint viewing is complex and requires server-side conversion
+        contentDiv.innerHTML = `
+            <div style="text-align: center; padding: 3rem; color: #666;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">📊</div>
+                <p style="font-size: 1.25rem; margin-bottom: 0.5rem; color: #333; font-weight: 600;">PowerPoint Preview</p>
+                <p style="margin-bottom: 1.5rem;">PowerPoint presentations require specialized software to view properly.</p>
+                <p style="margin-bottom: 2rem; color: #888; font-size: 0.9rem;">For the best viewing experience, please download the presentation and open it with Microsoft PowerPoint, Google Slides, or another compatible application.</p>
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="downloadFileFromBase64('${base64Content}', '${filename}')" style="padding: 0.75rem 1.5rem; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: 500; font-size: 1rem; cursor: pointer;">📥 Download Presentation</button>
+                    <button onclick="closeDocumentViewer()" style="padding: 0.75rem 1.5rem; background: #6c757d; color: white; border: none; border-radius: 6px; font-weight: 500; font-size: 1rem; cursor: pointer;">Close</button>
+                </div>
+                <div style="margin-top: 2rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">
+                    <p style="font-size: 0.85rem; color: #666; margin: 0;">
+                        <strong>Tip:</strong> You can also upload this file to OneDrive or Google Drive to view it online.
+                    </p>
+                </div>
+            </div>
+        `;
+    } catch (error) {
+        console.error('❌ Error viewing PowerPoint document:', error);
+        alert('Error opening presentation viewer. Please download the file instead.');
+    }
+}
+
+// Helper function to create document viewer modal (reusable)
+function createDocumentViewerModal() {
+    const modal = document.createElement('div');
+    modal.id = 'documentViewerModal';
+    modal.className = 'document-viewer-modal';
+    modal.innerHTML = `
+        <div class="document-viewer-overlay" onclick="closeDocumentViewer()"></div>
+        <div class="document-viewer-container">
+            <div class="document-viewer-header">
+                <h3 id="documentViewerTitle">Document Viewer</h3>
+                <button class="document-viewer-close" onclick="closeDocumentViewer()" aria-label="Close viewer">×</button>
+            </div>
+            <div class="document-viewer-content" id="documentViewerContent">
+                <div class="document-viewer-loading">Loading document...</div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    
+    // Add CSS for modal if not already present
+    if (!document.getElementById('documentViewerStyles')) {
+        const style = document.createElement('style');
+        style.id = 'documentViewerStyles';
+        style.textContent = `
+            .document-viewer-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                z-index: 10000;
+                display: none;
+            }
+            .document-viewer-modal.active {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            .document-viewer-overlay {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.7);
+                cursor: pointer;
+            }
+            .document-viewer-container {
+                position: relative;
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+                width: 90%;
+                max-width: 1200px;
+                height: 90%;
+                max-height: 90vh;
+                display: flex;
+                flex-direction: column;
+                z-index: 10001;
+            }
+            .document-viewer-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 1rem;
+                border-bottom: 1px solid #e0e0e0;
+                background: #f8f9fa;
+                border-radius: 8px 8px 0 0;
+            }
+            .document-viewer-header h3 {
+                margin: 0;
+                font-size: 1.25rem;
+                font-weight: 600;
+                color: #333;
+            }
+            .document-viewer-close {
+                background: none;
+                border: none;
+                font-size: 2rem;
+                cursor: pointer;
+                color: #666;
+                padding: 0;
+                width: 2rem;
+                height: 2rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 4px;
+            }
+            .document-viewer-close:hover {
+                background: #e0e0e0;
+                color: #333;
+            }
+            .document-viewer-content {
+                flex: 1;
+                overflow: auto;
+                padding: 2rem;
+                background: white;
+            }
+            .document-viewer-loading {
+                text-align: center;
+                padding: 2rem;
+                color: #666;
+            }
+            .document-viewer-content .docx-wrapper {
+                max-width: 100%;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    return modal;
+}
+
+// View document (auto-detect type)
+function viewDocument(base64Content, filename) {
+    const fileType = filename ? filename.split('.').pop().toLowerCase() : '';
+    
+    if (fileType === 'pdf') {
+        viewPDFDocument(base64Content, filename);
+    } else if (fileType === 'docx' || fileType === 'doc') {
+        viewWordDocument(base64Content, filename);
+    } else if (fileType === 'xlsx' || fileType === 'xls') {
+        viewExcelDocument(base64Content, filename);
+    } else if (fileType === 'pptx' || fileType === 'ppt') {
+        viewPowerPointDocument(base64Content, filename);
+    } else {
+        // For other types, just download
+        alert('Preview not available for this file type. Downloading instead...');
+        downloadFileFromBase64(base64Content, filename);
+    }
+}
+
 // Add message to chat
-function addMessageToChat(role, content, autoSpeak = false, widgetData = null) {
+function addMessageToChat(role, content, autoSpeak = false, widgetData = null, resultData = null) {
     const chatMessages = document.getElementById('chatMessages');
     const messageDiv = document.createElement('div');
     messageDiv.className = `message ${role}-message`;
@@ -2550,6 +3323,40 @@ function updateWidgetWithData(widgetData) {
                 widgetDataContent = widgetDataCopy;
             }
             
+            // For generated-document widgets, ensure we have the full data structure
+            if (normalizedType === 'generated-document' && widgetDataContent) {
+                // If widgetDataContent doesn't have the document fields, check if they're at the top level
+                if (!widgetDataContent.file_content && !widgetDataContent.filename && !widgetDataContent.title) {
+                    // Check if document data is nested deeper
+                    if (widgetDataCopy.data && typeof widgetDataCopy.data === 'object') {
+                        widgetDataContent = widgetDataCopy.data;
+                    }
+                }
+                // Ensure we preserve all document fields
+                if (widgetDataContent && typeof widgetDataContent === 'object') {
+                    // Make sure we have all the fields from widgetDataCopy.data if they exist
+                    if (widgetDataCopy.data && typeof widgetDataCopy.data === 'object') {
+                        // Merge any missing fields from widgetDataCopy.data
+                        Object.keys(widgetDataCopy.data).forEach(key => {
+                            if (!widgetDataContent[key] && widgetDataCopy.data[key]) {
+                                widgetDataContent[key] = widgetDataCopy.data[key];
+                            }
+                        });
+                    }
+                }
+                console.log('📄 Generated-document widget data structure:', {
+                    hasTitle: !!widgetDataContent.title,
+                    hasDocumentType: !!widgetDataContent.document_type,
+                    hasFilename: !!widgetDataContent.filename,
+                    hasFileContent: !!widgetDataContent.file_content,
+                    hasImages: !!(widgetDataContent.images && Array.isArray(widgetDataContent.images)),
+                    hasWebUrl: !!widgetDataContent.web_url,
+                    dataKeys: Object.keys(widgetDataContent || {}),
+                    fileContentLength: widgetDataContent.file_content ? widgetDataContent.file_content.length : 0,
+                    imagesCount: widgetDataContent.images ? widgetDataContent.images.length : 0
+                });
+            }
+            
             if (widgetDataContent) {
                 widgetDataContent = { ...widgetDataContent };
                 // Remove any preview flags for authenticated users
@@ -2881,6 +3688,10 @@ function renderWidgets() {
                     ${hasPrintableData ? `<button class="widget-action-btn widget-print-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();printWidget('${widget.id}');})(event)" title="Print widget data">🖨️</button>` : ''}
                     ${hasPrintableData ? `<button class="widget-action-btn widget-email-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();emailWidget('${widget.id}');})(event)" title="Email widget data">📧</button>` : ''}
                     ${hasPrintableData ? `<button class="widget-action-btn widget-sms-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();smsWidget('${widget.id}');})(event)" title="Send widget data via SMS">💬</button>` : ''}
+                    ${hasPrintableData ? `<button class="widget-action-btn widget-export-btn widget-pdf-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();exportWidget('${widget.id}', 'pdf');})(event)" title="Export to PDF">📄</button>` : ''}
+                    ${hasPrintableData ? `<button class="widget-action-btn widget-export-btn widget-word-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();exportWidget('${widget.id}', 'word');})(event)" title="Export to Word">📝</button>` : ''}
+                    ${hasPrintableData ? `<button class="widget-action-btn widget-export-btn widget-excel-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();exportWidget('${widget.id}', 'excel');})(event)" title="Export to Excel">📊</button>` : ''}
+                    ${hasPrintableData ? `<button class="widget-action-btn widget-export-btn widget-pptx-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();exportWidget('${widget.id}', 'powerpoint');})(event)" title="Export to PowerPoint">📽️</button>` : ''}
                     ${hasPrintableData ? `<button class="widget-action-btn widget-copy-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();copyWidget('${widget.id}');})(event)" title="Copy widget data">📋</button>` : ''}
                     <button class="widget-action-btn" onclick="(function(e){e.stopPropagation();e.preventDefault();removeWidget('${widget.id}');})(event)" title="Remove widget from dashboard">×</button>
                 </div>
@@ -2925,7 +3736,11 @@ function getWidgetTitle(widgetType) {
         'management': 'Management Tools',
         'calendar': 'Calendar',
         'analytics': 'Analytics',
-        'notifications': 'Notifications'
+        'notifications': 'Notifications',
+        'generated-document': 'Generated Document',
+        'generated_document': 'Generated Document',
+        'generated-image': 'Generated Image',
+        'generated_image': 'Generated Image'
     };
     return titles[widgetType] || widgetType;
 }
@@ -3009,10 +3824,16 @@ function formatWidgetData(data, widgetType) {
     
     // More comprehensive check for lesson plan data structure
     // Check for ANY lesson plan indicators - be very permissive
-    // CRITICAL: Exclude workout widgets - they have description/plan_name but are NOT lesson plans
+    // CRITICAL: Exclude workout widgets, generated-document, and generated-image widgets
+    // They have title/description but are NOT lesson plans
     const isWorkoutWidget = widgetType === 'workout' || widgetType === 'workout_plan' || 
                            (data && (data.plan_name || data.strength_training || data.cardio));
-    const hasLessonPlanData = !isWorkoutWidget && data && typeof data === 'object' && !Array.isArray(data) && (
+    const isGeneratedDocumentWidget = widgetType === 'generated-document' || widgetType === 'generated_document' ||
+                                     (data && (data.document_type || data.file_content || data.web_url));
+    const isGeneratedImageWidget = widgetType === 'generated-image' || widgetType === 'generated_image' ||
+                                  (data && data.images && Array.isArray(data.images));
+    const hasLessonPlanData = !isWorkoutWidget && !isGeneratedDocumentWidget && !isGeneratedImageWidget && 
+                             data && typeof data === 'object' && !Array.isArray(data) && (
         data.title || data.description || 
         data.objectives || data.learning_objectives ||
         data.introduction || 
@@ -3027,16 +3848,24 @@ function formatWidgetData(data, widgetType) {
         data.assessment || data.grade_level || data.subject
     );
     
+    // CRITICAL: Check for generated-document and generated-image widgets FIRST
+    // These should NEVER be formatted as lesson plans, even if they have title/description
+    const isGeneratedDocument = widgetType === 'generated-document' || widgetType === 'generated_document';
+    const isGeneratedImage = widgetType === 'generated-image' || widgetType === 'generated_image';
+    
     // CRITICAL: If widget type is lesson plan OR data has lesson plan structure, ALWAYS format as lesson plan
     // This prevents any fallthrough to formatDataObject which shows raw JSON
     // FORCE lesson plan formatting if type matches, regardless of data structure
-    const shouldFormatAsLessonPlan = isLessonPlanType || hasLessonPlanData;
+    // BUT EXCLUDE generated-document and generated-image widgets
+    const shouldFormatAsLessonPlan = !isGeneratedDocument && !isGeneratedImage && (isLessonPlanType || hasLessonPlanData);
     
     console.log('🔍 formatWidgetData lesson plan check:', {
         widgetType: widgetType,
         isLessonPlanType: isLessonPlanType,
         hasLessonPlanData: hasLessonPlanData,
         shouldFormatAsLessonPlan: shouldFormatAsLessonPlan,
+        isGeneratedDocument: isGeneratedDocument,
+        isGeneratedImage: isGeneratedImage,
         dataKeys: data ? Object.keys(data) : [],
         hasTitle: data ? !!data.title : false,
         hasDescription: data ? !!data.description : false,
@@ -3052,9 +3881,9 @@ function formatWidgetData(data, widgetType) {
     // FORCE lesson plan formatting if widget type is lesson_plan or lesson-planning
     // This is a safety net to ensure lesson plans are NEVER displayed as raw JSON
     // CRITICAL: Check widget type FIRST before any other processing
-    // EXCLUDE workout widgets - they should NEVER be formatted as lesson plans
+    // EXCLUDE workout widgets, generated-document, and generated-image - they should NEVER be formatted as lesson plans
     const isWorkoutType = widgetType === 'workout' || widgetType === 'workout_plan';
-    if (!isWorkoutType && (shouldFormatAsLessonPlan || widgetType === 'lesson_plan' || widgetType === 'lesson-planning' || widgetType === 'lesson-plan')) {
+    if (!isWorkoutType && !isGeneratedDocument && !isGeneratedImage && (shouldFormatAsLessonPlan || widgetType === 'lesson_plan' || widgetType === 'lesson-planning' || widgetType === 'lesson-plan')) {
         console.log('✅ Formatting as lesson plan (forced check)', {
             widgetType: widgetType,
             shouldFormatAsLessonPlan: shouldFormatAsLessonPlan,
@@ -3304,16 +4133,16 @@ function formatWidgetData(data, widgetType) {
             } else if (typeof data.worksheets === 'string') {
                 // String format - parse as text
                 const worksheetsText = data.worksheets;
-                const hasActualContent = worksheetsText && worksheetsText.trim().length > 50 && 
-                                         !worksheetsText.match(/^(with\s+answer\s+keys?|student\s+worksheet:?|worksheet:?)\s*$/i) &&
-                                         (worksheetsText.includes('?') || worksheetsText.match(/\d+[\.\)]\s/) || worksheetsText.includes('A)') || worksheetsText.includes('Answer Key:'));
-                
-                if (hasActualContent) {
+            const hasActualContent = worksheetsText && worksheetsText.trim().length > 50 && 
+                                     !worksheetsText.match(/^(with\s+answer\s+keys?|student\s+worksheet:?|worksheet:?)\s*$/i) &&
+                                     (worksheetsText.includes('?') || worksheetsText.match(/\d+[\.\)]\s/) || worksheetsText.includes('A)') || worksheetsText.includes('Answer Key:'));
+            
+            if (hasActualContent) {
                     // Use the new formatWorksheets function for proper parsing
                     let worksheetsHtml = formatWorksheets(worksheetsText);
-                    html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
-                } else if (worksheetsText && worksheetsText.trim().length > 0) {
-                    console.warn('⚠️ Worksheets field exists but has insufficient content:', worksheetsText.substring(0, 100));
+                html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+            } else if (worksheetsText && worksheetsText.trim().length > 0) {
+                console.warn('⚠️ Worksheets field exists but has insufficient content:', worksheetsText.substring(0, 100));
                 }
             } else if (typeof data.worksheets === 'object' && data.worksheets !== null) {
                 // Object format - try to extract content
@@ -3739,18 +4568,18 @@ function formatWidgetData(data, widgetType) {
                 html += '</div>'; // Close worksheet-section
             } else {
                 // String or array of strings format
-                let worksheetsText = '';
-                if (typeof data.worksheets === 'string') {
-                    worksheetsText = data.worksheets;
-                } else if (Array.isArray(data.worksheets)) {
-                    worksheetsText = data.worksheets.join('\n\n');
-                } else if (typeof data.worksheets === 'object') {
-                    worksheetsText = data.worksheets.content || data.worksheets.worksheet || JSON.stringify(data.worksheets, null, 2);
-                }
-                if (worksheetsText) {
+            let worksheetsText = '';
+            if (typeof data.worksheets === 'string') {
+                worksheetsText = data.worksheets;
+            } else if (Array.isArray(data.worksheets)) {
+                worksheetsText = data.worksheets.join('\n\n');
+            } else if (typeof data.worksheets === 'object') {
+                worksheetsText = data.worksheets.content || data.worksheets.worksheet || JSON.stringify(data.worksheets, null, 2);
+            }
+            if (worksheetsText) {
                     // Use the new formatWorksheets function for proper parsing
                     let worksheetsHtml = formatWorksheets(worksheetsText);
-                    html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
+                html += `<div class="lesson-section worksheet-section"><h5>📄 Worksheets with Answer Key</h5><div class="worksheet-content">${worksheetsHtml}</div></div>`;
                 }
             }
         }
@@ -3810,7 +4639,121 @@ function formatWidgetData(data, widgetType) {
         console.log('✅ Fallback lesson plan HTML generated, length:', html.length);
         return html;  // CRITICAL: Return here to prevent falling through to formatDataObject
     }
-    // Handle simple key-value pairs (only if not lesson plan)
+    // Handle generated-image widgets
+    else if (widgetType === 'generated-image' && data.images && Array.isArray(data.images) && data.images.length > 0) {
+        html += '<div class="generated-image-widget">';
+        if (data.prompt) {
+            html += `<div class="image-prompt"><strong>Prompt:</strong> ${escapeHtml(data.prompt)}</div>`;
+        }
+        html += '<div class="generated-images-grid">';
+        data.images.forEach((image, index) => {
+            // Support both 'image' (from ArtworkService) and 'base64_image' (for compatibility)
+            const base64Image = image.image || image.base64_image;
+            const imageUrl = image.url || (base64Image ? `data:image/png;base64,${base64Image}` : null);
+            const filename = image.filename || `generated_image_${index + 1}.png`;
+            if (imageUrl) {
+                html += `<div class="generated-image-item">`;
+                html += `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(data.prompt || 'Generated image')}" class="generated-image-preview" />`;
+                html += `<div class="image-actions">`;
+                // If we have base64, use downloadFileFromBase64, otherwise use downloadImage
+                if (base64Image) {
+                    html += `<button class="btn-download-image" onclick="downloadFileFromBase64('${escapeHtml(base64Image)}', '${escapeHtml(filename)}')">Download</button>`;
+                } else {
+                    html += `<button class="btn-download-image" onclick="downloadImage('${escapeHtml(imageUrl)}', '${escapeHtml(filename)}')">Download</button>`;
+                }
+                html += `</div>`;
+                html += `</div>`;
+            }
+        });
+        html += '</div>'; // Close generated-images-grid
+        html += '</div>'; // Close generated-image-widget
+    }
+    // Handle generated-document widgets
+    else if (widgetType === 'generated-document' && data) {
+        html += '<div class="generated-document-widget" style="padding: 1rem;">';
+        
+        // Document header with icon and title
+        const fileType = data.filename ? data.filename.split('.').pop().toLowerCase() : '';
+        const fileIcon = getFileIcon(fileType || 'docx');
+        let documentType = 'Document';
+        if (fileType === 'docx') documentType = 'Word Document';
+        else if (fileType === 'pptx') documentType = 'PowerPoint Presentation';
+        else if (fileType === 'pdf') documentType = 'PDF Document';
+        else if (fileType === 'xlsx') documentType = 'Excel Spreadsheet';
+        
+        html += '<div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; border: 1px solid #e0e0e0;">';
+        html += `<div style="font-size: 3rem;">${fileIcon}</div>`;
+        html += '<div style="flex: 1;">';
+        if (data.title) {
+            html += `<h4 class="document-title" style="margin: 0 0 0.25rem 0; font-size: 1.25rem; font-weight: 600; color: #333;">${escapeHtml(data.title)}</h4>`;
+        }
+        html += `<div style="font-size: 0.95rem; color: #666; margin-bottom: 0.25rem;">${escapeHtml(documentType)}</div>`;
+        if (data.filename) {
+            html += `<div style="font-size: 0.9rem; color: #888; font-family: monospace;">${escapeHtml(data.filename)}</div>`;
+        }
+        html += '</div>'; // Close flex: 1 div
+        html += '</div>'; // Close header div
+        
+        // Display images if they exist (merged from image generation)
+        if (data.images && Array.isArray(data.images) && data.images.length > 0) {
+            html += '<div class="document-images" style="margin: 1.5rem 0;">';
+            html += '<h5 style="margin-bottom: 0.75rem; font-size: 1rem; font-weight: 600; color: #333;">Generated Images:</h5>';
+            html += '<div class="generated-images-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">';
+            data.images.forEach((image, index) => {
+                // Support both 'image' (from ContentGenerationService) and 'base64_image' (for compatibility)
+                const base64Image = image.image || image.base64_image || image.base64;
+                const imageUrl = image.url || (base64Image ? `data:image/png;base64,${base64Image}` : null);
+                const filename = image.filename || `generated_image_${index + 1}.png`;
+                if (imageUrl) {
+                    html += `<div class="generated-image-item" style="border: 1px solid #ddd; border-radius: 8px; padding: 0.75rem; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">`;
+                    html += `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(image.prompt || 'Generated image')}" style="max-width: 100%; height: auto; border-radius: 4px; margin-bottom: 0.75rem; display: block;" />`;
+                    html += `<div class="image-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">`;
+                    if (base64Image) {
+                        html += `<button class="btn-download-image" style="font-size: 0.85rem; padding: 0.4rem 0.8rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="downloadFileFromBase64('${escapeHtml(base64Image)}', '${escapeHtml(filename)}')">📥 Download</button>`;
+                    } else {
+                        html += `<button class="btn-download-image" style="font-size: 0.85rem; padding: 0.4rem 0.8rem; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;" onclick="downloadImage('${escapeHtml(imageUrl)}', '${escapeHtml(filename)}')">📥 Download</button>`;
+                    }
+                    if (image.prompt) {
+                        html += `<span style="font-size: 0.8rem; color: #666; font-style: italic; flex: 1; line-height: 1.4;">"${escapeHtml(image.prompt)}"</span>`;
+                    }
+                    html += `</div>`;
+                    html += `</div>`;
+                }
+            });
+            html += '</div>'; // Close generated-images-grid
+            html += '</div>'; // Close document-images
+        }
+        
+        // Document actions
+        html += '<div class="document-actions" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">';
+        if (data.web_url) {
+            html += `<a href="${escapeHtml(data.web_url)}" target="_blank" class="btn-onedrive-link" style="display: inline-block; padding: 0.75rem 1.5rem; background: #007bff; color: white; text-decoration: none; border-radius: 6px; font-weight: 500; margin-right: 0.5rem;">☁️ Open in OneDrive</a>`;
+        } else if (data.file_content) {
+            // Calculate file size
+            let fileSizeText = '';
+            try {
+                const binarySize = Math.round((data.file_content.length * 3) / 4);
+                const sizeInKB = (binarySize / 1024).toFixed(1);
+                fileSizeText = ` <span style="font-size: 0.85rem; color: #666;">(${sizeInKB} KB)</span>`;
+            } catch (e) {
+                // Ignore
+            }
+            // Add View button for supported file types (docx, doc, pdf, xlsx, xls, pptx, ppt)
+            const canPreview = fileType === 'docx' || fileType === 'doc' || fileType === 'pdf' || 
+                              fileType === 'xlsx' || fileType === 'xls' || fileType === 'pptx' || fileType === 'ppt';
+            if (canPreview) {
+                html += `<button class="btn-view-document" style="padding: 0.75rem 1.5rem; background: #007bff; color: white; border: none; border-radius: 6px; font-weight: 500; font-size: 1rem; cursor: pointer; margin-right: 0.5rem;" onclick="viewDocument('${escapeHtml(data.file_content)}', '${escapeHtml(data.filename || 'document')}')">👁️ View Document</button>`;
+            }
+            html += `<button class="btn-download-document" style="padding: 0.75rem 1.5rem; background: #28a745; color: white; border: none; border-radius: 6px; font-weight: 500; font-size: 1rem; cursor: pointer;" onclick="downloadFileFromBase64('${escapeHtml(data.file_content)}', '${escapeHtml(data.filename || 'document')}')">📥 Download Document${fileSizeText}</button>`;
+        }
+        html += `</div>`;
+        
+        if (data.created_at) {
+            html += `<div class="document-created" style="margin-top: 0.75rem; font-size: 0.85rem; color: #888;"><strong>Created:</strong> ${new Date(data.created_at).toLocaleString()}</div>`;
+        }
+        html += '</div>'; // Close generated-document-widget
+    }
+    // Handle simple key-value pairs (only if not lesson plan, generated-image, or generated-document)
     else {
         html += formatDataObject(data);
     }
@@ -4154,6 +5097,28 @@ function renderWidgetContent(widget) {
             description: 'Advanced analysis of student movement patterns using video or sensor data. Assess biomechanics, efficiency, and injury risk.',
             examples: ['"Perform a biomechanical analysis of John\'s running form"', '"Assess movement efficiency for Sarah\'s gymnastics routine"', '"Identify injury risks in student movements"', '"What movement corrections should I suggest?"'],
             icon: '🏃'
+        },
+        // 40. Generated Documents
+        'generated-document': {
+            description: 'View and download generated documents including Word documents, PowerPoint presentations, PDFs, and Excel spreadsheets.',
+            examples: ['"Download the document"', '"View document details"', '"Open in OneDrive"'],
+            icon: '📄'
+        },
+        'generated_document': {
+            description: 'View and download generated documents including Word documents, PowerPoint presentations, PDFs, and Excel spreadsheets.',
+            examples: ['"Download the document"', '"View document details"', '"Open in OneDrive"'],
+            icon: '📄'
+        },
+        // 41. Generated Images
+        'generated-image': {
+            description: 'View and download AI-generated images created for your content.',
+            examples: ['"Download the image"', '"View image details"'],
+            icon: '🖼️'
+        },
+        'generated_image': {
+            description: 'View and download AI-generated images created for your content.',
+            examples: ['"Download the image"', '"View image details"'],
+            icon: '🖼️'
         }
     };
     
@@ -4188,6 +5153,12 @@ function renderWidgetContent(widget) {
                                    (widget.data.title || widget.data.learning_objectives || widget.data.objectives || 
                                     widget.data.activities || widget.data.standards || widget.data.materials_list));
         
+        // Check if this is a generated-document or generated-image widget - always show their data
+        const isGeneratedContentWidget = originalWidgetType === 'generated-document' || originalWidgetType === 'generated_document' ||
+                                        originalWidgetType === 'generated-image' || originalWidgetType === 'generated_image' ||
+                                        (widget.data && typeof widget.data === 'object' && !Array.isArray(widget.data) && 
+                                         (widget.data.file_content || widget.data.filename || widget.data.images || widget.data.web_url));
+        
         // More specific check for instruction prompts - look for "Try asking" in instruction context
         // Don't reject data just because it contains the word "example" - check for instruction patterns
         const looksLikeInstruction = dataString.includes('"Try asking') || 
@@ -4203,8 +5174,8 @@ function renderWidgetContent(widget) {
         });
         
         // If it looks like a prompt/instruction text, don't show it as data
-        // BUT always show lesson plan widgets since they have structured data
-        if (!isLessonPlanWidget && (isTextPrompt || dataString.length < 50 || looksLikeInstruction)) {
+        // BUT always show lesson plan widgets and generated content widgets since they have structured data
+        if (!isLessonPlanWidget && !isGeneratedContentWidget && (isTextPrompt || dataString.length < 50 || looksLikeInstruction)) {
             // This looks like instructions/prompts, show the default instructions instead
             return `
                 <div class="widget-instructions">
@@ -4347,7 +5318,7 @@ function smsWidget(widgetId) {
                 
                 if (useBackend) {
                     // Send via backend SMS service
-                    sendSMSViaBackend(phoneNumber, smsBody);
+                    sendSMSViaBackend(phoneNumber, smsBody, widgetId);
                 } else {
                     // Copy to clipboard as fallback
                     navigator.clipboard.writeText(smsBody).then(() => {
@@ -4373,7 +5344,7 @@ function smsWidget(widgetId) {
 }
 
 // Send SMS via backend service
-async function sendSMSViaBackend(phoneNumber, message) {
+async function sendSMSViaBackend(phoneNumber, message, widgetId) {
     try {
         const token = localStorage.getItem('access_token');
         const headers = {
@@ -4384,34 +5355,35 @@ async function sendSMSViaBackend(phoneNumber, message) {
             headers['Authorization'] = `Bearer ${token}`;
         }
         
-        // Check if send_sms function is available via the chat endpoint
-        // We'll use the chat endpoint to send SMS since it has access to the send_sms function
-        const response = await fetch(`${API_BASE_URL}/chat/message`, {
+        // Show loading indicator
+        const loadingMsg = document.createElement('div');
+        loadingMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#333;color:#fff;padding:20px;border-radius:8px;z-index:10000;';
+        loadingMsg.textContent = 'Sending SMS...';
+        document.body.appendChild(loadingMsg);
+        
+        // Use the dedicated widget SMS endpoint
+        const response = await fetch(`${API_BASE_URL}/dashboard/widgets/${widgetId}/export/sms`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({
-                message: `Send an SMS to ${phoneNumber} with the following message: ${message}`,
-                context: []
+                phone_number: phoneNumber,
+                message: message || null  // Optional custom message prefix
             })
         });
         
-        if (!response.ok) {
-            throw new Error(`SMS send failed: ${response.status}`);
-        }
+        document.body.removeChild(loadingMsg);
         
+        if (response.ok) {
         const result = await response.json();
-        
-        if (result.response && result.response.toLowerCase().includes('sent') || 
-            result.response && result.response.toLowerCase().includes('success')) {
-            alert('SMS sent successfully!');
+            alert(`✅ SMS sent successfully to ${phoneNumber}!`);
         } else {
-            // If the AI didn't send it, show the response and offer to copy
-            alert('SMS may not have been sent. Response: ' + (result.response || 'Unknown error'));
+            const error = await response.json().catch(() => ({ detail: 'Failed to send SMS' }));
+            alert(`❌ Error: ${error.detail || 'Failed to send SMS'}`);
         }
         
     } catch (error) {
         console.error('Error sending SMS via backend:', error);
-        alert('Failed to send SMS via backend service. Error: ' + error.message);
+        alert('Failed to send SMS. Please try again.');
     }
 }
 
@@ -4486,7 +5458,7 @@ function formatWidgetDataForSMS(data, widgetType, widgetTitle) {
 }
 
 // Email widget data
-function emailWidget(widgetId) {
+async function emailWidget(widgetId) {
     try {
         const widget = activeWidgets.find(w => w.id === widgetId);
         if (!widget) {
@@ -4497,28 +5469,167 @@ function emailWidget(widgetId) {
         // Get widget title
         const widgetTitle = getWidgetTitle(widget.type);
         
-        // Get the formatted data for email
-        let emailBody = '';
-        let emailSubject = `${widgetTitle} - Widget Data`;
-        
-        if (widget.data && Object.keys(widget.data).length > 0) {
-            // Format data for email
-            emailBody = formatWidgetDataForEmail(widget.data, widget.type, widgetTitle);
-        } else {
-            emailBody = `Widget: ${widgetTitle}\n\nNo data available.`;
+        // Prompt for email recipients
+        const recipientsInput = prompt('Enter email recipients (comma-separated):');
+        if (!recipientsInput || !recipientsInput.trim()) {
+            return;
         }
         
-        // Create mailto link
-        const subject = encodeURIComponent(emailSubject);
-        const body = encodeURIComponent(emailBody);
-        const mailtoLink = `mailto:?subject=${subject}&body=${body}`;
+        const recipients = recipientsInput.split(',').map(email => email.trim()).filter(email => email);
+        if (recipients.length === 0) {
+            alert('Please enter at least one valid email address.');
+            return;
+        }
         
-        // Open email client
-        window.location.href = mailtoLink;
+        // Prompt for format
+        const format = prompt('Select export format:\n1. PDF\n2. Word\n3. Excel\n4. PowerPoint\n\nEnter number (1-4):', '1');
+        let exportFormat = 'pdf';
+        if (format === '2') exportFormat = 'word';
+        else if (format === '3') exportFormat = 'excel';
+        else if (format === '4') exportFormat = 'powerpoint';
+        
+        // Ask if user wants to use Outlook email
+        const useOutlook = confirm('Use Outlook email? (Click OK for Outlook, Cancel for SMTP)');
+        
+        // Optional: Prompt for subject and message
+        const subject = prompt('Email subject (optional):', `${widgetTitle} - Widget Export`);
+        const message = prompt('Email message (optional):', `Please find attached the ${widgetTitle} widget export.`);
+        
+        // Show loading indicator
+        const loadingMsg = document.createElement('div');
+        loadingMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#333;color:#fff;padding:20px;border-radius:8px;z-index:10000;';
+        loadingMsg.textContent = useOutlook ? 'Sending email via Outlook...' : 'Sending email...';
+        document.body.appendChild(loadingMsg);
+        
+        // Call API to email widget export
+        const token = localStorage.getItem('access_token');
+        const response = await fetch(`/api/v1/dashboard/widgets/${widgetId}/export/email`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : ''
+            },
+            body: JSON.stringify({
+                recipients: recipients,
+                format: exportFormat,
+                subject: subject || `${widgetTitle} - Widget Export`,
+                message: message || `Please find attached the ${widgetTitle} widget export.`,
+                use_outlook_email: useOutlook
+            })
+        });
+        
+        document.body.removeChild(loadingMsg);
+        
+        if (response.ok) {
+            const result = await response.json();
+            const provider = result.email_provider || (useOutlook ? 'Outlook' : 'SMTP');
+            alert(`✅ Email sent successfully via ${provider} to ${recipients.length} recipient(s)!`);
+        } else {
+            const error = await response.json().catch(() => ({ detail: 'Failed to send email' }));
+            alert(`❌ Error: ${error.detail || 'Failed to send email'}`);
+        }
         
     } catch (error) {
         console.error('Error emailing widget:', error);
-        alert('Failed to open email client. Please try again.');
+        alert('Failed to send email. Please try again.');
+    }
+}
+
+// Export widget to file (PDF, Word, Excel, PowerPoint)
+async function exportWidget(widgetId, format) {
+    try {
+        const widget = activeWidgets.find(w => w.id === widgetId);
+        if (!widget) {
+            console.error('Widget not found:', widgetId);
+            return;
+        }
+        
+        // Map format names
+        const formatMap = {
+            'pdf': 'pdf',
+            'word': 'word',
+            'excel': 'excel',
+            'powerpoint': 'powerpoint'
+        };
+        
+        const apiFormat = formatMap[format] || format;
+        
+        // Ask if user wants to upload to OneDrive
+        const uploadToOneDrive = confirm('Upload to OneDrive? (Click OK for OneDrive, Cancel to download locally)');
+        let onedriveFolder = '';
+        if (uploadToOneDrive) {
+            onedriveFolder = prompt('OneDrive folder path (optional, leave empty for root):', '') || '';
+        }
+        
+        // Show loading indicator
+        const loadingMsg = document.createElement('div');
+        loadingMsg.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#333;color:#fff;padding:20px;border-radius:8px;z-index:10000;';
+        loadingMsg.textContent = uploadToOneDrive ? `Uploading to OneDrive...` : `Exporting to ${format.toUpperCase()}...`;
+        document.body.appendChild(loadingMsg);
+        
+        // Get auth token
+        const token = localStorage.getItem('access_token');
+        
+        // Call API to export widget
+        const response = await fetch(`/api/v1/dashboard/widgets/${widgetId}/export/${apiFormat}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : ''
+            },
+            body: JSON.stringify({
+                upload_to_onedrive: uploadToOneDrive,
+                onedrive_folder: onedriveFolder
+            })
+        });
+        
+        document.body.removeChild(loadingMsg);
+        
+        if (response.ok) {
+            if (uploadToOneDrive) {
+                // Handle OneDrive upload response
+                const result = await response.json();
+                if (result.success) {
+                    const viewLink = result.web_url ? `\n\nView file: ${result.web_url}` : '';
+                    alert(`✅ File uploaded to OneDrive successfully!${viewLink}`);
+                } else {
+                    alert(`❌ Error: ${result.error || 'Failed to upload to OneDrive'}`);
+                }
+            } else {
+                // Handle file download
+                // Get filename from Content-Disposition header or generate one
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = `widget_${widgetId}_export.${apiFormat === 'word' ? 'docx' : apiFormat === 'excel' ? 'xlsx' : apiFormat === 'powerpoint' ? 'pptx' : 'pdf'}`;
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch) {
+                        filename = filenameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+                
+                // Get file blob
+                const blob = await response.blob();
+                
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                console.log(`✅ Widget exported to ${format.toUpperCase()} successfully!`);
+            }
+        } else {
+            const error = await response.json().catch(() => ({ detail: 'Failed to export widget' }));
+            alert(`❌ Error: ${error.detail || 'Failed to export widget'}`);
+        }
+        
+    } catch (error) {
+        console.error(`Error exporting widget to ${format}:`, error);
+        alert(`Failed to export widget to ${format.toUpperCase()}. Please try again.`);
     }
 }
 
@@ -8884,6 +9995,7 @@ function formatObjectForCopy(obj, indent = 0) {
 window.printWidget = printWidget;
 window.emailWidget = emailWidget;
 window.smsWidget = smsWidget;
+window.exportWidget = exportWidget;
 window.copyWidget = copyWidget;
 window.hideLoginOverlay = hideLoginOverlay;
 window.tryWidgetExample = tryWidgetExample;
@@ -8893,6 +10005,7 @@ window.tryWidgetExample = tryWidgetExample;
 window.printWidget = printWidget;
 window.emailWidget = emailWidget;
 window.smsWidget = smsWidget;
+window.exportWidget = exportWidget;
 window.copyWidget = copyWidget;
 window.hideLoginOverlay = hideLoginOverlay;
 window.tryWidgetExample = tryWidgetExample;

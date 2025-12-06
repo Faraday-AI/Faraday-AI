@@ -184,7 +184,9 @@ class Settings(BaseSettings):
     CLIENT_SECRET: str = os.getenv("MSCLIENTSECRET", "")
     TENANT_ID: str = os.getenv("MSTENANTID", "")
     REDIRECT_URI: str = os.getenv("REDIRECT_URI", "http://localhost:8000/auth/callback")
-    SCOPE: str = "User.Read Mail.Read Files.ReadWrite.All"
+    # SCOPE includes all permissions needed for widget exports and calendar integration
+    # Update SCOPE environment variable in Render to match your Azure AD permissions
+    SCOPE: str = os.getenv("SCOPE", "https://graph.microsoft.com/User.Read https://graph.microsoft.com/Mail.Send https://graph.microsoft.com/Files.ReadWrite https://graph.microsoft.com/Files.ReadWrite.All https://graph.microsoft.com/Calendars.ReadWrite https://graph.microsoft.com/offline_access")
     
     # Azure Speech Services (Text-to-Speech)
     AZURE_SPEECH_KEY: Optional[str] = os.getenv("AZURE_SPEECH_KEY", "")

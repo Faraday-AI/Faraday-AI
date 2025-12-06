@@ -160,6 +160,13 @@ class AIAssistantChatResponse(BaseModel):
     model_used: str
     widget_data: Optional[Dict[str, Any]] = None  # Widget data for dashboard (lesson plans, etc.)
     widgets: Optional[List[Dict[str, Any]]] = None  # List of widgets to add/update
+    # Generated content fields (for images, documents, OneDrive links)
+    images: Optional[List[Dict[str, Any]]] = None  # Generated images
+    file_content: Optional[str] = None  # Base64 encoded file content
+    filename: Optional[str] = None  # Filename for download
+    web_url: Optional[str] = None  # OneDrive web URL
+    file_id: Optional[str] = None  # OneDrive file ID
+    num_slides: Optional[int] = None  # Number of slides (for presentations)
 
 
 # ==================== USAGE SCHEMAS ====================

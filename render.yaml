@@ -171,6 +171,20 @@ services:
         sync: false
       - key: AZURE_SPEECH_REGION
         sync: false
+      - key: SERPAPI_KEY
+        sync: false
+      - key: MSCLIENTID
+        sync: false
+      - key: MSCLIENTSECRET
+        sync: false
+      - key: MSTENANTID
+        sync: false
+      - key: REDIRECT_URI
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
+      - key: SCOPE
+        sync: false
       - key: ENABLE_METRICS
         value: "true"
       - key: DEBUG

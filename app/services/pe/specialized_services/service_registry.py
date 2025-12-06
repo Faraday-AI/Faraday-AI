@@ -16,6 +16,7 @@ from app.services.pe.specialized_services import (
     SMSService,
     GeneralWidgetService,
     GeneralResponseService,
+    ContentGenerationService,
     BaseSpecializedService
 )
 
@@ -45,6 +46,17 @@ class ServiceRegistry:
             "meal_plan": MealPlanService,
             "workout": WorkoutService,
             "sms": SMSService,
+            # Content generation service
+            "content_generation": ContentGenerationService,
+            "generate_image": ContentGenerationService,
+            "create_powerpoint": ContentGenerationService,
+            "create_presentation": ContentGenerationService,
+            "create_word": ContentGenerationService,
+            "create_document": ContentGenerationService,
+            "create_pdf": ContentGenerationService,
+            "create_excel": ContentGenerationService,
+            "create_spreadsheet": ContentGenerationService,
+            "generate_artwork": ContentGenerationService,
             # General services for fallback
             "widget": GeneralWidgetService,  # Also register "widget" intent
             "general_widget": GeneralWidgetService,

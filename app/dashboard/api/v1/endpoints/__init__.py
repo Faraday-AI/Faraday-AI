@@ -27,6 +27,7 @@ from .resource_sharing import router as resource_sharing_router
 from .security import router as security_router
 from .tool_registry import router as tool_registry_router
 from .user_preferences import router as user_preferences_router
+from .widget_export import router as widget_export_router
 
 # Include routers with their prefixes
 api_router.include_router(access_control_router, prefix="/access-control", tags=["access-control"])
@@ -51,3 +52,4 @@ api_router.include_router(resource_sharing_router, prefix="/resources/sharing", 
 api_router.include_router(security_router, prefix="/security", tags=["security"])
 api_router.include_router(tool_registry_router, prefix="/tools", tags=["tools"])
 api_router.include_router(user_preferences_router, prefix="/preferences", tags=["preferences"]) 
+api_router.include_router(widget_export_router, prefix="", tags=["widget-export"])  # Prefix is already in router 

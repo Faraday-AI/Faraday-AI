@@ -12,6 +12,7 @@ from app.services.pe.specialized_services.workout_service import WorkoutService
 from app.services.pe.specialized_services.sms_service import SMSService
 from app.services.pe.specialized_services.general_widget_service import GeneralWidgetService
 from app.services.pe.specialized_services.general_response_service import GeneralResponseService
+from app.services.pe.specialized_services.content_generation_service import ContentGenerationService
 
 __all__ = [
     "BaseSpecializedService",
@@ -22,5 +23,6 @@ __all__ = [
     "SMSService",
     "GeneralWidgetService",
     "GeneralResponseService",
+    "ContentGenerationService",
 ]
 

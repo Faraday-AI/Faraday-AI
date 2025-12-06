@@ -34,7 +34,10 @@ Ensure your Azure AD app registration has:
 - ✅ Redirect URI configured: `https://faraday-ai.com/api/v1/auth/microsoft/callback`
 - ✅ API Permissions granted:
   - `User.Read` (for user info)
-  - `Calendars.ReadWrite` (for calendar integration)
+  - `Calendars.ReadWrite` (for calendar integration) ✅ **Added**
+  - `Mail.Send` (for email exports) ✅ **Granted**
+  - `Files.ReadWrite` (for OneDrive uploads) ✅ **Granted**
+  - `Files.ReadWrite.All` (for full OneDrive access) ✅ **Granted**
   - `offline_access` (for refresh tokens)
 - ✅ Client ID, Client Secret, and Tenant ID available
 

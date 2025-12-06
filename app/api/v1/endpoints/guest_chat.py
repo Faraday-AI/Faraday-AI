@@ -1254,6 +1254,16 @@ async def guest_chat_message(
             if is_lesson_request:
                 logger.error(f"❌ Lesson plan response incomplete due to token limit! Consider increasing max_tokens further.")
         
+        # Initialize extracted content for function results
+        extracted_content = {
+            "images": [],
+            "file_content": None,
+            "filename": None,
+            "web_url": None,
+            "file_id": None,
+            "widget_data": None
+        }
+        
         # Handle function calls
         if message.tool_calls:
             logger.info(f"AI requested {len(message.tool_calls)} function calls")
@@ -1275,10 +1285,14 @@ async def guest_chat_message(
                 ]
             })
             
+            # Store function results to include in response (for images, documents, etc.)
+            function_results = []
+            
             # Execute function calls
             for tool_call in message.tool_calls:
                 function_name = tool_call.function.name
                 function_args = json.loads(tool_call.function.arguments)
+                result = None
                 
                 if function_name == "send_sms":
                     twilio_service = get_twilio_service()
@@ -1287,17 +1301,65 @@ async def guest_chat_message(
                         message=function_args["message"]
                     )
                     
+                    if result.get("status") in ["success", "pending"]:
+                        logger.info(f"SMS sent successfully: {result.get('message_sid', 'unknown')}, Twilio status: {result.get('twilio_status', 'unknown')}")
+                    else:
+                        logger.warning(f"SMS send failed: {result.get('error', 'unknown error')}")
+                elif function_name in ["generate_image", "create_powerpoint_presentation", "create_word_document", 
+                                       "create_pdf_document", "create_excel_spreadsheet"]:
+                    # Handle content generation functions using GPTFunctionService
+                    try:
+                        from app.dashboard.services.gpt_function_service import GPTFunctionService
+                        from app.core.database import SessionLocal
+                        
+                        db = SessionLocal()
+                        try:
+                            # Get user_id from token if available, otherwise use None for guest
+                            user_id = None
+                            if authorization and authorization.startswith("Bearer "):
+                                token = authorization[7:]
+                                # Try to extract user_id from token (simplified - in production, decode JWT)
+                                # For now, use a placeholder
+                                user_id = "guest"
+                            
+                            gpt_function_service = GPTFunctionService(db=db, user_id=user_id)
+                            result = await gpt_function_service._execute_function_call(
+                                function_name=function_name,
+                                arguments=function_args,
+                                user_id=user_id or "guest"
+                            )
+                            
+                            # Store result for response and extract content
+                            if result:
+                                function_results.append(result)
+                                
+                                # Extract images, file_content, web_url, etc. for frontend display
+                                if result.get("images"):
+                                    extracted_content["images"] = result.get("images", [])
+                                if result.get("file_content"):
+                                    extracted_content["file_content"] = result.get("file_content")
+                                    extracted_content["filename"] = result.get("filename")
+                                if result.get("web_url"):
+                                    extracted_content["web_url"] = result.get("web_url")
+                                    extracted_content["file_id"] = result.get("file_id")
+                                    extracted_content["filename"] = result.get("filename")
+                                if result.get("widget_data"):
+                                    extracted_content["widget_data"] = result.get("widget_data")
+                                
+                                logger.info(f"Function {function_name} executed successfully")
+                        finally:
+                            db.close()
+                    except Exception as func_error:
+                        logger.error(f"Error executing function {function_name}: {str(func_error)}")
+                        result = {"status": "error", "error": str(func_error)}
+                    
                     # Add function result to conversation (result is always a dict)
+                if result:
                     messages.append({
                         "role": "tool",
                         "tool_call_id": tool_call.id,
                         "content": json.dumps(result)
                     })
-                    
-                    if result.get("status") in ["success", "pending"]:
-                        logger.info(f"SMS sent successfully: {result.get('message_sid', 'unknown')}, Twilio status: {result.get('twilio_status', 'unknown')}")
-                    else:
-                        logger.warning(f"SMS send failed: {result.get('error', 'unknown error')}")
             
             # Get final response from AI after function execution (with timeout)
             try:
@@ -1491,12 +1553,48 @@ async def guest_chat_message(
                 logger.info(f"Not a fitness or lesson plan request - message: '{request.message[:50]}...'")
         
         logger.info(f"Returning response with widget_data: {widget_data is not None}")
+        
+        # Merge extracted content with widget_data if available
+        if extracted_content.get("widget_data") and not widget_data:
+            widget_data = extracted_content.get("widget_data")
+        
+        # Also extract file_content and filename from widget_data.data if present (for generated documents)
+        # This ensures chat display works even if they're nested in widget_data
+        if widget_data and isinstance(widget_data, dict) and widget_data.get("data"):
+            widget_data_content = widget_data.get("data", {})
+            if isinstance(widget_data_content, dict):
+                # Extract file_content and filename from widget_data.data if not already extracted
+                if widget_data_content.get("file_content") and not extracted_content.get("file_content"):
+                    extracted_content["file_content"] = widget_data_content.get("file_content")
+                    logger.info("📄 Extracted file_content from widget_data.data for chat display (guest)")
+                if widget_data_content.get("filename") and not extracted_content.get("filename"):
+                    extracted_content["filename"] = widget_data_content.get("filename")
+                    logger.info("📄 Extracted filename from widget_data.data for chat display (guest)")
+                # Also extract web_url if present
+                if widget_data_content.get("web_url") and not extracted_content.get("web_url"):
+                    extracted_content["web_url"] = widget_data_content.get("web_url")
+                    logger.info("☁️ Extracted web_url from widget_data.data for chat display (guest)")
+        
         try:
-            return JSONResponse({
+            response_data = {
                 "response": ai_response or "I've processed your request.",
                 "widgets": None,
                 "widget_data": widget_data
-            })
+            }
+            
+            # Include extracted content for frontend display
+            if extracted_content.get("images") and len(extracted_content["images"]) > 0:
+                response_data["images"] = extracted_content["images"]
+            if extracted_content.get("file_content"):
+                response_data["file_content"] = extracted_content["file_content"]
+                response_data["filename"] = extracted_content["filename"]
+            if extracted_content.get("web_url"):
+                response_data["web_url"] = extracted_content["web_url"]
+                response_data["file_id"] = extracted_content["file_id"]
+                if extracted_content.get("filename"):
+                    response_data["filename"] = extracted_content["filename"]
+            
+            return JSONResponse(response_data)
         except Exception as response_error:
             # If there's an error sending the response (e.g., connection lost), log it but don't crash
             error_type = type(response_error).__name__
@@ -1511,11 +1609,22 @@ async def guest_chat_message(
             
             # Try to return a simple response for other errors
             try:
-                return JSONResponse({
+                response_data = {
                     "response": ai_response or "I've processed your request.",
                     "widgets": None,
                     "widget_data": widget_data
-                }, status_code=200)
+                }
+                # Include extracted content if available
+                if extracted_content.get("images") and len(extracted_content["images"]) > 0:
+                    response_data["images"] = extracted_content["images"]
+                if extracted_content.get("file_content"):
+                    response_data["file_content"] = extracted_content["file_content"]
+                    response_data["filename"] = extracted_content["filename"]
+                if extracted_content.get("web_url"):
+                    response_data["web_url"] = extracted_content["web_url"]
+                    response_data["file_id"] = extracted_content["file_id"]
+                
+                return JSONResponse(response_data, status_code=200)
             except:
                 # If that also fails, raise the original error
                 raise response_error

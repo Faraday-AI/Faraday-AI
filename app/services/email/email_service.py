@@ -9,9 +9,12 @@ import logging
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from typing import Dict, Any, Optional
+from email.mime.base import MIMEBase
+from email import encoders
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 import os
+import io
 from jinja2 import Template
 
 from app.core.config import settings
@@ -240,6 +243,63 @@ class EmailService:
             
         except Exception as e:
             self.logger.error(f"Error sending email to {to_email}: {str(e)}")
+            return False
+    
+    async def send_email_with_attachment(
+        self,
+        recipients: List[str],
+        subject: str,
+        body: str,
+        attachment_bytes: bytes,
+        attachment_filename: str,
+        attachment_content_type: str
+    ) -> bool:
+        """
+        Send email with attachment to multiple recipients.
+        
+        Args:
+            recipients: List of recipient email addresses
+            subject: Email subject
+            body: Email body text
+            attachment_bytes: Attachment file bytes
+            attachment_filename: Name of the attachment file
+            attachment_content_type: MIME type of the attachment
+            
+        Returns:
+            True if email sent successfully, False otherwise
+        """
+        try:
+            # Create message
+            msg = MIMEMultipart()
+            msg['From'] = f"{self.from_name} <{self.from_email}>"
+            msg['To'] = ", ".join(recipients)
+            msg['Subject'] = subject
+            
+            # Add body
+            msg.attach(MIMEText(body, 'plain'))
+            
+            # Add attachment
+            part = MIMEBase('application', 'octet-stream')
+            part.set_payload(attachment_bytes)
+            encoders.encode_base64(part)
+            part.add_header(
+                'Content-Disposition',
+                f'attachment; filename= {attachment_filename}'
+            )
+            msg.attach(part)
+            
+            # Send email
+            with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
+                server.starttls()
+                if self.smtp_username and self.smtp_password:
+                    server.login(self.smtp_username, self.smtp_password)
+                server.send_message(msg, to_addrs=recipients)
+            
+            self.logger.info(f"Email with attachment sent to {len(recipients)} recipient(s)")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error sending email with attachment: {str(e)}")
             return False
     
     def _get_verification_template(self) -> str:
