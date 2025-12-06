@@ -170,17 +170,34 @@ def classify_intent(message_content: str, previous_asked_allergies: bool = False
     
     # Check for follow-up messages that provide details for document creation
     # These are messages that mention document structure/details but don't explicitly say "create"
-    follow_up_patterns = [
-        ("section", ["bullet", "point", "list", "rules", "content"]),
-        ("image", ["clipboard", "basketball", "court", "whistle", "picture", "photo", "illustration"]),
-        ("slide", ["title", "content", "presentation"]),
-        ("document", ["section", "heading", "paragraph", "bullet"]),
+    # Expanded patterns to catch more follow-up scenarios
+    follow_up_keywords = [
+        "section", "sections", "break down", "break the", "organize by", "group by",
+        "heading", "headings", "bullet", "bullets", "point", "points", "list",
+        "image", "images", "picture", "pictures", "photo", "photos", "illustration",
+        "document", "handout", "presentation", "spreadsheet", "slide", "slides"
     ]
-    for keyword, context_words in follow_up_patterns:
-        if keyword in msg_lower:
-            if any(ctx in msg_lower for ctx in context_words):
-                # This looks like a follow-up providing details for content generation
-                return "content_generation"
+    
+    # Equipment/equipment-related terms that often appear in follow-ups for PE documents
+    equipment_terms = [
+        "barbell", "barbells", "dumbbell", "dumbbells", "free weight", "free weights",
+        "cable machine", "cable machines", "medicine ball", "medicine balls",
+        "equipment", "machine", "machines", "weight", "weights"
+    ]
+    
+    # Structure/organization terms
+    structure_terms = ["break", "organize", "group", "divide", "separate", "split"]
+    
+    # If message contains follow-up keywords AND (equipment/structure terms OR section/heading), it's likely content_generation
+    has_follow_up_keyword = any(kw in msg_lower for kw in follow_up_keywords)
+    has_equipment_or_structure = any(term in msg_lower for term in equipment_terms) or any(
+        struct in msg_lower for struct in structure_terms
+    )
+    has_structure_keyword = "section" in msg_lower or "heading" in msg_lower
+    
+    if has_follow_up_keyword and (has_equipment_or_structure or has_structure_keyword):
+        # This looks like a follow-up providing details for content generation
+        return "content_generation"
     
     # Generic widget keywords
     widget_keywords = [
