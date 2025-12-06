@@ -199,6 +199,20 @@ def classify_intent(message_content: str, previous_asked_allergies: bool = False
         # This looks like a follow-up providing details for content generation
         return "content_generation"
     
+    # SMS/Text message detection - check for SMS sending requests
+    sms_patterns = [
+        "send sms", "send text", "text message", "send a text", "text to",
+        "sms to", "send an sms", "send a sms", "text +", "sms +"
+    ]
+    # Check if message contains phone number pattern (+ followed by digits) and SMS keywords
+    import re
+    phone_pattern = r'\+?\d{10,}'  # Matches +1234567890 or 1234567890 (10+ digits)
+    has_phone_number = bool(re.search(phone_pattern, msg_lower))
+    has_sms_keyword = any(pattern in msg_lower for pattern in sms_patterns)
+    
+    if has_sms_keyword or (has_phone_number and ("text" in msg_lower or "sms" in msg_lower or "message" in msg_lower)):
+        return "sms"  # Route to SMS service or general_widget (which has function calling)
+    
     # Generic widget keywords
     widget_keywords = [
         "schedule", "tracking", "progress", "widget", "capabilities", "features",

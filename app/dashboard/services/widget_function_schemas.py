@@ -949,6 +949,24 @@ class WidgetFunctionSchemas:
                 }
             },
             {
+                "name": "send_sms",
+                "description": "Send an SMS message directly to a phone number. Use this for testing or sending SMS to any phone number. Phone number must be in E.164 format (e.g., +1234567890).",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "phone_number": {
+                            "type": "string",
+                            "description": "Recipient phone number in E.164 format (e.g., +1234567890). Must include country code."
+                        },
+                        "message": {
+                            "type": "string",
+                            "description": "SMS message content. Should be 160-320 characters for best results. Must include opt-out instructions for compliance (e.g., 'Reply STOP to opt out')."
+                        }
+                    },
+                    "required": ["phone_number", "message"]
+                }
+            },
+            {
                 "name": "send_assignment_to_students",
                 "description": "Send assignment to students via email with automatic translation. Each student receives assignment in their preferred language.",
                 "parameters": {

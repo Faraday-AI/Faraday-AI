@@ -102,15 +102,14 @@ class SMSService(BaseWidgetService, BaseSpecializedService):
             return """You are Jasper's SMS Specialist. Generate concise, compliant SMS messages (160-320 chars) with opt-out instructions."""
     
     def get_supported_intents(self) -> List[str]:
-        """SMS service handles SMS-related intents."""
+        """SMS service handles SMS content generation intents (not actual sending)."""
         return [
-            "sms",
+            # Note: "sms" intent is handled by GeneralWidgetService for actual sending (has function calling)
+            # This service only generates SMS message content
+            "generate_sms",
+            "sms_content",
             "text_message",
-            "send_sms",
             "sms_message",
-            "text",
-            "message",
-            "send_text",
             "parent_communication",
             "student_communication",
             "notification"

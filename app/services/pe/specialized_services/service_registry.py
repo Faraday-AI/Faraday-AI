@@ -45,7 +45,10 @@ class ServiceRegistry:
             "lesson_plan": LessonPlanService,
             "meal_plan": MealPlanService,
             "workout": WorkoutService,
-            "sms": SMSService,
+            # Note: "sms" intent is handled by GeneralWidgetService (has function calling for sending)
+            # SMSService is for generating SMS content only (use "generate_sms" or "sms_content" intents)
+            "generate_sms": SMSService,
+            "sms_content": SMSService,
             # Content generation service
             "content_generation": ContentGenerationService,
             "generate_image": ContentGenerationService,
@@ -81,6 +84,13 @@ class ServiceRegistry:
             if intent not in self._service_instances:
                 self._service_instances[intent] = service_cls(self.db, self.openai_client)
             return self._service_instances[intent]
+        
+        # Special handling: SMS sending requests should go to GeneralWidgetService (has function calling)
+        # Check this BEFORE checking other services to ensure SMS sending is prioritized
+        if intent == "sms":
+            if "general_widget" not in self._service_instances:
+                self._service_instances["general_widget"] = GeneralWidgetService(self.db, self.openai_client)
+            return self._service_instances["general_widget"]
         
         # Check if any registered service supports this intent
         for service_name, service_cls in self._services.items():

@@ -394,6 +394,47 @@ class GPTFunctionService:
                     admin_emails=arguments.get("admin_emails"),
                     channels=arguments.get("channels", ["email"])
                 )
+            elif function_name == "send_sms":
+                # Direct SMS sending for testing
+                from app.services.integration.twilio_service import get_twilio_service
+                twilio_service = get_twilio_service()
+                phone_number = arguments.get("phone_number")
+                message = arguments.get("message")
+                
+                if not phone_number or not message:
+                    return {
+                        "status": "error",
+                        "message": "Phone number and message are required"
+                    }
+                
+                try:
+                    sms_result = await twilio_service.send_sms(
+                        to_number=phone_number,
+                        message=message
+                    )
+                    if sms_result.get("status") in ["success", "pending"]:
+                        return {
+                            "status": "success",
+                            "message": sms_result.get("message", "SMS sent successfully"),
+                            "message_sid": sms_result.get("message_sid"),
+                            "twilio_status": sms_result.get("twilio_status"),
+                            "to": sms_result.get("to")
+                        }
+                    else:
+                        # Error case - pass through error details
+                        return {
+                            "status": "error",
+                            "error": sms_result.get("error", sms_result.get("message", "Unknown error")),
+                            "details": sms_result.get("details", ""),
+                            "to": sms_result.get("to", phone_number)
+                        }
+                except Exception as e:
+                    logger.error(f"Error sending SMS: {str(e)}")
+                    return {
+                        "status": "error",
+                        "error": f"Failed to send SMS: {str(e)}",
+                        "to": phone_number
+                    }
             elif function_name == "send_assignment_to_students":
                 return await self.ai_widget_service.send_assignment_to_students(
                     assignment_id=arguments.get("assignment_id"),
